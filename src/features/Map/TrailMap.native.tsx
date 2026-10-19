@@ -4,7 +4,6 @@ import {
   CameraRef,
   GeoJSONSource,
   Layer,
-  LineLayerStyle,
   Map,
   Marker,
   StyleSpecification,
@@ -17,8 +16,9 @@ import { Animated, Easing, Share, StyleSheet, Text, TouchableOpacity, View } fro
 import LoadingScreen from "@/src/app/loading";
 import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
 import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
-import { buildOfflineStyle } from "./offlineStyle";
-import { onlineStyle } from "./onlineStyle";
+import { resolveOfflineSprites } from "@/src/utils/resolveOfflineSprites";
+import { buildOfflineStyle } from "./styles/offlineStyle";
+import { onlineStyle } from "./styles/onlineStyle";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const rawMapDataAsset = require("../../assets/map_data/trails_3D_final_v2.geojson");
@@ -339,6 +339,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const [geoJsonUrl, setGeoJsonUrl] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [fontBaseDir, setFontBaseDir] = useState<string>("");
+  const [spriteBaseUri, setSpriteBaseUri] = useState<string>("");
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedHiker, setSelectedHiker] = useState<HikerLocation | null>(null);
 
@@ -481,6 +482,13 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
               console.warn("⚠️ Offline fonts preparation warning:", err);
               if (actuallyOfflineRef.current) throw err;
             }),
+          resolveOfflineSprites()
+            .then((uri) => {
+              if (isMounted) setSpriteBaseUri(uri);
+            })
+            .catch((err) => {
+              console.warn("⚠️ Offline sprites preparation warning:", err);
+            }),
         ];
 
         await Promise.race([
@@ -562,12 +570,12 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     stopBackgroundTracking,
   }));
 
-  // Memoize offline style generation to avoid allocating a new 30+ layer JSON tree on every render
+  // Memoize offline style generation to avoid allocating a new layer JSON tree on every render
   const activeStyle: StyleSpecification | string = useMemo(() => {
     return actuallyOffline
-      ? (buildOfflineStyle(offlineTileUrl, fontBaseDir) as unknown as StyleSpecification)
+      ? (buildOfflineStyle(offlineTileUrl, fontBaseDir, spriteBaseUri) as unknown as StyleSpecification)
       : onlineStyle;
-  }, [actuallyOffline, offlineTileUrl, fontBaseDir]);
+  }, [actuallyOffline, offlineTileUrl, fontBaseDir, spriteBaseUri]);
 
   // Memoize GeoJSON Feature for walked path MultiLineString to prevent re-serializing on unrelated renders
   const walkedPathGeoJson = useMemo(() => {
@@ -579,8 +587,8 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     };
   }, [validSegments]);
 
-  // Item 6: If offline mode is active but offline assets failed or are incomplete, show error UI instead of falling back to onlineStyle
-  if (loadState === "error" || (actuallyOffline && loadState === "ready" && (!offlineTileUrl || !fontBaseDir))) {
+  // If offline mode is active but offline assets failed or are incomplete, show error UI instead of falling back to onlineStyle
+  if (loadState === "error" || (actuallyOffline && loadState === "ready" && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
     return (
       <View style={styles.centered}>
         <MaterialIcons name="cloud-off" size={48} color="#d9534f" />
@@ -598,7 +606,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     );
   }
 
-  if (loadState === "loading" || !geoJsonUrl || (actuallyOffline && (!offlineTileUrl || !fontBaseDir))) {
+  if (loadState === "loading" || !geoJsonUrl || (actuallyOffline && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
     return <LoadingScreen />;
   }
 
@@ -628,7 +636,36 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
 
         {geoJsonUrl && (
           <GeoJSONSource id="trailSource" data={geoJsonUrl}>
-            <Layer id="layer-hiking" type="line" style={mapStyles.trailLine} />
+            {/* Soft translucent casing for enhanced contrast across terrain */}
+            <Layer
+              id="layer-hiking-casing"
+              type="line"
+              beforeId={actuallyOffline ? "roads_labels_minor" : undefined}
+              paint={{
+                "line-color": "#FFFFFF",
+                "line-width": 6,
+                "line-opacity": 0.55,
+              }}
+              layout={{
+                "line-cap": "round",
+                "line-join": "round",
+              }}
+            />
+            {/* Main Trail Line — Placed underneath basemap labels via beforeId */}
+            <Layer
+              id="layer-hiking"
+              type="line"
+              beforeId={actuallyOffline ? "roads_labels_minor" : undefined}
+              paint={{
+                "line-color": "#16A34A",
+                "line-width": 4,
+                "line-opacity": 0.88,
+              }}
+              layout={{
+                "line-cap": "round",
+                "line-join": "round",
+              }}
+            />
           </GeoJSONSource>
         )}
 
@@ -638,7 +675,20 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
             id="walkedPathSource"
             data={walkedPathGeoJson}
           >
-            <Layer id="layer-walked-path" type="line" style={mapStyles.walkedPathStyle} />
+            <Layer
+              id="layer-walked-path"
+              type="line"
+              beforeId={actuallyOffline ? "roads_labels_minor" : undefined}
+              paint={{
+                "line-color": "#FF5722",
+                "line-width": 4,
+                "line-opacity": 0.9,
+              }}
+              layout={{
+                "line-cap": "round",
+                "line-join": "round",
+              }}
+            />
           </GeoJSONSource>
         )}
 
@@ -997,13 +1047,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
-const mapStyles: {
-  trailLine: LineLayerStyle;
-  walkedPathStyle: LineLayerStyle;
-} = {
-  trailLine: { lineColor: "#228B22", lineWidth: 4, lineCap: "round", lineJoin: "round" },
-  walkedPathStyle: { lineColor: "#FF5722", lineWidth: 4, lineCap: "round", lineJoin: "round" },
-};
 
 export default TrailMap;

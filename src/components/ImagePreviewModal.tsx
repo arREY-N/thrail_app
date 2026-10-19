@@ -1,12 +1,22 @@
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Image, ImageSourcePropType, Modal, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
-import ImageZoom from 'react-native-image-pan-zoom';
+import {
+    ActivityIndicator,
+    Image,
+    ImageSourcePropType,
+    Modal,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+    useWindowDimensions
+} from 'react-native';
+import ImageZoom, { ImageZoomProps } from 'react-native-image-pan-zoom';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
-const TypedImageZoom = ImageZoom as unknown as React.FC<any>;
+const TypedImageZoom = ImageZoom as unknown as React.ComponentType<React.PropsWithChildren<ImageZoomProps>>;
 
 /**
  * Props for the ImagePreviewModal component.
@@ -16,8 +26,8 @@ interface ImagePreviewModalProps {
     visible: boolean;
     /** Single image URL to preview */
     imageUrl?: string;
-    /** Array of image URLs to preview (supports carousel navigation) */
-    images?: (string | { uri: string })[];
+    /** Array of image URLs or sources to preview (supports carousel navigation) */
+    images?: (string | { uri: string } | ImageSourcePropType)[];
     /** Callback fired when the modal is closed */
     onClose: () => void;
     /** Callback fired when the delete button is pressed */
@@ -35,6 +45,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     onClose, 
     onDelete 
 }) => {
+    const insets = useSafeAreaInsets();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isImageLoading, setIsImageLoading] = useState(true);
 
@@ -45,17 +56,20 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
         setPrevVisible(visible);
         if (visible) {
             setCurrentIndex(0);
+            setIsImageLoading(true);
         }
     }
 
     const handleNext = () => {
         if (currentIndex < imageList.length - 1) {
+            setIsImageLoading(true);
             setCurrentIndex(prev => prev + 1);
         }
     };
 
     const handlePrev = () => {
         if (currentIndex > 0) {
+            setIsImageLoading(true);
             setCurrentIndex(prev => prev - 1);
         }
     };
@@ -79,17 +93,23 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
         if (!img) return null;
         if (typeof img === 'string') return { uri: img };
         if (typeof img === 'number') return img;
-        return img; 
+        return img as ImageSourcePropType; 
     };
 
     const currentImage = imageList[currentIndex];
     const memoizedSource = useMemo(() => getSource(currentImage), [currentImage]);
 
-    const [prevSource, setPrevSource] = useState(memoizedSource);
-    if (memoizedSource !== prevSource) {
-        setPrevSource(memoizedSource);
-        setIsImageLoading(true);
-    }
+    const currentImageKey = useMemo(() => {
+        if (!currentImage) return 'empty';
+        if (typeof currentImage === 'string') return currentImage;
+        if (typeof currentImage === 'number') return `asset-${currentImage}`;
+        if (typeof currentImage === 'object' && currentImage !== null && 'uri' in currentImage) {
+            return (currentImage as { uri: string }).uri;
+        }
+        return `img-${currentIndex}`;
+    }, [currentImage, currentIndex]);
+
+    const topOffset = Math.max(insets.top + 16, 24);
 
     return (
         <Modal
@@ -102,20 +122,24 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                 
                 {onDelete && imageList.length > 0 && (
                     <TouchableOpacity 
-                        style={styles.modalDeleteButton} 
+                        style={[styles.modalDeleteButton, { top: topOffset }]} 
                         onPress={handleDeleteClick}
                         activeOpacity={0.7}
+                        accessibilityLabel="Delete image"
+                        accessibilityRole="button"
                     >
-                        <CustomIcon library="Feather" name="trash-2" size={26} color={Colors.ERROR} />
+                        <CustomIcon library="Feather" name="trash-2" size={18} color={Colors.ERROR} />
                     </TouchableOpacity>
                 )}
 
                 <TouchableOpacity 
-                    style={styles.modalCloseButton} 
+                    style={[styles.modalCloseButton, { top: topOffset }]} 
                     onPress={onClose}
                     activeOpacity={0.7}
+                    accessibilityLabel="Close image preview"
+                    accessibilityRole="button"
                 >
-                    <CustomIcon library="Feather" name="x" size={30} color={Colors.WHITE} />
+                    <CustomIcon library="Feather" name="x" size={20} color={Colors.WHITE} />
                 </TouchableOpacity>
 
                 {imageList.length > 1 && currentIndex > 0 && (
@@ -123,8 +147,10 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                         style={[styles.navButton, styles.navLeft]} 
                         onPress={handlePrev}
                         activeOpacity={0.7}
+                        accessibilityLabel="Previous image"
+                        accessibilityRole="button"
                     >
-                        <CustomIcon library="Feather" name="chevron-left" size={36} color={Colors.WHITE} />
+                        <CustomIcon library="Feather" name="chevron-left" size={22} color={Colors.WHITE} />
                     </TouchableOpacity>
                 )}
                 
@@ -134,7 +160,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                             <ActivityIndicator 
                                 size="large" 
                                 color={Colors.WHITE} 
-                                style={{ position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -18 }, { translateY: -18 }], zIndex: 10 }} 
+                                style={styles.loadingIndicator} 
                             />
                         )}
                         <TypedImageZoom 
@@ -144,9 +170,14 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                             imageHeight={cropHeight}
                         >
                             <Image 
-                                source={memoizedSource as any} 
-                                style={{ width: windowWidth, height: cropHeight, opacity: isImageLoading ? 0 : 1 }} 
+                                key={`preview-image-${currentIndex}-${currentImageKey}`}
+                                source={memoizedSource ?? { uri: '' }} 
+                                style={[
+                                    styles.previewImage,
+                                    { width: windowWidth, height: cropHeight, opacity: isImageLoading ? 0 : 1 }
+                                ]} 
                                 resizeMode="contain" 
+                                onLoad={() => setIsImageLoading(false)}
                                 onLoadEnd={() => setIsImageLoading(false)}
                                 onError={() => setIsImageLoading(false)}
                             />
@@ -159,8 +190,10 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                         style={[styles.navButton, styles.navRight]} 
                         onPress={handleNext}
                         activeOpacity={0.7}
+                        accessibilityLabel="Next image"
+                        accessibilityRole="button"
                     >
-                        <CustomIcon library="Feather" name="chevron-right" size={36} color={Colors.WHITE} />
+                        <CustomIcon library="Feather" name="chevron-right" size={22} color={Colors.WHITE} />
                     </TouchableOpacity>
                 )}
 
@@ -183,44 +216,54 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-
     zoomWrapper: {
         width: '100%',
         height: '80%',
         zIndex: 1,
     },
+    loadingIndicator: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: [{ translateX: -18 }, { translateY: -18 }],
+        zIndex: 10,
+    },
+    previewImage: {
+        width: '100%',
+        height: '100%',
+    },
     modalCloseButton: {
         position: 'absolute',
-        top: 50,
-        right: 20,
+        right: 16,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Colors.IMAGE_PREVIEW_BUTTON_BG,
+        justifyContent: 'center',
+        alignItems: 'center',
         zIndex: 10,
-        padding: 10,
-        backgroundColor: `${Colors.BLACK}99`,
-        borderRadius: 24,
     },
     modalDeleteButton: {
         position: 'absolute',
-        top: 50,
-        left: 20,
+        left: 16,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Colors.IMAGE_PREVIEW_BUTTON_BG,
+        justifyContent: 'center',
+        alignItems: 'center',
         zIndex: 10,
-        padding: 10,
-        backgroundColor: `${Colors.BLACK}99`,
-        borderRadius: 24,
-    },
-    modalImage: {
-        width: '100%',
-        height: '100%',
     },
     navButton: {
         position: 'absolute',
         top: '50%',
-        transform: [{ translateY: -24 }],
-        width: 48,
-        height: 48,
-        borderRadius: 24, 
+        transform: [{ translateY: -20 }],
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: `${Colors.BLACK}99`, 
+        backgroundColor: Colors.IMAGE_PREVIEW_BUTTON_BG,
         zIndex: 10,
     },
     navLeft: {
@@ -232,7 +275,7 @@ const styles = StyleSheet.create({
     counterBadge: {
         position: 'absolute',
         bottom: 40,
-        backgroundColor: `${Colors.BLACK}99`,
+        backgroundColor: Colors.IMAGE_PREVIEW_COUNTER_BG,
         paddingVertical: 6,
         paddingHorizontal: 16,
         borderRadius: 16,
@@ -241,8 +284,8 @@ const styles = StyleSheet.create({
     counterText: {
         color: Colors.WHITE,
         fontWeight: 'bold',
-        fontSize: 16,
-    }
+        fontSize: 14,
+    },
 });
 
 export default ImagePreviewModal;

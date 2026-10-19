@@ -18,9 +18,9 @@ import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
-import CustomToast from '@/src/components/CustomToast';
 import DocumentUploadCard, { getDocSubtitle, getStrictDocKey } from '@/src/components/DocumentUploadCard';
 import EmergencySetupModal, { UserSearchResult } from '@/src/components/EmergencyModal';
+import { useToast } from '@/src/components/Toast/Toast';
 
 import { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
@@ -89,6 +89,7 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
         return initial;
     };
 
+    const { showToast } = useToast();
     const [formData, setFormData] = useState<HikerBookingDetails>(getInitialData());
     const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>(getInitialUploadedDocs());
     const [isSignatureValid, setIsSignatureValid] = useState(false);
@@ -96,11 +97,8 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     const [showUnifiedModal, setShowUnifiedModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const isConfirmingRef = useRef(false);
+    const scrollViewRef = useRef<ScrollView>(null);
 
-    const [toastConfig, setToastConfig] = useState<{ visible: boolean; message: string }>({
-        visible: false,
-        message: '',
-    });
     const isMinor = checkIfMinor(profile?.birthday);
 
     const activeDocuments = [...requiredDocuments];
@@ -150,42 +148,40 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
 
         if (!isPhoneSet) {
             setHasAttemptedSubmit(true);
-            setToastConfig({
-                visible: true,
-                message: "Please enter your contact phone number to proceed.",
+            showToast.error("Please enter your contact phone number to proceed.", {
+                onHide: () => setHasAttemptedSubmit(false),
             });
             return;
         }
 
         if (!isEmergencySet) {
             setHasAttemptedSubmit(true);
-            setToastConfig({
-                visible: true,
-                message: isMinor 
+            showToast.error(
+                isMinor 
                     ? "Parent / Guardian emergency contact is required to proceed." 
                     : "Emergency contact (name & phone number) is required to proceed.",
-            });
+                { onHide: () => setHasAttemptedSubmit(false) }
+            );
             return;
         }
 
         if (!areAllDocsUploaded) {
             setHasAttemptedSubmit(true);
             const remaining = activeDocuments.length - uploadedCount;
-            setToastConfig({
-                visible: true,
-                message: `Please upload all required documents (${remaining} remaining).`,
+            showToast.error(`Please upload all required documents (${remaining} remaining).`, {
+                onHide: () => setHasAttemptedSubmit(false),
             });
             return;
         }
 
         if (!isSignatureValid) {
             setHasAttemptedSubmit(true);
-            setToastConfig({
-                visible: true,
-                message: isMinor
+            showToast.error(
+                isMinor
                     ? "Parent / Guardian signature and policy review are required to proceed."
                     : "Please review all policies and type your full name in the signature field to reserve.",
-            });
+                { onHide: () => setHasAttemptedSubmit(false) }
+            );
             return;
         }
 
@@ -201,7 +197,12 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
 
     return (
         <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ScrollView 
+                ref={scrollViewRef}
+                showsVerticalScrollIndicator={false} 
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+            >
                 <View style={styles.constrainer}>
                     
                     {/* Section 1: Contact Details */}
@@ -389,10 +390,12 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                                 setIsSignatureValid(valid);
                             }}
                             onShowToast={(message) => {
-                                setToastConfig({
-                                    visible: true,
-                                    message,
-                                });
+                                showToast.info(message);
+                            }}
+                            onSignatureFocus={() => {
+                                setTimeout(() => {
+                                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                                }, 150);
                             }}
                         />
                     </View>
@@ -401,37 +404,13 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
             </ScrollView>
 
             <CustomStickyFooter 
+                enableToastDock={true}
                 primaryButton={{
                     title: isSubmitting ? "Reserving..." : "Reserve",
                     disabled: isSubmitting,
                     isLoading: isSubmitting,
-                    style: {
-                        backgroundColor: isFormValid 
-                            ? Colors.PRIMARY 
-                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_BG : Colors.GRAY_ULTRALIGHT),
-                        borderColor: isFormValid 
-                            ? Colors.PRIMARY 
-                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.GRAY_LIGHT),
-                        borderWidth: 1.5,
-                    },
-                    textStyle: {
-                        color: isFormValid 
-                            ? Colors.WHITE 
-                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.TEXT_SECONDARY),
-                    },
-                    onPress: handleReservePress
-                }}
-            />
-
-            <CustomToast 
-                visible={toastConfig.visible}
-                message={toastConfig.message}
-                type="error"
-                mode="dismissible"
-                position="sticky_footer"
-                onHide={() => {
-                    setToastConfig(prev => ({ ...prev, visible: false }));
-                    setHasAttemptedSubmit(false);
+                    validationState: isFormValid ? 'valid' : (hasAttemptedSubmit ? 'error' : 'idle'),
+                    onPress: handleReservePress,
                 }}
             />
 

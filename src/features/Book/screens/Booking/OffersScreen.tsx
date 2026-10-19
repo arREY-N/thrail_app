@@ -11,8 +11,8 @@ import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
-import CustomToast from '@/src/components/CustomToast';
 import ErrorMessage from '@/src/components/ErrorMessage';
+import { useToast } from '@/src/components/Toast/Toast';
 import OfferCalendar from '@/src/features/Book/components/OfferCalendar';
 import OfferCard from '@/src/features/Book/components/OfferCard';
 
@@ -162,6 +162,7 @@ const OffersScreen = ({
     onContinue,
     onViewBookingDetails,
 }: OffersScreenProps): React.JSX.Element => {
+    const { showToast } = useToast();
     const safeOffers = useMemo(() => (Array.isArray(offers) ? offers : []), [offers]);
     const safeBookings = useMemo(() => (
         Array.isArray(userBookings) 
@@ -259,7 +260,6 @@ const OffersScreen = ({
     }
 
     const [localSelectedId, setLocalSelectedId] = useState<string | null>(selectedOfferId || null);
-    const [toastMessage, setToastMessage] = useState<string | null>(null);
 
     // Consecutive / back-to-back hike confirmation modal state
     const [isConsecutiveModalOpen, setIsConsecutiveModalOpen] = useState(false);
@@ -341,7 +341,12 @@ const OffersScreen = ({
             consecutiveSourceBooking,
             candidateSpan
         };
-    }, [effectiveBookedOfferIds, todayFormatted, todayMidnight, minBookingDate, bookedOfferSpans, conflictOfferIds, consecutiveOfferIds]);
+    }, [
+            effectiveBookedOfferIds, 
+            todayFormatted, todayMidnight, 
+            minBookingDate, bookedOfferSpans, 
+            conflictOfferIds, consecutiveOfferIds
+        ]);
 
     const [hasAttemptedBlockedSubmit, setHasAttemptedBlockedSubmit] = useState(false);
 
@@ -350,19 +355,12 @@ const OffersScreen = ({
         setSelectedDate(date);
         setLocalSelectedId(null);
         setHasAttemptedBlockedSubmit(false);
-        setToastMessage(null);
     };
 
     const handleOfferSelect = (offerId: string) => {
         setLocalSelectedId(localSelectedId === offerId ? null : offerId);
         setHasAttemptedBlockedSubmit(false);
-        setToastMessage(null);
     };
-
-    const handleHideToast = useCallback(() => {
-        setHasAttemptedBlockedSubmit(false);
-        setToastMessage(null);
-    }, []);
 
     // Evaluate selected offer status
     const selectedOffer = useMemo(() => {
@@ -384,7 +382,10 @@ const OffersScreen = ({
 
     const handleContinue = () => {
         if (!localSelectedId) {
-            setToastMessage("Please select an offer to continue.");
+            setHasAttemptedBlockedSubmit(true);
+            showToast.error("Please select an offer to continue.", {
+                onHide: () => setHasAttemptedBlockedSubmit(false),
+            });
             return;
         }
 
@@ -396,30 +397,40 @@ const OffersScreen = ({
                 return;
             }
             setHasAttemptedBlockedSubmit(true);
-            setToastMessage("You already have an active reservation for this package.");
+            showToast.error("You already have an active reservation for this package.", {
+                onHide: () => setHasAttemptedBlockedSubmit(false),
+            });
             return;
         }
 
         if (selectedOfferStatus.isDateConflict) {
             setHasAttemptedBlockedSubmit(true);
             const overlapSpan = selectedOfferStatus.overlappingBooking?.formattedSpan || "this date";
-            setToastMessage(`You already have an active reservation overlapping this date (${overlapSpan}).`);
+            showToast.error(`You already have an active reservation overlapping this date (${overlapSpan}).`, {
+                onHide: () => setHasAttemptedBlockedSubmit(false),
+            });
             return;
         }
 
         if (selectedOfferStatus.isWithinAdvanceCutoff) {
             setHasAttemptedBlockedSubmit(true);
             if (selectedOfferStatus.isToday) {
-                setToastMessage("Reservations for today are closed. Please choose an upcoming date at least 1 week ahead.");
+                showToast.error("Reservations for today are closed. Please choose an upcoming date at least 1 week ahead.", {
+                    onHide: () => setHasAttemptedBlockedSubmit(false),
+                });
             } else {
-                setToastMessage("Reservations require at least 1 week advance notice. Please select an offer at least 7 days ahead.");
+                showToast.error("Reservations require at least 1 week advance notice. Please select an offer at least 7 days ahead.", {
+                    onHide: () => setHasAttemptedBlockedSubmit(false),
+                });
             }
             return;
         }
 
         if (selectedOfferStatus.isClosed) {
             setHasAttemptedBlockedSubmit(true);
-            setToastMessage("This date is closed for reservations. Please choose an upcoming date at least 1 week ahead.");
+            showToast.error("This date is closed for reservations. Please choose an upcoming date at least 1 week ahead.", {
+                onHide: () => setHasAttemptedBlockedSubmit(false),
+            });
             return;
         }
 
@@ -460,37 +471,18 @@ const OffersScreen = ({
         return "Continue";
     };
 
-    // Compute footer button styling synced with DetailsScreen
-    const getFooterButtonStyle = () => {
+    // Compute footer button validation state
+    const getFooterButtonValidationState = (): 'valid' | 'idle' | 'error' => {
+        if (hasAttemptedBlockedSubmit) {
+            return 'error';
+        }
         if (!localSelectedId) {
-            return styles.idleFooterButton;
+            return 'idle';
         }
-        if (selectedOfferStatus?.isExactBooked && onViewBookingDetails) {
-            return styles.activeFooterButton;
+        if (isSelectedOfferBlocked && !(selectedOfferStatus?.isExactBooked && onViewBookingDetails)) {
+            return 'idle';
         }
-        if (isSelectedOfferBlocked) {
-            if (hasAttemptedBlockedSubmit || !!toastMessage) {
-                return styles.errorFooterButton;
-            }
-            return styles.blockedFooterButton;
-        }
-        return styles.activeFooterButton;
-    };
-
-    const getFooterButtonTextStyle = () => {
-        if (!localSelectedId) {
-            return styles.idleFooterButtonText;
-        }
-        if (selectedOfferStatus?.isExactBooked && onViewBookingDetails) {
-            return styles.activeFooterButtonText;
-        }
-        if (isSelectedOfferBlocked) {
-            if (hasAttemptedBlockedSubmit || !!toastMessage) {
-                return styles.errorFooterButtonText;
-            }
-            return styles.blockedFooterButtonText;
-        }
-        return styles.activeFooterButtonText;
+        return 'valid';
     };
 
     return (
@@ -560,11 +552,11 @@ const OffersScreen = ({
             </ScrollView>
 
             <CustomStickyFooter
+                enableToastDock={true}
                 primaryButton={{
                     title: getFooterButtonTitle(),
                     onPress: handleContinue,
-                    style: getFooterButtonStyle(),
-                    textStyle: getFooterButtonTextStyle(),
+                    validationState: getFooterButtonValidationState(),
                 }}
             />
 
@@ -579,16 +571,6 @@ const OffersScreen = ({
                 cancelText="Review Dates"
                 iconName="calendar"
                 iconLibrary="Feather"
-            />
-
-            {/* Status Toast Notification */}
-            <CustomToast 
-                visible={!!toastMessage}
-                message={toastMessage || ''}
-                onHide={handleHideToast}
-                type="error"
-                mode="dismissible"
-                position="sticky_footer"
             />
         </View>
     );
@@ -658,46 +640,6 @@ const styles = StyleSheet.create({
     },
     emptyCaption: {
         color: Colors.TEXT_SECONDARY,
-    },
-
-    idleFooterButton: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        borderColor: Colors.GRAY_LIGHT,
-        borderWidth: 1.5,
-    },
-    idleFooterButtonText: {
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: 'bold',
-    },
-
-    blockedFooterButton: {
-        backgroundColor: Colors.BUTTON_DISABLED_BG,
-        borderColor: Colors.GRAY_LIGHT,
-        borderWidth: 1.5,
-    },
-    blockedFooterButtonText: {
-        color: Colors.BUTTON_DISABLED_TEXT,
-        fontWeight: 'bold',
-    },
-
-    errorFooterButton: {
-        backgroundColor: Colors.STATUS_CANCELLED_BG,
-        borderColor: Colors.STATUS_CANCELLED_TEXT,
-        borderWidth: 1.5,
-    },
-    errorFooterButtonText: {
-        color: Colors.STATUS_CANCELLED_TEXT,
-        fontWeight: 'bold',
-    },
-
-    activeFooterButton: {
-        backgroundColor: Colors.PRIMARY,
-        borderColor: Colors.PRIMARY,
-        borderWidth: 1.5,
-    },
-    activeFooterButtonText: {
-        color: Colors.WHITE,
-        fontWeight: 'bold',
     },
 });
 

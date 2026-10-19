@@ -1009,5 +1009,114 @@ Implement **Option 2A**:
   - `src/features/Navigation/screens/HikeRecordingScreen.tsx`
   - `plans/GPS_AUDIT_IMPROVEMENTS.md`
 
+---
+
+### 8.12 Task T-34: "Signal Lost" / Last Known Location (LKL) Status in Hiker Status Board
+
+#### 1. Problem Statement & User Findings
+- **Discrepancy Between Map Layer and Status Board:**
+  - On the native map (`TrailMap.native.tsx`), Thrail already has a mature 3-state tracking model:
+    1. **Live Beacon** (Green pulse/dot, recent updates $\le 2\text{ min}$)
+    2. **Signal Lost / Last Known Location** (Amber warning badge `⚠️ Signal Lost • Xm ago`, pin retained on canvas for 24h search & rescue)
+    3. **Offline** (No pin on map)
+  - In contrast, the **Hiker Status Board** modal in `HikeRecordingScreen.tsx` currently only uses a **flat binary 2-state model** (`Live` vs. `Offline`).
+- **Safety & Situational Awareness Gap:**
+  - When a group member enters a dead zone, canyon, or runs out of battery mid-hike:
+    - Their card in the Hiker Status Board switches to `• Offline` with `Updated: Oct 18, 3:42 PM`.
+    - Members who **never joined / never broadcasted** also show `• Offline` with `Waiting for signal...`.
+    - There is **no visual distinction** (no amber badge, no warning indicator, no relative elapsed time) showing who has dropped connection while actively out on the trail versus someone who simply hasn't started.
+  - A Lead Guide or member glancing at the board cannot quickly distinguish a potential lost/disconnected hiker who needs immediate safety checks.
+
+#### 2. Technical Gap Analysis in `HikeRecordingScreen.tsx`
+1. **Binary Inactive Calculation (Lines 276–285):**
+   ```typescript
+   const isInactive = locData ? (currentTime - new Date(locData.timestamp).getTime() > 120000) : true;
+   ```
+   - This lumps `!locData` (offline/no broadcast) and `elapsedTime > 120s` (signal lost mid-hike) into a single boolean `isInactive`.
+2. **Binary UI Badge Rendering (Lines 720–723):**
+   ```tsx
+   <View style={[styles.statusBadge, isInactive ? styles.badgeOffline : styles.badgeLive]}>
+       <View style={[styles.statusDot, isInactive ? { backgroundColor: Colors.TEXT_SECONDARY } : { backgroundColor: Colors.PRIMARY }]} />
+       <CustomText style={isInactive ? styles.textOffline : styles.textLive}>{isInactive ? 'Offline' : 'Live'}</CustomText>
+   </View>
+   ```
+   - Only `badgeLive` (green) and `badgeOffline` (gray) exist.
+   - There is no amber warning badge style (`badgeSignalLost`).
+3. **Static Timestamp Without Relative Elapsed Duration (Line 709):**
+   ```tsx
+   <CustomText variant="caption">{locData ? `Updated: ${formatDateTime(locData.timestamp)}` : 'Waiting for signal...'}</CustomText>
+   ```
+   - Guides must perform mental arithmetic against the current clock to guess how many minutes have passed since the hiker last checked in.
+
+#### 3. Proposed 3-Tier State Architecture for Hiker Status Board
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ Hiker Status Board                                                 [X] │
+├────────────────────────────────────────────────────────────────────────┤
+│ (RV) Raven VILLANU3VA                                                  │
+│      Updated: Oct 18, 3:42 PM                                 [• Live] │
+│      [📍 Track Hiker]                                                  │
+├────────────────────────────────────────────────────────────────────────┤
+│ (TO) Test Owner ⚠️                                                     │
+│      Signal Lost • 6m ago (Last known: 3:36 PM)          [⚠️ Lost]     │
+│      [📍 Track Hiker]                                                  │
+├────────────────────────────────────────────────────────────────────────┤
+│ (RP) Reynal Penus                                                      │
+│      Waiting for signal...                                   [• Offline]│
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **3-State Classification:**
+   - **`live`**:
+     - Condition: `locData` exists AND `(currentTime - timestamp) <= 120,000` (within 2 minutes) AND `locData.status !== 'GPS_SIGNAL_LOST'`.
+     - Badge: `• Live` (Green `#E8F5E9`, border `#A5D6A7`, text `#2E7D32`).
+     - Subtitle: `Updated: ${formatTime(locData.timestamp)}`.
+     - Avatar: Primary Green background.
+     - Action: `[📍 Track Hiker]` button visible (centers map on live pin).
+   - **`lost` (Signal Lost / Last Known Location):**
+     - Condition: `locData` exists AND (`(currentTime - timestamp) > 120,000` OR `locData.status === 'GPS_SIGNAL_LOST'`).
+     - Badge: `⚠️ Signal Lost` (Amber `#FFF3E0`, border `#FFE0B2`, text `#E65100`).
+     - Subtitle: `Signal Lost • ${formatTimeAgo(locData.timestamp)} (Last: ${formatTime(locData.timestamp)})`.
+     - Avatar: Amber border or warning badge indicator on avatar circle.
+     - Action: `[📍 Track Hiker]` button remains visible! (centers map on their Last Known Location pin for rescue navigation).
+   - **`offline`**:
+     - Condition: `!locData` (no telemetry received during this session).
+     - Badge: `• Offline` (Gray `#F5F5F5`, border `#E0E0E0`, text `#757575`).
+     - Subtitle: `Waiting for signal...`.
+     - Avatar: Gray background.
+     - Action: No track button.
+
+2. **Safety-First Sorting Hierarchy:**
+   - 1st: **Live** members (actively streaming telemetry).
+   - 2nd: **Signal Lost** members (flagged prominently for group monitoring / guide awareness).
+   - 3rd: **Offline** members (unconnected / waiting to join).
+
+3. **Cross-Device Responsiveness Safeguards (Compact 320px–360px Phones to Tablets):**
+   - **Horizontal Space Management on 360px Devices:**
+     - Modal inner padding: $24\text{px} \times 2 = 48\text{px}$, leaving only $312\text{px}$ usable width on a $360\text{px}$ device.
+     - `statusBadge`: Must have `flexShrink: 0` and `alignSelf: 'flex-start'` (or centered vertically) so badges like `⚠️ Signal Lost` never get squished, wrap onto two lines, or clip their text.
+     - `memberName`: Add `numberOfLines={1}` and `ellipsizeMode="tail"` with `flexShrink: 1` so long hiker names (e.g. "Maria Santos Dela Cruz") don't push the badge off the right edge.
+     - `memberInfo`: Add `minWidth: 0, flex: 1, paddingRight: 8` for rigid flexbox constraint boundaries.
+     - Subtitle: Allow clean wrapping (`numberOfLines={2}`) so `Signal Lost • 6m ago (Last known: 3:36 PM)` reads comfortably without text truncation.
+   - **Large Screens & Tablet Adaptation:**
+     - Constrain `bottomSheet` with `maxWidth: 500`, `width: '100%'`, and `alignSelf: 'center'` so it renders as a sleek, centered sheet on tablets, foldables, and desktop/web fallbacks rather than stretching across the entire width.
+   - **Dynamic Vertical Height Handling:**
+     - Replace hardcoded `maxHeight: 400` on the ScrollView with dynamic viewport fraction `maxHeight: SCREEN_HEIGHT * 0.55` so short screens or devices with dense DPI scaling do not push the close button or header offscreen.
+
+4. **Status & Implementation References:**
+   - **Status:** ✅ **Implemented & Verified in Production**
+   - **Target File:** `src/features/Navigation/screens/HikeRecordingScreen.tsx`
+   - **Key Capabilities Added:**
+     - 3-tier reactive mapping (`live` -> Green, `signal_lost` -> Amber, `offline` -> Gray).
+     - Live elapsed time formatting via `formatTimeAgo(locData.timestamp, currentTime)`.
+     - 5-second dynamic re-calculation interval driven by `currentTime` state ticker.
+     - Amber `⚠️ Signal Lost` status badge and amber avatar highlight.
+     - Dedicated `Track Last Known` action button flying camera directly to the member's Last Known Location (LKL) pin with coordinates and elapsed disconnect time alert.
+     - Full cross-device responsiveness with rigid flex constraints (`flexShrink: 0` on badges, `numberOfLines={1}` on names, `maxWidth: 500` centered bottom sheet, and dynamic `screenHeight * 0.55` viewport scroll).
+
+
+
+
 
 

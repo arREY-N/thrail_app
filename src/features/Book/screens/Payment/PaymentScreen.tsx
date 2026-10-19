@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
-import CustomToast from '@/src/components/CustomToast';
+import { useToast } from '@/src/components/Toast/Toast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
@@ -21,6 +21,7 @@ import { app } from '@/src/core/config/Firebase';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+
 
 export interface PaymentResultResponse {
     checkout_url: string;
@@ -87,10 +88,7 @@ const PaymentScreen = ({
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
     const [isSignatureValid, setIsSignatureValid] = useState(false);
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
-    const [toastConfig, setToastConfig] = useState<{ visible: boolean; message: string }>({
-        visible: false,
-        message: '',
-    });
+    const { showToast } = useToast();
 
     const payments = Array.isArray(bookingData?.payment) ? bookingData.payment : [];
     const latestPayment: IPayment<Date> | undefined = payments[payments.length - 1];
@@ -150,21 +148,22 @@ const PaymentScreen = ({
 
             if (!selectedMethod) {
                 setHasAttemptedSubmit(true);
-                setToastConfig({
-                    visible: true,
-                    message: "Please select a payment method to proceed.",
+                showToast.error("Please select a payment method to proceed.", {
+                    onHide: () => setHasAttemptedSubmit(false),
                 });
                 return;
             }
 
             if (!isSignatureValid) {
                 setHasAttemptedSubmit(true);
-                setToastConfig({
-                    visible: true,
-                    message: isUserMinor
+                showToast.error(
+                    isUserMinor
                         ? "Parent / Guardian signature is required to authorize payment."
                         : "Please type your full name in the signature field to authorize payment.",
-                });
+                    {
+                        onHide: () => setHasAttemptedSubmit(false),
+                    }
+                );
                 return;
             }
 
@@ -254,6 +253,16 @@ const PaymentScreen = ({
                             }, 3000);
                         } else {
                             setIsWaitingForVerification(true);
+                            // Safety fallback: if verification takes longer than 15s, release spinner and notify user
+                            setTimeout(() => {
+                                setIsWaitingForVerification(prev => {
+                                    if (prev) {
+                                        setPaymentError("We are finalizing your payment with the provider. If your payment was completed, your booking status will update automatically in a few moments.");
+                                        return false;
+                                    }
+                                    return prev;
+                                });
+                            }, 15000);
                         }
                     }
 
@@ -295,6 +304,7 @@ const PaymentScreen = ({
         latestPayment,
         isSignatureValid,
         isUserMinor,
+        showToast,
     ]);
 
     const handleHeaderBackPress = useCallback(() => {
@@ -337,6 +347,8 @@ const PaymentScreen = ({
                 onPress: handleNextStep,
                 disabled: isSubmitting || isWaitingForVerification,
                 isLoading: isSubmitting,
+                validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                isIdleDisabled: false,
                 style: {
                     backgroundColor: isReady
                         ? Colors.PRIMARY
@@ -451,26 +463,17 @@ const PaymentScreen = ({
             </View>
 
             <CustomStickyFooter
+                enableToastDock={true}
                 primaryButton={{
                     title: footerConfig.title,
                     onPress: footerConfig.onPress,
                     disabled: footerConfig.disabled,
                     isLoading: footerConfig.isLoading,
                     variant: footerConfig.variant,
+                    validationState: footerConfig.validationState,
+                    isIdleDisabled: footerConfig.isIdleDisabled,
                     style: footerConfig.style,
                     textStyle: footerConfig.textStyle,
-                }}
-            />
-
-            <CustomToast
-                visible={toastConfig.visible}
-                message={toastConfig.message}
-                type="error"
-                mode="dismissible"
-                position="sticky_footer"
-                onHide={() => {
-                    setToastConfig(prev => ({ ...prev, visible: false }));
-                    setHasAttemptedSubmit(false);
                 }}
             />
         </ScreenWrapper>

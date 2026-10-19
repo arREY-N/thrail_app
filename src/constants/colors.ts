@@ -83,6 +83,28 @@ export const Palette = {
     GrayAlpha25:  '#C4C4C440',
     OffWhiteAlpha75: 'rgba(250, 252, 250, 0.75)',
     OffWhiteAlpha0:  'rgba(250, 252, 250, 0)',
+
+    // Additional Map Pin Colors & Accents
+    Teal600:    '#0D9488',
+    Purple600:  '#7C3AED',
+    Pink600:    '#E11D48',
+    Cyan600:    '#06B6D4',
+    Lime600:    '#4D7C0F',
+    Emerald600: '#059669',
+    Indigo600:  '#4F46E5',
+    Orange700:  '#EA580C',
+    Amber700:   '#D97706',
+    Slate700:   '#334155',
+
+    // Dark Map Modal Overlays & Translucencies (Neutral Black & Dark Zinc)
+    DarkBackdrop94:  'rgba(0, 0, 0, 0.92)',
+    DarkBackdrop80:  'rgba(0, 0, 0, 0.80)',
+    DarkCardOverlay: 'rgba(24, 24, 27, 0.94)',
+    DarkCardBorder:  'rgba(255, 255, 255, 0.15)',
+
+    // Translucent Dark Button & Overlay Backgrounds
+    BlackAlpha45:    'rgba(0, 0, 0, 0.45)',
+    BlackAlpha65:    'rgba(0, 0, 0, 0.65)',
 };
 
 export const Colors = {
@@ -373,16 +395,35 @@ export const Colors = {
     LEADERBOARD_BRONZE_ACCENT: Palette.Bronze700,
     LEADERBOARD_PEAK_BASE:     Palette.Green700,
 
+    // Map Modal & Translucent Overlays
+    MAP_MODAL_BACKDROP:        Palette.DarkBackdrop94,
+    MAP_CARD_BACKDROP:         Palette.DarkCardOverlay,
+    MAP_CARD_BORDER:           Palette.DarkCardBorder,
+
     // Map Pin & Waypoint Semantic Tokens
-    PIN_SUMMIT:                Palette.Red700,
-    PIN_CHECKPOINT:            Palette.Orange800,
-    PIN_VIEWPOINT:             Palette.Green700,
+    PIN_SUMMIT:                Palette.Green700,
+    PIN_CHECKPOINT:            Palette.Orange700,
+    PIN_VIEWPOINT:             Palette.Emerald600,
     PIN_WATER:                 Palette.Blue600,
-    PIN_SHELTER:               Palette.Brown600,
-    PIN_HAZARD:                Palette.Red900,
+    PIN_SHELTER:               Palette.Indigo600,
+    PIN_HAZARD:                Palette.Red700,
     PIN_BADGE_BG:              Palette.Green50,
     PIN_BADGE_BORDER:          Palette.Green100,
     PIN_BADGE_TEXT:            Palette.Green700,
+
+    // Curated Pin Palette Swatches for Custom / Other
+    PIN_TEAL:                  Palette.Teal600,
+    PIN_PURPLE:                Palette.Purple600,
+    PIN_PINK:                  Palette.Pink600,
+    PIN_CYAN:                  Palette.Cyan600,
+    PIN_LIME:                  Palette.Lime600,
+    PIN_AMBER:                 Palette.Amber700,
+    PIN_SLATE:                 Palette.Slate700,
+
+    // Floating Media & Hero Header Buttons
+    HEADER_BUTTON_BG:          Palette.BlackAlpha45,
+    IMAGE_PREVIEW_BUTTON_BG:   Palette.BlackAlpha45,
+    IMAGE_PREVIEW_COUNTER_BG:  Palette.BlackAlpha65,
 };
 
 // Color Samples

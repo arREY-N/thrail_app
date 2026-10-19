@@ -50,7 +50,7 @@ export default function useReviewLogic(
     const isOfferExpired = offerDate ? offerDate.getTime() < new Date().setHours(0, 0, 0, 0) : false;
     const isTerminalStatus = ['completed', 'cancelled', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(booking?.status ?? '');
 
-    const hasRefundedPayment = booking?.payment?.some((p) => p.status === 'refunded');
+    const hasRefundedPayment = booking?.payment?.some((p) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0)) || booking?.status === 'refund' || booking?.status === 'refunded';
     
     const currentStatus = hasRefundedPayment 
         ? 'refunded' 

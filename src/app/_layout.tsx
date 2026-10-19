@@ -1,6 +1,7 @@
 import LoadingScreen from "@/src/app/loading";
 import { MaintenanceScreen } from "@/src/app/maintenance";
-import GlobalErrorFallback from "@/src/components/GlobalErrorFallback";
+import { GlobalErrorFallback } from "@/src/components/GlobalErrorFallback";
+import { ToastProvider } from "@/src/components/Toast/Toast";
 import useMaintenance from "@/src/core/hook/useMaintenance";
 import { useAuthHook } from "@/src/core/models/User/User";
 import {
@@ -105,11 +106,13 @@ function RootLayout() {
 
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
-			<Sentry.ErrorBoundary fallback={GlobalErrorFallback}>
-				<KeyboardProvider statusBarTranslucent>
-					<Stack screenOptions={{ headerShown: false }} />
-				</KeyboardProvider>
-			</Sentry.ErrorBoundary>
+			<ToastProvider>
+				<Sentry.ErrorBoundary fallback={(props) => <GlobalErrorFallback {...props} />}>
+					<KeyboardProvider statusBarTranslucent>
+						<Stack screenOptions={{ headerShown: false }} />
+					</KeyboardProvider>
+				</Sentry.ErrorBoundary>
+			</ToastProvider>
 		</GestureHandlerRootView>
 	);
 }

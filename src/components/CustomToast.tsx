@@ -102,22 +102,27 @@ const CustomToast: React.FC<CustomToastProps> = ({
             hideTimeout.current = null;
         }
 
+        progressAnim.stopAnimation();
+
+        // Immediately invoke onHide callback so caller's state (e.g. button validationState)
+        // resets without waiting for the exit animation duration.
+        onHideRef.current();
+
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 0,
-                duration: 250,
+                duration: 200,
                 useNativeDriver: true,
             }),
             Animated.timing(slideAnim, {
                 toValue: 15,
-                duration: 250,
+                duration: 200,
                 useNativeDriver: true,
             })
         ]).start(() => {
             setShouldRender(false);
-            onHideRef.current();
         });
-    }, [fadeAnim, slideAnim]);
+    }, [fadeAnim, slideAnim, progressAnim]);
 
     useEffect(() => {
         const wasVisible = prevVisibleRef.current;
@@ -191,15 +196,17 @@ const CustomToast: React.FC<CustomToastProps> = ({
                 hideTimeout.current = null;
             }
 
+            progressAnim.stopAnimation();
+
             Animated.parallel([
                 Animated.timing(fadeAnim, {
                     toValue: 0,
-                    duration: 250,
+                    duration: 200,
                     useNativeDriver: true,
                 }),
                 Animated.timing(slideAnim, {
                     toValue: 15,
-                    duration: 250,
+                    duration: 200,
                     useNativeDriver: true,
                 })
             ]).start(() => {
@@ -211,6 +218,7 @@ const CustomToast: React.FC<CustomToastProps> = ({
             if (hideTimeout.current) {
                 clearTimeout(hideTimeout.current);
             }
+            progressAnim.stopAnimation();
         };
     }, [visible, message, triggerKey, effectiveDuration, mode, fadeAnim, slideAnim, progressAnim, shakeAnim, handleHide]);
 
@@ -331,6 +339,8 @@ const CustomToast: React.FC<CustomToastProps> = ({
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         style={styles.closeButton}
                         activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel="Dismiss notification"
                     >
                         <CustomIcon 
                             library="Feather" 

@@ -242,9 +242,13 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
     return segs.includes(targetKey) || currentPath.includes(targetKey);
   };
 
-  const handleNavPress = (route: Href) => {
-    router.push(route);
+  const handleNavPress = (route: Href, id?: string) => {
+    if (isItemActive(route, id)) {
+      onClose?.();
+      return;
+    }
     onClose?.();
+    router.push(route);
   };
 
   const { signOut } = SignOutFlow();
@@ -319,7 +323,7 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
                     styles.navItem,
                     isActive && styles.navItemActive,
                   ]}
-                  onPress={() => handleNavPress(item.route)}
+                  onPress={() => handleNavPress(item.route, item.id)}
                   activeOpacity={0.7}
                 >
                   <View style={styles.navIconWrapper}>

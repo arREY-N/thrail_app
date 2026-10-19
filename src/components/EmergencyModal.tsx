@@ -5,7 +5,7 @@
  * guaranteed mobile keyboard lifting, and real-time self-referential validation.
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Animated,
@@ -22,13 +22,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from '@/src/components/CustomButton';
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput, { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
+import { CustomToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { calculateVerificationValidity } from '@/src/core/flows/PhoneVerificationFlow';
 import { IEmergencyContact, User } from '@/src/core/models/User/User';
+import { toDateOrNull } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -114,7 +117,20 @@ const EmergencyModal = ({
     const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(() => {
         const initUserId = initialEmergencyContact?.userId ?? currentUserProfile?.emergencyContact?.userId ?? '';
         const initEmail = initialEmergencyContact?.email ?? currentUserProfile?.emergencyContact?.email ?? '';
-        return initUserId ? { id: initUserId, email: initEmail } : null;
+        const initPhone = formatLocalPhoneNumber(
+            cleanPhoneNumber(initialEmergencyContact?.contactNumber ?? currentUserProfile?.emergencyContact?.contactNumber ?? '')
+        );
+        const initPhoneVerifiedAt = toDateOrNull(initialEmergencyContact?.phoneVerifiedAt ?? currentUserProfile?.emergencyContact?.phoneVerifiedAt);
+        const initName = initialEmergencyContact?.name ?? currentUserProfile?.emergencyContact?.name ?? '';
+        return initUserId
+            ? {
+                id: initUserId,
+                email: initEmail,
+                phoneNumber: initPhone,
+                phoneVerifiedAt: initPhoneVerifiedAt,
+                firstname: initName,
+            }
+            : null;
     });
 
     const [contactName, setContactName] = useState<string>(
@@ -129,6 +145,23 @@ const EmergencyModal = ({
 
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [searchStatus, setSearchStatus] = useState<{ type: 'success' | 'not_found'; message: string } | null>(null);
+
+    const [toastConfig, setToastConfig] = useState<{
+        message: string | null;
+        type: 'error' | 'warning' | 'info' | 'success';
+    }>({
+        message: null,
+        type: 'error',
+    });
+    const [hasAttemptedSave, setHasAttemptedSave] = useState<boolean>(false);
+    const [showDiscardConfirm, setShowDiscardConfirm] = useState<boolean>(false);
+
+    const showModalToast = (
+        message: string,
+        type: 'error' | 'warning' | 'info' | 'success' = 'error'
+    ) => {
+        setToastConfig({ message, type });
+    };
 
     const [renderModal, setRenderModal] = useState<boolean>(visible);
     if (visible && !renderModal) {
@@ -149,6 +182,9 @@ const EmergencyModal = ({
             setShowDropdown(false);
             setErrorMsg(null);
             setSearchStatus(null);
+            setToastConfig({ message: null, type: 'error' });
+            setHasAttemptedSave(false);
+            setShowDiscardConfirm(false);
 
             const initEmail = initialEmergencyContact?.email ?? currentUserProfile?.emergencyContact?.email ?? '';
             const initUserId = initialEmergencyContact?.userId ?? currentUserProfile?.emergencyContact?.userId ?? '';
@@ -156,6 +192,7 @@ const EmergencyModal = ({
             const initPhone = formatLocalPhoneNumber(
                 cleanPhoneNumber(initialEmergencyContact?.contactNumber ?? currentUserProfile?.emergencyContact?.contactNumber ?? '')
             );
+            const initPhoneVerifiedAt = toDateOrNull(initialEmergencyContact?.phoneVerifiedAt ?? currentUserProfile?.emergencyContact?.phoneVerifiedAt);
 
             setSearchEmail(initEmail);
             setSelectedUser(
@@ -163,6 +200,9 @@ const EmergencyModal = ({
                     ? {
                         id: initUserId,
                         email: initEmail,
+                        phoneNumber: initPhone,
+                        phoneVerifiedAt: initPhoneVerifiedAt,
+                        firstname: initName,
                     }
                     : null
             );
@@ -205,12 +245,85 @@ const EmergencyModal = ({
         }
     }, [visible, animValue]);
 
-    const handleCloseOrSkip = () => {
+    // Derived values & selective link dirty tracking
+    const cleanedContactName = contactName.trim();
+    const cleanedContactPhone = cleanPhoneNumber(contactPhone);
+    const cleanedMyPhone = cleanPhoneNumber(myPhone);
+
+    const initialUserId = useMemo(() => {
+        return initialEmergencyContact?.userId ?? currentUserProfile?.emergencyContact?.userId ?? '';
+    }, [initialEmergencyContact, currentUserProfile]);
+
+    const initialSearchEmail = useMemo(() => {
+        return (initialEmergencyContact?.email ?? currentUserProfile?.emergencyContact?.email ?? '').trim().toLowerCase();
+    }, [initialEmergencyContact, currentUserProfile]);
+
+    // Triggers discard confirmation ONLY when linked account or email search diverged
+    const isLinkDirty = useMemo(() => {
+        const currentUserId = selectedUser?.id || '';
+        const currentEmail = searchEmail.trim().toLowerCase();
+        return currentUserId !== initialUserId || currentEmail !== initialSearchEmail;
+    }, [selectedUser, searchEmail, initialUserId, initialSearchEmail]);
+
+    const isOverallDirty = useMemo(() => {
+        const phoneChanged =
+            mode === 'unified' &&
+            cleanedMyPhone !== cleanPhoneNumber(initialUserPhone || currentUserProfile?.phoneNumber || '');
+        const initialContactPhone = cleanPhoneNumber(
+            initialEmergencyContact?.contactNumber ?? currentUserProfile?.emergencyContact?.contactNumber ?? ''
+        );
+        const initialContactName = (
+            initialEmergencyContact?.name ?? currentUserProfile?.emergencyContact?.name ?? ''
+        ).trim();
+
+        const contactPhoneChanged = cleanedContactPhone !== initialContactPhone;
+        const contactNameChanged = cleanedContactName !== initialContactName;
+
+        return isLinkDirty || phoneChanged || contactPhoneChanged || contactNameChanged;
+    }, [
+        isLinkDirty,
+        mode,
+        cleanedMyPhone,
+        initialUserPhone,
+        currentUserProfile,
+        cleanedContactPhone,
+        cleanedContactName,
+        initialEmergencyContact,
+    ]);
+
+    const dismissModal = useCallback(() => {
         setErrorMsg(null);
         setSearchStatus(null);
+        setToastConfig({ message: null, type: 'error' });
+        setHasAttemptedSave(false);
+        setShowDiscardConfirm(false);
         if (onSkip) onSkip();
         if (onClose) onClose();
-    };
+    }, [onSkip, onClose]);
+
+    const handleCloseOrSkip = useCallback(() => {
+        if (isLinkDirty) {
+            setShowDiscardConfirm(true);
+            return;
+        }
+        dismissModal();
+    }, [isLinkDirty, dismissModal]);
+
+    // Physical Escape key dismissal on Web
+    useEffect(() => {
+        if (Platform.OS !== 'web' || !visible) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (showDiscardConfirm) {
+                    setShowDiscardConfirm(false);
+                } else {
+                    handleCloseOrSkip();
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [visible, handleCloseOrSkip, showDiscardConfirm]);
 
     const handleEmailChange = (text: string) => {
         setSearchEmail(text);
@@ -246,7 +359,9 @@ const EmergencyModal = ({
         if (!cleanedSearch) return;
 
         if (cleanedSearch === currentUserProfile?.email?.trim().toLowerCase()) {
-            setErrorMsg('You cannot use your own email as an emergency contact.');
+            const msg = 'You cannot use your own email as an emergency contact.';
+            setErrorMsg(msg);
+            showModalToast(msg, 'error');
             return;
         }
 
@@ -269,7 +384,9 @@ const EmergencyModal = ({
                 setShowDropdown(true);
             }
         } catch {
-            setErrorMsg('Could not connect to the server. Please try again.');
+            const msg = 'Could not connect to the server. Please try again.';
+            setErrorMsg(msg);
+            showModalToast(msg, 'error');
         } finally {
             setIsSearching(false);
         }
@@ -304,10 +421,6 @@ const EmergencyModal = ({
     };
 
     // Derived states & validation
-    const cleanedContactName = contactName.trim();
-    const cleanedContactPhone = cleanPhoneNumber(contactPhone);
-    const cleanedMyPhone = cleanPhoneNumber(myPhone);
-
     const isContactPhoneSelf = useMemo(() => {
         if (!cleanedContactPhone) return false;
         if (mode === 'unified' && cleanedMyPhone && cleanedMyPhone === cleanedContactPhone) {
@@ -339,25 +452,43 @@ const EmergencyModal = ({
         setErrorMsg(null);
         setSearchStatus(null);
 
+        // Feedback toast when opened and clicked without any modifications
+        if (!isOverallDirty) {
+            showModalToast('No changes made. Contact details are already up to date.', 'info');
+            return;
+        }
+
         if (mode === 'unified') {
             if (!cleanedMyPhone || cleanedMyPhone.length < 11 || !cleanedMyPhone.startsWith('09')) {
-                setErrorMsg('Please enter your 10-digit mobile phone number (09XX XXX XXXX).');
+                const msg = 'Please enter your 10-digit mobile phone number (09XX XXX XXXX).';
+                setErrorMsg(msg);
+                setHasAttemptedSave(true);
+                showModalToast(msg, 'error');
                 return;
             }
         }
 
         if (!cleanedContactName) {
-            setErrorMsg('Please provide the full name for your emergency contact.');
+            const msg = 'Please provide the full name for your emergency contact.';
+            setErrorMsg(msg);
+            setHasAttemptedSave(true);
+            showModalToast(msg, 'error');
             return;
         }
 
         if (!cleanedContactPhone || cleanedContactPhone.length < 11 || !cleanedContactPhone.startsWith('09')) {
-            setErrorMsg('Please enter a valid 10-digit emergency contact phone number (09XX XXX XXXX).');
+            const msg = 'Please enter a valid 10-digit emergency contact phone number (09XX XXX XXXX).';
+            setErrorMsg(msg);
+            setHasAttemptedSave(true);
+            showModalToast(msg, 'error');
             return;
         }
 
         if (isContactPhoneSelf) {
-            setErrorMsg('Your emergency contact number cannot be the same as your own phone number.');
+            const msg = 'Your emergency contact number cannot be the same as your own phone number.';
+            setErrorMsg(msg);
+            setHasAttemptedSave(true);
+            showModalToast(msg, 'error');
             return;
         }
 
@@ -403,7 +534,10 @@ const EmergencyModal = ({
             }
             if (onClose) onClose();
         } else {
-            setErrorMsg('Failed to save emergency contact. Please try again.');
+            const msg = 'Failed to save emergency contact. Please try again.';
+            setErrorMsg(msg);
+            setHasAttemptedSave(true);
+            showModalToast(msg, 'error');
         }
     };
 
@@ -412,6 +546,12 @@ const EmergencyModal = ({
     // Email field icon & color determination
     const emailLeftIcon = isLinked ? 'check-circle' : searchStatus?.type === 'not_found' || errorMsg ? 'alert-circle' : 'search';
     const emailLeftIconColor = isLinked ? Colors.PRIMARY : searchStatus?.type === 'not_found' || errorMsg ? Colors.ERROR : Colors.TEXT_SECONDARY;
+
+    // Toast offset calculation: guarantee clean 12px floating headroom above Save & Apply button
+    const footerPadding = isWideScreen ? 24 : Math.max(insets.bottom + 16, 24);
+    const footerTotalHeight =
+        (keyboardHeight > 0 ? keyboardHeight + 16 : footerPadding) + 52 + 8 + 1;
+    const toastBottomOffset = footerTotalHeight + 12;
 
     return (
         <Modal
@@ -607,11 +747,6 @@ const EmergencyModal = ({
                                     </CustomText>
                                 )}
 
-                                {errorMsg && (
-                                    <CustomText style={styles.errorCaptionText}>
-                                        {errorMsg}
-                                    </CustomText>
-                                )}
                             </View>
 
                             {/* Dropdown for multiple search results */}
@@ -700,27 +835,57 @@ const EmergencyModal = ({
                                         ) : undefined
                                     }
                                 />
-                                {isContactPhoneSelf && (
-                                    <CustomText style={styles.errorCaptionText}>
-                                        Emergency contact number cannot be the same as your own phone number.
-                                    </CustomText>
-                                )}
                             </View>
                         </View>
                     </ScrollView>
 
-                    {/* Fixed Footer CTA */}
+                    {/* Fixed Footer CTA with Encapsulated Validation State */}
                     <View style={styles.fixedFooter}>
                         <CustomButton
                             title="Save & Apply"
                             onPress={handleSave}
-                            disabled={isSaveDisabled}
+                            disabled={isSaving}
                             isLoading={isSaving}
+                            validationState={
+                                !isSaveDisabled && isOverallDirty
+                                    ? 'valid'
+                                    : (hasAttemptedSave ? 'error' : 'idle')
+                            }
+                            isIdleDisabled={false}
                             style={styles.saveBtn}
                         />
                     </View>
+
+                    {/* Floating Toast Alert inside Modal with Responsive Safe-Area Docking */}
+                    <CustomToast
+                        visible={!!toastConfig.message}
+                        message={toastConfig.message || ''}
+                        onHide={() => {
+                            setToastConfig({ message: null, type: 'error' });
+                            setHasAttemptedSave(false);
+                        }}
+                        type={toastConfig.type}
+                        mode="simple"
+                        position="floating"
+                        bottomOffset={toastBottomOffset}
+                    />
                 </Animated.View>
             </KeyboardAvoidingView>
+
+            {/* Discard Unsaved Changes Confirmation Modal */}
+            <ConfirmationModal
+                visible={showDiscardConfirm}
+                title="Discard Changes?"
+                message="You changed the linked emergency contact. Do you want to exit without saving?"
+                confirmText="Discard"
+                cancelText="Keep Editing"
+                isDestructive={true}
+                onConfirm={() => {
+                    setShowDiscardConfirm(false);
+                    dismissModal();
+                }}
+                onClose={() => setShowDiscardConfirm(false)}
+            />
         </Modal>
     );
 };
@@ -751,8 +916,8 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         marginBottom: 'auto',
         marginTop: 'auto',
-        width: 480,
-        maxWidth: '90%',
+        width: '92%',
+        maxWidth: 520,
         borderRadius: 24,
     },
     fixedHeader: {
@@ -852,12 +1017,6 @@ const styles = StyleSheet.create({
     inputContainerLinked: {
         borderColor: Colors.PRIMARY,
     },
-    inputLocked: {
-        opacity: 0.85,
-    },
-    actionIconPad: {
-        paddingHorizontal: 4,
-    },
     innerClearBtn: {
         padding: 4,
         justifyContent: 'center',
@@ -878,12 +1037,8 @@ const styles = StyleSheet.create({
         marginTop: 6,
         paddingLeft: 4,
     },
-    errorCaptionText: {
-        fontSize: 12,
-        color: Colors.ERROR,
-        marginTop: 6,
-        paddingLeft: 4,
-        fontWeight: '500',
+    inputLocked: {
+        opacity: 0.85,
     },
     innerLockBadge: {
         paddingHorizontal: 4,

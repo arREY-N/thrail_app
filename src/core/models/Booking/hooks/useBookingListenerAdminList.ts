@@ -8,6 +8,7 @@ export function useBookingListenerAdminList() {
 
     const { businessOffers } = useOfferAdminList();
 
+    const bookingByOffer = useBookingsStore(s => s.bookingByOffer);
     const subscribeToBusinessBookings = useBookingsStore(s => s.subscribeToBusinessBookings);
     const unsubscribe = useBookingsStore(s => s.unsubscribeFromBusinessBookings);
 
@@ -38,4 +39,8 @@ export function useBookingListenerAdminList() {
             });
         };
     }, [businessId, businessOffers, subscribeToBusinessBookings, unsubscribe]);
+
+    return {
+        bookingByOffer,
+    };
 }

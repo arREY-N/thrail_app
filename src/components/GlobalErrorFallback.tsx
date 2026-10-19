@@ -13,8 +13,10 @@ import { Colors } from "@/src/constants/colors";
 import { router } from "expo-router";
 
 export interface GlobalErrorFallbackProps {
-	error: Error;
+	error: unknown;
 	resetError: () => void;
+	componentStack?: string;
+	eventId?: string;
 }
 
 export const GlobalErrorFallback: React.FC<GlobalErrorFallbackProps> = ({
@@ -31,6 +33,9 @@ export const GlobalErrorFallback: React.FC<GlobalErrorFallbackProps> = ({
 			// Fallback if router not yet ready
 		}
 	};
+
+	const errorMessage = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+	const errorStack = error instanceof Error ? error.stack : undefined;
 
 	return (
 		<SafeAreaView style={styles.safeArea}>
@@ -61,13 +66,13 @@ export const GlobalErrorFallback: React.FC<GlobalErrorFallbackProps> = ({
 					<CustomButton
 						title="Try Again"
 						onPress={resetError}
-						type="primary"
+						variant="primary"
 						style={styles.primaryButton}
 					/>
 					<CustomButton
 						title="Back to Home"
 						onPress={handleGoHome}
-						type="secondary"
+						variant="secondary"
 						style={styles.secondaryButton}
 					/>
 				</View>
@@ -87,11 +92,11 @@ export const GlobalErrorFallback: React.FC<GlobalErrorFallbackProps> = ({
 						{showDetails && (
 							<View style={styles.devBody}>
 								<CustomText variant="caption" style={styles.errorName}>
-									{error?.name}: {error?.message}
+									{errorMessage}
 								</CustomText>
-								{error?.stack && (
+								{errorStack && (
 									<CustomText variant="caption" style={styles.errorStack}>
-										{error.stack}
+										{errorStack}
 									</CustomText>
 								)}
 							</View>

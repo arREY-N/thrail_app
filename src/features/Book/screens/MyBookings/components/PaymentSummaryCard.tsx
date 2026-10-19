@@ -23,13 +23,13 @@ export interface PaymentSummaryCardProps {
  * @param {PaymentSummaryCardProps} props - Component props
  */
 const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance, payments = [] }: PaymentSummaryCardProps) => {
-    const refundedPayments = payments.filter(p => p.status === 'refunded');
-    const totalRefunded = refundedPayments.reduce((sum, p) => sum + (p.refundedAmount || 0), 0);
+    const refundedPayments = payments.filter(p => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+    const totalRefunded = payments.reduce((sum, p) => sum + (p.refundedAmount || (p.status === 'refunded' ? p.amount : 0)), 0);
     const hasUnrecordedRefund = refundedPayments.some(p => {
         return p.refundedAmount === undefined || p.refundedAmount === null;
     });
 
-    const totalOriginalAmountForRefunded = refundedPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalOriginalAmountForRefunded = refundedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
     const refundPercentageLabel = (totalRefunded > 0 && totalOriginalAmountForRefunded > 0)
         ? ` (${Math.round((totalRefunded / totalOriginalAmountForRefunded) * 100)}%)`
         : '';
@@ -58,7 +58,7 @@ const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance, payment
                 </CustomText>
             </View>
 
-            {refundedPayments.length > 0 && (
+            {(totalRefunded > 0 || refundedPayments.length > 0) && (
                 <View style={styles.row}>
                     <CustomText variant="caption" style={[styles.label, { color: Colors.ERROR }]}>
                         Amount Refunded{refundPercentageLabel}

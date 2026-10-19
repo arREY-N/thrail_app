@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, LayoutChangeEvent, Modal, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
-import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { getPinConfig, getStaticMapAsset, IWaypointPoint, StaticTrailMap } from '@/src/features/Map/Map';
 
+import { Layout } from '@/src/constants/layout';
 import { ITrail, ITrailStats } from '@/src/core/models/Trail/Trail';
 import { GlossaryTooltip, SectionHeader, StatItem, StyledListItem, Tag } from '@/src/features/Trail/components/TrailDetailsComponents';
-import { ROUTE_GLOSSARY, getArray, getClassColor, getDifficultyColor, getStatusColor, getStatusIconInfo, isFeatureEnabled } from '@/src/features/Trail/utils/TrailDetailsHelpers';
+import { getArray, getClassColor, getDifficultyColor, getStatusColor, getStatusIconInfo, isFeatureEnabled, ROUTE_GLOSSARY } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
-const OFFICIAL_PLACEHOLDER_IMAGE = require('@/src/assets/images/Mt.Tagapo.jpg');
+/** All static trail map PNG assets are standard 800x600 (4:3 aspect ratio) */
+const MAP_ASPECT_RATIO = 800 / 600;
 
 export interface TrailDetailsTabProps {
     stats: { distance: string | number; elevation: string | number };
@@ -35,10 +38,26 @@ interface LegacyTrail extends ITrail {
 }
 
 const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, statsLoading, trail }) => {
+    const insets = useSafeAreaInsets();
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
     const [activeStat, setActiveStat] = useState<string | null>(null);
     const [showRouteInfo, setShowRouteInfo] = useState(false);
     const [isMapPreviewVisible, setIsMapPreviewVisible] = useState(false);
+    const [selectedWaypoint, setSelectedWaypoint] = useState<IWaypointPoint | null>(null);
+    const [mapCardLayout, setMapCardLayout] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+
+    const handleMapCardLayout = useCallback((event: LayoutChangeEvent) => {
+        const { width, height } = event.nativeEvent.layout;
+        if (width > 0 && height > 0) {
+            setMapCardLayout(prev => {
+                if (prev.width === width && prev.height === height) return prev;
+                return { width, height };
+            });
+        }
+    }, []);
+
+    const offlinePoints = useMemo(() => trail?.offlinePoints ?? [], [trail?.offlinePoints]);
+    const hasOfflinePoints = offlinePoints.length > 0;
 
     const viewpoints = getArray<string>(trail?.tourism?.viewpoint, (trail as LegacyTrail)?.viewpoint);
     const guidelines = getArray<string>(trail?.general?.guidelines, []);
@@ -95,7 +114,16 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
         ? description
         : `${description.substring(0, CHARACTER_LIMIT).trim()}...`;
 
-    const routeMapImageSource = trail?.routeMapImage ? { uri: trail.routeMapImage } : OFFICIAL_PLACEHOLDER_IMAGE;
+    const trailRouteMapImage = trail?.routeMapImage;
+    const trailId = trail?.id;
+    const trailName = trail?.general?.name;
+
+    const routeMapImageSource = useMemo(() => {
+        if (trailRouteMapImage && typeof trailRouteMapImage === 'string' && trailRouteMapImage.trim().length > 0) {
+            return { uri: trailRouteMapImage };
+        }
+        return getStaticMapAsset(trailId || '', trailName);
+    }, [trailRouteMapImage, trailId, trailName]);
 
     const handleStatPress = (id: string) => {
         setActiveStat(prev => prev === id ? null : id);
@@ -104,11 +132,69 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
     const isRow1Active = ['distance', 'peak', 'gain'].includes(activeStat || "");
     const isRow2Active = ['class', 'difficulty', 'status'].includes(activeStat || "");
 
+    const renderedMiniPins = useMemo(() => {
+        if (!hasOfflinePoints || mapCardLayout.width <= 0 || mapCardLayout.height <= 0) return null;
+
+        const containerW = mapCardLayout.width;
+        const containerH = mapCardLayout.height;
+        const containerAspect = containerW / containerH;
+
+        return (
+            <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                {offlinePoints.map((rawPoint) => {
+                    const point = rawPoint as IWaypointPoint;
+                    const config = getPinConfig(point.type, point.color, point.customCategory, point.icon);
+
+                    let percentX = point.x;
+                    let percentY = point.y;
+
+                    if (containerAspect > MAP_ASPECT_RATIO) {
+                        // Container is wider than 4:3 (e.g. desktop widescreen or mobile landscape):
+                        // The image fills the width and overflows/crops vertically (top and bottom).
+                        const scale = containerAspect / MAP_ASPECT_RATIO;
+                        percentX = point.x;
+                        percentY = (point.y - 50) * scale + 50;
+                    } else {
+                        // Container is taller than 4:3 (e.g. narrow mobile portrait):
+                        // The image fills the height and overflows/crops horizontally (left and right).
+                        const scale = MAP_ASPECT_RATIO / containerAspect;
+                        percentX = (point.x - 50) * scale + 50;
+                        percentY = point.y;
+                    }
+
+                    // If point falls completely outside the cropped viewport boundary, skip rendering
+                    if (percentX < -5 || percentX > 105 || percentY < -5 || percentY > 105) {
+                        return null;
+                    }
+
+                    return (
+                        <View
+                            key={`thumb-pin-${point.id}`}
+                            style={[
+                                styles.miniPinWrapper,
+                                { left: `${percentX}%`, top: `${percentY}%` },
+                            ]}
+                        >
+                            <View style={[styles.miniPinDot, { backgroundColor: config.color }]}>
+                                <CustomIcon
+                                    library="Feather"
+                                    name={config.icon}
+                                    size={8}
+                                    color={Colors.WHITE}
+                                />
+                            </View>
+                        </View>
+                    );
+                })}
+            </View>
+        );
+    }, [hasOfflinePoints, offlinePoints, mapCardLayout.width, mapCardLayout.height]);
+
     return (
         <View style={styles.tabContent}>
 
             {/* 2. Stats Dashboard */}
-            {statsLoading ? (
+            {statsLoading && !curatedDistance && !curatedGain ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="small" color={Colors.PRIMARY} />
                     <CustomText variant="caption" style={styles.loadingText}>Synchronizing trail data...</CustomText>
@@ -238,21 +324,32 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
             <View style={styles.section}>
                 <SectionHeader iconLib="Feather" iconName="map" title="Trail Route Map" />
                 <View style={styles.mapCard}>
-                    <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.85} onPress={() => setIsMapPreviewVisible(true)}>
+                    <TouchableOpacity
+                        style={styles.mapCardTouch}
+                        activeOpacity={0.85}
+                        onPress={() => setIsMapPreviewVisible(true)}
+                        onLayout={handleMapCardLayout}
+                    >
                         <CustomImage
                             source={routeMapImageSource}
                             style={styles.mapImage}
                             resizeMode="cover"
                         />
                         <View style={styles.mapDarkenOverlay} />
-                        <TouchableOpacity style={styles.mapRouteLabel} onPress={(e) => { e.stopPropagation(); setShowRouteInfo(!showRouteInfo); }} activeOpacity={0.8}>
-                            <CustomIcon library="Feather" name="repeat" size={14} color={Colors.WHITE} />
-                            <CustomText variant="caption" style={styles.mapRouteText}>{routeType}</CustomText>
-                            <CustomIcon library="Feather" name={showRouteInfo ? "chevron-up" : "chevron-down"} size={14} color={Colors.WHITE} />
-                        </TouchableOpacity>
+
+                        {/* Mini Waypoint Pins Rendered on Route Thumbnail Card */}
+                        {renderedMiniPins}
+
+                        <View style={styles.mapLabelsRow}>
+                            <TouchableOpacity style={styles.mapRouteLabel} onPress={(e) => { e.stopPropagation(); setShowRouteInfo(!showRouteInfo); }} activeOpacity={0.8}>
+                                <CustomIcon library="Feather" name="repeat" size={13} color={Colors.WHITE} />
+                                <CustomText variant="caption" style={styles.mapBadgeText}>{routeType}</CustomText>
+                                <CustomIcon library="Feather" name={showRouteInfo ? "chevron-up" : "chevron-down"} size={13} color={Colors.WHITE} />
+                            </TouchableOpacity>
+                        </View>
 
                         <View style={styles.mapOverlay}>
-                            <CustomText variant="caption" style={styles.mapOverlayText}>Tap to Expand</CustomText>
+                            <CustomText variant="caption" style={styles.mapBadgeText}>Tap to Explore Route Map</CustomText>
                             <CustomIcon library="Feather" name="maximize-2" size={12} color={Colors.WHITE} style={{ marginLeft: 6 }} />
                         </View>
 
@@ -270,8 +367,13 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
             {lguRules.length > 0 && (
                 <View style={styles.section}>
                     <SectionHeader iconLib="Feather" iconName="file-text" title="LGU Ordinances" color={Colors.TRAIL_LGU_ICON} />
-                    <View style={styles.listWrapper}>
-                        {lguRules.map((rule, index) => <StyledListItem key={`lgu-${index}`} text={rule} index={index} type="lgu" />)}
+                    <View style={styles.rulesCard}>
+                        {lguRules.map((rule, index) => (
+                            <React.Fragment key={`lgu-${index}`}>
+                                <StyledListItem text={rule} index={index} type="lgu" />
+                                {index < lguRules.length - 1 && <View style={styles.ruleDivider} />}
+                            </React.Fragment>
+                        ))}
                     </View>
                 </View>
             )}
@@ -280,8 +382,13 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
             {guidelines.length > 0 && (
                 <View style={styles.section}>
                     <SectionHeader iconLib="Feather" iconName="check-square" title="Rules of the Trail" />
-                    <View style={styles.listWrapper}>
-                        {guidelines.map((guide, index) => <StyledListItem key={`guide-${index}`} text={guide} index={index} type="guide" />)}
+                    <View style={styles.rulesCard}>
+                        {guidelines.map((guide, index) => (
+                            <React.Fragment key={`guide-${index}`}>
+                                <StyledListItem text={guide} index={index} type="guide" />
+                                {index < guidelines.length - 1 && <View style={styles.ruleDivider} />}
+                            </React.Fragment>
+                        ))}
                     </View>
                 </View>
             )}
@@ -290,26 +397,142 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
             {tips.length > 0 && (
                 <View style={styles.section}>
                     <SectionHeader iconLib="Feather" iconName="shield" title="Keep Safe" color={Colors.TRAIL_SAFETY_ICON} />
-                    <View style={styles.listWrapper}>
-                        {tips.map((tip, index) => <StyledListItem key={`tip-${index}`} text={tip} index={index} type="safety" />)}
+                    <View style={styles.rulesCard}>
+                        {tips.map((tip, index) => (
+                            <React.Fragment key={`tip-${index}`}>
+                                <StyledListItem text={tip} index={index} type="safety" />
+                                {index < tips.length - 1 && <View style={styles.ruleDivider} />}
+                            </React.Fragment>
+                        ))}
                     </View>
                 </View>
             )}
 
-            <ImagePreviewModal
-                visible={isMapPreviewVisible}
-                imageUrl={trail?.routeMapImage || undefined}
-                onClose={() => setIsMapPreviewVisible(false)}
-            />
+            {/* Interactive Trail Route Map Viewer Modal (Translucent Dark Theme) - Lazy Mounted */}
+            {isMapPreviewVisible && (
+                <Modal
+                    visible={isMapPreviewVisible}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => {
+                        setIsMapPreviewVisible(false);
+                        setSelectedWaypoint(null);
+                    }}
+                >
+                    <StatusBar barStyle="light-content" backgroundColor="transparent" />
+                <View style={[styles.modalRootContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+                    {/* Dark Translucent Frosted Header */}
+                    <View style={[styles.modalHeader, { paddingTop: Math.max(insets.top + 10, 16) }]}>
+                        <View style={styles.modalHeaderSpacer} />
+                        <View style={styles.modalHeaderInfo}>
+                            <CustomText variant="subtitle" style={styles.modalTitle}>
+                                {trail?.general?.name || "Trail Route Map"}
+                            </CustomText>
+                            <CustomText variant="caption" style={styles.modalSubtitle}>
+                                {hasOfflinePoints
+                                    ? `${offlinePoints.length} Points of Interest · Interactive Map`
+                                    : "Interactive Offline Route Map"}
+                            </CustomText>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.modalCloseButton}
+                            onPress={() => {
+                                setIsMapPreviewVisible(false);
+                                setSelectedWaypoint(null);
+                            }}
+                            activeOpacity={0.7}
+                            accessibilityLabel="Close Map Viewer"
+                            accessibilityRole="button"
+                        >
+                            <CustomIcon library="Feather" name="x" size={20} color={Colors.WHITE} />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Interactive StaticTrailMap Viewport with suppressDetailsModal */}
+                    <View style={styles.modalMapWrapper}>
+                        <StaticTrailMap
+                            trailId={trail?.id || ''}
+                            trailName={trail?.general?.name}
+                            offlinePoints={offlinePoints}
+                            isEditable={false}
+                            suppressDetailsModal={true}
+                            onPointSelect={(point) => setSelectedWaypoint(point)}
+                            routeMapImage={trail?.routeMapImage || undefined}
+                            theme="dark"
+                        />
+
+                        {/* Floating Bottom Waypoint Details Card (When Pin Clicked) */}
+                        {selectedWaypoint ? (
+                            <View style={styles.waypointCard}>
+                                <View style={styles.waypointCardHeader}>
+                                    {(() => {
+                                        const config = getPinConfig(
+                                            selectedWaypoint.type,
+                                            selectedWaypoint.color,
+                                            selectedWaypoint.customCategory
+                                        );
+                                        return (
+                                            <View style={[styles.waypointCategoryBadge, { backgroundColor: config.color }]}>
+                                                <CustomIcon
+                                                    library="Feather"
+                                                    name={config.icon}
+                                                    size={11}
+                                                    color={Colors.WHITE}
+                                                />
+                                                <CustomText variant="caption" style={styles.waypointCategoryBadgeText}>
+                                                    {config.label}
+                                                </CustomText>
+                                            </View>
+                                        );
+                                    })()}
+                                    <TouchableOpacity
+                                        style={styles.waypointCloseButton}
+                                        onPress={() => setSelectedWaypoint(null)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <CustomIcon library="Feather" name="x" size={13} color={Colors.WHITE} />
+                                    </TouchableOpacity>
+                                </View>
+                                <CustomText variant="subtitle" style={styles.waypointTitle}>
+                                    {selectedWaypoint.name}
+                                </CustomText>
+                                {selectedWaypoint.description ? (
+                                    <CustomText variant="caption" style={styles.waypointDescription}>
+                                        {selectedWaypoint.description}
+                                    </CustomText>
+                                ) : (
+                                    <CustomText variant="caption" style={styles.waypointDescriptionMuted}>
+                                        No additional description provided.
+                                    </CustomText>
+                                )}
+                            </View>
+                        ) : (
+                            /* Exploration Tip Banner when no waypoint is selected */
+                            <View style={styles.modalTipBanner}>
+                                <CustomIcon library="Feather" name="info" size={13} color={Colors.GRAY_LIGHT} />
+                                <CustomText variant="caption" style={styles.modalTipText}>
+                                    Pinch or use zoom controls to explore. Tap any waypoint pin to view details.
+                                </CustomText>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </Modal>
+        )}
 
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    tabContent: { gap: 16, paddingBottom: 20, width: '100%', maxWidth: 860, alignSelf: 'center' },
+    tabContent: {
+        gap: 24,
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center'
+    },
     section: { marginBottom: 4 },
-    statsCard: { backgroundColor: Colors.WHITE, paddingVertical: 20, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, gap: 16, ...GlobalStyles.dropShadow(3) },
+    statsCard: { backgroundColor: Colors.WHITE, paddingVertical: 20, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, gap: 24, ...GlobalStyles.dropShadow(3) },
     statsRow: { flexDirection: 'row', justifyContent: 'space-around', zIndex: 2 },
     divider: { height: 1, backgroundColor: Colors.GRAY_ULTRALIGHT, marginHorizontal: 16, marginVertical: 4 },
     aboutCard: { backgroundColor: Colors.WHITE, padding: 20, borderRadius: 16, borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...GlobalStyles.dropShadow(3) },
@@ -334,17 +557,113 @@ const styles = StyleSheet.create({
     criticalTitle: { fontWeight: 'bold', color: Colors.ERROR, marginBottom: 4 },
     criticalText: { color: Colors.TEXT_PRIMARY, fontSize: 14, lineHeight: 20 },
     tagContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    mapCard: { width: '100%', height: 220, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...GlobalStyles.dropShadow(3), backgroundColor: '#EFEFEF', position: 'relative' },
+    mapCard: { width: '100%', height: 220, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: Colors.GRAY_ULTRALIGHT, ...GlobalStyles.dropShadow(3), backgroundColor: Colors.GRAY_ULTRALIGHT, position: 'relative' },
+    mapCardTouch: { flex: 1, position: 'relative' },
     mapImage: { width: '100%', height: '100%' },
     mapDarkenOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.05)' },
-    mapRouteLabel: { position: 'absolute', top: 12, left: 12, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 100, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', zIndex: 2 },
-    mapRouteText: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 12 },
-    mapOverlay: { position: 'absolute', bottom: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, flexDirection: 'row', alignItems: 'center' },
-    mapOverlayText: { color: Colors.WHITE, fontWeight: 'bold' },
+    miniPinWrapper: { position: 'absolute', transform: [{ translateX: -8 }, { translateY: -8 }], zIndex: 1 },
+    miniPinDot: { width: 16, height: 16, borderRadius: 8, borderWidth: 1.5, borderColor: Colors.WHITE, alignItems: 'center', justifyContent: 'center', ...GlobalStyles.dropShadow(2) },
+    mapLabelsRow: { position: 'absolute', top: 12, left: 12, right: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 2 },
+    mapRouteLabel: { backgroundColor: 'rgba(0, 0, 0, 0.75)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
+    mapOverlay: { position: 'absolute', bottom: 12, right: 12, backgroundColor: 'rgba(0, 0, 0, 0.75)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
+    mapBadgeText: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 12 },
     routeInfoOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', padding: 24, justifyContent: 'center', zIndex: 1 },
     routeInfoTitle: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 18, marginBottom: 8 },
     routeInfoText: { color: Colors.GRAY_LIGHT, fontSize: 14, lineHeight: 22 },
-    listWrapper: { gap: 12 },
+    modalRootContainer: { flex: 1, backgroundColor: Colors.MAP_MODAL_BACKDROP },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 16, backgroundColor: 'rgba(10, 10, 10, 0.98)', borderBottomWidth: 1, borderBottomColor: Colors.MAP_CARD_BORDER, ...GlobalStyles.dropShadow(3), zIndex: 5 },
+    modalHeaderSpacer: { width: 36, height: 36 },
+    modalHeaderInfo: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+    modalTitle: { fontSize: 16, fontWeight: 'bold', color: Colors.WHITE, textAlign: 'center', marginBottom: 0 },
+    modalSubtitle: { fontSize: 12, color: Colors.GRAY_LIGHT, marginTop: 2, textAlign: 'center' },
+    modalCloseButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255, 255, 255, 0.15)', alignItems: 'center', justifyContent: 'center' },
+    modalMapWrapper: { flex: 1, position: 'relative', overflow: 'hidden' },
+    modalTipBanner: {
+        position: 'absolute',
+        bottom: 14,
+        alignSelf: 'center',
+        width: '92%',
+        maxWidth: 540,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        backgroundColor: Colors.MAP_CARD_BACKDROP,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: Colors.MAP_CARD_BORDER,
+        ...GlobalStyles.dropShadow(3),
+    },
+    modalTipText: {
+        fontSize: 11,
+        color: Colors.GRAY_LIGHT,
+        flex: 1,
+    },
+    waypointCard: {
+        position: 'absolute',
+        bottom: 14,
+        alignSelf: 'center',
+        width: '92%',
+        maxWidth: 540,
+        backgroundColor: Colors.MAP_CARD_BACKDROP,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: Colors.MAP_CARD_BORDER,
+        padding: 14,
+        gap: 6,
+        ...GlobalStyles.dropShadow(4),
+    },
+    waypointCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    waypointCategoryBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 999,
+    },
+    waypointCategoryBadgeText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: Colors.WHITE,
+    },
+    waypointCloseButton: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        backgroundColor: Colors.MAP_CARD_BORDER,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    waypointTitle: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: Colors.WHITE,
+    },
+    waypointDescription: {
+        fontSize: 12,
+        color: Colors.GRAY_LIGHT,
+        lineHeight: 18,
+    },
+    waypointDescriptionMuted: { fontSize: 12, color: Colors.TEXT_SECONDARY, fontStyle: 'italic' },
+    rulesCard: {
+        backgroundColor: Colors.WHITE,
+        padding: 18,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
+        ...GlobalStyles.dropShadow(3),
+    },
+    ruleDivider: {
+        height: 1,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        marginVertical: 12,
+    },
     loadingContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 20 },
     loadingText: { color: Colors.TEXT_SECONDARY },
 });

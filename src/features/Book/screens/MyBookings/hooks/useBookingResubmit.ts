@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useToast } from '@/src/components/Toast/Toast';
 import { Booking, BookingStatus, Requirements } from '@/src/core/models/Booking/Booking';
 import { IEmergencyContact } from '@/src/core/models/User/User';
 import { logger } from '@/src/core/utility/errorFormatter';
@@ -57,22 +58,18 @@ export function useBookingResubmit({
     isCancelled,
     hasStagedContactChanges,
 }: UseBookingResubmitProps) {
+    const { showToast } = useToast();
+
     const [stagedReplacements, setStagedReplacements] = useState<Record<number, string>>({});
     const [isSubmittingDocs, setIsSubmittingDocs] = useState<boolean>(false);
     const [confirmResubmitModalVisible, setConfirmResubmitModalVisible] = useState<boolean>(false);
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
-    const [toastConfig, setToastConfig] = useState<{ visible: boolean; message: string; type: 'error' | 'success' }>({
-        visible: false,
-        message: '',
-        type: 'error',
-    });
 
     const [prevBooking, setPrevBooking] = useState(booking);
     if (booking !== prevBooking) {
         setPrevBooking(booking);
         setStagedReplacements({});
         setHasAttemptedSubmit(false);
-        setToastConfig({ visible: false, message: '', type: 'error' });
     }
 
     const cancellationReason = booking?.cancellationReason;
@@ -126,25 +123,13 @@ export function useBookingResubmit({
                 setLocalStatus('for-reservation');
                 setStagedReplacements({});
                 setHasStagedContactChanges(false);
-                setToastConfig({
-                    visible: true,
-                    message: RESUBMIT_TOASTS.RESUBMIT_SUCCESS,
-                    type: 'success',
-                });
+                showToast.success(RESUBMIT_TOASTS.RESUBMIT_SUCCESS);
             } else {
-                setToastConfig({
-                    visible: true,
-                    message: RESUBMIT_TOASTS.RESUBMIT_ERROR,
-                    type: 'error',
-                });
+                showToast.error(RESUBMIT_TOASTS.RESUBMIT_ERROR);
             }
         } catch (err: unknown) {
             logger('BookingDetailsScreen', 'Error in handleExecuteResubmit', err);
-            setToastConfig({
-                visible: true,
-                message: err instanceof Error ? err.message : RESUBMIT_TOASTS.RESUBMIT_ERROR,
-                type: 'error',
-            });
+            showToast.error(err instanceof Error ? err.message : RESUBMIT_TOASTS.RESUBMIT_ERROR);
         } finally {
             setIsSubmittingDocs(false);
         }
@@ -161,10 +146,8 @@ export function useBookingResubmit({
             } else if (remainingRejectedCount === 1) {
                 msg = RESUBMIT_TOASTS.DOC_REPLACE_REQUIRED;
             }
-            setToastConfig({
-                visible: true,
-                message: msg,
-                type: 'error',
+            showToast.error(msg, {
+                onHide: () => setHasAttemptedSubmit(false),
             });
             return;
         }
@@ -175,7 +158,6 @@ export function useBookingResubmit({
     const resetResubmitState = () => {
         setStagedReplacements({});
         setHasAttemptedSubmit(false);
-        setToastConfig({ visible: false, message: '', type: 'error' });
     };
 
     return {
@@ -183,7 +165,7 @@ export function useBookingResubmit({
         isSubmittingDocs,
         confirmResubmitModalVisible, setConfirmResubmitModalVisible,
         hasAttemptedSubmit, setHasAttemptedSubmit,
-        toastConfig, setToastConfig,
+        showToast,
         originalRejectedIndices,
         totalRejectedCount,
         stagedCount,
