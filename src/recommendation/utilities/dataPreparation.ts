@@ -2,13 +2,23 @@ import { Hike } from "@/src/core/models/Hike/Hike";
 import { Review } from "@/src/core/models/Review/Review";
 import { Trail, useTrailStore } from "@/src/core/models/Trail/Trail";
 import { User, useUserStore } from "@/src/core/models/User/User";
+import { Profile } from "@/src/recommendation/interfaces/Profile";
 import {
     useRecommendationHikeStore,
     useRecommendationReviewStore,
 } from "@/src/recommendation/store/recommendationStore";
+import { getTrailStartElevations } from "@/src/recommendation/utilities/GetElevation";
+import {
+    buildTrailProfiles,
+    normalizeTrails,
+    resolveTerrainFeatures,
+    TERRAIN_MAPPING,
+} from "@/src/recommendation/utilities/NormalizeTrails";
 
 export interface DataSet {
     trails: Trail[];
+    normalizedTrails: Trail[];
+    trailProfiles: Profile[];
     users: User[];
     hikes: Hike[];
     reviews: Review[];
@@ -61,6 +71,13 @@ export const dataPreparation = async (forceRefresh = false): Promise<DataSet> =>
         const hikes = useRecommendationHikeStore.getState().data;
         const reviews = useRecommendationReviewStore.getState().data;
 
+        // Fetch / reuse cached trailhead elevations
+        const elevationsMap = await getTrailStartElevations(trails);
+
+        // Build normalized Profile vectors and normalized Trail models
+        const trailProfiles = buildTrailProfiles(trails, elevationsMap);
+        const normalizedTrails = normalizeTrails(trails, elevationsMap);
+
         // Group hikes by user for quick lookup in recommendation algorithms
         const hikesByUser: Record<string, Hike[]> = {};
         for (const hike of hikes) {
@@ -89,6 +106,8 @@ export const dataPreparation = async (forceRefresh = false): Promise<DataSet> =>
 
         return {
             trails,
+            normalizedTrails,
+            trailProfiles,
             users,
             hikes,
             reviews,
@@ -101,3 +120,10 @@ export const dataPreparation = async (forceRefresh = false): Promise<DataSet> =>
         throw err;
     }
 };
+
+// Aliases and centralized helpers re-exported for backwards compatibility
+export const NormalizedTrailProfiles = (trails: Trail[]): Profile[] => {
+    return buildTrailProfiles(trails);
+};
+
+export { resolveTerrainFeatures, TERRAIN_MAPPING };
