@@ -4,7 +4,14 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import {
+    Keyboard,
+    LayoutAnimation,
+    Platform,
+    StyleSheet,
+    UIManager,
+    View,
+} from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
@@ -26,6 +33,10 @@ import ProgressStep from '@/src/features/Book/components/ProgressStep';
 import DetailsScreen, { HikerBookingDetails } from '@/src/features/Book/screens/Booking/DetailsScreen';
 import OffersScreen from '@/src/features/Book/screens/Booking/OffersScreen';
 import StatusScreen, { BookingStatusOutcome } from '@/src/features/Book/screens/Booking/StatusScreen';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export interface BookingScreenProps {
     offers?: Offer[];
@@ -78,6 +89,25 @@ const BookingScreen = ({
     const [submitPhase, setSubmitPhase] = useState('idle');
     const [bookingStatusOutcome, setBookingStatusOutcome] = useState<BookingStatusOutcome>('success');
     const [bookingErrorMessage, setBookingErrorMessage] = useState<string | null>(null);
+    const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+    useEffect(() => {
+        if (Platform.OS === 'web') return;
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+        const showSub = Keyboard.addListener(showEvent, () => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setIsKeyboardVisible(true);
+        });
+        const hideSub = Keyboard.addListener(hideEvent, () => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setIsKeyboardVisible(false);
+        });
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, []);
     const [isDetailsDirty, setIsDetailsDirty] = useState(false);
     const [showDiscardModal, setShowDiscardModal] = useState(false);
     const pendingStepRef = useRef<number | null>(null);
@@ -330,48 +360,50 @@ const BookingScreen = ({
                 onBackPress={currentView === 3 ? undefined : handleHeaderBackPress}
             />
 
-            <View style={styles.progressOuterBounds}>
-                <View style={styles.progressWrapper}>
-                    <View style={styles.progressContainer}>
-                        <View style={styles.lineWrapper}>
-                            <View style={styles.progressLineBackground} />
-                            <View
-                                style={[
-                                    styles.progressLineActive,
-                                    { width: `${lineFillPercentage}%` },
-                                ]}
-                            />
-                        </View>
+            {!isKeyboardVisible && (
+                <View style={styles.progressOuterBounds}>
+                    <View style={styles.progressWrapper}>
+                        <View style={styles.progressContainer}>
+                            <View style={styles.lineWrapper}>
+                                <View style={styles.progressLineBackground} />
+                                <View
+                                    style={[
+                                        styles.progressLineActive,
+                                        { width: `${lineFillPercentage}%` },
+                                    ]}
+                                />
+                            </View>
 
-                        <View style={styles.progressRow}>
-                            <ProgressStep
-                                stepNum={1}
-                                title="Offers"
-                                libraryName="FontAwesome5"
-                                iconName="tag"
-                                currentView={currentView}
-                                onStepPress={handleStepNavigation}
-                            />
-                            <ProgressStep
-                                stepNum={2}
-                                title="Details"
-                                libraryName="Ionicons"
-                                iconName="document-text"
-                                currentView={currentView}
-                                onStepPress={handleStepNavigation}
-                            />
-                            <ProgressStep
-                                stepNum={3}
-                                title="Status"
-                                libraryName="MaterialCommunityIcons"
-                                iconName="clock-check-outline"
-                                currentView={currentView}
-                                onStepPress={handleStepNavigation}
-                            />
+                            <View style={styles.progressRow}>
+                                <ProgressStep
+                                    stepNum={1}
+                                    title="Offers"
+                                    libraryName="FontAwesome5"
+                                    iconName="tag"
+                                    currentView={currentView}
+                                    onStepPress={handleStepNavigation}
+                                />
+                                <ProgressStep
+                                    stepNum={2}
+                                    title="Details"
+                                    libraryName="Ionicons"
+                                    iconName="document-text"
+                                    currentView={currentView}
+                                    onStepPress={handleStepNavigation}
+                                />
+                                <ProgressStep
+                                    stepNum={3}
+                                    title="Status"
+                                    libraryName="MaterialCommunityIcons"
+                                    iconName="clock-check-outline"
+                                    currentView={currentView}
+                                    onStepPress={handleStepNavigation}
+                                />
+                            </View>
                         </View>
                     </View>
                 </View>
-            </View>
+            )}
 
             <View style={styles.contentContainer}>
                 {currentView === 1 && (

@@ -185,6 +185,96 @@ const LegalTermsModal = ({
         }
     };
 
+    const getTabDisplayName = (tab: LegalTabType): string => {
+        switch (tab) {
+            case 'privacy':
+                return 'Privacy Policy';
+            case 'booking':
+                return 'Booking Policies';
+            case 'terms':
+            default:
+                return 'Terms & Conditions';
+        }
+    };
+
+    const getNextUnreadTab = (
+        current: LegalTabType,
+        termsRead: boolean,
+        privacyRead: boolean,
+        bookingRead: boolean
+    ): LegalTabType | null => {
+        if (current === 'terms') {
+            if (!privacyRead) return 'privacy';
+            if (!bookingRead) return 'booking';
+            return null;
+        }
+        if (current === 'privacy') {
+            if (!bookingRead) return 'booking';
+            if (!termsRead) return 'terms';
+            return null;
+        }
+        if (current === 'booking') {
+            if (!termsRead) return 'terms';
+            if (!privacyRead) return 'privacy';
+            return null;
+        }
+        return null;
+    };
+
+    const isCurrentTabRead =
+        (activeTab === 'terms' && hasReadTerms) ||
+        (activeTab === 'privacy' && hasReadPrivacy) ||
+        (activeTab === 'booking' && hasReadBooking);
+
+    const nextUnreadTab = getNextUnreadTab(activeTab, hasReadTerms, hasReadPrivacy, hasReadBooking);
+
+    let buttonTitle = '';
+    let buttonVariant: 'primary' | 'outline' = 'outline';
+    let buttonIcon: string | undefined = undefined;
+    let buttonIconPosition: 'left' | 'right' = 'right';
+    let buttonValidationState: 'valid' | 'idle' | 'error' = 'idle';
+    let handleButtonPress = () => {};
+
+    if (isAlreadyAcknowledged) {
+        buttonTitle = 'Done';
+        buttonVariant = 'primary';
+        buttonIcon = 'check';
+        buttonIconPosition = 'left';
+        buttonValidationState = 'valid';
+        handleButtonPress = onClose;
+    } else if (canAcknowledge) {
+        buttonTitle = 'I Understand & Agree';
+        buttonVariant = 'primary';
+        buttonIcon = 'check';
+        buttonIconPosition = 'left';
+        buttonValidationState = 'valid';
+        handleButtonPress = handleAcknowledgePress;
+    } else if (isCurrentTabRead) {
+        if (nextUnreadTab) {
+            buttonTitle = `Continue to ${getTabDisplayName(nextUnreadTab)}`;
+            buttonVariant = 'primary';
+            buttonIcon = 'arrow-right';
+            buttonIconPosition = 'right';
+            buttonValidationState = 'valid';
+            handleButtonPress = () => handleTabChange(nextUnreadTab);
+        } else {
+            buttonTitle = 'I Understand & Agree';
+            buttonVariant = 'primary';
+            buttonIcon = 'check';
+            buttonIconPosition = 'left';
+            buttonValidationState = 'valid';
+            handleButtonPress = handleAcknowledgePress;
+        }
+    } else {
+        buttonTitle = `Read to Continue (${readCount}/3)`;
+        buttonVariant = 'outline';
+        buttonValidationState = hasAttemptedAcknowledge ? 'error' : 'idle';
+        handleButtonPress = () => {
+            setHasAttemptedAcknowledge(true);
+            setToastMessage(`Please scroll to the bottom of ${getTabDisplayName(activeTab)} to continue.`);
+        };
+    }
+
     const getTabContent = () => {
         switch (activeTab) {
             case 'privacy':
@@ -284,13 +374,21 @@ const LegalTermsModal = ({
                         </TouchableOpacity>
                     </View>
 
-                    {/* Adaptive 3-Tab Selector Bar with Single-Icon Replacement */}
+                    {/* Segmented 3-Tab Selector Bar with Highlighted Selected Pill and Full Labels */}
                     <View style={styles.tabContainer}>
                         {tabs.map((tab) => {
                             const isActive = activeTab === tab.key;
-                            const showLabel = isDesktop || isActive;
-                            // When read, icon replaces category icon with check
-                            const iconName = tab.isRead ? 'check' : tab.icon;
+                            const isRead = tab.isRead;
+                            const iconName = isRead ? 'check' : tab.icon;
+
+                            let iconColor = Colors.TEXT_SECONDARY;
+                            if (isActive && isRead) {
+                                iconColor = Colors.WHITE;
+                            } else if (isActive) {
+                                iconColor = Colors.PRIMARY;
+                            } else if (isRead) {
+                                iconColor = Colors.SUCCESS;
+                            }
 
                             return (
                                 <TouchableOpacity
@@ -298,8 +396,7 @@ const LegalTermsModal = ({
                                     style={[
                                         styles.tabButton,
                                         isActive && styles.activeTab,
-                                        !isDesktop && isActive && styles.activeTabExpanded,
-                                        !isDesktop && !isActive && styles.inactiveTabCollapsed,
+                                        isActive && isRead && styles.activeTabRead,
                                     ]}
                                     onPress={() => handleTabChange(tab.key)}
                                     activeOpacity={0.7}
@@ -311,25 +408,20 @@ const LegalTermsModal = ({
                                         <CustomIcon
                                             library="Feather"
                                             name={iconName}
-                                            size={14}
-                                            color={
-                                                tab.isRead
-                                                    ? (isActive ? Colors.PRIMARY : Colors.SUCCESS)
-                                                    : (isActive ? Colors.PRIMARY : Colors.TEXT_SECONDARY)
-                                            }
+                                            size={13}
+                                            color={iconColor}
                                         />
-                                        {showLabel && (
-                                            <CustomText 
-                                                numberOfLines={1}
-                                                style={[
-                                                    styles.tabText,
-                                                    isActive && styles.activeTabText,
-                                                    tab.isRead && !isActive && styles.readTabText,
-                                                ]}
-                                            >
-                                                {tab.label}
-                                            </CustomText>
-                                        )}
+                                        <CustomText 
+                                            numberOfLines={1}
+                                            style={[
+                                                styles.tabText,
+                                                isActive && styles.activeTabText,
+                                                isActive && isRead && styles.activeTabTextRead,
+                                                !isActive && isRead && styles.readTabText,
+                                            ]}
+                                        >
+                                            {tab.label}
+                                        </CustomText>
                                     </View>
                                 </TouchableOpacity>
                             );
@@ -361,25 +453,16 @@ const LegalTermsModal = ({
                         )}
                     </View>
 
-                    {/* Interactive Action Button with Encapsulated Validation State */}
+                    {/* Interactive Action Button with Encapsulated Validation State & Sequential Guidance */}
                     <CustomButton
-                        title={
-                            isAlreadyAcknowledged
-                                ? "Done"
-                                : (canAcknowledge
-                                    ? "I Understand & Agree"
-                                    : `Read All 3 Policies (${readCount}/3)`)
-                        }
-                        onPress={isAlreadyAcknowledged ? onClose : handleAcknowledgePress}
-                        variant={isAlreadyAcknowledged || canAcknowledge ? "primary" : "outline"}
-                        validationState={
-                            isAlreadyAcknowledged || canAcknowledge
-                                ? 'valid'
-                                : (hasAttemptedAcknowledge ? 'error' : 'idle')
-                        }
+                        title={buttonTitle}
+                        onPress={handleButtonPress}
+                        variant={buttonVariant}
+                        validationState={buttonValidationState}
                         isIdleDisabled={false}
-                        icon={isAlreadyAcknowledged ? "check" : undefined}
-                        iconLibrary={isAlreadyAcknowledged ? "Feather" : undefined}
+                        icon={buttonIcon}
+                        iconPosition={buttonIconPosition}
+                        iconLibrary="Feather"
                         style={styles.closeBtnWrapper}
                     />
 
@@ -481,21 +564,19 @@ const styles = StyleSheet.create({
     },
     tabButton: {
         flex: 1,
-        paddingVertical: 8,
-        paddingHorizontal: 8,
+        paddingVertical: 9,
+        paddingHorizontal: 4,
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
+        position: 'relative',
     },
     activeTab: {
         backgroundColor: Colors.WHITE,
         ...GlobalStyles.dropShadow(2),
     },
-    activeTabExpanded: {
-        flex: 1.8,
-    },
-    inactiveTabCollapsed: {
-        flex: 1,
+    activeTabRead: {
+        backgroundColor: Colors.PRIMARY,
     },
     tabInnerRow: {
         flexDirection: 'row',
@@ -510,7 +591,11 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     activeTabText: {
-        color: Colors.PRIMARY,
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: 'bold',
+    },
+    activeTabTextRead: {
+        color: Colors.WHITE,
         fontWeight: 'bold',
     },
     readTabText: {
