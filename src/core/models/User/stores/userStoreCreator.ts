@@ -68,7 +68,7 @@ export const userStoreCreator: StateCreator<
                 return;
             }
 
-            const sorted = users.sort((a: User, b: User) => a.firstname?.localeCompare(b.firstname));
+            const sorted = [...users].sort((a: User, b: User) => (a?.firstname || '').localeCompare(b?.firstname || ''));
 
             set({
                 data: sorted,
@@ -88,7 +88,7 @@ export const userStoreCreator: StateCreator<
 
         try {
             const users = await UserRepo.fetchAll();
-            const sorted = users.sort((a: User, b: User) => a.firstname.localeCompare(b.firstname));
+            const sorted = [...users].sort((a: User, b: User) => (a?.firstname || '').localeCompare(b?.firstname || ''));
 
             set({
                 data: sorted,
@@ -136,7 +136,7 @@ export const userStoreCreator: StateCreator<
                 } else {
                     state.data.unshift(userInstance);
                 }
-                state.data.sort((a, b) => a.lastname.localeCompare(b.lastname));
+                state.data.sort((a, b) => (a?.lastname || '').localeCompare(b?.lastname || ''));
                 state.current = userInstance;
                 state.isLoading = false;
             });
