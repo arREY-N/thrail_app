@@ -21,6 +21,8 @@ export interface TrailState extends BaseStore<Trail> {
 	setRecommendedTrail: (trails: IRecommendedTrail[]) => Promise<Trail[]>;
 	setDiscoverTrail: () => Promise<Trail[]>;
 	setOnHike: () => void;
+
+	fetchTrailByName: (trailName: string) => Promise<Trail>;
 }
 
 const init = {
@@ -136,6 +138,32 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
 				error: msg,
 				isLoading: false,
 			});
+		}
+	},
+
+	fetchTrailByName: async (trailName: string): Promise<Trail> => {
+		try {
+			set({ isLoading: true, error: null })
+
+			let trail: Trail | undefined | null = null;
+
+			trail = get().data.find((t) => t.general?.name.toUpperCase().trim() === trailName.toUpperCase().trim());
+
+			if (!trail) {
+				trail = await TrailRepo.fetchByName(trailName);
+			}
+
+			if (!trail) {
+				throw new Error('Trail not found ' + trailName);
+			}
+
+			set((state) => ({
+				isLoading: false,
+				data: upsertItem(state.data, trail)
+			}));
+			return trail;
+		} catch (error) {
+			throw error;
 		}
 	},
 
