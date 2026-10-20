@@ -1,3 +1,4 @@
+import { UserProfiles } from "@/src/recommendation/interfaces/Profile";
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 export interface IUserSummary {
@@ -53,6 +54,7 @@ export interface IUserBase<T> extends IUserSummary {
     emergencyContact: IEmergencyContact;
     profileImage: string;
     phoneVerifiedAt?: T | null;
+    profile?: UserProfiles;
 }
 
 export type IUserDB = IUserBase<Timestamp | FieldValue>;

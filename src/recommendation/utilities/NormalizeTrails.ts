@@ -1,4 +1,5 @@
 import { Trail } from "@/src/core/models/Trail/Trail";
+import { LASCO_MAX_RATING } from "@/src/recommendation/constants/RecommendationFactors";
 import { Profile } from "@/src/recommendation/interfaces/Profile";
 import { calculateTrailGain } from "@/src/recommendation/utilities/GetElevation";
 
@@ -217,7 +218,7 @@ export const transformTrailToProfile = (
             elevation: minMaxNormalize(rawElevation, bounds.elevation),
             gain: minMaxNormalize(rawGain, bounds.gain),
             slope: minMaxNormalize(rawSlope, bounds.slope),
-            easy: Math.max(0, Math.min(1, (trail.difficulty?.lascoRating ?? 0) / 9)),
+            easy: Math.max(0, Math.min(1, (trail.difficulty?.lascoRating ?? 0) / LASCO_MAX_RATING)),
             province: resolveProvinceFeatures(trail.general?.province),
             terrain: resolveTerrainFeatures(qualities),
             circularity: resolveCircularityFeatures(trail.difficulty?.circularity),
@@ -242,6 +243,79 @@ export const buildTrailProfiles = (
         const startElev = elevationsMap[trail.id];
         return transformTrailToProfile(trail, bounds, startElev);
     });
+};
+
+export interface ResolvedTrailProfilesResult {
+    profiles: Profile[];
+    profilesMap: Map<string, Profile>;
+    missingCount: number;
+    hasNewProfiles: boolean;
+    updatesToSave: { id: string; profile: Profile }[];
+}
+
+/**
+ * Smart resolver for Trail Profiles:
+ * 1. If all trails already have `trail.profile` and `forceRecalculate` is false:
+ *    Directly returns existing profiles with 0 Open-Meteo API calls and 0 normalization calculations.
+ * 2. If any trail is missing `trail.profile` (or `forceRecalculate` is true):
+ *    Computes dataset bounds and transforms trails, returning newly generated profiles ready to be persisted.
+ */
+export const resolveOrGenerateTrailProfiles = (
+    trails: Trail[],
+    options: {
+        elevationsMap?: Record<string, number>;
+        forceRecalculate?: boolean;
+    } = {}
+): ResolvedTrailProfilesResult => {
+    const { elevationsMap = {}, forceRecalculate = false } = options;
+
+    if (!trails || trails.length === 0) {
+        return {
+            profiles: [],
+            profilesMap: new Map(),
+            missingCount: 0,
+            hasNewProfiles: false,
+            updatesToSave: [],
+        };
+    }
+
+    const missingTrails = trails.filter((t) => !t.profile);
+    const missingCount = missingTrails.length;
+
+    // Fast path: all trails have profiles and recalculation not forced
+    if (missingCount === 0 && !forceRecalculate) {
+        const profiles = trails.map((t) => t.profile!);
+        return {
+            profiles,
+            profilesMap: new Map(profiles.map((p) => [p.metadata.id, p])),
+            missingCount: 0,
+            hasNewProfiles: false,
+            updatesToSave: [],
+        };
+    }
+
+    // Normalization path: calculate dataset bounds across all trails
+    const bounds = calculateDatasetBounds(trails, elevationsMap);
+
+    const updatesToSave: { id: string; profile: Profile }[] = [];
+    const profiles: Profile[] = trails.map((trail) => {
+        if (!forceRecalculate && trail.profile) {
+            return trail.profile;
+        }
+
+        const startElev = elevationsMap[trail.id];
+        const generated = transformTrailToProfile(trail, bounds, startElev);
+        updatesToSave.push({ id: trail.id, profile: generated });
+        return generated;
+    });
+
+    return {
+        profiles,
+        profilesMap: new Map(profiles.map((p) => [p.metadata.id, p])),
+        missingCount,
+        hasNewProfiles: updatesToSave.length > 0,
+        updatesToSave,
+    };
 };
 
 /**
