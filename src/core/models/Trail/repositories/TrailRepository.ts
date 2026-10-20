@@ -1,7 +1,7 @@
 import { db } from "@/src/core/config/Firebase";
 import { Trail } from "@/src/core/models/Trail/interfaces/Trail.types";
 import { trailConverter } from "@/src/core/models/Trail/utils/TrailFactory";
-import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, setDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 
 const createTrailsCollection = (db: Firestore) => {
     return collection(db, 'trails').withConverter(trailConverter);
@@ -41,6 +41,20 @@ export const TrailRepository = (db: Firestore) => ({
             return snap.data();
         } catch (err) {
             console.error(`Error fetching trail by ID (${id}) from Firestore:`, err);
+            if (err instanceof Error) throw err;
+            throw new Error('An error occurred');
+        }
+    },
+
+    async fetchByName(trailName: string): Promise<Trail | null> {
+        try {
+            const trailsCollection = createTrailsCollection(db);
+            const q = query(trailsCollection, where('general.name', '==', trailName))
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) return null;
+            return snapshot.docs[0].data();
+        } catch (err) {
+            console.error(`Error fetching trail by name (${trailName}) from Firestore:`, err);
             if (err instanceof Error) throw err;
             throw new Error('An error occurred');
         }

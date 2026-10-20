@@ -60,6 +60,7 @@ const TAB_TITLES: Record<SuperadminTab, string> = {
     trail: 'Trails & Routes',
     mountain: 'Mountains Database',
     user: 'User Accounts',
+    recommendation: 'Recommendations',
 };
 
 /**
@@ -112,7 +113,7 @@ const SuperadminShell = ({
     }, [activeTab, fadeAnim, translateYAnim]);
 
     return (
-        <ScreenWrapper 
+        <ScreenWrapper
             backgroundColor={Colors.BACKGROUND}
             statusBarBackgroundColor={isMobile ? Colors.WHITE : Colors.BACKGROUND}
         >
@@ -139,11 +140,11 @@ const SuperadminShell = ({
 
                         {/* Body Content: Scrollable or Direct Full Canvas */}
                         {noScroll ? (
-                            <Animated.View 
+                            <Animated.View
                                 style={[
                                     styles.animatedContent,
-                                    { 
-                                        opacity: fadeAnim, 
+                                    {
+                                        opacity: fadeAnim,
                                         transform: [{ translateY: translateYAnim }],
                                         padding: noPadding ? 0 : isMobile ? 16 : 20,
                                     }
@@ -165,12 +166,12 @@ const SuperadminShell = ({
                                 keyboardShouldPersistTaps="handled"
                                 refreshControl={refreshControl}
                             >
-                                <Animated.View 
+                                <Animated.View
                                     style={[
                                         styles.animatedContent,
-                                        { 
-                                            opacity: fadeAnim, 
-                                            transform: [{ translateY: translateYAnim }] 
+                                        {
+                                            opacity: fadeAnim,
+                                            transform: [{ translateY: translateYAnim }]
                                         }
                                     ]}
                                 >
