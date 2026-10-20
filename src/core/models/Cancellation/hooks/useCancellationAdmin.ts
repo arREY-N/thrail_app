@@ -1,118 +1,36 @@
+import { functions } from "@/src/core/config/Firebase";
+import { httpsCallable } from "firebase/functions";
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
-import { flagCancellationRequest } from "@/src/core/models/Cancellation/utils/Cancellation.utils";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { catchError, logger } from "@/src/core/utility/errorFormatter";
 import { useState } from "react";
 
-import {
-    Booking,
-    getUserBookingItem,
-    updateBookingOnCancellation,
-    useBookingsStore
-} from "@/src/core/models/Booking/Booking";
-
-import {
-    getGroup,
-    Group,
-    useGroupStore
-} from "@/src/core/models/Group/Group";
-
-import { HandleGroupMemberFlow } from "@/src/core/flows/HandleGroupMemberFlow";
+import { Booking } from "@/src/core/models/Booking/Booking";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useCancellationAdminList } from "@/src/core/models/Cancellation/hooks/useCancellationAdminList";
 import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
-import {
-    getBusinessOfferItem,
-    Offer,
-    subtractReservedPaxOnOffer,
-    useOfferStore
-} from "@/src/core/models/Offer/Offer";
-import { usePaymentAdmin } from "@/src/core/models/Payment/Payment";
-
 
 export function useCancellationAdmin(bookingId: string) {
     const { profile, role, businessId } = useAuthHook();
     const { onBackPress } = useAppNavigation();
-    const { onRefund } = usePaymentAdmin();
-    const { onRemoveMemberToGroup } = HandleGroupMemberFlow();
 
     const [writingError, setWritingError] = useState<string | null>(null);
     const storeError = useCancellationStore(s => s.error);
     const isWriting = useCancellationStore(s => s.isWriting);
 
     const createCancellation = useCancellationStore(s => s.write);
-    const createOffer = useOfferStore(s => s.newOffer);
-    const createBooking = useBookingsStore(s => s.create);
-    const createGroup = useGroupStore(s => s.createGroup);
+    const revertAdminCancellation = useCancellationStore(s => s.delete);
 
     const { businessCancellations } = useCancellationAdminList();
 
     const cancellationRequest = businessCancellations.find(
         c => c.bookingId === bookingId
-    )
-
-    const revertAdminCancellation = useCancellationStore(s => s.delete);
-
-    const retrieveDocuments = async (offerId: string, bookingId: string) => {
-        const offer: Offer | null = await getBusinessOfferItem(offerId);
-
-        if (!offer)
-            throw new Error("Offer not found for the provided offer ID.");
-
-        const booking: Booking | null = await getUserBookingItem(bookingId);
-
-        if (!booking)
-            throw new Error("Booking not found for the provided booking ID.");
-
-        const group: Group | void = await getGroup(booking.offer.id);
-
-        if (!group)
-            throw new Error("Group chat not found for the provided offer ID.");
-
-        return { offer, group, booking }
-    }
-
-    const processRefund = async (
-        refundType: 'full' | 'partial' | 'custom',
-        customAmount: number | undefined,
-        updatedBooking: Booking,
-        totalPaid: number,
-        refund?: number,
-    ) => {
-        let determinedType: 'full' | 'partial' | 'custom' = refundType;
-        let determinedCustom: number | undefined = customAmount;
-        if (refund !== undefined && refundType === 'full' && customAmount === undefined) {
-            if (refund === 1 || refund === 100) {
-                determinedType = 'full';
-            } else if (refund === 0.1 || refund === 10) {
-                determinedType = 'partial';
-            } else if (refund > 0) {
-                determinedType = 'custom';
-                determinedCustom = Math.round((totalPaid * (refund <= 1 ? refund : refund / 100)) * 100) / 100;
-            }
-        }
-        await onRefund(updatedBooking, determinedType, determinedCustom);
-
-        const refundAmt = determinedCustom ?? (determinedType === 'full' ? totalPaid : Math.round(totalPaid * 0.1 * 100) / 100);
-
-        // Sync local payment records so createBooking doesn't overwrite backend with stale captured state or missing refundedAmount
-        updatedBooking.payment = (updatedBooking.payment || []).map(p => {
-            if (p.status === 'captured') {
-                return { 
-                    ...p, 
-                    status: refundAmt >= (p.amount - 0.01) ? 'refunded' : 'captured',
-                    refundedAmount: (p.refundedAmount || 0) + refundAmt,
-                    refundedAt: new Date(),
-                };
-            }
-            return p;
-        });
-    }
+    );
 
     /**
-     * Approves of rejects a cancellation request and updates the associated booking, offer, and group chat accordingly.
-     * If approved, it will also initiate a refund process for the booking.
+     * Approves or rejects a cancellation request atomically via Cloud Function.
+     * Updates associated booking, offer slots, group chat members, cancellation document, and payments in a single all-or-nothing batch.
      * 
      * @param {Cancellation} request - The cancellation request to be processed. 
      * @param approved - A boolean indicating whether the cancellation request is approved (true) or rejected (false).
@@ -120,6 +38,7 @@ export function useCancellationAdmin(bookingId: string) {
      */
     const processCancellationRequest = async ({
         request,
+        booking,
         approved,
         refund,
         refundType = 'full',
@@ -127,9 +46,10 @@ export function useCancellationAdmin(bookingId: string) {
         adminNote,
     }: {
         request?: Cancellation | null;
+        booking?: Booking;
         approved: boolean;
         refund?: number;
-        refundType?: 'full' | 'partial' | 'custom';
+        refundType?: 'full' | 'partial' | 'custom' | 'none';
         customAmount?: number;
         adminNote?: string;
     }) => {
@@ -140,60 +60,43 @@ export function useCancellationAdmin(bookingId: string) {
                 throw new Error("Only admins can process cancellation requests.");
             }
 
-            if (!request) {
-                throw new Error('Cancellation request not provided');
+            const bookingId = request?.bookingId || booking?.id;
+            const userId = request?.userId || booking?.user?.id;
+            const businessId = request?.businessId || booking?.business?.id;
+            const offerId = request?.offerId || booking?.offer?.id;
+
+            if (!bookingId || !userId) {
+                throw new Error('Cancellation request or booking not provided');
             }
 
-            if (approved) {
-                const { bookingId, offerId } = request;
-
-                const { offer, group, booking } = await retrieveDocuments(offerId, bookingId);
-
-                const updatedOffer: Offer = subtractReservedPaxOnOffer(offer, booking);
-
-                const updatedBooking: Booking = updateBookingOnCancellation(booking, request, approved);
-
-                const totalPaid = booking.payment.reduce(
-                    (sum: number, p) => p.status === 'captured' ? sum + p.amount : sum,
-                    0
-                ) || 0;
-
-                if (totalPaid > 0) {
-                    await processRefund(
-                        refundType,
-                        customAmount,
-                        updatedBooking,
-                        totalPaid,
-                        refund,
-                    );
-                    updatedBooking.status = 'refunded';
-                } else {
-                    updatedBooking.status = 'cancelled';
-                }
-
-                await onRemoveMemberToGroup({ userId: booking.user.id, groupId: group.id });
-                await createBooking(updatedBooking, true, true);
-                await createOffer(updatedOffer);
-            } else {
-                if (!adminNote || adminNote.trim() === "") {
-                    throw new Error("Admin note is required when rejecting a cancellation request.");
-                }
+            if (!approved && (!adminNote || adminNote.trim() === "")) {
+                throw new Error("Admin note is required when rejecting a cancellation request.");
             }
 
-            const updated: Cancellation = flagCancellationRequest(request, approved, adminNote);
+            const processCancellationApprovalFn = httpsCallable(functions, 'processCancellationApproval');
 
-            await createCancellation({
-                cancellation: updated,
-                oldCancellation: request,
-                isAdmin: true
-            });
+            const payload = {
+                cancellationId: request?.id,
+                bookingId,
+                userId,
+                businessId,
+                offerId,
+                approved,
+                shouldRefund: refundType !== 'none',
+                refundType,
+                customAmount: refundType === 'custom' ? (customAmount ?? refund) : undefined,
+                adminNote: adminNote?.trim(),
+            };
 
-            // notify user
-            const notificationMessage = approved
+            const result = await processCancellationApprovalFn(payload);
+            const responseData = result.data as { success: boolean; message: string; isRefundIssued?: boolean; refundAmount?: number };
+
+            const notificationMessage = responseData.message || (approved
                 ? "Your cancellation request has been approved."
-                : "Your cancellation request has been rejected. As noted by the admin: " + (adminNote || "No additional information provided.");
+                : "Your cancellation request has been rejected. As noted by the admin: " + (adminNote || "No additional information provided."));
 
             logger('useCancellationAdmin', notificationMessage);
+            return responseData;
         } catch (error) {
             catchError(error as Error, 'writingError', 'useCancellationAdmin()');
             setWritingError((error as Error).message || "An unexpected error occurred.");
@@ -273,12 +176,17 @@ export function useCancellationAdmin(bookingId: string) {
     }
 
     /**
-     * !! NOT YET IMPLEMENTED !!
-     * 
      * Processes a refund for an approved cancellation request.
+     * Delegates to the atomic processCancellationApproval Cloud Function.
      * @param {Cancellation} request - The cancellation request for which to process a refund.
+     * @param refundType - 'full', 'partial', or 'custom'.
+     * @param customAmount - Optional custom refund amount in PHP.
      */
-    const proceedToRefund = async (request: Cancellation) => {
+    const proceedToRefund = async (
+        request: Cancellation,
+        refundType: 'full' | 'partial' | 'custom' = 'full',
+        customAmount?: number
+    ) => {
         try {
             setWritingError(null);
 
@@ -296,13 +204,19 @@ export function useCancellationAdmin(bookingId: string) {
 
             logger('proceedToRefund', `Processing refund for cancellation request:`, request);
 
-            // await processAdminRefund(businessId, request);
-            throw new Error("Refund processing is not yet implemented. This function is a placeholder for future development.");
+            return await processCancellationRequest({
+                request,
+                approved: true,
+                refundType,
+                customAmount,
+                adminNote: 'Refund issued by organizer',
+            });
         } catch (error) {
             catchError(error as Error, 'writingError', 'proceedToRefund()');
             setWritingError((error as Error).message || "An unexpected error occurred.");
+            throw error;
         }
-    }
+    };
 
     const onCancelUnpaid = async (booking?: Booking) => {
         try {
@@ -312,14 +226,20 @@ export function useCancellationAdmin(bookingId: string) {
 
             if (role !== 'admin') throw new Error('Only admins can cancel bookings');
 
-            await cancelUserBooking(booking, 'Unpaid booking');
+            const cancelBookingFn = httpsCallable(functions, 'cancelBooking');
+            await cancelBookingFn({
+                bookingId: booking.id,
+                userId: booking.user?.id,
+                reason: 'Unpaid booking cancelled by admin'
+            });
 
             onBackPress();
         } catch (error) {
             catchError(error as Error, 'writingError', 'onCancelUnpaid()');
             setWritingError((error as Error).message || 'Failed to cancel booking');
+            throw error;
         }
-    }
+    };
 
     return {
         onCancelUnpaid,
