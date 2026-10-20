@@ -10,6 +10,8 @@ export interface ICancellationBase<T> {
     reason: string;
     status: "pending" | "approved" | "rejected";
     adminNote?: string;
+    refundAmount?: number;
+    refundedAt?: T | null;
     createdAt: T;
     updatedAt: T;
 }
