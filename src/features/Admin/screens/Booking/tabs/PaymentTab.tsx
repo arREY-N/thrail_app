@@ -74,8 +74,10 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     const lockedMessage = getLockedMessage();
 
     const price = booking?.offer?.price || 0;
-    const totalPaid = booking?.payment?.reduce((sum: number, p: IPayment<Date>) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
-    const remainingBalance = Math.max(0, price - totalPaid);
+    const grossPaid = booking?.payment?.reduce((sum: number, p: IPayment<Date>) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
+    const totalRefunded = booking?.payment?.reduce((sum: number, p: IPayment<Date>) => sum + (p.refundedAmount || (p.status === 'refunded' ? p.amount : 0)), 0) || 0;
+    const netPaid = Math.max(0, grossPaid - totalRefunded);
+    const remainingBalance = Math.max(0, price - netPaid);
 
     const renderGatewayBadge = (gatewayName: string) => {
         const name = (gatewayName || 'PayMongo').toLowerCase();
@@ -141,8 +143,8 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                             let badgeIcon = "clock";
 
                             const dbStatus = booking?.status;
-                            const isPaid = dbStatus === 'paid' || totalPaid >= price;
-                            const isDown = dbStatus === 'downpayment' || (totalPaid > 0 && totalPaid < price);
+                            const isPaid = dbStatus === 'paid' || netPaid >= price;
+                            const isDown = dbStatus === 'downpayment' || (netPaid > 0 && netPaid < price);
 
                             if (dbStatus === 'completed') {
                                 badgeLabel = "Completed";
@@ -186,11 +188,11 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                             <CustomText style={styles.priceHeroAmount}>₱{price.toFixed(2)}</CustomText>
                         </View>
                         <View style={styles.progressContainer}>
-                            <View style={[styles.progressBarFill, { width: `${Math.min((totalPaid / (price || 1)) * 100, 100)}%` }]} />
+                            <View style={[styles.progressBarFill, { width: `${Math.min((netPaid / (price || 1)) * 100, 100)}%` }]} />
                         </View>
                         <View style={styles.progressLabelRow}>
                             <CustomText style={styles.progressText}>
-                                {Math.min((totalPaid / (price || 1)) * 100, 100).toFixed(0)}% Collected
+                                {Math.min((netPaid / (price || 1)) * 100, 100).toFixed(0)}% Net Collected
                             </CustomText>
                         </View>
                     </View>
@@ -200,10 +202,30 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                     <View style={styles.breakdownColumns}>
                         <View style={styles.breakdownCol}>
                             <CustomText style={styles.breakdownColLabel}>
-                                {currentStatus === 'downpayment' ? "Paid (50% Downpayment)" : "Paid Amount"}
+                                {totalRefunded > 0 ? "Gross Collected" : (currentStatus === 'downpayment' ? "Paid (50% Downpayment)" : "Paid Amount")}
                             </CustomText>
-                            <CustomText style={styles.breakdownColPaid}>₱{totalPaid.toFixed(2)}</CustomText>
+                            <CustomText style={styles.breakdownColPaid}>₱{grossPaid.toFixed(2)}</CustomText>
                         </View>
+                        {totalRefunded > 0 && (
+                            <>
+                                <View style={styles.breakdownCol}>
+                                    <CustomText style={[styles.breakdownColLabel, { color: Colors.ERROR }]}>
+                                        Amount Refunded
+                                    </CustomText>
+                                    <CustomText style={[styles.breakdownColPaid, { color: Colors.ERROR }]}>
+                                        -₱{totalRefunded.toFixed(2)}
+                                    </CustomText>
+                                </View>
+                                <View style={styles.breakdownCol}>
+                                    <CustomText style={[styles.breakdownColLabel, { color: Colors.PRIMARY }]}>
+                                        Net Collected
+                                    </CustomText>
+                                    <CustomText style={[styles.breakdownColPaid, { color: Colors.PRIMARY }]}>
+                                        ₱{netPaid.toFixed(2)}
+                                    </CustomText>
+                                </View>
+                            </>
+                        )}
                         <View style={styles.breakdownCol}>
                             <CustomText style={styles.breakdownColLabel}>To Collect (Remaining)</CustomText>
                             <CustomText style={[
