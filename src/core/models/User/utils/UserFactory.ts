@@ -75,6 +75,7 @@ export const newUser = (init?: Partial<User>): User => {
         emergencyContact: newEmergencyContact(init?.emergencyContact),
         phoneVerifiedAt: init?.phoneVerifiedAt ? toDate(init.phoneVerifiedAt) : null,
         profileImage: '',
+        profile: init?.profile,
         ...init,
         ...(init?.birthday ? { birthday: toDate(init.birthday) } : {}),
         ...(init?.createdAt ? { createdAt: toDate(init.createdAt) } : {}),
@@ -103,6 +104,7 @@ const userFromFirestore = (id: string, data: IUserDB): User => {
         preferences: newPreference(data.preferences),
         profileImage: data.profileImage || '',
         phoneVerifiedAt: data.phoneVerifiedAt ? toDate(data.phoneVerifiedAt) : null,
+        profile: data.profile || undefined,
         medicalProfile: {
             ...data.medicalProfile,
             hasCondition: !!data.medicalProfile?.hasCondition,
@@ -150,6 +152,7 @@ const userToFirestore = (user: User): IUserDB => {
         } : user.emergencyContact,
         phoneVerifiedAt: user.phoneVerifiedAt instanceof Date ? Timestamp.fromDate(user.phoneVerifiedAt) : (user.phoneVerifiedAt || null),
         profileImage: user.profileImage,
+        ...(user.profile ? { profile: user.profile } : {}),
     };
 
     return mapped;
