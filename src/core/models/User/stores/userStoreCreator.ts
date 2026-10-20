@@ -3,6 +3,7 @@ import { IEmergencyContact, NotificationToken, User } from "@/src/core/models/Us
 import { UserRepo } from "@/src/core/models/User/repositories/UserRepository";
 import { useAuthStore } from "@/src/core/models/User/stores/authStore";
 import { newUser } from "@/src/core/models/User/utils/UserFactory";
+import { UserProfiles } from "@/src/recommendation/interfaces/Profile";
 import { StateCreator } from "zustand";
 
 export interface UserState extends BaseStore<User> {
@@ -12,6 +13,7 @@ export interface UserState extends BaseStore<User> {
     loadUser: (id: string) => Promise<User | null>;
     addUserNotificationToken: (token: NotificationToken<Date>, user: User) => Promise<void>;
     setEmergencyContact: (user: User, contact: IEmergencyContact) => Promise<void>;
+    saveUserProfile: (id: string, profile: UserProfiles) => Promise<boolean>;
 }
 
 const init = {
@@ -279,6 +281,42 @@ export const userStoreCreator: StateCreator<
             }
         } catch (err) {
             console.error("Failed to add notification token:", err);
+        }
+    },
+
+    saveUserProfile: async (id: string, profile: UserProfiles): Promise<boolean> => {
+        if (!id) return false;
+        try {
+            await UserRepo.updateProfile(id, profile);
+
+            set((state) => {
+                const existingIndex = state.data.findIndex((u) => u.id === id);
+                if (existingIndex >= 0) {
+                    state.data[existingIndex] = {
+                        ...state.data[existingIndex],
+                        profile,
+                    };
+                }
+                if (state.current && state.current.id === id) {
+                    state.current = {
+                        ...state.current,
+                        profile,
+                    };
+                }
+            });
+
+            const authState = useAuthStore.getState();
+            if (authState.user?.uid === id || authState.profile?.id === id) {
+                const updatedUser = get().data.find((u) => u.id === id) || (authState.profile ? { ...authState.profile, profile } : null);
+                if (updatedUser) {
+                    authState.updateProfile(updatedUser);
+                }
+            }
+
+            return true;
+        } catch (err: unknown) {
+            console.error("Failed to save user profile:", err);
+            throw err;
         }
     },
 });

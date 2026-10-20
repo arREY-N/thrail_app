@@ -4,6 +4,7 @@ import { Trail } from "@/src/core/models/Trail/interfaces/Trail.types";
 import { TrailRepo } from "@/src/core/models/Trail/repositories/TrailRepository";
 import { newTrail } from "@/src/core/models/Trail/utils/TrailFactory";
 import { upsertItem } from "@/src/core/models/utils/upsert";
+import { Profile } from "@/src/recommendation/interfaces/Profile";
 import NetInfo from "@react-native-community/netinfo";
 import { Platform } from "react-native";
 import { StateCreator } from "zustand";
@@ -23,6 +24,7 @@ export interface TrailState extends BaseStore<Trail> {
 	setOnHike: () => void;
 
 	fetchTrailByName: (trailName: string) => Promise<Trail>;
+	saveBatchTrailProfiles: (updates: { id: string; profile: Profile }[]) => Promise<boolean>;
 }
 
 const init = {
@@ -282,5 +284,31 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
 	setRecommendedTrail: async (trails: IRecommendedTrail[]) => {
 		let recommended: Trail[] = [];
 		return recommended;
+	},
+
+	saveBatchTrailProfiles: async (updates: { id: string; profile: Profile }[]) => {
+		if (!updates || updates.length === 0) return true;
+
+		try {
+			await TrailRepo.updateBatchProfiles(updates);
+
+			const profileMap = new Map(updates.map((u) => [u.id, u.profile]));
+			set((state) => ({
+				data: state.data.map((t) => {
+					const profile = profileMap.get(t.id);
+					return profile ? { ...t, profile } : t;
+				}),
+				current: state.current && profileMap.has(state.current.id)
+					? { ...state.current, profile: profileMap.get(state.current.id)! }
+					: state.current,
+			}));
+
+			return true;
+		} catch (err: unknown) {
+			const errMessage = err instanceof Error ? err.message : 'Failed saving trail profiles';
+			console.error(errMessage);
+			set({ error: errMessage });
+			return false;
+		}
 	},
 });

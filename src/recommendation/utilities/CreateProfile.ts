@@ -1,13 +1,24 @@
 import { Trail, useTrailStore } from "@/src/core/models/Trail/Trail";
 import { User } from "@/src/core/models/User/User";
+import {
+    BEGINNER_DIFFICULT_BASE,
+    BEGINNER_EASY_BASE,
+    EXPERIENCED_DIFFICULT_FACTOR,
+    EXPERIENCED_EASY_FACTOR,
+    MEDICAL_CONDITION_FACTOR,
+    PROVINCE_PREFERRED_WEIGHT,
+    PROVINCE_UNSELECTED_WEIGHT,
+    TOURISM_DIFFICULT_BASE,
+    TOURISM_EASY_BASE
+} from "@/src/recommendation/constants/RecommendationFactors";
 import { Profile, UserProfiles } from "@/src/recommendation/interfaces/Profile";
 import {
     buildTrailProfiles,
-    resolveCircularityFeatures,
-    resolveProvinceFeatures,
-    resolveTerrainFeatures,
-    resolveWaterformsFeatures,
+    resolveProvinceFeatures
 } from "@/src/recommendation/utilities/NormalizeTrails";
+
+// Re-export for backwards compatibility
+export { MEDICAL_CONDITION_FACTOR };
 
 /**
  * Resolves trail documents by their name from the TrailStore.
@@ -171,20 +182,91 @@ export const BatchTrailProfile = (profiles: Profile[]): Profile['features'] | nu
 };
 
 /**
- * Creates twin user profiles (easy and difficult) for a beginner hiker with no logged history.
- * Leverages user province preferences and conservative default baseline weights.
+ * Resolves user-selected survey trail locations against available trail documents in the database.
+ * Matches case-insensitively against trail ID, trail name, or trail general location.
  */
-export const CreateBeginnerProfile = (user: User): UserProfiles => {
-    const easyBase = 3 / 5; // 0.6
-    const difficultBase = Math.min(1, easyBase * 1.3); // 0.78
+export const MatchSurveyTrails = (
+    surveyLocations: string[] = [],
+    availableTrails: Trail[] = []
+): Trail[] => {
+    if (!surveyLocations || surveyLocations.length === 0 || !availableTrails || availableTrails.length === 0) {
+        return [];
+    }
+
+    const matchedMap = new Map<string, Trail>();
+
+    for (const rawLoc of surveyLocations) {
+        if (!rawLoc || typeof rawLoc !== "string") continue;
+        const query = rawLoc.trim().toLowerCase();
+        if (!query) continue;
+
+        for (const trail of availableTrails) {
+            if (!trail) continue;
+            const tId = trail.id?.trim().toLowerCase() || "";
+            const tName = trail.general?.name?.trim().toLowerCase() || "";
+            const tAddress = trail.general?.address?.trim().toLowerCase() || "";
+            const tMountains = trail.general?.mountain?.map((m) => m.trim().toLowerCase()) || [];
+
+            if (
+                tId === query ||
+                tName === query ||
+                tAddress === query ||
+                tMountains.includes(query) ||
+                (query.length >= 3 && tName.includes(query)) ||
+                (tName.length >= 3 && query.includes(tName)) ||
+                (query.length >= 3 && tAddress.includes(query)) ||
+                tMountains.some((m) => m.length >= 3 && (m.includes(query) || query.includes(m)))
+            ) {
+                matchedMap.set(trail.id, trail);
+            }
+        }
+    }
+
+    return Array.from(matchedMap.values());
+};
+
+/**
+ * Checks if a user has answered that they have any medical conditions.
+ */
+export const HasMedicalCondition = (user: User): boolean => {
+    if (!user.medicalProfile) return false;
+    if (user.medicalProfile.hasCondition === true) return true;
+    if (Array.isArray(user.medicalProfile.details) && user.medicalProfile.details.length > 0) return true;
+    if (typeof user.medicalProfile.details === "string" && (user.medicalProfile.details as string).trim().length > 0) return true;
+    return false;
+};
+
+
+/**
+ * Creates twin user profiles (easy and difficult) for a beginner hiker with no survey trail history.
+ * - Easy: Low base (0.25) representing lower physical effort, high affinity (0.85) for preferred provinces.
+ * - Difficult: High base (0.75) representing demanding effort, inverted affinity (0.85) for unselected provinces.
+ * - Medical adjustment: If the user has any medical conditions, bases are shifted down by medicalFactor (0.80x)
+ *   yielding 0.20 for easy and 0.60 for difficult.
+ * - Tourism amenities: initialized to baseline scores (0.20 easy / 0.40 difficult) for vector completeness.
+ */
+export const CreateBeginnerProfile = (
+    user: User,
+    medicalFactor = MEDICAL_CONDITION_FACTOR
+): UserProfiles => {
+    const hasMedical = HasMedicalCondition(user);
+    const appliedFactor = hasMedical ? medicalFactor : 1.0;
+
+    const easyBase = BEGINNER_EASY_BASE * appliedFactor;
+    const difficultBase = BEGINNER_DIFFICULT_BASE * appliedFactor;
+    const easyTourismBase = TOURISM_EASY_BASE;
+    const difficultTourismBase = TOURISM_DIFFICULT_BASE;
     const provinces = user.preferences?.province || [];
 
     const easyProvince = resolveProvinceFeatures(provinces);
     const difficultProvince = resolveProvinceFeatures(provinces);
 
-    // Give higher preference weight (0.7) to preferred provinces, baseline (0.3) to others
-    const calcProvWeight = (isSelected: number, baseWeight: number, altWeight: number) =>
-        isSelected ? baseWeight : altWeight;
+    // In easy profile: preferred provinces receive preferred weight, unselected receive unselected weight
+    // In difficult profile: preferred provinces are downweighted, unselected are elevated to promote exploration
+    const calcEasyProvWeight = (isSelected: number) =>
+        isSelected ? PROVINCE_PREFERRED_WEIGHT : PROVINCE_UNSELECTED_WEIGHT;
+    const calcDiffProvWeight = (isSelected: number) =>
+        isSelected ? PROVINCE_UNSELECTED_WEIGHT : PROVINCE_PREFERRED_WEIGHT;
 
     const easyProfile: Profile = {
         metadata: {
@@ -200,11 +282,11 @@ export const CreateBeginnerProfile = (user: User): UserProfiles => {
             easy: easyBase,
             slope: easyBase,
             province: {
-                cavite: calcProvWeight(easyProvince.cavite, 0.7, 0.3),
-                laguna: calcProvWeight(easyProvince.laguna, 0.7, 0.3),
-                batangas: calcProvWeight(easyProvince.batangas, 0.7, 0.3),
-                rizal: calcProvWeight(easyProvince.rizal, 0.7, 0.3),
-                quezon: calcProvWeight(easyProvince.quezon, 0.7, 0.3),
+                cavite: calcEasyProvWeight(easyProvince.cavite),
+                laguna: calcEasyProvWeight(easyProvince.laguna),
+                batangas: calcEasyProvWeight(easyProvince.batangas),
+                rizal: calcEasyProvWeight(easyProvince.rizal),
+                quezon: calcEasyProvWeight(easyProvince.quezon),
             },
             terrain: {
                 muddy: easyBase,
@@ -223,17 +305,17 @@ export const CreateBeginnerProfile = (user: User): UserProfiles => {
                 lake: easyBase,
             },
             tourism: {
-                shelter: null,
-                resting: null,
-                information_board: null,
-                clean_water: null,
-                river: null,
-                lake: null,
-                waterfall: null,
-                monument: null,
-                community: null,
-                viewpoint: null,
-                network_connection: null,
+                shelter: easyTourismBase,
+                resting: easyTourismBase,
+                information_board: easyTourismBase,
+                clean_water: easyTourismBase,
+                river: easyTourismBase,
+                lake: easyTourismBase,
+                waterfall: easyTourismBase,
+                monument: easyTourismBase,
+                community: easyTourismBase,
+                viewpoint: easyTourismBase,
+                network_connection: easyTourismBase,
             },
         },
     };
@@ -252,11 +334,11 @@ export const CreateBeginnerProfile = (user: User): UserProfiles => {
             easy: difficultBase,
             slope: difficultBase,
             province: {
-                cavite: calcProvWeight(difficultProvince.cavite, 0.7, 0.3),
-                laguna: calcProvWeight(difficultProvince.laguna, 0.7, 0.3),
-                batangas: calcProvWeight(difficultProvince.batangas, 0.7, 0.3),
-                rizal: calcProvWeight(difficultProvince.rizal, 0.7, 0.3),
-                quezon: calcProvWeight(difficultProvince.quezon, 0.7, 0.3),
+                cavite: calcDiffProvWeight(difficultProvince.cavite),
+                laguna: calcDiffProvWeight(difficultProvince.laguna),
+                batangas: calcDiffProvWeight(difficultProvince.batangas),
+                rizal: calcDiffProvWeight(difficultProvince.rizal),
+                quezon: calcDiffProvWeight(difficultProvince.quezon),
             },
             terrain: {
                 muddy: difficultBase,
@@ -275,17 +357,17 @@ export const CreateBeginnerProfile = (user: User): UserProfiles => {
                 lake: difficultBase,
             },
             tourism: {
-                shelter: null,
-                resting: null,
-                information_board: null,
-                clean_water: null,
-                river: null,
-                lake: null,
-                waterfall: null,
-                monument: null,
-                community: null,
-                viewpoint: null,
-                network_connection: null,
+                shelter: difficultTourismBase,
+                resting: difficultTourismBase,
+                information_board: difficultTourismBase,
+                clean_water: difficultTourismBase,
+                river: difficultTourismBase,
+                lake: difficultTourismBase,
+                waterfall: difficultTourismBase,
+                monument: difficultTourismBase,
+                community: difficultTourismBase,
+                viewpoint: difficultTourismBase,
+                network_connection: difficultTourismBase,
             },
         },
     };
@@ -297,33 +379,129 @@ export const CreateBeginnerProfile = (user: User): UserProfiles => {
 };
 
 /**
- * Creates twin user profiles for an experienced hiker based on their past completed/selected trails.
- * Averages normalized trail vectors and scales for accessible ('easy') and challenging ('difficult') recommendations.
+ * Creates twin user profiles for an experienced hiker based on their survey-selected trails.
+ * Averages normalized trail vectors and applies a 0.50x factor for a conservatively easy profile
+ * and a 1.35x factor for a challenging difficult profile.
  */
 export const CreateExperiencedProfile = (
     user: User,
-    hikedTrails: Trail[],
-    elevationsMap: Record<string, number> = {}
+    matchedTrails: Trail[],
+    elevationsMap: Record<string, number> = {},
+    trailProfileMap?: Map<string, Profile> | Record<string, Profile>,
+    medicalFactor = MEDICAL_CONDITION_FACTOR
 ): UserProfiles => {
-    if (!hikedTrails || hikedTrails.length === 0) {
-        return CreateBeginnerProfile(user);
+    if (!matchedTrails || matchedTrails.length === 0) {
+        return CreateBeginnerProfile(user, medicalFactor);
     }
 
-    // Convert hiked trails into normalized Profile vectors [0, 1]
-    const trailProfiles = buildTrailProfiles(hikedTrails, elevationsMap);
+    // Convert matched trails into normalized Profile vectors [0, 1]
+    const trailProfiles: Profile[] = [];
+    const missingTrails: Trail[] = [];
+
+    for (const t of matchedTrails) {
+        let p: Profile | undefined;
+        if (trailProfileMap instanceof Map) {
+            p = trailProfileMap.get(t.id);
+        } else if (trailProfileMap && typeof trailProfileMap === "object") {
+            p = trailProfileMap[t.id];
+        }
+        if (!p && t.profile) {
+            p = t.profile;
+        }
+
+        if (p) {
+            trailProfiles.push(p);
+        } else {
+            missingTrails.push(t);
+        }
+    }
+
+    if (missingTrails.length > 0) {
+        const computed = buildTrailProfiles(missingTrails, elevationsMap);
+        trailProfiles.push(...computed);
+    }
+
     const avgVector = BatchTrailProfile(trailProfiles);
 
     if (!avgVector) {
-        return CreateBeginnerProfile(user);
+        return CreateBeginnerProfile(user, medicalFactor);
     }
 
     const clamp = (val: number) => Math.max(0, Math.min(1, val));
-    const scaleNullable = (val: number | null, factor: number): number | null =>
-        val !== null ? clamp(val * factor) : null;
+    const scaleNullable = (val: number | null, factor: number, defaultVal: number): number =>
+        val !== null ? clamp(val * factor) : defaultVal;
 
-    // Scaling factors: Easy (conservative 0.8x of average), Difficult (challenging 1.25x of average)
-    const easyFactor = 0.8;
-    const difficultFactor = 1.25;
+    const hasMedical = HasMedicalCondition(user);
+    const appliedFactor = hasMedical ? medicalFactor : 1.0;
+
+    const easyBase = BEGINNER_EASY_BASE * appliedFactor;
+    const difficultBase = BEGINNER_DIFFICULT_BASE * appliedFactor;
+    const easyTourismBase = TOURISM_EASY_BASE;
+    const difficultTourismBase = TOURISM_DIFFICULT_BASE;
+
+    // Scaling factors for observed physical/terrain metrics:
+    // If user has any medical condition, appliedFactor (0.80x) downshifts both factors
+    const easyFactor = EXPERIENCED_EASY_FACTOR * appliedFactor;
+    const difficultFactor = EXPERIENCED_DIFFICULT_FACTOR * appliedFactor;
+
+    const userProvinces = resolveProvinceFeatures(user.preferences?.province || []);
+
+    // Helper: calculate province weight for experienced user
+    // If observed in hiking history (> 0): preserve empirical historical affinity
+    // If unobserved (=== 0): soften using stated survey preference prior
+    const calcExperiencedProvince = (pKey: keyof Profile['features']['province'], isDifficult: boolean) => {
+        const histVal = avgVector.province[pKey];
+        if (histVal > 0) {
+            return clamp(histVal);
+        }
+        const isPref = userProvinces[pKey] > 0;
+        if (isDifficult) {
+            return isPref ? PROVINCE_UNSELECTED_WEIGHT : PROVINCE_PREFERRED_WEIGHT;
+        }
+        return isPref ? PROVINCE_PREFERRED_WEIGHT : PROVINCE_UNSELECTED_WEIGHT;
+    };
+
+    // Helper: calculate terrain weight for experienced user
+    // If observed in hiking history (> 0): scale by anchor factor
+    // If unobserved (=== 0): soften to beginner baseline prior (easyBase / difficultBase)
+    const calcExperiencedTerrain = (tKey: keyof Profile['features']['terrain'], isDifficult: boolean) => {
+        const histVal = avgVector.terrain[tKey];
+        if (histVal > 0) {
+            const factor = isDifficult ? difficultFactor : easyFactor;
+            return clamp(histVal * factor);
+        }
+        return isDifficult ? difficultBase : easyBase;
+    };
+
+    // Helper: calculate circularity weight for experienced user
+    const calcExperiencedCircularity = (cKey: keyof Profile['features']['circularity'], isDifficult: boolean) => {
+        const histVal = avgVector.circularity[cKey];
+        if (histVal > 0) {
+            const factor = isDifficult ? difficultFactor : easyFactor;
+            return clamp(histVal * factor);
+        }
+        return isDifficult ? difficultBase : easyBase;
+    };
+
+    // Helper: calculate waterforms weight for experienced user
+    const calcExperiencedWaterforms = (wKey: keyof Profile['features']['waterforms'], isDifficult: boolean) => {
+        const histVal = avgVector.waterforms[wKey];
+        if (histVal !== null && histVal > 0) {
+            const factor = isDifficult ? difficultFactor : easyFactor;
+            return clamp(histVal * factor);
+        }
+        return isDifficult ? difficultBase : easyBase;
+    };
+
+    // Helper: calculate tourism weight for experienced user
+    const calcExperiencedTourism = (tKey: keyof Profile['features']['tourism'], isDifficult: boolean) => {
+        const histVal = avgVector.tourism[tKey];
+        if (histVal !== null && histVal > 0) {
+            const factor = isDifficult ? difficultFactor : easyFactor;
+            return clamp(histVal * factor);
+        }
+        return isDifficult ? difficultTourismBase : easyTourismBase;
+    };
 
     const easyProfile: Profile = {
         metadata: {
@@ -332,47 +510,47 @@ export const CreateExperiencedProfile = (
             profile: "easy",
         },
         features: {
-            classification: clamp(avgVector.classification * easyFactor),
+            classification: 0,
             length: clamp(avgVector.length * easyFactor),
             elevation: clamp(avgVector.elevation * easyFactor),
             gain: clamp(avgVector.gain * easyFactor),
             easy: clamp(avgVector.easy * easyFactor),
             slope: clamp(avgVector.slope * easyFactor),
             province: {
-                cavite: clamp(avgVector.province.cavite * easyFactor),
-                laguna: clamp(avgVector.province.laguna * easyFactor),
-                batangas: clamp(avgVector.province.batangas * easyFactor),
-                rizal: clamp(avgVector.province.rizal * easyFactor),
-                quezon: clamp(avgVector.province.quezon * easyFactor),
+                cavite: calcExperiencedProvince("cavite", false),
+                laguna: calcExperiencedProvince("laguna", false),
+                batangas: calcExperiencedProvince("batangas", false),
+                rizal: calcExperiencedProvince("rizal", false),
+                quezon: calcExperiencedProvince("quezon", false),
             },
             terrain: {
-                muddy: clamp(avgVector.terrain.muddy * easyFactor),
-                rocky: clamp(avgVector.terrain.rocky * easyFactor),
-                grassland: clamp(avgVector.terrain.grassland * easyFactor),
-                ridges: clamp(avgVector.terrain.ridges * easyFactor),
+                muddy: calcExperiencedTerrain("muddy", false),
+                rocky: calcExperiencedTerrain("rocky", false),
+                grassland: calcExperiencedTerrain("grassland", false),
+                ridges: calcExperiencedTerrain("ridges", false),
             },
             circularity: {
-                out_and_back: clamp(avgVector.circularity.out_and_back * easyFactor),
-                traverse: clamp(avgVector.circularity.traverse * easyFactor),
-                circular: clamp(avgVector.circularity.circular * easyFactor),
+                out_and_back: calcExperiencedCircularity("out_and_back", false),
+                traverse: calcExperiencedCircularity("traverse", false),
+                circular: calcExperiencedCircularity("circular", false),
             },
             waterforms: {
-                fall: scaleNullable(avgVector.waterforms.fall, easyFactor),
-                river: scaleNullable(avgVector.waterforms.river, easyFactor),
-                lake: scaleNullable(avgVector.waterforms.lake, easyFactor),
+                fall: calcExperiencedWaterforms("fall", false),
+                river: calcExperiencedWaterforms("river", false),
+                lake: calcExperiencedWaterforms("lake", false),
             },
             tourism: {
-                shelter: scaleNullable(avgVector.tourism.shelter, easyFactor),
-                resting: scaleNullable(avgVector.tourism.resting, easyFactor),
-                information_board: scaleNullable(avgVector.tourism.information_board, easyFactor),
-                clean_water: scaleNullable(avgVector.tourism.clean_water, easyFactor),
-                river: scaleNullable(avgVector.tourism.river, easyFactor),
-                lake: scaleNullable(avgVector.tourism.lake, easyFactor),
-                waterfall: scaleNullable(avgVector.tourism.waterfall, easyFactor),
-                monument: scaleNullable(avgVector.tourism.monument, easyFactor),
-                community: scaleNullable(avgVector.tourism.community, easyFactor),
-                viewpoint: scaleNullable(avgVector.tourism.viewpoint, easyFactor),
-                network_connection: scaleNullable(avgVector.tourism.network_connection, easyFactor),
+                shelter: calcExperiencedTourism("shelter", false),
+                resting: calcExperiencedTourism("resting", false),
+                information_board: calcExperiencedTourism("information_board", false),
+                clean_water: calcExperiencedTourism("clean_water", false),
+                river: calcExperiencedTourism("river", false),
+                lake: calcExperiencedTourism("lake", false),
+                waterfall: calcExperiencedTourism("waterfall", false),
+                monument: calcExperiencedTourism("monument", false),
+                community: calcExperiencedTourism("community", false),
+                viewpoint: calcExperiencedTourism("viewpoint", false),
+                network_connection: calcExperiencedTourism("network_connection", false),
             },
         },
     };
@@ -384,47 +562,47 @@ export const CreateExperiencedProfile = (
             profile: "difficult",
         },
         features: {
-            classification: clamp(avgVector.classification * difficultFactor),
+            classification: 1,
             length: clamp(avgVector.length * difficultFactor),
             elevation: clamp(avgVector.elevation * difficultFactor),
             gain: clamp(avgVector.gain * difficultFactor),
             easy: clamp(avgVector.easy * difficultFactor),
             slope: clamp(avgVector.slope * difficultFactor),
             province: {
-                cavite: clamp(avgVector.province.cavite * difficultFactor),
-                laguna: clamp(avgVector.province.laguna * difficultFactor),
-                batangas: clamp(avgVector.province.batangas * difficultFactor),
-                rizal: clamp(avgVector.province.rizal * difficultFactor),
-                quezon: clamp(avgVector.province.quezon * difficultFactor),
+                cavite: calcExperiencedProvince("cavite", true),
+                laguna: calcExperiencedProvince("laguna", true),
+                batangas: calcExperiencedProvince("batangas", true),
+                rizal: calcExperiencedProvince("rizal", true),
+                quezon: calcExperiencedProvince("quezon", true),
             },
             terrain: {
-                muddy: clamp(avgVector.terrain.muddy * difficultFactor),
-                rocky: clamp(avgVector.terrain.rocky * difficultFactor),
-                grassland: clamp(avgVector.terrain.grassland * difficultFactor),
-                ridges: clamp(avgVector.terrain.ridges * difficultFactor),
+                muddy: calcExperiencedTerrain("muddy", true),
+                rocky: calcExperiencedTerrain("rocky", true),
+                grassland: calcExperiencedTerrain("grassland", true),
+                ridges: calcExperiencedTerrain("ridges", true),
             },
             circularity: {
-                out_and_back: clamp(avgVector.circularity.out_and_back * difficultFactor),
-                traverse: clamp(avgVector.circularity.traverse * difficultFactor),
-                circular: clamp(avgVector.circularity.circular * difficultFactor),
+                out_and_back: calcExperiencedCircularity("out_and_back", true),
+                traverse: calcExperiencedCircularity("traverse", true),
+                circular: calcExperiencedCircularity("circular", true),
             },
             waterforms: {
-                fall: scaleNullable(avgVector.waterforms.fall, difficultFactor),
-                river: scaleNullable(avgVector.waterforms.river, difficultFactor),
-                lake: scaleNullable(avgVector.waterforms.lake, difficultFactor),
+                fall: calcExperiencedWaterforms("fall", true),
+                river: calcExperiencedWaterforms("river", true),
+                lake: calcExperiencedWaterforms("lake", true),
             },
             tourism: {
-                shelter: scaleNullable(avgVector.tourism.shelter, difficultFactor),
-                resting: scaleNullable(avgVector.tourism.resting, difficultFactor),
-                information_board: scaleNullable(avgVector.tourism.information_board, difficultFactor),
-                clean_water: scaleNullable(avgVector.tourism.clean_water, difficultFactor),
-                river: scaleNullable(avgVector.tourism.river, difficultFactor),
-                lake: scaleNullable(avgVector.tourism.lake, difficultFactor),
-                waterfall: scaleNullable(avgVector.tourism.waterfall, difficultFactor),
-                monument: scaleNullable(avgVector.tourism.monument, difficultFactor),
-                community: scaleNullable(avgVector.tourism.community, difficultFactor),
-                viewpoint: scaleNullable(avgVector.tourism.viewpoint, difficultFactor),
-                network_connection: scaleNullable(avgVector.tourism.network_connection, difficultFactor),
+                shelter: calcExperiencedTourism("shelter", true),
+                resting: calcExperiencedTourism("resting", true),
+                information_board: calcExperiencedTourism("information_board", true),
+                clean_water: calcExperiencedTourism("clean_water", true),
+                river: calcExperiencedTourism("river", true),
+                lake: calcExperiencedTourism("lake", true),
+                waterfall: calcExperiencedTourism("waterfall", true),
+                monument: calcExperiencedTourism("monument", true),
+                community: calcExperiencedTourism("community", true),
+                viewpoint: calcExperiencedTourism("viewpoint", true),
+                network_connection: calcExperiencedTourism("network_connection", true),
             },
         },
     };
@@ -437,16 +615,25 @@ export const CreateExperiencedProfile = (
 
 /**
  * High-level UserProfile generator.
- * Automatically branches between beginner (no hike history) and experienced profiles.
+ * Checks user survey preferences (user.preferences.location).
+ * If matching trails exist in the trail database, creates experienced profiles using
+ * centroid scaling (0.50x easy, 1.35x difficult). Otherwise, falls back to beginner profile.
  */
 export const GenerateUserProfile = (
     user: User,
     trails?: Trail[],
-    elevationsMap: Record<string, number> = {}
+    elevationsMap: Record<string, number> = {},
+    trailProfileMap?: Map<string, Profile> | Record<string, Profile>,
+    medicalFactor = MEDICAL_CONDITION_FACTOR
 ): UserProfiles => {
-    if (!user.preferences?.hiked || !trails || trails.length === 0) {
-        return CreateBeginnerProfile(user);
+    const surveyLocations = user.preferences?.location || [];
+
+    if (trails && trails.length > 0 && surveyLocations.length > 0) {
+        const matched = MatchSurveyTrails(surveyLocations, trails);
+        if (matched.length > 0) {
+            return CreateExperiencedProfile(user, matched, elevationsMap, trailProfileMap, medicalFactor);
+        }
     }
 
-    return CreateExperiencedProfile(user, trails, elevationsMap);
+    return CreateBeginnerProfile(user, medicalFactor);
 };

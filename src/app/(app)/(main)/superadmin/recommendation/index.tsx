@@ -16,13 +16,38 @@ import { TrailDataset, UserDataset } from "../../../../../recommendation/compone
 type DatasetType = "trails" | "users";
 
 export default function RecommendationDatasetScreen() {
-    const { trails, trailProfiles, startElevations, users, hikes, reviews, hikesByUser, reviewsByUser, isLoading, error, refresh } = core();
+    const {
+        trails,
+        trailProfiles,
+        startElevations,
+        missingProfilesCount,
+        isSyncingProfiles,
+        users,
+        hikes,
+        reviews,
+        hikesByUser,
+        reviewsByUser,
+        isLoading,
+        error,
+        refresh,
+        syncProfilesToFirestore,
+        generateUserProfile,
+        saveUserProfile,
+    } = core();
 
     const { pendingApplication } = useSuperadminDomain(null);
     const { onTabPress, onBackToSettingsPress } = useSuperadminNavigation();
     const pendingCount = pendingApplication?.length || 0;
 
     const [activeDataset, setActiveDataset] = useState<DatasetType>("trails");
+    const [hasVisitedUsers, setHasVisitedUsers] = useState<boolean>(false);
+
+    const handleSwitchTab = (tab: DatasetType) => {
+        setActiveDataset(tab);
+        if (tab === "users" && !hasVisitedUsers) {
+            setHasVisitedUsers(true);
+        }
+    };
 
     return (
         <SuperadminShell
@@ -34,7 +59,7 @@ export default function RecommendationDatasetScreen() {
             rightActions={
                 <TouchableOpacity
                     style={styles.refreshButton}
-                    onPress={refresh}
+                    onPress={() => refresh()}
                     disabled={isLoading}
                     accessibilityLabel="Refresh recommendation datasets"
                 >
@@ -58,7 +83,7 @@ export default function RecommendationDatasetScreen() {
                             styles.switcherTab,
                             activeDataset === "trails" && styles.switcherTabActive,
                         ]}
-                        onPress={() => setActiveDataset("trails")}
+                        onPress={() => handleSwitchTab("trails")}
                     >
                         <CustomIcon
                             library="Feather"
@@ -96,7 +121,7 @@ export default function RecommendationDatasetScreen() {
                             styles.switcherTab,
                             activeDataset === "users" && styles.switcherTabActive,
                         ]}
-                        onPress={() => setActiveDataset("users")}
+                        onPress={() => handleSwitchTab("users")}
                     >
                         <CustomIcon
                             library="Feather"
@@ -130,27 +155,38 @@ export default function RecommendationDatasetScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Active Dataset Section */}
-                {activeDataset === "trails" ? (
+                {/* Active Dataset Section with Instant Display Toggling */}
+                <View style={[styles.datasetSection, activeDataset !== "trails" && styles.hiddenDataset]}>
                     <TrailDataset
                         trails={trails}
                         trailProfiles={trailProfiles}
                         startElevations={startElevations}
+                        missingProfilesCount={missingProfilesCount}
+                        isSyncingProfiles={isSyncingProfiles}
                         isLoading={isLoading}
                         error={error}
                         refresh={refresh}
+                        syncProfilesToFirestore={syncProfilesToFirestore}
                     />
-                ) : (
-                    <UserDataset
-                        users={users}
-                        hikes={hikes}
-                        hikesByUser={hikesByUser}
-                        reviews={reviews}
-                        reviewsByUser={reviewsByUser}
-                        isLoading={isLoading}
-                        error={error}
-                        refresh={refresh}
-                    />
+                </View>
+
+                {hasVisitedUsers && (
+                    <View style={[styles.datasetSection, activeDataset !== "users" && styles.hiddenDataset]}>
+                        <UserDataset
+                            users={users}
+                            trails={trails}
+                            startElevations={startElevations}
+                            generateUserProfile={generateUserProfile}
+                            saveUserProfile={saveUserProfile}
+                            hikes={hikes}
+                            hikesByUser={hikesByUser}
+                            reviews={reviews}
+                            reviewsByUser={reviewsByUser}
+                            isLoading={isLoading}
+                            error={error}
+                            refresh={refresh}
+                        />
+                    </View>
                 )}
             </View>
         </SuperadminShell>
@@ -225,5 +261,11 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: "600",
         color: Colors.PRIMARY,
+    },
+    datasetSection: {
+        flex: 1,
+    },
+    hiddenDataset: {
+        display: "none",
     },
 });
