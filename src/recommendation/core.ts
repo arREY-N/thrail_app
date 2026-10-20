@@ -1,27 +1,35 @@
 import { Hike } from "@/src/core/models/Hike/Hike";
 import { Review } from "@/src/core/models/Review/Review";
-import { Trail, useTrailStore } from "@/src/core/models/Trail/Trail";
-import { useUserStore } from "@/src/core/models/User/User";
+import { useTrailStore } from "@/src/core/models/Trail/Trail";
+import { User, useUserStore } from "@/src/core/models/User/User";
+import { UserProfiles } from "@/src/recommendation/interfaces/Profile";
 import {
     useRecommendationHikeStore,
     useRecommendationReviewStore,
 } from "@/src/recommendation/store/recommendationStore";
+import { GenerateUserProfile } from "@/src/recommendation/utilities/CreateProfile";
 import { DataSet } from "@/src/recommendation/utilities/dataPreparation";
 import { getTrailStartElevations } from "@/src/recommendation/utilities/GetElevation";
-import { buildTrailProfiles, normalizeTrails } from "@/src/recommendation/utilities/NormalizeTrails";
+import { normalizeTrails, resolveOrGenerateTrailProfiles } from "@/src/recommendation/utilities/NormalizeTrails";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 // Re-export utility functions, stores, and types for seamless backwards compatibility
 export * from "@/src/recommendation/store/recommendationStore";
+export * from "@/src/recommendation/utilities/CreateProfile";
 export * from "@/src/recommendation/utilities/dataPreparation";
 export * from "@/src/recommendation/utilities/normalization";
 
 export interface RecommendationCoreState extends DataSet {
     startElevations: Record<string, number>;
     isElevationsLoading: boolean;
+    isSyncingProfiles: boolean;
+    missingProfilesCount: number;
     isLoading: boolean;
     error: Error | null;
-    refresh: () => Promise<void>;
+    refresh: (options?: { forceRecalculate?: boolean }) => Promise<void>;
+    syncProfilesToFirestore: (forceRecalculate?: boolean) => Promise<boolean>;
+    generateUserProfile: (user: User) => UserProfiles;
+    saveUserProfile: (id: string, profile: UserProfiles) => Promise<boolean>;
 }
 
 /**
@@ -31,6 +39,7 @@ export interface RecommendationCoreState extends DataSet {
  * Benefits:
  * - On app reload or hot-refresh, data is instantly served from local cache with 0 Firestore reads.
  * - Real-time reactive updates if trail, user, hike, or review stores change elsewhere in the app.
+ * - Uses saved normalized profiles directly from trail documents when available.
  * - Explicit fresh data fetches only trigger when calling `refresh()` (e.g. via the header button).
  */
 export default function Core(): RecommendationCoreState {
@@ -50,6 +59,7 @@ export default function Core(): RecommendationCoreState {
     const reviewError = useRecommendationReviewStore((s) => s.error);
 
     const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+    const [isSyncingProfiles, setIsSyncingProfiles] = useState<boolean>(false);
     const [startElevations, setStartElevations] = useState<Record<string, number>>({});
     const [isElevationsLoading, setIsElevationsLoading] = useState<boolean>(false);
 
@@ -78,9 +88,15 @@ export default function Core(): RecommendationCoreState {
         loadInitial();
     }, []);
 
-    // Fetch start elevations when trails change
+    // Fetch start elevations when trails change, but only if some trails lack profiles
     useEffect(() => {
         if (!trails || trails.length === 0) return;
+
+        // Skip fetching external elevations if all trails already have saved profiles
+        const hasMissingProfiles = trails.some((t) => !t.profile);
+        if (!hasMissingProfiles) {
+            return;
+        }
 
         let isMounted = true;
         setIsElevationsLoading(true);
@@ -106,7 +122,7 @@ export default function Core(): RecommendationCoreState {
     }, [trails]);
 
     // Manual refresh: explicitly triggers Firestore queries through store refresh methods
-    const refresh = useCallback(async () => {
+    const refresh = useCallback(async (options?: { forceRecalculate?: boolean }) => {
         setIsRefreshing(true);
         try {
             await Promise.all([
@@ -116,8 +132,11 @@ export default function Core(): RecommendationCoreState {
             ]);
             await useRecommendationHikeStore.getState().refresh(useUserStore.getState().data);
             const freshTrails = useTrailStore.getState().data;
-            const freshElevations = await getTrailStartElevations(freshTrails);
-            setStartElevations(freshElevations);
+
+            if (options?.forceRecalculate || freshTrails.some((t) => !t.profile)) {
+                const freshElevations = await getTrailStartElevations(freshTrails);
+                setStartElevations(freshElevations);
+            }
         } catch (err) {
             console.error("Error refreshing recommendation dataset:", err);
         } finally {
@@ -125,9 +144,42 @@ export default function Core(): RecommendationCoreState {
         }
     }, []);
 
+    // Batch saves generated/recalculated profiles to Firestore
+    const syncProfilesToFirestore = useCallback(
+        async (forceRecalculate = false): Promise<boolean> => {
+            setIsSyncingProfiles(true);
+            try {
+                let elevations = startElevations;
+                if (forceRecalculate || trails.some((t) => !t.profile)) {
+                    elevations = await getTrailStartElevations(trails);
+                    setStartElevations(elevations);
+                }
+
+                const result = resolveOrGenerateTrailProfiles(trails, {
+                    elevationsMap: elevations,
+                    forceRecalculate,
+                });
+
+                if (result.updatesToSave.length > 0) {
+                    const success = await useTrailStore.getState().saveBatchTrailProfiles(result.updatesToSave);
+                    return success;
+                }
+
+                return true;
+            } catch (err) {
+                console.error("Error syncing profiles to Firestore:", err);
+                return false;
+            } finally {
+                setIsSyncingProfiles(false);
+            }
+        },
+        [trails, startElevations]
+    );
+
     // Active loading if refreshing or if cache is empty and actively fetching
     const isLoading =
         isRefreshing ||
+        isSyncingProfiles ||
         (trails.length === 0 && isTrailLoading) ||
         (users.length === 0 && isUserLoading) ||
         (hikes.length === 0 && isHikeLoading) ||
@@ -176,9 +228,30 @@ export default function Core(): RecommendationCoreState {
         return normalizeTrails(trails, startElevations);
     }, [trails, startElevations]);
 
-    const trailProfiles = useMemo(() => {
-        return buildTrailProfiles(trails, startElevations);
+    const resolvedProfileData = useMemo(() => {
+        return resolveOrGenerateTrailProfiles(trails, {
+            elevationsMap: startElevations,
+            forceRecalculate: false,
+        });
     }, [trails, startElevations]);
+
+    const trailProfiles = resolvedProfileData.profiles;
+    const missingProfilesCount = resolvedProfileData.missingCount;
+
+    const generateUserProfile = useCallback(
+        (user: User): UserProfiles => {
+            if (user.profile) return user.profile;
+            return GenerateUserProfile(user, trails, startElevations);
+        },
+        [trails, startElevations]
+    );
+
+    const saveUserProfile = useCallback(
+        async (id: string, profile: UserProfiles): Promise<boolean> => {
+            return useUserStore.getState().saveUserProfile(id, profile);
+        },
+        []
+    );
 
     return {
         trails,
@@ -186,6 +259,8 @@ export default function Core(): RecommendationCoreState {
         trailProfiles,
         startElevations,
         isElevationsLoading,
+        isSyncingProfiles,
+        missingProfilesCount,
         users,
         hikes,
         reviews,
@@ -195,7 +270,11 @@ export default function Core(): RecommendationCoreState {
         isLoading: isLoading || isElevationsLoading,
         error,
         refresh,
+        syncProfilesToFirestore,
+        generateUserProfile,
+        saveUserProfile,
     };
 }
 
 export { Core as useRecommendationCore };
+
