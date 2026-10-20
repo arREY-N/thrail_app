@@ -27,6 +27,11 @@ export function usePaymentAdmin() {
             setIsRefunding(true);
             setLocalError(null);
 
+            if (refundType === 'none') {
+                console.log('[usePaymentAdmin] No refund selected (0%). Skipping PayMongo refund execution.');
+                return;
+            }
+
             const refundBookingFunction = httpsCallable(functions, 'refundBooking');
 
             // Call the actual Firebase Cloud Function to process the PayMongo refund
@@ -44,8 +49,12 @@ export function usePaymentAdmin() {
 
             if (refundType === 'custom' && typeof customAmount === 'number') {
                 payload.customAmount = customAmount;
+            } else if (refundType === 'full') {
+                payload.refundPercentage = 100;
+            } else if (refundType === 'partial') {
+                payload.refundPercentage = 10;
             } else {
-                payload.refundPercentage = refundType === 'full' ? 100 : 10;
+                throw new Error(`Invalid refund type: ${refundType}`);
             }
 
             await refundBookingFunction(payload);
