@@ -6,6 +6,7 @@ import { useTrailsStore } from "@/src/core/models/Trail/stores/trailStore";
 import { newTrail } from "@/src/core/models/Trail/utils/TrailFactory";
 import { validate } from "@/src/core/utility/validate";
 import { TrailUIConfig } from "@/src/fields/trailFields";
+import { calculateDatasetBounds, transformTrailToProfile } from "@/src/recommendation/utilities/NormalizeTrails";
 import { router } from "expo-router";
 import { useState } from "react";
 
@@ -170,7 +171,22 @@ export function useTrailWrite(params: TrailParams = {}): IUseTrailWrite {
                 await useMountainsStore.getState().refresh();
             }
 
-            const created = await create(trail);
+            let trailToSave = trail;
+            if (trails.length > 0) {
+                try {
+                    const allTrails = [...trails.filter(t => t.id !== trail.id), trail];
+                    const bounds = calculateDatasetBounds(allTrails);
+                    const generatedProfile = transformTrailToProfile(trail, bounds);
+                    trailToSave = {
+                        ...trail,
+                        profile: generatedProfile,
+                    };
+                } catch (e) {
+                    console.warn("Could not auto-generate profile during trail creation:", e);
+                }
+            }
+
+            const created = await create(trailToSave);
 
             if (!created) {
                 const storeError = useTrailsStore.getState().error;
