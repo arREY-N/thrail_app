@@ -4,7 +4,7 @@ import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timesta
 
 export const newCancellation = (
     required: Pick<Cancellation, "userId" | "bookingId" | "businessId" | "reason" | "offerId" | "cancelledBy">,
-    optional: Partial<Pick<Cancellation, "id" | "status" | "createdAt" | "updatedAt" | "adminNote">> = {}
+    optional: Partial<Pick<Cancellation, "id" | "status" | "createdAt" | "updatedAt" | "adminNote" | "refundAmount" | "refundedAt">> = {}
 ): Cancellation => {
     const currentDate = new Date();
 
@@ -66,6 +66,14 @@ const cancellationFromFirestore = (id: string, data: ICancellationDB): Cancellat
         request.adminNote = data.adminNote;
     }
 
+    if (data.refundAmount !== undefined) {
+        request.refundAmount = data.refundAmount;
+    }
+
+    if (data.refundedAt) {
+        request.refundedAt = toDate(data.refundedAt);
+    }
+
     return request;
 };
 
@@ -85,6 +93,14 @@ const cancellationToFirestore = (cancellation: Cancellation): ICancellationDB =>
 
     if (cancellation.adminNote) {
         request.adminNote = cancellation.adminNote;
+    }
+
+    if (cancellation.refundAmount !== undefined) {
+        request.refundAmount = cancellation.refundAmount;
+    }
+
+    if (cancellation.refundedAt) {
+        request.refundedAt = Timestamp.fromDate(toDate(cancellation.refundedAt));
     }
 
     return request;
