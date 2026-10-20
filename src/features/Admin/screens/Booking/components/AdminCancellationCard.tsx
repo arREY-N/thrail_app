@@ -32,6 +32,8 @@ export interface AdminCancellationCardProps {
     cancelledBy?: string;
     onRevert?: () => void;
     isReverting?: boolean;
+    onRefundClick?: () => void;
+    onCloseWithoutRefundClick?: () => void;
 }
 
 /**
@@ -48,6 +50,8 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
     cancelledBy,
     onRevert,
     isReverting = false,
+    onRefundClick,
+    onCloseWithoutRefundClick,
 }) => {
     const isCancelledByAdmin =
         cancellation?.cancelledBy === 'admin' || cancelledBy === 'admin';
@@ -59,13 +63,12 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
         ? cancellation.status === 'rejected'
         : status === 'cancellation-rejected';
     const isRefunded =
-        (cancellation?.status === 'approved' && (totalAmountPaid > 0 || totalRefundedAmount > 0)) ||
         totalRefundedAmount > 0 ||
         status === 'refund' ||
         status === 'refunded';
     const isCancelled =
         (status === 'cancelled' && totalRefundedAmount === 0) ||
-        (cancellation?.status === 'approved' && totalAmountPaid === 0 && totalRefundedAmount === 0);
+        (cancellation?.status === 'approved' && totalRefundedAmount === 0);
 
     if (!isPending && !isDeclined && !isRefunded && !isCancelled) {
         return null;
@@ -81,6 +84,8 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
         status === 'refunded'
     );
 
+    const isAwaitingRefundDecision = isApproved && isPaid && !isRefunded;
+
     const headerTitle = isDirectCancellation
         ? 'Reservation Cancelled'
         : isCancelledByAdmin
@@ -88,7 +93,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
         : isDeclined
         ? 'Cancellation Request Declined'
         : isApproved
-        ? (isRefunded ? 'Cancellation Approved & Refunded' : 'Cancellation Approved')
+        ? (isRefunded ? 'Cancellation Approved & Refunded' : (isAwaitingRefundDecision ? 'Awaiting Refund Decision' : 'Cancellation Approved'))
         : 'Cancellation Review';
 
     const headerIcon = isDirectCancellation
@@ -98,23 +103,29 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
         : isDeclined
         ? 'x-circle'
         : isApproved
-        ? 'check-circle'
+        ? (isAwaitingRefundDecision ? 'alert-circle' : 'check-circle')
         : 'alert-triangle';
 
     const iconColor = isDirectCancellation || isCancelledByAdmin || isDeclined || isPending
         ? Colors.ERROR
-        : Colors.SUCCESS;
+        : (isAwaitingRefundDecision ? '#B45309' : Colors.SUCCESS);
 
     const subtitleText = isDirectCancellation
         ? 'Booking cancelled by Hiker. Reserved slot released.'
         : isCancelledByAdmin
         ? (isPending
             ? 'You cancelled this reservation. Hiker has been notified.'
+            : isAwaitingRefundDecision
+            ? 'The hiker accepted your cancellation. Please issue a refund via PayMongo or finalize without refund if resolved offline.'
+            : isRefunded
+            ? 'Hike cancelled by organizer. Refund issued via PayMongo.'
             : 'Booking cancelled by organizer. Reserved slot released.')
         : (isPending
             ? 'Hiker requested to cancel this reservation. Review reason and inventory status.'
             : isDeclined
             ? 'Organizer declined this request. Hiker can submit an appeal.'
+            : isAwaitingRefundDecision
+            ? 'Cancellation approved. Please select a refund option below to complete resolution.'
             : isRefunded
             ? 'Cancellation approved and refund issued via PayMongo.'
             : `Booking cancelled by ${cancelledBy && cancelledBy !== 'admin' ? cancelledBy : 'Hiker'}. Reserved slot released.`);
@@ -148,10 +159,23 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                 </View>
 
                 {isApproved && (
-                    <View style={styles.approvedBadge}>
-                        <CustomIcon library="Feather" name="check" size={12} color={Colors.SUCCESS} />
-                        <CustomText style={styles.approvedBadgeText}>
-                            APPROVED
+                    <View style={[
+                        styles.approvedBadge,
+                        isAwaitingRefundDecision && styles.actionRequiredBadge
+                    ]}>
+                        <CustomIcon 
+                            library="Feather" 
+                            name={isAwaitingRefundDecision ? "alert-circle" : "check"} 
+                            size={12} 
+                            color={isAwaitingRefundDecision ? "#B45309" : Colors.SUCCESS} 
+                        />
+                        <CustomText style={[
+                            styles.approvedBadgeText,
+                            isAwaitingRefundDecision && styles.actionRequiredBadgeText
+                        ]}>
+                            {isAwaitingRefundDecision 
+                                ? (isCancelledByAdmin ? 'ACCEPTED BY HIKER' : 'NEEDS REFUND DECISION') 
+                                : 'APPROVED'}
                         </CustomText>
                     </View>
                 )}
@@ -245,6 +269,49 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                 </View>
             </View>
 
+            {/* Interactive Refund Resolution Banner for Paid Cancellations */}
+            {isAwaitingRefundDecision && (Boolean(onRefundClick) || Boolean(onCloseWithoutRefundClick)) && (
+                <View style={styles.actionBanner}>
+                    <View style={styles.actionBannerHeader}>
+                        <CustomIcon library="Feather" name="alert-circle" size={15} color="#B45309" />
+                        <CustomText style={styles.actionBannerTitle}>
+                            Action Required: Finalize Refund
+                        </CustomText>
+                    </View>
+                    <CustomText variant="caption" style={styles.actionBannerSubtitle}>
+                        {isCancelledByAdmin
+                            ? "The hiker has accepted the hike cancellation. Issue a refund via PayMongo or finalize without refund if resolved offline."
+                            : "This reservation cancellation is approved. Issue a refund or finalize without refund to complete resolution."}
+                    </CustomText>
+                    <View style={styles.actionBtnRow}>
+                        {Boolean(onRefundClick) && (
+                            <TouchableOpacity
+                                style={[styles.actionBtn, styles.refundBtn]}
+                                onPress={onRefundClick}
+                                activeOpacity={0.8}
+                            >
+                                <CustomIcon library="Feather" name="corner-up-left" size={14} color={Colors.WHITE} />
+                                <CustomText style={styles.refundBtnText}>
+                                    Issue Refund via PayMongo
+                                </CustomText>
+                            </TouchableOpacity>
+                        )}
+                        {Boolean(onCloseWithoutRefundClick) && (
+                            <TouchableOpacity
+                                style={[styles.actionBtn, styles.finalizeBtn]}
+                                onPress={onCloseWithoutRefundClick}
+                                activeOpacity={0.8}
+                            >
+                                <CustomIcon library="Feather" name="check" size={14} color={Colors.TEXT_PRIMARY} />
+                                <CustomText style={styles.finalizeBtnText}>
+                                    Finalize Without Refund
+                                </CustomText>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+            )}
+
             {/* Optional Revert Cancellation Action for Admin-Initiated Pending Cancellations */}
             {isCancelledByAdmin && isPending && Boolean(onRevert) && (
                 <TouchableOpacity
@@ -303,6 +370,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: Colors.SUCCESS,
         letterSpacing: 0.5,
+    },
+    actionRequiredBadge: {
+        backgroundColor: '#FEF3C7',
+    },
+    actionRequiredBadgeText: {
+        color: '#B45309',
     },
     headerSubtitle: {
         color: Colors.TEXT_SECONDARY,
@@ -410,6 +483,65 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: 'bold',
         color: Colors.ERROR,
+    },
+    actionBanner: {
+        backgroundColor: '#FEF3C7',
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 12,
+        borderWidth: 1,
+        borderColor: '#FDE68A',
+    },
+    actionBannerHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 4,
+    },
+    actionBannerTitle: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#92400E',
+    },
+    actionBannerSubtitle: {
+        fontSize: 11,
+        color: '#92400E',
+        lineHeight: 15,
+        marginBottom: 10,
+    },
+    actionBtnRow: {
+        flexDirection: 'row',
+        gap: 8,
+        flexWrap: 'wrap',
+    },
+    actionBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 9,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        flex: 1,
+        minWidth: 140,
+    },
+    refundBtn: {
+        backgroundColor: Colors.PRIMARY,
+    },
+    refundBtnText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.WHITE,
+    },
+    finalizeBtn: {
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_MEDIUM,
+    },
+    finalizeBtnText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
     },
 });
 
