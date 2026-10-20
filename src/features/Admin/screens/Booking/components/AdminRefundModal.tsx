@@ -24,7 +24,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { toDateOrNull } from '@/src/core/utility/date';
 
-export type RefundType = 'full' | 'partial' | 'custom';
+export type RefundType = 'full' | 'partial' | 'custom' | 'none';
 
 /**
  * Props for AdminRefundModal component.
@@ -38,14 +38,16 @@ export type RefundType = 'full' | 'partial' | 'custom';
 export interface AdminRefundModalProps {
     visible: boolean;
     onClose: () => void;
-    onSelect: (refundType: RefundType, customAmount?: number) => void;
+    onSelect: (refundType: RefundType, customAmount?: number, adminNote?: string) => void;
     amountPaid?: number;
     isLoading?: boolean;
     paymentCapturedAt?: Date | string | null;
+    initialType?: RefundType;
+    isCancellationFlow?: boolean;
 }
 
 /**
- * AdminRefundModal — An adaptive modal to select full, standard partial, or custom refund.
+ * AdminRefundModal — An adaptive modal to select full, standard partial, custom refund, or policy forfeiture.
  */
 const AdminRefundModal: React.FC<AdminRefundModalProps> = ({ 
     visible, 
@@ -53,7 +55,9 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
     onSelect, 
     amountPaid = 0,
     isLoading = false,
-    paymentCapturedAt = null
+    paymentCapturedAt = null,
+    initialType = 'full',
+    isCancellationFlow = false,
 }) => {
     const fullRefundAmount = amountPaid;
     const partialRefundAmount = Math.round(amountPaid * 0.10 * 100) / 100;
@@ -64,6 +68,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
 
     const [selectedType, setSelectedType] = useState<RefundType>('full');
     const [customAmountText, setCustomAmountText] = useState<string>('');
+    const [adminNoteText, setAdminNoteText] = useState<string>('');
     const [inputError, setInputError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const isSubmittingRef = useRef<boolean>(false);
@@ -86,8 +91,9 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
     if (visible !== prevVisible) {
         setPrevVisible(visible);
         if (visible) {
-            setSelectedType('full');
+            setSelectedType(initialType || 'full');
             setCustomAmountText('');
+            setAdminNoteText('');
             setInputError(null);
             setIsSubmitting(false);
         }
@@ -155,6 +161,17 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
             isSubmittingRef.current = true;
             setIsSubmitting(true);
             onSelect('custom', parsedCustomAmount);
+            setTimeout(() => {
+                isSubmittingRef.current = false;
+            }, 300);
+        } else if (type === 'none') {
+            if (!adminNoteText.trim()) {
+                setInputError('Please provide a note or policy basis explaining the 0% refund / forfeiture.');
+                return;
+            }
+            isSubmittingRef.current = true;
+            setIsSubmitting(true);
+            onSelect('none', 0, adminNoteText.trim());
             setTimeout(() => {
                 isSubmittingRef.current = false;
             }, 300);
@@ -442,6 +459,109 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                         </TouchableOpacity>
                                     </View>
                                 )}
+
+                                {/* Option 4: No Refund / Policy Forfeiture (₱0.00) - Only available during cancellation flows */}
+                                {(isCancellationFlow || initialType === 'none') && (
+                                    <>
+                                        <TouchableOpacity 
+                                    style={[
+                                        styles.optionCard,
+                                        selectedType === 'none' && styles.optionCardSelected,
+                                        { marginBottom: selectedType === 'none' ? 8 : 12 }
+                                    ]} 
+                                    onPress={() => {
+                                        setSelectedType('none');
+                                        setInputError(null);
+                                        setTimeout(() => {
+                                            scrollViewRef.current?.scrollToEnd({ animated: true });
+                                        }, 150);
+                                    }}
+                                    disabled={isSubmitting || isLoading}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={[styles.iconWrapper, { backgroundColor: '#FEE2E2' }]}>
+                                        <CustomIcon library="Feather" name="slash" size={20} color={Colors.ERROR} />
+                                    </View>
+
+                                    <View style={styles.optionContent}>
+                                        <View style={styles.optionTitleRow}>
+                                            <CustomText variant="body" style={styles.optionLabel}>
+                                                No Refund / Forfeiture (₱0.00)
+                                            </CustomText>
+                                            <View style={styles.forfeitureBadge}>
+                                                <CustomText style={styles.forfeitureBadgeText}>POLICY BASIS</CustomText>
+                                            </View>
+                                        </View>
+                                        <CustomText variant="caption" style={styles.optionSubLabel}>
+                                            Release slot without returning funds to hiker.
+                                        </CustomText>
+                                    </View>
+
+                                    <CustomText variant="h3" style={[styles.amountText, { color: Colors.TEXT_SECONDARY }]}>
+                                        ₱0.00
+                                    </CustomText>
+                                </TouchableOpacity>
+
+                                {/* Option 4 Expanded Container for Mandatory Admin Note */}
+                                {selectedType === 'none' && (
+                                    <View style={styles.customContainer}>
+                                        <CustomText style={styles.adminNoteLabel}>
+                                            Policy Basis / Admin Note *
+                                        </CustomText>
+                                        <TextInput
+                                            style={styles.adminNoteInput}
+                                            value={adminNoteText}
+                                            onChangeText={(text) => {
+                                                setAdminNoteText(text);
+                                                if (inputError) setInputError(null);
+                                            }}
+                                            placeholder="Reason for 0% refund (e.g. Cancelled on hike day / Offline voucher issued / Deposit forfeited due to non-payment)"
+                                            placeholderTextColor={Colors.TEXT_SECONDARY}
+                                            multiline={true}
+                                            numberOfLines={3}
+                                            editable={!isSubmitting && !isLoading}
+                                            onFocus={() => {
+                                                setTimeout(() => {
+                                                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                                                }, Platform.OS === 'android' ? 200 : 100);
+                                            }}
+                                        />
+
+                                        {inputError ? (
+                                            <CustomText style={styles.errorText}>
+                                                {inputError}
+                                            </CustomText>
+                                        ) : null}
+
+                                        <View style={[styles.warningBox, { backgroundColor: '#FEE2E2', borderColor: '#FECACA' }]}>
+                                            <CustomIcon library="Feather" name="alert-triangle" size={16} color={Colors.ERROR} />
+                                            <CustomText style={[styles.warningText, { color: '#991B1B' }]}>
+                                                Notice: The reserved slot will be released back to the tour inventory, but no PayMongo refund will be transferred.
+                                            </CustomText>
+                                        </View>
+
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.confirmBtn,
+                                                styles.confirmNoneBtn,
+                                                (!adminNoteText.trim() || isSubmitting || isLoading) && styles.confirmBtnDisabled
+                                            ]}
+                                            onPress={() => handleConfirm('none')}
+                                            disabled={!adminNoteText.trim() || isSubmitting || isLoading}
+                                            activeOpacity={0.8}
+                                        >
+                                            {isSubmitting || isLoading ? (
+                                                <ActivityIndicator size="small" color={Colors.WHITE} />
+                                            ) : (
+                                                <CustomText style={styles.confirmBtnText}>
+                                                    Approve & Release Slot (₱0.00)
+                                                </CustomText>
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                                    </>
+                                )}
                             </ScrollView>
                         </KeyboardAvoidingView>
                     </TouchableOpacity>
@@ -695,6 +815,38 @@ const styles = StyleSheet.create({
         color: Colors.WHITE,
         fontSize: 15,
         fontWeight: '700',
+    },
+    forfeitureBadge: {
+        backgroundColor: '#FEE2E2',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    forfeitureBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: Colors.ERROR,
+    },
+    adminNoteLabel: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+        marginBottom: 8,
+    },
+    adminNoteInput: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: Colors.GRAY_LIGHT,
+        padding: 12,
+        fontSize: 13,
+        color: Colors.TEXT_PRIMARY,
+        minHeight: 70,
+        textAlignVertical: 'top',
+    },
+    confirmNoneBtn: {
+        backgroundColor: Colors.ERROR,
+        marginTop: 12,
     },
 });
 
