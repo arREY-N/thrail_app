@@ -1,17 +1,23 @@
 /**
  * @file index.tsx
  * @description Orchestrator screen for the Superadmin Recommendation Datasets.
- * Coordinates dataset hooks and switches between domain dataset components (Trails, Users, etc.).
+ * Coordinates dataset hooks, switches between domain dataset components (Trails, Users),
+ * provides TARS recommendation engine configuration & batch execution modal, and user recommendation inspect viewer.
  */
 
 import CustomIcon from "@/src/components/CustomIcon";
 import { Colors, Palette } from "@/src/constants/colors";
 import { useSuperadminDomain, useSuperadminNavigation } from "@/src/core/models/Superadmin/Superadmin";
+import { User } from "@/src/core/models/User/User";
 import SuperadminShell from "@/src/features/SuperAdmin/components/SuperadminShell";
 import core from "@/src/recommendation/core";
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { TrailDataset, UserDataset } from "../../../../../recommendation/components";
+import {
+    ConfigureEngineModal,
+    TrailDataset,
+    UserDataset,
+} from "../../../../../recommendation/components";
 
 type DatasetType = "trails" | "users";
 
@@ -42,12 +48,18 @@ export default function RecommendationDatasetScreen() {
     const [activeDataset, setActiveDataset] = useState<DatasetType>("trails");
     const [hasVisitedUsers, setHasVisitedUsers] = useState<boolean>(false);
 
+    // TARS Engine Modal state
+    const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
+
     const handleSwitchTab = (tab: DatasetType) => {
         setActiveDataset(tab);
         if (tab === "users" && !hasVisitedUsers) {
             setHasVisitedUsers(true);
         }
     };
+
+    // Count of users who have a profile in Firestore (eligible for recommendations)
+    const eligibleUsersCount = users.filter((u) => !!u.profile).length;
 
     return (
         <SuperadminShell
@@ -57,22 +69,33 @@ export default function RecommendationDatasetScreen() {
             onBackToSettings={onBackToSettingsPress}
             noScroll={true}
             rightActions={
-                <TouchableOpacity
-                    style={styles.refreshButton}
-                    onPress={() => refresh()}
-                    disabled={isLoading}
-                    accessibilityLabel="Refresh recommendation datasets"
-                >
-                    <CustomIcon
-                        library="Feather"
-                        name="rotate-cw"
-                        size={16}
-                        color={isLoading ? Colors.GRAY : Colors.PRIMARY}
-                    />
-                    <Text style={[styles.refreshText, isLoading && { color: Colors.GRAY }]}>
-                        {isLoading ? "Fetching..." : "Refresh"}
-                    </Text>
-                </TouchableOpacity>
+                <View style={styles.rightActionsRow}>
+                    <TouchableOpacity
+                        style={styles.runEngineBtn}
+                        onPress={() => setIsConfigModalOpen(true)}
+                        accessibilityLabel="Configure and run TARS recommendation engine"
+                    >
+                        <CustomIcon library="Feather" name="cpu" size={15} color={Colors.WHITE} />
+                        <Text style={styles.runEngineBtnText}>Run Engine</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.refreshButton}
+                        onPress={() => refresh()}
+                        disabled={isLoading}
+                        accessibilityLabel="Refresh recommendation datasets"
+                    >
+                        <CustomIcon
+                            library="Feather"
+                            name="rotate-cw"
+                            size={15}
+                            color={isLoading ? Colors.GRAY : Colors.PRIMARY}
+                        />
+                        <Text style={[styles.refreshText, isLoading && { color: Colors.GRAY }]}>
+                            {isLoading ? "Fetching..." : "Refresh"}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
             }
         >
             <View style={styles.container}>
@@ -178,6 +201,7 @@ export default function RecommendationDatasetScreen() {
                             startElevations={startElevations}
                             generateUserProfile={generateUserProfile}
                             saveUserProfile={saveUserProfile}
+                            onRunEnginePress={() => setIsConfigModalOpen(true)}
                             hikes={hikes}
                             hikesByUser={hikesByUser}
                             reviews={reviews}
@@ -189,6 +213,17 @@ export default function RecommendationDatasetScreen() {
                     </View>
                 )}
             </View>
+
+            {/* Modal: TARS Engine Configuration & Execution */}
+            <ConfigureEngineModal
+                visible={isConfigModalOpen}
+                onClose={() => setIsConfigModalOpen(false)}
+                userCount={eligibleUsersCount}
+                trailCount={trails.length}
+                onSuccess={() => {
+                    refresh();
+                }}
+            />
         </SuperadminShell>
     );
 }
@@ -197,6 +232,30 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         gap: 12,
+    },
+    rightActionsRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    runEngineBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+        backgroundColor: Colors.PRIMARY,
+        shadowColor: Colors.PRIMARY,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    runEngineBtnText: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: Colors.WHITE,
     },
     switcherContainer: {
         flexDirection: "row",
