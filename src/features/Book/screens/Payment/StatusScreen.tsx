@@ -1,4 +1,10 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
+import {
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    requestTargetMeasurement,
+} from '@/src/components/Tutorial/Tutorial';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -12,18 +18,78 @@ export interface StatusScreenProps {
     amountToPay?: number | string;
     bookingId?: string;
     referenceCode?: string;
+    activeTutorialStep?: string;
+    isTutorialVisible?: boolean;
 }
 
-const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, referenceCode }: StatusScreenProps) => {
+const StatusScreen = ({
+    selectedMethod,
+    amountToPay = 0,
+    bookingId,
+    referenceCode,
+    activeTutorialStep,
+    isTutorialVisible,
+}: StatusScreenProps) => {
+    const scrollViewRef = useRef<ScrollView>(null);
+    const bannerRef = useRef<View>(null);
+    const receiptRef = useRef<View>(null);
+    const receiptOffsetY = useRef<number>(0);
+
+    const measureBannerNow = useCallback(() => {
+        bannerRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('payment_status_banner', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureReceiptNow = useCallback(() => {
+        receiptRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('payment_receipt_card', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const unsub1 = registerMeasureCallback('payment_status_banner', measureBannerNow);
+        const unsub2 = registerMeasureCallback('payment_receipt_card', measureReceiptNow);
+        return () => {
+            unsub1();
+            unsub2();
+        };
+    }, [measureBannerNow, measureReceiptNow]);
+
+    useEffect(() => {
+        if (!isTutorialVisible) return;
+        if (activeTutorialStep === 'payment_status_banner' || activeTutorialStep === 'header_help') {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            requestTargetMeasurement(activeTutorialStep);
+        } else if (activeTutorialStep === 'payment_receipt_card') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, receiptOffsetY.current - 24),
+                animated: true,
+            });
+            requestTargetMeasurement('payment_receipt_card');
+        }
+    }, [isTutorialVisible, activeTutorialStep]);
     const displayRef = referenceCode || `TRX-${bookingId?.substring(0, 8).toUpperCase() || '102938A'}`;
 
     return (
         <ScrollView 
             showsVerticalScrollIndicator={false} 
+            ref={scrollViewRef}
             contentContainerStyle={styles.scrollContent}
         >
             <View style={styles.constrainer}>
-                <View style={styles.headerSection}>
+                <View
+                    ref={bannerRef}
+                    collapsable={false}
+                    style={styles.headerSection}
+                    onLayout={() => {
+                        if (isTutorialMeasurementActive()) measureBannerNow();
+                    }}
+                >
                     <View style={styles.iconCircle}>
                         <CustomIcon library="Feather" name="check" size={40} color={Colors.WHITE} />
                     </View>
@@ -38,7 +104,15 @@ const StatusScreen = ({ selectedMethod, amountToPay = 0, bookingId, referenceCod
                     </CustomText>
                 </View>
 
-                <View style={styles.summaryCard}>
+                <View
+                    ref={receiptRef}
+                    collapsable={false}
+                    style={styles.summaryCard}
+                    onLayout={(e) => {
+                        receiptOffsetY.current = e.nativeEvent.layout.y;
+                        if (isTutorialMeasurementActive()) measureReceiptNow();
+                    }}
+                >
                     <CustomText variant="h3" style={styles.summaryTitle}>
                         Transaction Summary
                     </CustomText>
