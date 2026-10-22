@@ -33,6 +33,11 @@ import ProgressStep from '@/src/features/Book/components/ProgressStep';
 import DetailsScreen, { HikerBookingDetails } from '@/src/features/Book/screens/Booking/DetailsScreen';
 import OffersScreen from '@/src/features/Book/screens/Booking/OffersScreen';
 import StatusScreen, { BookingStatusOutcome } from '@/src/features/Book/screens/Booking/StatusScreen';
+import {
+    CustomTutorialModal,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -90,6 +95,10 @@ const BookingScreen = ({
     const [bookingStatusOutcome, setBookingStatusOutcome] = useState<BookingStatusOutcome>('success');
     const [bookingErrorMessage, setBookingErrorMessage] = useState<string | null>(null);
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+    const isTourEnabled = !isSubmitting && (currentView !== 3 || bookingStatusOutcome === 'success');
+    const currentTourId = currentView === 1 ? 'booking_offers' : currentView === 2 ? 'booking_details' : 'booking_status';
+    const tutorial = useTutorialGuide(currentTourId, isTourEnabled);
 
     useEffect(() => {
         if (Platform.OS === 'web') return;
@@ -346,6 +355,8 @@ const BookingScreen = ({
             return () => clearTimeout(timer);
         }
     }, [submitPhase]); 
+
+    const activeSpotlight = tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined;
     
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -358,6 +369,7 @@ const BookingScreen = ({
                 title={currentView === 3 ? 'Booking Status' : 'Book Trail'}
                 centerTitle={true}
                 onBackPress={currentView === 3 ? undefined : handleHeaderBackPress}
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />}
             />
 
             {!isKeyboardVisible && (
@@ -414,6 +426,8 @@ const BookingScreen = ({
                         conflictOfferIds={computedConflictOfferIds}
                         userBookings={userBookings}
                         error={error}
+                        activeTutorialStep={activeSpotlight}
+                        isTutorialVisible={tutorial.isVisible}
                         onViewBookingDetails={onViewBookingDetails}
                         onContinue={(offerId) => {
                             const selectedOffer = safeOffers.find(
@@ -453,6 +467,8 @@ const BookingScreen = ({
                         savedDetails={bookingData.hikerDetails}
                         savedDocs={bookingData.uploadedDocs}
                         isSubmitting={isSubmitting}
+                        activeTutorialStep={activeSpotlight}
+                        isTutorialVisible={tutorial.isVisible}
                         onContinue={handleReserve}
                         onProgressChange={setIsDetailsDirty}
                         onSearchUser={onSearchUser}
@@ -473,6 +489,8 @@ const BookingScreen = ({
                         onViewBooking={handleViewBooking}
                         onRetry={handleRetryBooking}
                         onChangeDate={handleChangeDate}
+                        activeTutorialStep={activeSpotlight}
+                        isTutorialVisible={tutorial.isVisible}
                     />
                 )}
             </View>
@@ -492,6 +510,17 @@ const BookingScreen = ({
                 isDestructive={true}
                 iconName="alert-triangle"
                 iconLibrary="Feather"
+            />
+
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
             />
         </ScreenWrapper>
     );
