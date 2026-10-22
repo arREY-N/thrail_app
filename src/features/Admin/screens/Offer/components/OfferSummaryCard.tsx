@@ -5,14 +5,14 @@
 
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Booking } from '@/src/core/models/Booking/Booking';
-import { IOffer } from '@/src/core/models/Offer/Offer';
+import { IActivity, IOffer, ISchedule } from '@/src/core/models/Offer/Offer';
 import { formatDate } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useScrollFades } from '@/src/hooks/useScrollFades';
@@ -33,9 +33,8 @@ export interface OfferSummaryCardProps {
     trailName: string;
     bookings?: Booking[];
     isOfferLocked?: boolean;
+    style?: StyleProp<ViewStyle>;
 }
-
-
 
 /**
  * OfferSummaryCard — Displays a quick overview of an offer's details.
@@ -44,7 +43,8 @@ const OfferSummaryCard: React.FC<OfferSummaryCardProps> = ({
     offer, 
     trailName,
     bookings = [],
-    isOfferLocked = false
+    isOfferLocked = false,
+    style,
 }) => {
     const { isMobile } = useBreakpoints();
     const isWide = !isMobile;
@@ -85,7 +85,7 @@ const OfferSummaryCard: React.FC<OfferSummaryCardProps> = ({
             setExpandedDays({});
         } else {
             const nextExpanded: Record<number, boolean> = {};
-            offer.schedule?.forEach((_: any, i: number) => {
+            offer.schedule?.forEach((_, i: number) => {
                 nextExpanded[i] = true;
             });
             setExpandedDays(nextExpanded);
@@ -100,7 +100,7 @@ const OfferSummaryCard: React.FC<OfferSummaryCardProps> = ({
     const isExpired = offerDate < today;
 
     return (
-        <View style={styles.offerSummaryCard}>
+        <View style={[styles.offerSummaryCard, style]}>
             <View style={styles.headerRow}>
                 <View style={styles.headerTitleGroup}>
                     <View style={styles.labelRow}>
@@ -326,7 +326,7 @@ const OfferSummaryCard: React.FC<OfferSummaryCardProps> = ({
                                 )}
                             </View>
                             <View style={isWide ? styles.itineraryGridContainer : styles.itineraryVerticalContainer}>
-                                {offer.schedule.map((dayItem: any, dayIdx: number) => {
+                                {offer.schedule.map((dayItem: ISchedule<Date>, dayIdx: number) => {
                                     const isDayExpanded = offer.schedule.length === 1 || (Object.prototype.hasOwnProperty.call(expandedDays, dayIdx) ? !!expandedDays[dayIdx] : false);
                                     const activitiesList = dayItem.activities || [];
                                     const hasManyActivities = activitiesList.length > 4;
@@ -373,7 +373,7 @@ const OfferSummaryCard: React.FC<OfferSummaryCardProps> = ({
                                                 <>
                                                     {activitiesList.length > 0 && <View style={styles.dayDivider} />}
                                                     <View style={styles.activitiesList}>
-                                                        {visibleActivities.map((activity: any, actIdx: number) => {
+                                                        {visibleActivities.map((activity: IActivity<Date>, actIdx: number) => {
                                                             const isLast = actIdx === visibleActivities.length - 1 && !hasManyActivities;
                                                             return (
                                                                 <View key={actIdx} style={styles.activityRow}>
