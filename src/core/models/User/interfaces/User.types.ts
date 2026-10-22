@@ -18,6 +18,8 @@ export interface IPreference {
 
 export type Preference = IPreference;
 
+export type ITutorialProgress = Record<string, boolean>;
+
 export interface IEmergencyContact {
     name: string;
     contactNumber: string;
@@ -45,10 +47,12 @@ export interface IUserBase<T> extends IUserSummary {
     createdAt: T;
     updatedAt: T;
     onBoardingComplete: boolean;
+    onTutorialComplete: ITutorialProgress;
     phoneNumber: string;
     preferences: IPreference;
     medicalProfile: IMedicalProfile;
     role: Role;
+    businessId?: string | null;
     fcmTokens: NotificationToken<T>[];
     emergencyContact: IEmergencyContact;
     profileImage: string;
