@@ -7,7 +7,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
@@ -29,7 +28,7 @@ export interface PaymentTabProps {
     isApprovedStatus: boolean;
     isRejectedStatus: boolean;
     isCancelledStatus: boolean;
-    onConfirmPaymentClick: () => void;
+    onConfirmPaymentClick?: () => void;
 }
 
 /**
@@ -309,29 +308,22 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                         );
                     })}
 
-                    {currentStatus !== 'completed' && !isLockedStatus ? (
-                        <CustomButton 
-                            title="Complete Booking" 
-                            variant="primary" 
-                            onPress={onConfirmPaymentClick}
-                            style={styles.buttonSpacing}
-                        />
+                    {currentStatus === 'completed' ? (
+                        <View style={[styles.lockBanner, styles.lockBannerSuccess]}>
+                            <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
+                            <CustomText style={[styles.lockBannerText, { color: Colors.SUCCESS }]}>
+                                Payment verified. This booking is finalized and completed.
+                            </CustomText>
+                        </View>
                     ) : (
-                        currentStatus === 'completed' ? (
-                            <View style={[styles.lockBanner, styles.lockBannerSuccess]}>
-                                <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
-                                <CustomText style={[styles.lockBannerText, { color: Colors.SUCCESS }]}>
-                                    Payment verified. This booking is finalized and completed.
-                                </CustomText>
-                            </View>
-                        ) : (
+                        isLockedStatus ? (
                             <View style={[styles.lockBanner, styles.lockBannerError]}>
                                 <CustomIcon library="Feather" name="lock" size={16} color={Colors.ERROR} />
                                 <CustomText style={[styles.lockBannerText, { color: Colors.ERROR }]}>
                                     {lockedMessage}
                                 </CustomText>
                             </View>
-                        )
+                        ) : null
                     )}
 
                     {/* PayMongo Refund & Settlement Rules Card */}
