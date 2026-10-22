@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Linking,
@@ -22,6 +22,20 @@ import { useToast } from '@/src/components/Toast/Toast';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import {
+    adminBookingReviewDocSteps,
+    adminBookingReviewPaymentSteps,
+    createReplayHelpStep,
+} from '@/src/components/Tutorial/constants';
+import {
+    CustomTutorialModal,
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    requestTargetMeasurement,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
@@ -139,6 +153,89 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         approvalGuard,
         syncGlobalVerification,
     } = useReviewLogic(booking, offers, cancellationRequest);
+
+    const dynamicTourSteps = useMemo(() => {
+        const steps = activeTab === 'payment'
+            ? adminBookingReviewPaymentSteps
+            : adminBookingReviewDocSteps;
+        return [...steps, createReplayHelpStep('Booking Review')];
+    }, [activeTab]);
+
+    const tutorial = useTutorialGuide('admin_booking_review', !isLoading && Boolean(booking), dynamicTourSteps);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const leftColRef = useRef<View>(null);
+    const tabBarRef = useRef<View>(null);
+    const contentRef = useRef<View>(null);
+    const firstCardRef = useRef<View>(null);
+    const tabBarOffsetY = useRef<number>(360);
+
+    const measureProfileNow = useCallback(() => {
+        leftColRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_review_profile', {
+                    x,
+                    y,
+                    width: w,
+                    height: h,
+                });
+            }
+        });
+    }, []);
+
+    const measureTabsNow = useCallback(() => {
+        tabBarRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_review_tabs', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    const measureContentNow = useCallback(() => {
+        const targetRef = activeTab === 'documents' ? firstCardRef : contentRef;
+        targetRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_review_content', {
+                    x,
+                    y,
+                    width: w,
+                    height: h,
+                });
+            }
+        });
+    }, [activeTab]);
+
+    useEffect(() => {
+        const u1 = registerMeasureCallback('admin_review_profile', measureProfileNow);
+        const u2 = registerMeasureCallback('admin_review_tabs', measureTabsNow);
+        const u3 = registerMeasureCallback('admin_review_content', measureContentNow);
+        return () => {
+            u1();
+            u2();
+            u3();
+        };
+    }, [measureProfileNow, measureTabsNow, measureContentNow]);
+
+    useEffect(() => {
+        if (!tutorial.isVisible) return;
+        const step = tutorial.currentStep?.targetSpotlight;
+        if (!step) return;
+        if (step === 'admin_review_profile' || step === 'header_help') {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        } else if (step === 'admin_review_tabs' || step === 'admin_review_content') {
+            if (!isWide) {
+                scrollViewRef.current?.scrollTo({
+                    y: Math.max(0, tabBarOffsetY.current - 32),
+                    animated: true,
+                });
+            }
+        } else if (step === 'booking_footer') {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+            setTimeout(() => {
+                requestTargetMeasurement('booking_footer');
+            }, 250);
+        }
+        requestTargetMeasurement(step);
+    }, [tutorial.isVisible, tutorial.currentStep?.targetSpotlight, isWide]);
 
     const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
     const [isConfirmVisible, setIsConfirmVisible] = useState(false);
@@ -318,6 +415,23 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         };
     }, [isRejecting, isSecondaryVisible, isProcessingAction, handleSecondaryPress]);
 
+    const isLockedStatus = isCancelledStatus || ['reservation-rejected', 'cancellation-rejected', 'for-cancellation', 'for-reschedule'].includes(currentStatus);
+    const isPaymentActionable = (currentStatus === 'paid' || currentStatus === 'downpayment') && !isLockedStatus;
+    const isTutorialFooterPreview = tutorial.isVisible && tutorial.currentStep?.targetSpotlight === 'booking_footer';
+
+    const paymentPrimaryConfig = useMemo(() => {
+        return {
+            title: isProcessingAction ? "Completing..." : "Complete Booking",
+            variant: 'primary' as const,
+            disabled: !isPaymentActionable || isProcessingAction,
+            onPress: () => {
+                if (isPaymentActionable) {
+                    setIsConfirmPaymentVisible(true);
+                }
+            },
+        };
+    }, [isProcessingAction, isPaymentActionable]);
+
     const cancellationPrimaryConfig = useMemo(() => {
         if (isDecliningCancellation) {
             const hasReason = cancellationDeclineReason.trim().length > 0;
@@ -459,17 +573,24 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 centerTitle={true}
                 onBackPress={onBackPress}
                 rightActions={
-                    <TouchableOpacity
-                        style={styles.headerOptionsBtn}
-                        onPress={() => setShowActionMenu(true)}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.PRIMARY} />
-                    </TouchableOpacity>
+                    <View style={styles.headerRightActions}>
+                        <TutorialHelpButton onPress={tutorial.onReplayTour} />
+                        <TouchableOpacity
+                            style={styles.headerOptionsBtn}
+                            onPress={() => setShowActionMenu(true)}
+                            activeOpacity={0.7}
+                        >
+                            <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.PRIMARY} />
+                        </TouchableOpacity>
+                    </View>
                 }
             />
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+                ref={scrollViewRef}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
                 <View style={styles.constrainer}>
 
                     {error && !error.includes('No payment found') && (
@@ -477,7 +598,15 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     )}
                     <View style={isWide ? styles.splitLayoutContainer : styles.verticalLayoutContainer}>
                         {/* Left Column: Hiker Profile */}
-                        <View style={isWide ? styles.leftColumn : styles.fullWidthContainer}>
+                        <View
+                            ref={leftColRef}
+                            collapsable={false}
+                            onLayout={(e) => {
+                                tabBarOffsetY.current = e.nativeEvent.layout.height + 16;
+                                if (isTutorialMeasurementActive()) measureProfileNow();
+                            }}
+                            style={isWide ? styles.leftColumn : styles.fullWidthContainer}
+                        >
                             <HikerProfileCard
                                 user={booking.user}
                                 emergencyContact={booking.emergencyContact}
@@ -542,7 +671,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 </View>
                             )}
 
-                            <View style={styles.tabContainer}>
+                            <View
+                                ref={tabBarRef}
+                                collapsable={false}
+                                onLayout={() => {
+                                    if (isTutorialMeasurementActive()) measureTabsNow();
+                                }}
+                                style={styles.tabContainer}
+                            >
                                 <TouchableOpacity
                                     style={[styles.tabBtn, activeTab === 'documents' && styles.tabBtnActive]}
                                     onPress={() => setActiveTab('documents')}
@@ -566,7 +702,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 </TouchableOpacity>
                             </View>
 
-                            {activeTab === 'documents' && (
+                            <View
+                                ref={contentRef}
+                                collapsable={false}
+                                onLayout={() => {
+                                    if (isTutorialMeasurementActive()) measureContentNow();
+                                }}
+                            >
+                                {activeTab === 'documents' && (
                                 <DocumentTab
                                     booking={booking}
                                     docStates={docStates}
@@ -595,6 +738,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                         if (hasAttemptedSubmit) setHasAttemptedSubmit(false);
                                     }}
                                     onViewFile={handleViewFile}
+                                    firstCardRef={firstCardRef}
                                 />
                             )}
 
@@ -608,6 +752,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                     onConfirmPaymentClick={() => setIsConfirmPaymentVisible(true)}
                                 />
                             )}
+                            </View>
 
                             {!isWide && (
                                 <ActivityLog booking={booking} currentStatus={currentStatus} />
@@ -618,22 +763,23 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             </ScrollView>
 
             {isHikerCancellationPending ? (
-                <View style={styles.footerWrapper}>
-                    <CustomStickyFooter
-                        enableToastDock={true}
-                        primaryButton={cancellationPrimaryConfig}
-                        secondaryButton={cancellationSecondaryConfig}
-                    />
-                </View>
-            ) : (!isReviewComplete && activeTab === 'documents' && (
-                <View style={styles.footerWrapper}>
-                    <CustomStickyFooter
-                        enableToastDock={true}
-                        primaryButton={primaryButtonConfig}
-                        secondaryButton={secondaryButtonConfig}
-                    />
-                </View>
-            ))}
+                <CustomStickyFooter
+                    enableToastDock={true}
+                    primaryButton={cancellationPrimaryConfig}
+                    secondaryButton={cancellationSecondaryConfig}
+                />
+            ) : (activeTab === 'documents' && (!isReviewComplete || isTutorialFooterPreview)) ? (
+                <CustomStickyFooter
+                    enableToastDock={true}
+                    primaryButton={primaryButtonConfig}
+                    secondaryButton={secondaryButtonConfig}
+                />
+            ) : (activeTab === 'payment' && (isPaymentActionable || isTutorialFooterPreview)) ? (
+                <CustomStickyFooter
+                    enableToastDock={true}
+                    primaryButton={paymentPrimaryConfig}
+                />
+            ) : null}
 
             <ConfirmationModal
                 visible={isConfirmVisible}
@@ -856,6 +1002,17 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     setTimeout(() => setShowCancelUnpaidModal(true), 300);
                 }}
             />
+
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
+            />
         </ScreenWrapper>
     );
 };
@@ -979,6 +1136,11 @@ const styles = StyleSheet.create({
         marginTop: 16,
         minWidth: 200,
         borderRadius: 12,
+    },
+    headerRightActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
 });
 
