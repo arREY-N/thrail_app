@@ -33,23 +33,31 @@ export const RecommendationRepository = (db: any) => ({
      * @param uid The user ID.
      */
     async fetchCurrent(uid: string): Promise<Recommendation | null> {
+        const recoID = getRecoID();
+        return this.fetchByMonth(uid, recoID);
+    },
+
+    /**
+     * Fetches a recommendation document for a specific month (YYYY-MM).
+     * @param uid The user ID.
+     * @param monthId Month string in YYYY-MM format.
+     */
+    async fetchByMonth(uid: string, monthId: string): Promise<Recommendation | null> {
         try {
-            if (!uid) throw new Error('UID or Recommendation ID missing.');
+            if (!uid || !monthId) throw new Error('UID or Month ID missing.');
 
-            const recoID = getRecoID();
-
-            const ref = doc(createRecommendationsCollection(db, uid), recoID);
+            const ref = doc(createRecommendationsCollection(db, uid), monthId);
             const snapshot = await getDoc(ref);
 
             if (!snapshot.exists()) {
-                console.log('Current recommendation is not yet ready');
+                console.log(`Recommendation for ${monthId} is not yet available.`);
                 return null;
             }
 
             return snapshot.data();
         } catch (err: unknown) {
             if (err instanceof Error) throw err;
-            throw new Error('An error occurred while fetching current user recommendations.');
+            throw new Error(`An error occurred while fetching user recommendations for ${monthId}.`);
         }
     },
 });

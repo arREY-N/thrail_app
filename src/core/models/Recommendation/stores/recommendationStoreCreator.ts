@@ -44,15 +44,17 @@ export const recommendationStoreCreator: StateCreator<
 
     },
 
-    load: async (id: string) => {
+    load: async (id: string, monthId?: string) => {
         set({ isLoading: true, error: null });
 
         try {
-            const recoList = await RecommendationRepo.fetchCurrent(id);
+            const recoList = monthId 
+                ? await RecommendationRepo.fetchByMonth(id, monthId)
+                : await RecommendationRepo.fetchCurrent(id);
 
             if (!recoList) {
                 set({
-                    data: [],
+                    current: newRecommendation(),
                     isLoading: false,
                 });
                 return;
