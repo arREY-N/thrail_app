@@ -3,6 +3,7 @@ import { getAuthErrorMessage } from '@/src/core/error/autherror';
 import { CredentialResponse, SignUp, UserCredential } from '@/src/core/models/User/interfaces/SignUp.types';
 import { LogIn, User } from '@/src/core/models/User/interfaces/User.types';
 import { newUser, userConverter } from '@/src/core/models/User/utils/UserFactory';
+import { UserProfiles } from '@/src/recommendation/interfaces/Profile';
 import NetInfo from "@react-native-community/netinfo";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { FirebaseError } from 'firebase/app';
@@ -332,6 +333,28 @@ export const UserRepository = (db: Firestore) => ({
             { merge: true }
         );
     },
+
+    /**
+     * Updates only the profile field of a single user document in Firestore.
+     *
+     * @param id - The ID of the user document.
+     * @param profile - The generated UserProfiles object.
+     */
+    async updateProfile(id: string, profile: UserProfiles): Promise<void> {
+        try {
+            if (!id) throw new Error('User ID is required to update profile');
+            const userRef = doc(db, 'users', id);
+            const cleanProfile = JSON.parse(JSON.stringify(profile));
+            await updateDoc(userRef, {
+                profile: cleanProfile,
+                updatedAt: serverTimestamp(),
+            });
+        } catch (err: unknown) {
+            console.error(`Error updating user profile (${id}) in Firestore:`, err);
+            if (err instanceof Error) throw err;
+            throw new Error('Failed to update user profile in Firestore');
+        }
+    }
 });
 
 export const UserRepo = UserRepository(db);

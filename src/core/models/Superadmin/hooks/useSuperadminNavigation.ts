@@ -37,6 +37,10 @@ export function useSuperadminNavigation() {
         router.push('/superadmin/mountain/list');
     };
 
+    const onManageRecommendationPress = () => {
+        router.push('/superadmin/recommendation');
+    };
+
     /**
      * Navigates explicitly to the Settings/Profile tab screen.
      */
@@ -80,6 +84,7 @@ export function useSuperadminNavigation() {
         else if (tab === 'trail') onManageTrailsPress();
         else if (tab === 'mountain') onManageMountainPress();
         else if (tab === 'user') onManageUsersPress();
+        else if (tab === 'recommendation') onManageRecommendationPress();
     };
 
     return {
@@ -89,6 +94,7 @@ export function useSuperadminNavigation() {
         onManageTrailsPress,
         onManageUsersPress,
         onManageMountainPress,
+        onManageRecommendationPress,
         onBackToSettingsPress,
         onWriteTrail,
         onEditMapPins,

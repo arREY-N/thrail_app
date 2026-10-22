@@ -97,7 +97,7 @@ export interface ReviewScreenProps {
     error?: string;
     hikerProfile?: User | null;
     cancellationRequest?: Cancellation | null;
-    onApproveCancellation?: (request?: Cancellation | null, booking?: Booking, refundType?: RefundType, customAmount?: number) => Promise<void>;
+    onApproveCancellation?: (request?: Cancellation | null, booking?: Booking, refundType?: RefundType, customAmount?: number, adminNote?: string) => Promise<void>;
     onDeclineCancellation?: (reason: string, request?: Cancellation | null, booking?: Booking) => Promise<void>;
     onRevertCancellation?: (request?: Cancellation | null) => Promise<void>;
     onAdminCancelBooking?: (booking: Booking, reason: string) => Promise<void>;
@@ -244,6 +244,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
     const [selectedRescheduleOffer, setSelectedRescheduleOffer] = useState<{ id: string; label: string; subLabel?: string; originalData: Offer } | null>(null);
     const [showRefundModal, setShowRefundModal] = useState(false);
+    const [refundModalInitialType, setRefundModalInitialType] = useState<RefundType>('full');
     const [showCancelUnpaidModal, setShowCancelUnpaidModal] = useState(false);
 
     const [isProcessingAction, setIsProcessingAction] = useState(false);
@@ -269,6 +270,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
     const totalAmountPaid = booking?.payment?.reduce((sum: number, p) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
     const totalRefundedAmount = booking?.payment?.reduce((sum: number, p) => (p.status === 'refunded' || ((p.refundedAmount || 0) > 0)) ? sum + (p.refundedAmount || p.amount) : sum, 0) || 0;
+    const remainingRefundableAmount = Math.max(0, totalAmountPaid - totalRefundedAmount);
+    const isOfferFinished = Boolean(booking?.offer?.date && new Date(booking.offer.date) < new Date());
     const lastCapturedPayment = booking?.payment?.slice().reverse().find(p => p.status === 'captured');
     const paymentCapturedAt = lastCapturedPayment?.createdAt || null;
 
@@ -627,7 +630,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 onLockedVerifyPress={handleLockedVerifyPress}
                             />
                             {isWide && (
-                                <ActivityLog booking={booking} currentStatus={currentStatus} />
+                                <ActivityLog booking={booking} cancellation={cancellationRequest} currentStatus={currentStatus} />
                             )}
                         </View>
 
@@ -644,6 +647,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 cancelledBy={cancellationRequest?.cancelledBy || (hasRejections ? 'user' : booking.cancelledBy)}
                                 onRevert={isAdminCancellationPending && Boolean(onRevertCancellation) ? () => setIsConfirmRevertVisible(true) : undefined}
                                 isReverting={isProcessingAction}
+                                onRefundClick={() => {
+                                    setRefundModalInitialType('full');
+                                    setShowRefundModal(true);
+                                }}
+                                onCloseWithoutRefundClick={() => {
+                                    setRefundModalInitialType('none');
+                                    setShowRefundModal(true);
+                                }}
                             />
 
                             {isHikerCancellationPending && isDecliningCancellation && (
@@ -755,7 +766,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             </View>
 
                             {!isWide && (
-                                <ActivityLog booking={booking} currentStatus={currentStatus} />
+                                <ActivityLog booking={booking} cancellation={cancellationRequest} currentStatus={currentStatus} />
                             )}
                         </View>
                     </View>
@@ -941,17 +952,24 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
             <AdminRefundModal
                 visible={showRefundModal}
+                initialType={refundModalInitialType}
                 amountPaid={totalAmountPaid}
                 paymentCapturedAt={paymentCapturedAt}
+                isCancellationFlow={Boolean(cancellationRequest) || isCancellationPending || isCancelledStatus || isHikerCancellationPending || isAdminCancellationPending}
                 onClose={() => setShowRefundModal(false)}
-                onSelect={(refundType: RefundType, customAmount?: number) => {
+                onSelect={(refundType: RefundType, customAmount?: number, adminNote?: string) => {
                     setShowRefundModal(false);
                     setTimeout(async () => {
                         setIsProcessingAction(true);
                         try {
-                            if (isHikerCancellationPending && onApproveCancellation) {
-                                await onApproveCancellation(cancellationRequest, booking, refundType, customAmount);
-                                showToast.success('Cancellation approved and refund processed successfully via PayMongo.');
+                            const isCancellationFlow = Boolean(cancellationRequest) || isCancellationPending || isCancelledStatus || isHikerCancellationPending || isAdminCancellationPending;
+                            if (isCancellationFlow && onApproveCancellation) {
+                                await onApproveCancellation(cancellationRequest, booking, refundType, customAmount, adminNote);
+                                showToast.success(refundType === 'none'
+                                    ? 'Cancellation approved and slot released without refund.'
+                                    : 'Cancellation approved and refund processed successfully via PayMongo.');
+                            } else if (refundType === 'none') {
+                                showToast.error('Policy forfeiture without refund is only applicable when cancelling a booking.');
                             } else if (onRefund) {
                                 await onRefund(booking, refundType, customAmount);
                                 showToast.success('Refund processed successfully via PayMongo.');
@@ -986,8 +1004,11 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 visible={showActionMenu}
                 onClose={() => setShowActionMenu(false)}
                 isCancelledStatus={isCancelledStatus}
-                isCompletedStatus={currentStatus === 'completed'}
+                isFinishedStatus={currentStatus === 'finished' || currentStatus === 'expired'}
                 totalAmountPaid={totalAmountPaid}
+                totalRefundedAmount={totalRefundedAmount}
+                remainingRefundableAmount={remainingRefundableAmount}
+                isOfferFinished={isOfferFinished}
                 hasPendingCancellation={isCancellationPending}
                 onRescheduleClick={() => {
                     setShowActionMenu(false);

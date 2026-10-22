@@ -1180,13 +1180,53 @@ exports.cancelBooking = https.onCall(async (request) => {
 
     const updatedPayments = payments.map(p => p.status === 'pending' ? { ...p, status: 'failed' } : p);
 
-    await bookingRef.update({
+    const batch = db.batch();
+    batch.update(bookingRef, {
         status: 'cancelled',
         payment: updatedPayments,
         cancellationReason: reason || 'User initiated cancellation',
         cancelledBy: caller.uid,
         updatedAt: FieldValue.serverTimestamp()
     });
+
+    // Release Offer Slot if the booking had reserved a slot (e.g. for-payment)
+    const offerId = data.offer?.id;
+    const businessId = data.business?.id;
+    if (offerId && businessId && data.status === 'for-payment') {
+        try {
+            const offerRef = db.collection('businesses').doc(businessId).collection('offers').doc(offerId);
+            const offerSnap = await offerRef.get();
+            if (offerSnap.exists && (offerSnap.data()?.reservedPax || 0) > 0) {
+                batch.update(offerRef, {
+                    reservedPax: admin.firestore.FieldValue.increment(-1),
+                    updatedAt: FieldValue.serverTimestamp()
+                });
+            }
+        } catch (offerErr) {
+            console.warn(`[cancelBooking] Could not release offer slot:`, offerErr.message);
+        }
+    }
+
+    // Remove user from Group Chat
+    if (offerId) {
+        try {
+            const groupRef = db.collection('groups').doc(offerId);
+            const groupSnap = await groupRef.get();
+            if (groupSnap.exists) {
+                const groupData = groupSnap.data();
+                const updatedMembers = (groupData.members || []).filter(m => m.id !== userId);
+                batch.update(groupRef, {
+                    participantsIds: admin.firestore.FieldValue.arrayRemove(userId),
+                    members: updatedMembers,
+                    updatedAt: FieldValue.serverTimestamp()
+                });
+            }
+        } catch (groupErr) {
+            console.warn(`[cancelBooking] Could not remove member from group chat:`, groupErr.message);
+        }
+    }
+
+    await batch.commit();
 
     console.log(`[cancelBooking] Successfully cancelled booking ${bookingId}`);
     return { success: true };
@@ -1296,7 +1336,9 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
     } else {
         let multiplier = 0.10; // Normal users are strictly limited to 10%
         if (isAdmin || isSuperAdmin) {
-            if (refundPercentage === 'full' || refundPercentage === 1 || refundPercentage === 100) {
+            if (refundPercentage === 'none' || refundPercentage === 0 || refundPercentage === '0') {
+                throw new HttpsError('invalid-argument', 'Cannot process a refund of 0%. Use cancellation approval without refund.');
+            } else if (refundPercentage === 'full' || refundPercentage === 1 || refundPercentage === 100) {
                 multiplier = 1.0;
             } else if (refundPercentage === 'partial' || refundPercentage === 0.1 || refundPercentage === 10) {
                 multiplier = 0.10;
@@ -1509,7 +1551,293 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
         
         throw new HttpsError('internal', `Payment Gateway Error: ${errorMessage}`);
     }
-});// ─── GROUP-CENTRIC PROGRESSIVE T-MINUS WEATHER ALERT ENGINE ──────────────────
+});
+
+/**
+ * Atomically processes a cancellation request approval or rejection.
+ * Executes PayMongo refund (if requested) and commits all Firestore updates
+ * (Booking status, Offer slot release, Group chat member removal, Cancellation request status, /payments sync)
+ * inside a single atomic Firestore batch (all-or-nothing).
+ *
+ * @async
+ * @function processCancellationApproval
+ * @param {Object} request - The callable request object.
+ * @param {Object} request.data - Input parameters.
+ * @param {string} [request.data.cancellationId] - Cancellation document ID.
+ * @param {string} request.data.bookingId - Booking document ID.
+ * @param {string} request.data.userId - Booking owner user ID.
+ * @param {string} [request.data.businessId] - Business ID owning the offer/booking.
+ * @param {string} [request.data.offerId] - Offer ID for slot inventory.
+ * @param {boolean} request.data.approved - True to approve cancellation, false to decline.
+ * @param {boolean} [request.data.shouldRefund=true] - Whether to issue a refund.
+ * @param {string} [request.data.refundType='full'] - 'full', 'partial', 'custom', or 'none'.
+ * @param {number} [request.data.customAmount] - Custom amount in PHP if refundType === 'custom'.
+ * @param {string} [request.data.adminNote] - Reason or explanation note.
+ * @returns {Promise<Object>} Result receipt.
+ */
+exports.processCancellationApproval = https.onCall({ secrets: [paymongoSecret] }, async (request) => {
+    const { 
+        cancellationId, 
+        bookingId, 
+        userId, 
+        businessId: inputBusinessId, 
+        offerId: inputOfferId, 
+        approved, 
+        shouldRefund = true, 
+        refundType = 'full', 
+        customAmount, 
+        adminNote 
+    } = request.data || {};
+
+    const caller = request.auth;
+    console.log(`[processCancellationApproval] Invoked by ${caller?.uid} for booking ${bookingId}, approved=${approved}, refundType=${refundType}`);
+
+    if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
+    if (!bookingId || !userId) throw new HttpsError('invalid-argument', 'bookingId and userId are required.');
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+
+    if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found');
+    const bookingData = bookingSnap.data();
+
+    const businessId = inputBusinessId || bookingData.business?.id;
+    const offerId = inputOfferId || bookingData.offer?.id;
+
+    // Authorization: Must be admin for this business or superadmin
+    const adminBusinessId = caller.token.businessId || caller.token.owner;
+    const isAdmin = caller.token.role === 'admin' && (!businessId || adminBusinessId === businessId);
+    const isSuperAdmin = caller.token.role === 'superadmin';
+
+    if (!isAdmin && !isSuperAdmin) {
+        throw new HttpsError('permission-denied', 'Only administrators can process cancellation requests.');
+    }
+
+    // Resolve Cancellation Document reference if present
+    let cancellationRef = null;
+    let cancellationData = null;
+    if (cancellationId && businessId) {
+        cancellationRef = db.collection('businesses').doc(businessId).collection('cancellations').doc(cancellationId);
+        const cSnap = await cancellationRef.get();
+        if (cSnap.exists) {
+            cancellationData = cSnap.data();
+        }
+    }
+
+    // ─── CASE 1: DECLINE CANCELLATION REQUEST ─────────────────────────────────
+    if (!approved) {
+        if (!adminNote || !adminNote.trim()) {
+            throw new HttpsError('invalid-argument', 'An admin note is required when declining a cancellation request.');
+        }
+
+        const batch = db.batch();
+        if (cancellationRef) {
+            batch.update(cancellationRef, {
+                status: 'rejected',
+                adminNote: adminNote.trim(),
+                updatedAt: FieldValue.serverTimestamp()
+            });
+        }
+
+        batch.update(bookingRef, {
+            cancellationReason: adminNote.trim(),
+            updatedAt: FieldValue.serverTimestamp()
+        });
+
+        await batch.commit();
+        console.log(`[processCancellationApproval] Declined cancellation for booking ${bookingId}`);
+        return { 
+            success: true, 
+            approved: false, 
+            message: 'Cancellation request declined.' 
+        };
+    }
+
+    // ─── CASE 2: APPROVE CANCELLATION REQUEST ─────────────────────────────────
+    const payments = bookingData.payment || [];
+    const capturedPayments = payments.filter(p => p.status === 'captured');
+    const totalCapturedAmount = capturedPayments.reduce((sum, p) => {
+        const available = (p.amount || 0) - (p.refundedAmount || 0);
+        return sum + Math.max(0, available);
+    }, 0);
+
+    const willRefund = Boolean(shouldRefund) && refundType !== 'none' && totalCapturedAmount > 0;
+    let actualRefundedAmount = 0;
+    const refundResults = [];
+
+    if (willRefund) {
+        let targetRefund = totalCapturedAmount;
+        if (refundType === 'custom' && typeof customAmount === 'number' && customAmount > 0) {
+            targetRefund = Math.min(totalCapturedAmount, Math.round(customAmount * 100) / 100);
+        } else if (refundType === 'partial') {
+            targetRefund = Math.round((totalCapturedAmount * 0.10) * 100) / 100;
+        }
+
+        if (targetRefund < 1.00) {
+            throw new HttpsError('invalid-argument', 'Minimum refund amount is ₱1.00.');
+        }
+
+        const PAYMONGO_SECRET_KEY = paymongoSecret.value();
+        const provider = new PayMongoProvider(PAYMONGO_SECRET_KEY);
+        PaymentManager.registerProvider('paymongo', provider);
+
+        const sanitizedReason = 'others';
+        const refundNotes = adminNote ? `Cancellation Approval: ${adminNote}` : 'Cancellation approved by organizer';
+
+        let remainingToRefund = targetRefund;
+
+        // PayMongo Waterfall Drain
+        for (const payment of capturedPayments) {
+            if (remainingToRefund <= 0.001) break;
+
+            const availableInPayment = (payment.amount || 0) - (payment.refundedAmount || 0);
+            if (availableInPayment <= 0.001) continue;
+
+            const amountToDrain = Math.min(availableInPayment, Math.round(remainingToRefund * 100) / 100);
+
+            // Self-Healing: Resolve true 'pay_' ID from checkout session if missing or bal_txn_
+            let gatewayId = payment.gatewayId;
+            if ((!gatewayId || !gatewayId.startsWith('pay_')) && payment.sessionId) {
+                try {
+                    const sessionData = await provider.getCheckoutSession(payment.sessionId);
+                    const paymentItem = sessionData?.attributes?.payments?.[0];
+                    if (paymentItem?.id && paymentItem.id.startsWith('pay_')) {
+                        gatewayId = paymentItem.id;
+                        payment.gatewayId = gatewayId;
+                    }
+                } catch (sErr) {
+                    console.warn(`[processCancellationApproval] Could not resolve payment ID:`, sErr.message);
+                }
+            }
+
+            if (!gatewayId && payment.referenceCode?.startsWith('pay_')) {
+                gatewayId = payment.referenceCode;
+            }
+
+            if (!gatewayId || !gatewayId.startsWith('pay_')) {
+                throw new HttpsError('failed-precondition', `Invalid payment identifier '${gatewayId || 'unknown'}'. PayMongo refund cannot proceed.`);
+            }
+
+            console.log(`[processCancellationApproval] Draining ₱${amountToDrain} from payment ${gatewayId}`);
+            const refundRes = await PaymentManager.getProvider(payment.gateway || 'paymongo').issueRefund(
+                gatewayId,
+                amountToDrain,
+                sanitizedReason,
+                refundNotes
+            );
+
+            payment.refundedAmount = (payment.refundedAmount || 0) + amountToDrain;
+            payment.status = payment.refundedAmount >= (payment.amount - 0.01) ? 'refunded' : 'captured';
+            payment.refundedAt = Timestamp.now();
+            payment.refundReason = sanitizedReason;
+
+            remainingToRefund = Math.max(0, Math.round((remainingToRefund - amountToDrain) * 100) / 100);
+            actualRefundedAmount += amountToDrain;
+            refundResults.push({ gatewayId, amount: amountToDrain, refundId: refundRes?.id });
+        }
+    }
+
+    // ─── ATOMIC FIRESTORE BATCH EXECUTION ──────────────────────────────────────
+    const batch = db.batch();
+    const isRefundIssued = actualRefundedAmount > 0;
+
+    // 1. Booking Document Update
+    const finalBookingStatus = isRefundIssued ? 'refunded' : 'cancelled';
+    batch.update(bookingRef, {
+        status: finalBookingStatus,
+        payment: payments.map(p => ({ ...p })),
+        cancellationReason: adminNote || cancellationData?.reason || bookingData.cancellationReason || 'Cancellation approved',
+        cancelledBy: cancellationData?.cancelledBy || bookingData.cancelledBy || caller.uid,
+        updatedAt: FieldValue.serverTimestamp()
+    });
+
+    // 2. Offer Slot Inventory Update (Release slot)
+    if (businessId && offerId) {
+        try {
+            const offerRef = db.collection('businesses').doc(businessId).collection('offers').doc(offerId);
+            const offerSnap = await offerRef.get();
+            if (offerSnap.exists) {
+                const currentReserved = offerSnap.data()?.reservedPax || 0;
+                if (currentReserved > 0) {
+                    batch.update(offerRef, {
+                        reservedPax: admin.firestore.FieldValue.increment(-1),
+                        updatedAt: FieldValue.serverTimestamp()
+                    });
+                }
+            }
+        } catch (offerErr) {
+            console.warn(`[processCancellationApproval] Could not verify offer doc:`, offerErr.message);
+        }
+    }
+
+    // 3. Group Chat Document Update (Remove member)
+    if (offerId) {
+        try {
+            const groupRef = db.collection('groups').doc(offerId);
+            const groupSnap = await groupRef.get();
+            if (groupSnap.exists) {
+                const groupData = groupSnap.data();
+                const updatedMembers = (groupData.members || []).filter(m => m.id !== userId);
+                batch.update(groupRef, {
+                    participantsIds: admin.firestore.FieldValue.arrayRemove(userId),
+                    members: updatedMembers,
+                    updatedAt: FieldValue.serverTimestamp()
+                });
+            }
+        } catch (groupErr) {
+            console.warn(`[processCancellationApproval] Could not verify group doc:`, groupErr.message);
+        }
+    }
+
+    // 4. Cancellation Document Update (if present)
+    if (cancellationRef) {
+        batch.update(cancellationRef, {
+            status: 'approved',
+            adminNote: adminNote || null,
+            refundAmount: actualRefundedAmount,
+            refundedAt: isRefundIssued ? FieldValue.serverTimestamp() : null,
+            updatedAt: FieldValue.serverTimestamp()
+        });
+    }
+
+    // 5. Global /payments Collection Sync (if refunded)
+    if (isRefundIssued) {
+        try {
+            const paymentsQuery = await db.collection('payments').where('bookingId', '==', bookingId).get();
+            if (!paymentsQuery.empty) {
+                paymentsQuery.docs.forEach(docSnap => {
+                    batch.update(docSnap.ref, {
+                        status: 'refunded',
+                        'receipt.refundedAmount': FieldValue.increment(actualRefundedAmount),
+                        refundedAt: FieldValue.serverTimestamp(),
+                        refundReason: adminNote || 'cancellation_approved',
+                        updatedAt: FieldValue.serverTimestamp()
+                    });
+                });
+            }
+        } catch (syncErr) {
+            console.warn(`[processCancellationApproval] Global /payments sync warning:`, syncErr.message);
+        }
+    }
+
+    // Commit all Firestore operations together
+    await batch.commit();
+    console.log(`[processCancellationApproval] Successfully committed atomic batch for booking ${bookingId}`);
+
+    return {
+        success: true,
+        approved: true,
+        isRefundIssued,
+        refundAmount: actualRefundedAmount,
+        refundResults,
+        message: isRefundIssued
+            ? `Cancellation approved and ₱${actualRefundedAmount.toFixed(2)} refunded successfully.`
+            : 'Cancellation approved and slot released successfully.'
+    };
+});
+
+// ─── GROUP-CENTRIC PROGRESSIVE T-MINUS WEATHER ALERT ENGINE ──────────────────
 // Monitors active hike groups (/groups/{groupId}) across the T-minus schedule:
 // T-168h (7 days), T-72h (3 days), T-24h (1 day with 3-hr watch), T-3h (Departure)
 // Saves alerts to /groups/{groupId}/alerts/{alertId} and sends notifications to group.participantsIds

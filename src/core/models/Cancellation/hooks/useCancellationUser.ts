@@ -207,16 +207,16 @@ export function useCancellationUser() {
                 status: 'cancelled',
                 cancelledBy: 'admin',
                 updatedAt: new Date(),
-            })
+            });
 
-            Promise.all([
-                await createBooking(updatedBooking, false, true),
-                await write({
+            await Promise.all([
+                createBooking(updatedBooking, false, true),
+                write({
                     cancellation: updatedRequest,
                     oldCancellation: request,
                     isAdmin: false
                 })
-            ])
+            ]);
             
         } catch (error) {
             catchError(error as Error, 'writingError', 'approveAdminRequest()');
@@ -279,9 +279,9 @@ export function useCancellationUser() {
 }
 
 
-// TODO
-// By @Zeed111
-// To move in admin side for approval of cancellation requests
+// NOTE (Resolved):
+// Pre-payment cancellation (cancelBooking) and refund approval (processCancellationApproval)
+// have been moved to the admin workflow in useCancellationAdmin.ts and usePaymentAdmin.ts.
 // /**
 //  * Cancels a booking securely via Firebase Cloud Functions.
 //  * Only works before payment is captured.

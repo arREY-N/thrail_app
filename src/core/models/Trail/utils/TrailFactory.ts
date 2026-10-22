@@ -7,6 +7,7 @@ export const newTrail = (init?: Partial<Trail>): Trail => {
         id: '',
         coverImage: null,
         routeMapImage: null,
+        profile: init?.profile,
         createdAt: new Date(),
         updatedAt: new Date(),
         offlinePoints: [],
@@ -79,6 +80,7 @@ const trailFromFirestore = (id: string, data: ITrailDB): Trail => {
         offlinePoints: data.offlinePoints || [],
         createdAt: toDate(data.createdAt),
         updatedAt: toDate(data.updatedAt),
+        profile: data.profile || undefined,
         geography: {
             masl: data.geography?.masl || 0,
             startLat: data.geography?.start?.latitude ?? 0,
@@ -108,6 +110,7 @@ const trailToFirestore = (trail: Trail): ITrailDB => {
             start: new GeoPoint(trail.geography?.startLat ?? 0, trail.geography?.startLong ?? 0),
             end: new GeoPoint(trail.geography?.endLat ?? 0, trail.geography?.endLong ?? 0),
         },
+        ...(trail.profile ? { profile: trail.profile } : {}),
     };
 
     return data;

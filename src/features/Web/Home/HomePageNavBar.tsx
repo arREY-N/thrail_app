@@ -17,6 +17,7 @@ import { useAuthStore } from "@/src/core/models/User/User";
 import { IconLibrary } from "@/src/types/ui.types";
 import { getInitials } from "@/src/utils/dateFormatter";
 
+
 interface NavItemConfig {
   id: string;
   label: string;
@@ -137,6 +138,13 @@ const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
         icon: "users",
         library: "Feather",
         route: "/(app)/(main)/superadmin/user/list",
+      },
+      {
+        id: "recommendation",
+        label: "Recommendations",
+        icon: "sliders",
+        library: "Feather",
+        route: "/(app)/(main)/superadmin/recommendation",
       },
     ],
   },

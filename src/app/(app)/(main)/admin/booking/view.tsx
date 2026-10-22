@@ -98,17 +98,24 @@ export default function AdminViewBooking() {
                 error={combinedError}
                 hikerProfile={hikerProfile}
                 cancellationRequest={cancellationRequest}
-                onApproveCancellation={(request, booking, refundType, customAmount) => processCancellationRequest({
-                    request,
-                    approved: true,
-                    refundType,
-                    customAmount,
-                })}
-                onDeclineCancellation={(declineNote, request, currentBooking) => processCancellationRequest({
-                    adminNote: declineNote,
-                    request,
-                    approved: false,
-                })}
+                onApproveCancellation={async (request, booking, refundType, customAmount, adminNote) => {
+                    await processCancellationRequest({
+                        request,
+                        booking,
+                        approved: true,
+                        refundType,
+                        customAmount,
+                        adminNote,
+                    });
+                }}
+                onDeclineCancellation={async (declineNote, request, currentBooking) => {
+                    await processCancellationRequest({
+                        adminNote: declineNote,
+                        request,
+                        booking: currentBooking,
+                        approved: false,
+                    });
+                }}
                 onRevertCancellation={revertCancellationRequest}
                 onAdminCancelBooking={cancelUserBooking}
             />

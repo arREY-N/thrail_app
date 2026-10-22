@@ -26,36 +26,47 @@ interface AdminActionMenuProps {
     onClose: () => void;
     isCancelledStatus: boolean;
     totalAmountPaid: number;
+    totalRefundedAmount?: number;
+    remainingRefundableAmount?: number;
     onRescheduleClick: () => void;
     onRefundClick: () => void;
     onCancelClick: () => void;
     hasPendingCancellation?: boolean;
-    isCompletedStatus?: boolean;
+    isFinishedStatus?: boolean;
+    isOfferFinished?: boolean;
 }
 
 /**
  * AdminActionMenu — A bottom-sheet action menu for admin booking management.
- * Displays reschedule, refund, or cancel options depending on booking state.
+ * Displays reschedule, refund, or cancel options independently based on booking state.
  */
 const AdminActionMenu: React.FC<AdminActionMenuProps> = ({ 
     visible, 
     onClose, 
     isCancelledStatus, 
     totalAmountPaid, 
+    totalRefundedAmount = 0,
+    remainingRefundableAmount,
     onRescheduleClick, 
     onRefundClick, 
     onCancelClick,
     hasPendingCancellation = false,
-    isCompletedStatus = false,
+    isFinishedStatus = false,
+    isOfferFinished = false,
 }) => {
-    // Business rules (Refined per Issue #141):
-    // - Reschedule, Cancel, and Refund are independent options exposed to admins on active/confirmed bookings.
-    // - Reschedule: Available on non-cancelled bookings (!isCancelledStatus).
-    // - Cancel: Available on non-cancelled bookings without an already pending cancellation (!isCancelledStatus && !hasPendingCancellation).
-    // - Refund: Available whenever payments exist (totalAmountPaid > 0) on non-cancelled/refunded bookings.
-    const canReschedule = !isCancelledStatus;
-    const canRefund = !isCancelledStatus && totalAmountPaid > 0;
+    // Decoupled Business rules (Issue #154):
+    // 1. REFUND: Available whenever there is captured money that has not been 100% refunded yet
+    const remainingRefundable = remainingRefundableAmount !== undefined
+        ? remainingRefundableAmount
+        : Math.max(0, totalAmountPaid - totalRefundedAmount);
+    const canRefund = remainingRefundable > 0.01;
+
+    // 2. RESCHEDULE: Available on active AND cancelled bookings (unless past offer date or finished/expired)
+    const canReschedule = !isOfferFinished && !isFinishedStatus;
+
+    // 3. CANCEL: Available on active bookings that are not already cancelled or pending cancellation
     const canCancel = !isCancelledStatus && !hasPendingCancellation;
+
     const hasAnyAction = canReschedule || canRefund || canCancel;
 
     return (
@@ -88,9 +99,16 @@ const AdminActionMenu: React.FC<AdminActionMenuProps> = ({
                                         <View style={styles.actionIconBg}>
                                             <CustomIcon library="Feather" name="calendar" size={18} color={Colors.PRIMARY} />
                                         </View>
-                                        <CustomText style={styles.actionItemText}>
-                                            Reschedule Booking
-                                        </CustomText>
+                                        <View style={{ flex: 1 }}>
+                                            <CustomText style={styles.actionItemText}>
+                                                Reschedule Booking
+                                            </CustomText>
+                                            {isCancelledStatus && (
+                                                <CustomText variant="caption" style={{ color: Colors.TEXT_SECONDARY, marginTop: 2 }}>
+                                                    Rebook hiker to a new date
+                                                </CustomText>
+                                            )}
+                                        </View>
                                     </TouchableOpacity>
                                 )}
 
@@ -102,9 +120,14 @@ const AdminActionMenu: React.FC<AdminActionMenuProps> = ({
                                         <View style={[ styles.actionIconBg, { backgroundColor: Colors.ERROR_BG }]}>
                                             <CustomIcon library="Feather" name="corner-up-left" size={18} color={Colors.ERROR} />
                                         </View>
-                                        <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>
-                                            Issue Refund
-                                        </CustomText>
+                                        <View style={{ flex: 1 }}>
+                                            <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>
+                                                Issue Refund
+                                            </CustomText>
+                                            <CustomText variant="caption" style={{ color: Colors.TEXT_SECONDARY, marginTop: 2 }}>
+                                                ₱{remainingRefundable.toFixed(2)} refundable balance
+                                            </CustomText>
+                                        </View>
                                     </TouchableOpacity>
                                 )}
 
@@ -116,9 +139,11 @@ const AdminActionMenu: React.FC<AdminActionMenuProps> = ({
                                         <View style={[ styles.actionIconBg, { backgroundColor: Colors.ERROR_BG }]}>
                                             <CustomIcon library="Feather" name="x-circle" size={18} color={Colors.ERROR} />
                                         </View>
-                                        <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>
-                                            Cancel Booking
-                                        </CustomText>
+                                        <View style={{ flex: 1 }}>
+                                            <CustomText style={[styles.actionItemText, { color: Colors.ERROR }]}>
+                                                Cancel Booking
+                                            </CustomText>
+                                        </View>
                                     </TouchableOpacity>
                                 )}
                             </>
