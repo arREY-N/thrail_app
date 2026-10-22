@@ -4,7 +4,7 @@
  * with dynamic offer counters, interactive booked states, multi-day overlap conflict blocking, consecutive hike confirmation modals, and CustomToast feedback.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
@@ -13,6 +13,12 @@ import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import { useToast } from '@/src/components/Toast/Toast';
+import {
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    requestTargetMeasurement,
+} from '@/src/components/Tutorial/Tutorial';
 import OfferCalendar from '@/src/features/Book/components/OfferCalendar';
 import OfferCard from '@/src/features/Book/components/OfferCard';
 
@@ -32,6 +38,8 @@ import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateForma
  * @param consecutiveOfferIds - List of offer IDs that are back-to-back/consecutive with user's bookings
  * @param error - Error message if offer loading or booking flow failed
  * @param onContinue - Callback when hiker confirms an offer selection
+ * @param activeTutorialStep - Current tutorial target spotlight identifier
+ * @param isTutorialVisible - Whether tutorial modal is actively open
  */
 export interface OffersScreenProps {
     offers?: Offer[];
@@ -43,6 +51,8 @@ export interface OffersScreenProps {
     error?: string | null;
     onContinue: (offerId: string | null) => void;
     onViewBookingDetails?: (bookingId?: string) => void;
+    activeTutorialStep?: string;
+    isTutorialVisible?: boolean;
 }
 
 const ADVANCE_BOOKING_CUTOFF_DAYS = 7;
@@ -161,8 +171,52 @@ const OffersScreen = ({
     error,
     onContinue,
     onViewBookingDetails,
+    activeTutorialStep,
+    isTutorialVisible,
 }: OffersScreenProps): React.JSX.Element => {
     const { showToast } = useToast();
+    const scrollViewRef = useRef<ScrollView>(null);
+    const firstOfferCardRef = useRef<View>(null);
+    const offersSectionOffsetY = useRef<number>(0);
+
+    const measureFirstOfferCardNow = useCallback(() => {
+        firstOfferCardRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('booking_offers_card', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureFirstOfferCard = useCallback(() => {
+        if (!isTutorialMeasurementActive()) return;
+        measureFirstOfferCardNow();
+    }, [measureFirstOfferCardNow]);
+
+    useEffect(() => {
+        return registerMeasureCallback('booking_offers_card', measureFirstOfferCardNow);
+    }, [measureFirstOfferCardNow]);
+
+    // Bidirectional auto-scroll for OffersScreen tour steps (active only when tutorial is visible)
+    useEffect(() => {
+        if (!isTutorialVisible) return;
+
+        if (activeTutorialStep === 'booking_offers_card' || activeTutorialStep === 'booking_offers') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, offersSectionOffsetY.current - 16),
+                animated: true,
+            });
+            const timer = setTimeout(measureFirstOfferCardNow, 250);
+            return () => clearTimeout(timer);
+        } else if (activeTutorialStep === 'booking_offers_calendar' || activeTutorialStep === 'booking_calendar') {
+            scrollViewRef.current?.scrollTo({
+                y: 0,
+                animated: true,
+            });
+            requestTargetMeasurement('booking_offers_calendar');
+        }
+    }, [isTutorialVisible, activeTutorialStep, measureFirstOfferCardNow]);
+
+
     const safeOffers = useMemo(() => (Array.isArray(offers) ? offers : []), [offers]);
     const safeBookings = useMemo(() => (
         Array.isArray(userBookings) 
@@ -283,6 +337,18 @@ const OffersScreen = ({
             setLocalSelectedId(null);
         }
     }
+
+    // Reset scroll to top and reset localSelectedId when tutorial is triggered or finished
+    const prevTutorialVisible = useRef(isTutorialVisible);
+    useEffect(() => {
+        if (!prevTutorialVisible.current && isTutorialVisible) {
+            setLocalSelectedId(null);
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        } else if (prevTutorialVisible.current && !isTutorialVisible) {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        }
+        prevTutorialVisible.current = isTutorialVisible;
+    }, [isTutorialVisible]);
 
     const filteredOffers = useMemo(() => {
         if (!selectedDate) return [];
@@ -488,6 +554,7 @@ const OffersScreen = ({
     return (
         <View style={styles.container}>
             <ScrollView
+                ref={scrollViewRef}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
@@ -504,10 +571,16 @@ const OffersScreen = ({
                             uniqueDates={uniqueDates}
                             selectedDate={selectedDate}
                             onSelectDate={handleDateSelect}
+                            activeTutorialStep={activeTutorialStep}
                         />
                     </View>
 
-                    <View style={styles.offersContainer}>
+                    <View
+                        style={styles.offersContainer}
+                        onLayout={(e) => {
+                            offersSectionOffsetY.current = e.nativeEvent.layout.y;
+                        }}
+                    >
                         <View style={styles.sectionHeaderRow}>
                             <CustomText variant="h2" style={styles.sectionTitle}>
                                 Available Offers <CustomText style={styles.sectionTitleCounter}>({filteredOffers.length})</CustomText>
@@ -515,10 +588,9 @@ const OffersScreen = ({
                         </View>
 
                         {filteredOffers.length > 0 ? (
-                            filteredOffers.map((offer) => {
+                            filteredOffers.map((offer, index) => {
                                 const status = getOfferStatus(offer);
-
-                                return (
+                                const cardComponent = (
                                     <OfferCard
                                         key={offer.id}
                                         offer={offer}
@@ -531,9 +603,27 @@ const OffersScreen = ({
                                         onSelect={() => handleOfferSelect(offer.id)}
                                     />
                                 );
+
+                                if (index === 0) {
+                                    return (
+                                        <View
+                                            key={offer.id}
+                                            ref={firstOfferCardRef}
+                                            onLayout={measureFirstOfferCard}
+                                        >
+                                            {cardComponent}
+                                        </View>
+                                    );
+                                }
+
+                                return cardComponent;
                             })
                         ) : (
-                            <View style={styles.emptyState}>
+                            <View
+                                ref={firstOfferCardRef}
+                                onLayout={measureFirstOfferCard}
+                                style={styles.emptyState}
+                            >
                                 <CustomIcon 
                                     library="Feather" 
                                     name="calendar" 
