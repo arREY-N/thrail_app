@@ -27,6 +27,18 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput, { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
 import { CustomToast } from '@/src/components/Toast/Toast';
+import {
+    createReplayHelpStep,
+    CustomTutorialModal,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
+import {
+    emergencyModalOnlySteps,
+    emergencyModalUnifiedSteps,
+} from '@/src/components/Tutorial/constants';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { calculateVerificationValidity } from '@/src/core/flows/PhoneVerificationFlow';
@@ -228,6 +240,90 @@ const EmergencyModal = ({
             hideSub.remove();
         };
     }, []);
+
+    const phoneInputRef = useRef<View>(null);
+    const searchAccountRef = useRef<View>(null);
+    const manualContactRef = useRef<View>(null);
+    const saveBtnRef = useRef<View>(null);
+
+    const dynamicTourSteps = useMemo(() => {
+        const isUnified = mode === 'unified';
+        const baseSteps = isUnified ? emergencyModalUnifiedSteps : emergencyModalOnlySteps;
+        return [...baseSteps, createReplayHelpStep(isUnified ? 'Contacts' : 'Emergency Contact')];
+    }, [mode]);
+
+    const tutorial = useTutorialGuide('emergency_modal', visible && renderModal, dynamicTourSteps);
+
+    const measurePhoneNow = useCallback(() => {
+        phoneInputRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('emergency_user_phone', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureSearchAccountNow = useCallback(() => {
+        searchAccountRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('emergency_search_account', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureManualContactNow = useCallback(() => {
+        manualContactRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('emergency_manual_contact', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureSaveBtnNow = useCallback(() => {
+        saveBtnRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('emergency_save_btn', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const unsubPhone = registerMeasureCallback('emergency_user_phone', measurePhoneNow);
+        const unsubSearch = registerMeasureCallback('emergency_search_account', measureSearchAccountNow);
+        const unsubManual = registerMeasureCallback('emergency_manual_contact', measureManualContactNow);
+        const unsubSave = registerMeasureCallback('emergency_save_btn', measureSaveBtnNow);
+        return () => {
+            unsubPhone();
+            unsubSearch();
+            unsubManual();
+            unsubSave();
+        };
+    }, [measurePhoneNow, measureSearchAccountNow, measureManualContactNow, measureSaveBtnNow]);
+
+    useEffect(() => {
+        if (visible && renderModal && tutorial.isVisible) {
+            const stepTarget = tutorial.currentStep?.targetSpotlight;
+            if (stepTarget === 'emergency_user_phone' || stepTarget === 'emergency_search_account') {
+                scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            }
+            const timer = setTimeout(() => {
+                measurePhoneNow();
+                measureSearchAccountNow();
+                measureManualContactNow();
+                measureSaveBtnNow();
+            }, 260);
+            return () => clearTimeout(timer);
+        }
+    }, [
+        visible,
+        renderModal,
+        tutorial.isVisible,
+        tutorial.currentStepIndex,
+        tutorial.currentStep?.targetSpotlight,
+        measurePhoneNow,
+        measureSearchAccountNow,
+        measureManualContactNow,
+        measureSaveBtnNow,
+    ]);
 
     useEffect(() => {
         if (visible) {
@@ -611,20 +707,23 @@ const EmergencyModal = ({
                             <CustomText variant="h2" style={styles.headerTitle}>
                                 {mode === 'unified' ? 'Edit Contacts' : 'Emergency Setup'}
                             </CustomText>
-                            <TouchableOpacity
-                                onPress={handleCloseOrSkip}
-                                style={styles.closeBtn}
-                                disabled={isSaving}
-                                accessibilityLabel="Close emergency contact modal"
-                                activeOpacity={0.7}
-                            >
-                                <CustomIcon
-                                    library="Feather"
-                                    name="x"
-                                    size={20}
-                                    color={Colors.TEXT_PRIMARY}
-                                />
-                            </TouchableOpacity>
+                            <View style={styles.headerActions}>
+                                <TutorialHelpButton onPress={tutorial.onReplayTour} />
+                                <TouchableOpacity
+                                    onPress={handleCloseOrSkip}
+                                    style={styles.closeBtn}
+                                    disabled={isSaving}
+                                    accessibilityLabel="Close emergency contact modal"
+                                    activeOpacity={0.7}
+                                >
+                                    <CustomIcon
+                                        library="Feather"
+                                        name="x"
+                                        size={20}
+                                        color={Colors.TEXT_PRIMARY}
+                                    />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
 
@@ -637,7 +736,7 @@ const EmergencyModal = ({
                     >
                         {/* Section 1: User's Phone Number (Unified Mode) */}
                         {mode === 'unified' && (
-                            <View style={styles.sectionContainer}>
+                            <View ref={phoneInputRef} collapsable={false} style={styles.sectionContainer}>
                                 <CustomText style={styles.sectionTitle}>
                                     Your Phone Number
                                 </CustomText>
@@ -667,7 +766,7 @@ const EmergencyModal = ({
                             </CustomText>
 
                             {/* Search Hiker by Email Input */}
-                            <View style={styles.searchFieldWrapper}>
+                            <View ref={searchAccountRef} collapsable={false} style={styles.searchFieldWrapper}>
                                 <CustomText variant="label" style={styles.fieldLabel}>
                                     Search Hiker by Email (Optional)
                                 </CustomText>
@@ -780,80 +879,85 @@ const EmergencyModal = ({
                                 </View>
                             )}
 
-                            {/* Contact Name Input */}
-                            <View style={styles.fieldWrapper}>
-                                <CustomTextInput
-                                    label="Contact Name"
-                                    placeholder="Full Name (e.g. Maria Dela Cruz)"
-                                    value={contactName}
-                                    onChangeText={setContactName}
-                                    editable={!isNameLocked}
-                                    icon={isLinked ? 'user-check' : 'user'}
-                                    iconColor={isLinked ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
-                                    style={isNameLocked ? styles.inputLocked : undefined}
-                                    innerRightElement={
-                                        isNameLocked ? (
-                                            <View style={styles.innerLockBadge}>
-                                                <CustomIcon
-                                                    library="Feather"
-                                                    name="lock"
-                                                    size={16}
-                                                    color={Colors.TEXT_SECONDARY}
-                                                />
-                                            </View>
-                                        ) : undefined
-                                    }
-                                />
-                            </View>
+                            {/* Manual Contact Details */}
+                            <View ref={manualContactRef} collapsable={false} style={styles.manualContactSection}>
+                                {/* Contact Name Input */}
+                                <View style={styles.fieldWrapper}>
+                                    <CustomTextInput
+                                        label="Contact Name"
+                                        placeholder="Full Name (e.g. Maria Dela Cruz)"
+                                        value={contactName}
+                                        onChangeText={setContactName}
+                                        editable={!isNameLocked}
+                                        icon={isLinked ? 'user-check' : 'user'}
+                                        iconColor={isLinked ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
+                                        style={isNameLocked ? styles.inputLocked : undefined}
+                                        innerRightElement={
+                                            isNameLocked ? (
+                                                <View style={styles.innerLockBadge}>
+                                                    <CustomIcon
+                                                        library="Feather"
+                                                        name="lock"
+                                                        size={16}
+                                                        color={Colors.TEXT_SECONDARY}
+                                                    />
+                                                </View>
+                                            ) : undefined
+                                        }
+                                    />
+                                </View>
 
-                            {/* Contact Phone Input */}
-                            <View style={styles.fieldWrapper}>
-                                <CustomTextInput
-                                    label="Contact Phone Number"
-                                    placeholder="9XX XXX XXXX"
-                                    prefix="+63"
-                                    type="phone"
-                                    value={contactPhone}
-                                    keyboardType="number-pad"
-                                    onChangeText={setContactPhone}
-                                    maxLength={12}
-                                    editable={!isPhoneLocked}
-                                    style={[
-                                        styles.noMarginBottom,
-                                        isPhoneLocked && styles.inputLocked,
-                                    ]}
-                                    innerRightElement={
-                                        isPhoneLocked ? (
-                                            <View style={styles.innerLockBadge}>
-                                                <CustomIcon
-                                                    library="Feather"
-                                                    name="lock"
-                                                    size={16}
-                                                    color={Colors.TEXT_SECONDARY}
-                                                />
-                                            </View>
-                                        ) : undefined
-                                    }
-                                />
+                                {/* Contact Phone Input */}
+                                <View style={styles.fieldWrapper}>
+                                    <CustomTextInput
+                                        label="Contact Phone Number"
+                                        placeholder="9XX XXX XXXX"
+                                        prefix="+63"
+                                        type="phone"
+                                        value={contactPhone}
+                                        keyboardType="number-pad"
+                                        onChangeText={setContactPhone}
+                                        maxLength={12}
+                                        editable={!isPhoneLocked}
+                                        style={[
+                                            styles.noMarginBottom,
+                                            isPhoneLocked && styles.inputLocked,
+                                        ]}
+                                        innerRightElement={
+                                            isPhoneLocked ? (
+                                                <View style={styles.innerLockBadge}>
+                                                    <CustomIcon
+                                                        library="Feather"
+                                                        name="lock"
+                                                        size={16}
+                                                        color={Colors.TEXT_SECONDARY}
+                                                    />
+                                                </View>
+                                            ) : undefined
+                                        }
+                                    />
+                                </View>
                             </View>
                         </View>
                     </ScrollView>
 
                     {/* Fixed Footer CTA with Encapsulated Validation State */}
                     <View style={styles.fixedFooter}>
-                        <CustomButton
-                            title="Save & Apply"
-                            onPress={handleSave}
-                            disabled={isSaving}
-                            isLoading={isSaving}
-                            validationState={
-                                !isSaveDisabled && isOverallDirty
-                                    ? 'valid'
-                                    : (hasAttemptedSave ? 'error' : 'idle')
-                            }
-                            isIdleDisabled={false}
-                            style={styles.saveBtn}
-                        />
+                        <View ref={saveBtnRef} collapsable={false} style={styles.saveBtnWrapper}>
+                            <CustomButton
+                                title="Save & Apply"
+                                onPress={handleSave}
+                                disabled={isSaving}
+                                isLoading={isSaving}
+                                validationState={
+                                    !isSaveDisabled && isOverallDirty
+                                        ? 'valid'
+                                        : (hasAttemptedSave ? 'error' : 'idle')
+                                }
+                                isIdleDisabled={false}
+                                style={styles.saveBtn}
+                            />
+                        </View>
                     </View>
 
                     {/* Floating Toast Alert inside Modal with Responsive Safe-Area Docking */}
@@ -870,6 +974,19 @@ const EmergencyModal = ({
                         bottomOffset={toastBottomOffset}
                     />
                 </Animated.View>
+
+                {/* In-app walkthrough overlay for EmergencyModal */}
+                <CustomTutorialModal
+                    visible={tutorial.isVisible}
+                    tourConfig={tutorial.tourConfig}
+                    currentStep={tutorial.currentStep}
+                    currentStepIndex={tutorial.currentStepIndex}
+                    totalSteps={tutorial.totalSteps}
+                    useModal={Platform.OS === 'web'}
+                    onNext={tutorial.onNextStep}
+                    onPrev={tutorial.onPrevStep}
+                    onSkip={tutorial.onSkipTour}
+                />
             </KeyboardAvoidingView>
 
             {/* Discard Unsaved Changes Confirmation Modal */}
@@ -937,6 +1054,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     headerTitle: {
         fontSize: 20,
@@ -1083,9 +1205,16 @@ const styles = StyleSheet.create({
     fixedFooter: {
         paddingHorizontal: 16,
         paddingTop: 8,
-        paddingBottom: 0,
+        paddingBottom: 4,
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_ULTRALIGHT,
+    },
+    saveBtnWrapper: {
+        width: '100%',
+    },
+    manualContactSection: {
+        width: '100%',
+        marginBottom: 0,
     },
     saveBtn: {
         width: '100%',
