@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Platform,
     ScrollView,
@@ -19,6 +19,14 @@ import CustomTextInput from '@/src/components/CustomTextInput';
 import DynamicListBuilder from '@/src/components/DynamicListBuilder';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import {
+    CustomTutorialModal,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    requestTargetMeasurement,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -58,6 +66,7 @@ const OfferWriteScreen = ({
 }: OfferWriteScreenProps) => {
     const isEditing = Boolean(offer?.id && offer.id !== '');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const tutorial = useTutorialGuide('admin_offer_write', !isLoading);
 
     const [docInput, setDocInput] = useState('');
     const [incInput, setIncInput] = useState('');
@@ -70,6 +79,85 @@ const OfferWriteScreen = ({
     const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
 
     const [focusedField, setFocusedField] = useState<string | null>(null);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const trailRef = useRef<View>(null);
+    const pricingRef = useRef<View>(null);
+    const scheduleRef = useRef<View>(null);
+    const checklistsRef = useRef<View>(null);
+    const saveBtnRef = useRef<View>(null);
+
+    const measureTrailNow = useCallback(() => {
+        trailRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_write_trail_dates', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    const measurePricingNow = useCallback(() => {
+        pricingRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_write_pricing_pax', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    const measureScheduleNow = useCallback(() => {
+        scheduleRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_write_schedule', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    const measureChecklistsNow = useCallback(() => {
+        checklistsRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_write_checklists', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    const measureSaveBtnNow = useCallback(() => {
+        saveBtnRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('booking_footer', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const u1 = registerMeasureCallback('admin_write_trail_dates', measureTrailNow);
+        const u2 = registerMeasureCallback('admin_write_pricing_pax', measurePricingNow);
+        const u3 = registerMeasureCallback('admin_write_schedule', measureScheduleNow);
+        const u4 = registerMeasureCallback('admin_write_checklists', measureChecklistsNow);
+        const u5 = registerMeasureCallback('booking_footer', measureSaveBtnNow);
+        return () => {
+            u1();
+            u2();
+            u3();
+            u4();
+            u5();
+        };
+    }, [measureTrailNow, measurePricingNow, measureScheduleNow, measureChecklistsNow, measureSaveBtnNow]);
+
+    useEffect(() => {
+        if (!tutorial.isVisible) return;
+        const step = tutorial.currentStep?.targetSpotlight;
+        if (!step) return;
+        if (step === 'admin_write_trail_dates' || step === 'header_help') {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        } else if (step === 'admin_write_pricing_pax') {
+            scrollViewRef.current?.scrollTo({ y: 180, animated: true });
+        } else if (step === 'admin_write_schedule') {
+            scrollViewRef.current?.scrollTo({ y: 380, animated: true });
+        } else if (step === 'admin_write_checklists') {
+            scrollViewRef.current?.scrollTo({ y: 680, animated: true });
+        } else if (step === 'booking_footer') {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+        }
+        requestTargetMeasurement(step);
+    }, [tutorial.isVisible, tutorial.currentStep?.targetSpotlight]);
 
     const handleUpdate = (params: TEdit<Offer>) => {
         setHasUnsavedChanges(true);
@@ -288,151 +376,163 @@ const OfferWriteScreen = ({
             <CustomHeader 
                 title={isEditing ? "Edit Offer" : "Add New Offer"} 
                 centerTitle={true}
-                onBackPress={handleHeaderBack} 
+                onBackPress={handleHeaderBack}
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />} 
             />
             
             <ScrollView 
                 showsVerticalScrollIndicator={false} 
+                ref={scrollViewRef}
                 contentContainerStyle={styles.scrollContent}
             >
                 <View style={styles.constrainer}>
 
                     <View style={styles.formCard}>
                         
-                        <View style={styles.fieldContainer}>
-                            <CustomText variant="label" style={styles.fieldLabel}>
-                                Select Trail *
-                            </CustomText>
-                            <TouchableOpacity 
-                                style={styles.dropdownButton} 
-                                onPress={() => setShowTrailModal(true)} 
-                                activeOpacity={0.7}
-                            >
-                                <CustomText style={offer?.trail?.name ? styles.dropdownText : styles.dropdownPlaceholder}>
-                                    {offer?.trail?.name || "Select a trail..."}
-                                </CustomText>
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name="chevron-down" 
-                                    size={20} 
-                                    color={Colors.TEXT_SECONDARY} 
+                        <View ref={trailRef} collapsable={false}>
+                            <View style={styles.gap}>
+                                <View style={styles.fieldContainer}>
+                                    <CustomText variant="label" style={styles.fieldLabel}>
+                                        Select Trail *
+                                    </CustomText>
+                                    <TouchableOpacity
+                                        style={styles.dropdownButton} 
+                                        onPress={() => setShowTrailModal(true)} 
+                                        activeOpacity={0.7}
+                                    >
+                                        <CustomText style={offer?.trail?.name ? styles.dropdownText : styles.dropdownPlaceholder}>
+                                            {offer?.trail?.name || "Select a trail..."}
+                                        </CustomText>
+                                        <CustomIcon 
+                                            library="Feather" 
+                                            name="chevron-down" 
+                                            size={20} 
+                                            color={Colors.TEXT_SECONDARY} 
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <CustomTextInput 
+                                    label="Description *" 
+                                    placeholder="Type the full description here..."
+                                    value={offer.description}
+                                    onChangeText={(text: string) => handleUpdate({ section: 'root', id: 'description', value: text })}
+                                    multiline={true} 
+                                    numberOfLines={5}
+                                    style={styles.noMarginBottom} 
+                                    inputStyle={styles.textArea}
                                 />
-                            </TouchableOpacity>
-                        </View>
-
-                        <CustomTextInput 
-                            label="Description *" 
-                            placeholder="Type the full description here..."
-                            value={offer.description}
-                            onChangeText={(text: string) => handleUpdate({ section: 'root', id: 'description', value: text })}
-                            multiline={true} 
-                            numberOfLines={5}
-                            style={styles.noMarginBottom} 
-                            inputStyle={styles.textArea}
-                        />
-
-                        <CustomTextInput 
-                            label="Price per Pax *" 
-                            placeholder="0" 
-                            prefix="₱" 
-                            value={offer.price ? String(offer.price) : ''}
-                            keyboardType="numeric"
-                            onChangeText={(text: string) => handleUpdate({ section: 'root', id: 'price', value: Number(text) || 0 })}
-                            style={styles.noMarginBottom}
-                        />
-
-                        <View style={styles.fieldContainer}>
-                            <CustomText variant="label" style={styles.fieldLabel}>
-                                Pax Capacity *
-                            </CustomText>
-                            <View style={styles.inlineRowContainer}>
-                                
-                                <View style={[styles.durationWrapper, focusedField === 'minPax' && styles.wrapperFocused]}>
-                                    <View style={styles.durationInputHalf}>
-                                        <TextInput 
-                                            placeholder="0" 
-                                            value={offer.minPax ? String(offer.minPax) : ''}
-                                            keyboardType="numeric"
-                                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'minPax', value: Number(text) || 0 })}
-                                            style={styles.durationInput} 
-                                            placeholderTextColor={Colors.TEXT_SECONDARY}
-                                            onFocus={() => setFocusedField('minPax')}
-                                            onBlur={() => setFocusedField(null)}
-                                        />
-                                    </View>
-                                    <View style={styles.verticalDivider} />
-                                    <View style={styles.durationLabelHalf}>
-                                        <CustomText style={styles.durationLabelText}>Min</CustomText>
-                                    </View>
-                                </View>
-                                
-                                <View style={styles.dividerContainer}>
-                                    <CustomText style={styles.dividerText}>-</CustomText>
-                                </View>
-                                
-                                <View style={[styles.durationWrapper, focusedField === 'maxPax' && styles.wrapperFocused]}>
-                                    <View style={styles.durationInputHalf}>
-                                        <TextInput 
-                                            placeholder="0" 
-                                            value={offer.maxPax ? String(offer.maxPax) : ''}
-                                            keyboardType="numeric"
-                                            onChangeText={(text) => handleUpdate({ section: 'root', id: 'maxPax', value: Number(text) || 0 })}
-                                            style={styles.durationInput} 
-                                            placeholderTextColor={Colors.TEXT_SECONDARY}
-                                            onFocus={() => setFocusedField('maxPax')}
-                                            onBlur={() => setFocusedField(null)}
-                                        />
-                                    </View>
-                                    <View style={styles.verticalDivider} />
-                                    <View style={styles.durationLabelHalf}>
-                                        <CustomText style={styles.durationLabelText}>Max</CustomText>
-                                    </View>
-                                </View>
-
                             </View>
                         </View>
 
-                        <View style={styles.fieldContainer}>
-                            <View style={styles.inlineRowContainer}>
-                                <View style={styles.flexHalf}>
-                                    <CustomTextInput 
-                                        type="calendar" 
-                                        label="Start Date *" 
-                                        placeholder="Select Date"
-                                        value={offer.date || null}
-                                        onChangeText={handleStartDateChange}
-                                        allowFutureDates={true} 
-                                        showTodayButton={true} 
-                                        defaultMode="date" 
-                                        style={styles.noMarginBottom}
-                                        dateFormat="MM/DD/YY"
-                                    />
+                        <View ref={pricingRef} collapsable={false}>
+                            <View style={styles.gap}>
+                                <CustomTextInput 
+                                    label="Price per Pax *" 
+                                    placeholder="0" 
+                                    prefix="₱" 
+                                    value={offer.price ? String(offer.price) : ''}
+                                    keyboardType="numeric"
+                                    onChangeText={(text: string) => handleUpdate({ section: 'root', id: 'price', value: Number(text) || 0 })}
+                                    style={styles.noMarginBottom}
+                                />
+
+                                <View style={styles.fieldContainer}>
+                                    <CustomText variant="label" style={styles.fieldLabel}>
+                                        Pax Capacity *
+                                    </CustomText>
+                                    <View style={styles.inlineRowContainer}>
+                                        
+                                        <View
+                                            style={[styles.durationWrapper, focusedField === 'minPax' && styles.wrapperFocused]}
+                                        >
+                                            <View style={styles.durationInputHalf}>
+                                                <TextInput 
+                                                    placeholder="0" 
+                                                    value={offer.minPax ? String(offer.minPax) : ''}
+                                                    keyboardType="numeric"
+                                                    onChangeText={(text) => handleUpdate({ section: 'root', id: 'minPax', value: Number(text) || 0 })}
+                                                    style={styles.durationInput} 
+                                                    placeholderTextColor={Colors.TEXT_SECONDARY}
+                                                    onFocus={() => setFocusedField('minPax')}
+                                                    onBlur={() => setFocusedField(null)}
+                                                />
+                                            </View>
+                                            <View style={styles.verticalDivider} />
+                                            <View style={styles.durationLabelHalf}>
+                                                <CustomText style={styles.durationLabelText}>Min</CustomText>
+                                            </View>
+                                        </View>
+                                        
+                                        <View style={styles.dividerContainer}>
+                                            <CustomText style={styles.dividerText}>-</CustomText>
+                                        </View>
+                                        
+                                        <View style={[styles.durationWrapper, focusedField === 'maxPax' && styles.wrapperFocused]}>
+                                            <View style={styles.durationInputHalf}>
+                                                <TextInput 
+                                                    placeholder="0" 
+                                                    value={offer.maxPax ? String(offer.maxPax) : ''}
+                                                    keyboardType="numeric"
+                                                    onChangeText={(text) => handleUpdate({ section: 'root', id: 'maxPax', value: Number(text) || 0 })}
+                                                    style={styles.durationInput} 
+                                                    placeholderTextColor={Colors.TEXT_SECONDARY}
+                                                    onFocus={() => setFocusedField('maxPax')}
+                                                    onBlur={() => setFocusedField(null)}
+                                                />
+                                            </View>
+                                            <View style={styles.verticalDivider} />
+                                            <View style={styles.durationLabelHalf}>
+                                                <CustomText style={styles.durationLabelText}>Max</CustomText>
+                                            </View>
+                                        </View>
+
+                                    </View>
                                 </View>
-                                <View style={styles.dateDividerContainer}>
-                                    <CustomText style={styles.dividerText}>-</CustomText>
-                                </View>
-                                <View style={styles.flexHalf}>
-                                    <CustomTextInput 
-                                        type="calendar" 
-                                        label="End Date *" 
-                                        placeholder="Select Date"
-                                        value={offer.endDate || null}
-                                        onChangeText={handleEndDateChange}
-                                        allowFutureDates={true} 
-                                        showTodayButton={true} 
-                                        defaultMode="date" 
-                                        style={styles.noMarginBottom}
-                                        dateFormat="MM/DD/YY"
-                                    />
+
+                                <View style={styles.fieldContainer}>
+                                    <View style={styles.inlineRowContainer}>
+                                        <View style={styles.flexHalf}>
+                                            <CustomTextInput 
+                                                type="calendar" 
+                                                label="Start Date *" 
+                                                placeholder="Select Date"
+                                                value={offer.date || null}
+                                                onChangeText={handleStartDateChange}
+                                                allowFutureDates={true} 
+                                                showTodayButton={true} 
+                                                defaultMode="date" 
+                                                style={styles.noMarginBottom}
+                                                dateFormat="MM/DD/YY"
+                                            />
+                                        </View>
+                                        <View style={styles.dateDividerContainer}>
+                                            <CustomText style={styles.dividerText}>-</CustomText>
+                                        </View>
+                                        <View style={styles.flexHalf}>
+                                            <CustomTextInput 
+                                                type="calendar" 
+                                                label="End Date *" 
+                                                placeholder="Select Date"
+                                                value={offer.endDate || null}
+                                                onChangeText={handleEndDateChange}
+                                                allowFutureDates={true} 
+                                                showTodayButton={true} 
+                                                defaultMode="date" 
+                                                style={styles.noMarginBottom}
+                                                dateFormat="MM/DD/YY"
+                                            />
+                                        </View>
+                                    </View>
                                 </View>
                             </View>
                         </View>
                             
-                        <View style={styles.fieldContainer}>
+                        <View ref={scheduleRef} collapsable={false} style={styles.fieldContainer}>
                             <CustomText variant="label" style={styles.fieldLabel}>
                                 Itinerary & Schedule *
                             </CustomText>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.scheduleCard} 
                                 onPress={() => setShowScheduleModal(true)} 
                                 activeOpacity={0.7}
@@ -495,60 +595,68 @@ const OfferWriteScreen = ({
                             </View>
                         </View>
 
-                        <DynamicListBuilder 
-                            label="Required Documents *" 
-                            placeholder="e.g. Valid ID" 
-                            items={Array.isArray(offer.documents) ? offer.documents : []} 
-                            inputValue={docInput} 
-                            setInputValue={setDocInput} 
-                            onAddItem={(val) => handleAddToArray('documents', offer.documents, val)}
-                            onRemoveItem={(val) => handleRemoveFromArray('documents', offer.documents, val)} 
-                            presets={PRESET_DOCS}
-                            onTogglePreset={(val) => handleTogglePreset('documents', offer.documents, val)}
-                        />
+                        <View ref={checklistsRef} collapsable={false}>
+                            <View style={styles.gap}>
+                                <DynamicListBuilder 
+                                    label="Required Documents *" 
+                                    placeholder="e.g. Valid ID" 
+                                    items={Array.isArray(offer.documents) ? offer.documents : []} 
+                                    inputValue={docInput} 
+                                    setInputValue={setDocInput} 
+                                    onAddItem={(val) => handleAddToArray('documents', offer.documents, val)}
+                                    onRemoveItem={(val) => handleRemoveFromArray('documents', offer.documents, val)} 
+                                    presets={PRESET_DOCS}
+                                    onTogglePreset={(val) => handleTogglePreset('documents', offer.documents, val)}
+                                />
 
-                        <DynamicListBuilder 
-                            label="Inclusions" 
-                            placeholder="e.g. Guide Fee" 
-                            items={Array.isArray(offer.inclusions) ? offer.inclusions : []} 
-                            inputValue={incInput} 
-                            setInputValue={setIncInput} 
-                            onAddItem={(val) => handleAddToArray('inclusions', offer.inclusions, val)}
-                            onRemoveItem={(val) => handleRemoveFromArray('inclusions', offer.inclusions, val)}
-                            presets={PRESET_INC}
-                            onTogglePreset={(val) => handleTogglePreset('inclusions', offer.inclusions, val)}
-                        />
+                                <DynamicListBuilder 
+                                    label="Inclusions" 
+                                    placeholder="e.g. Guide Fee" 
+                                    items={Array.isArray(offer.inclusions) ? offer.inclusions : []} 
+                                    inputValue={incInput} 
+                                    setInputValue={setIncInput} 
+                                    onAddItem={(val) => handleAddToArray('inclusions', offer.inclusions, val)}
+                                    onRemoveItem={(val) => handleRemoveFromArray('inclusions', offer.inclusions, val)}
+                                    presets={PRESET_INC}
+                                    onTogglePreset={(val) => handleTogglePreset('inclusions', offer.inclusions, val)}
+                                />
 
-                        <DynamicListBuilder 
-                            label="Things to Bring" 
-                            placeholder="e.g. 2L Water" 
-                            items={Array.isArray(offer.thingsToBring) ? offer.thingsToBring : []} 
-                            inputValue={bringInput} 
-                            setInputValue={setBringInput} 
-                            onAddItem={(val) => handleAddToArray('thingsToBring', offer.thingsToBring, val)}
-                            onRemoveItem={(val) => handleRemoveFromArray('thingsToBring', offer.thingsToBring, val)}
-                            presets={PRESET_BRING}
-                            onTogglePreset={(val) => handleTogglePreset('thingsToBring', offer.thingsToBring, val)}
-                        />
+                                <DynamicListBuilder 
+                                    label="Things to Bring" 
+                                    placeholder="e.g. 2L Water" 
+                                    items={Array.isArray(offer.thingsToBring) ? offer.thingsToBring : []} 
+                                    inputValue={bringInput} 
+                                    setInputValue={setBringInput} 
+                                    onAddItem={(val) => handleAddToArray('thingsToBring', offer.thingsToBring, val)}
+                                    onRemoveItem={(val) => handleRemoveFromArray('thingsToBring', offer.thingsToBring, val)}
+                                    presets={PRESET_BRING}
+                                    onTogglePreset={(val) => handleTogglePreset('thingsToBring', offer.thingsToBring, val)}
+                                />
 
-                        <CustomFeedbackInput 
-                            label="Reminders" 
-                            helperText="Tip: Type each reminder on a new line. They will automatically become bullet points for the hikers."
-                            placeholder="e.g. Non-refundable. Please arrive 30 minutes early..."
-                            value={Array.isArray(offer.reminders) ? offer.reminders.join('\n') : (offer.reminders || '')} 
-                            onChangeText={(text: string) => handleUpdate({ section: 'root', id: 'reminders', value: text.split('\n') })}
-                            suggestions={[
-                                "Strictly Non-refundable",
-                                "Arrive 30 mins before call time",
-                                "Subject to weather conditions",
-                                "Bring physical Valid ID"
-                            ]}
-                            style={styles.noMarginBottom}
-                        />
+                                <CustomFeedbackInput 
+                                    label="Reminders" 
+                                    helperText="Tip: Type each reminder on a new line. They will automatically become bullet points for the hikers."
+                                    placeholder="e.g. Non-refundable. Please arrive 30 minutes early..."
+                                    value={Array.isArray(offer.reminders) ? offer.reminders.join('\n') : (offer.reminders || '')} 
+                                    onChangeText={(text: string) => handleUpdate({ section: 'root', id: 'reminders', value: text.split('\n') })}
+                                    suggestions={[
+                                        "Strictly Non-refundable",
+                                        "Arrive 30 mins before call time",
+                                        "Subject to weather conditions",
+                                        "Bring physical Valid ID"
+                                    ]}
+                                    style={styles.noMarginBottom}
+                                />
+                            </View>
+                        </View>
 
                         {error && <ErrorMessage error={error} />}
 
-                        <View style={styles.buttonContainer}>
+                        <View
+                            ref={saveBtnRef}
+                            collapsable={false}
+                            style={styles.buttonContainer}
+                        >
                             <CustomButton 
                                 title={isLoading ? "Saving..." : "Save Offer"}
                                 onPress={handleSaveClick}
@@ -650,6 +758,16 @@ const OfferWriteScreen = ({
                 onClose={() => setShowSaveConfirmModal(false)} 
             />
 
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
+            />
         </ScreenWrapper>
     );
 };
@@ -664,6 +782,9 @@ const styles = StyleSheet.create({
         maxWidth: Layout.MAX_WIDTH, 
         alignSelf: 'center',
         flex: 1,
+    },
+    gap: {
+        gap: 24,
     },
     formCard: { 
         backgroundColor: Colors.WHITE, 
@@ -744,7 +865,7 @@ const styles = StyleSheet.create({
         flex: 1 
     },
     noMarginBottom: { 
-        marginBottom: 0
+        marginBottom: 0,
     },
     durationWrapper: { 
         flex: 1, 
