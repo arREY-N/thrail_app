@@ -5,7 +5,7 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -17,7 +17,7 @@ import {
     Platform,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -25,10 +25,22 @@ import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { CustomToast } from '@/src/components/Toast/Toast';
+import {
+    CustomTutorialModal,
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { BOOKING_TERMS_TEXT, PRIVACY_TEXT as PRIVACY_POLICY_TEXT, TERMS_TEXT as TERMS_OF_SERVICE_TEXT } from '@/src/constants/legal';
+import {
+    BOOKING_TERMS_TEXT,
+    PRIVACY_TEXT as PRIVACY_POLICY_TEXT,
+    TERMS_TEXT as TERMS_OF_SERVICE_TEXT,
+} from '@/src/constants/legal';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -77,6 +89,56 @@ const LegalTermsModal = ({
     const [activeTab, setActiveTab] = useState<LegalTabType>(initialTab);
     const [isAtBottom, setIsAtBottom] = useState<boolean>(false);
     const [animValue] = useState(() => new Animated.Value(visible ? 1 : 0));
+
+    const tabsContainerRef = useRef<View>(null);
+    const actionButtonWrapperRef = useRef<View>(null);
+
+    const tutorial = useTutorialGuide('legal_terms', visible && renderModal);
+
+    const measureLegalTabsNow = useCallback(() => {
+        tabsContainerRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('legal_tabs', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureActionButtonNow = useCallback(() => {
+        actionButtonWrapperRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('legal_scroll_bottom', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const unregTabs = registerMeasureCallback('legal_tabs', measureLegalTabsNow);
+        const unregBtn = registerMeasureCallback('legal_scroll_bottom', measureActionButtonNow);
+        return () => {
+            unregTabs();
+            unregBtn();
+        };
+    }, [measureLegalTabsNow, measureActionButtonNow]);
+
+    const handleTabsLayout = useCallback(() => {
+        if (!isTutorialMeasurementActive()) return;
+        measureLegalTabsNow();
+    }, [measureLegalTabsNow]);
+
+    const handleActionButtonLayout = useCallback(() => {
+        if (!isTutorialMeasurementActive()) return;
+        measureActionButtonNow();
+    }, [measureActionButtonNow]);
+
+    useEffect(() => {
+        if (visible && renderModal && tutorial.isVisible) {
+            const timer = setTimeout(() => {
+                measureLegalTabsNow();
+                measureActionButtonNow();
+            }, 260);
+            return () => clearTimeout(timer);
+        }
+    }, [visible, renderModal, tutorial.isVisible, tutorial.currentStepIndex, measureLegalTabsNow, measureActionButtonNow]);
 
     // Per-tab scroll completion tracking
     const [hasReadTerms, setHasReadTerms] = useState<boolean>(!requireReadToAgree || isAlreadyAcknowledged);
@@ -323,7 +385,7 @@ const LegalTermsModal = ({
             animationType="none"
             onRequestClose={handleDismiss}
         >
-            <KeyboardAvoidingView 
+            <KeyboardAvoidingView
                 style={styles.modalContainer}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
@@ -347,12 +409,12 @@ const LegalTermsModal = ({
                                 {
                                     translateY: animValue.interpolate({
                                         inputRange: [0, 1],
-                                        outputRange: isWideScreen ? [50, 0] : [SCREEN_HEIGHT, 0]
-                                    })
-                                }
+                                        outputRange: isWideScreen ? [50, 0] : [SCREEN_HEIGHT, 0],
+                                    }),
+                                },
                             ],
                             opacity: isWideScreen ? animValue : 1,
-                        }
+                        },
                     ]}
                 >
                     {/* Header */}
@@ -360,22 +422,29 @@ const LegalTermsModal = ({
                         <CustomText variant="h2" style={styles.headerTitle}>
                             Terms & Conditions
                         </CustomText>
-                        <TouchableOpacity
-                            onPress={handleDismiss}
-                            style={styles.closeBtn}
-                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        >
-                            <CustomIcon
-                                library="Feather"
-                                name="x"
-                                size={20}
-                                color={Colors.TEXT_SECONDARY}
-                            />
-                        </TouchableOpacity>
+                        <View style={styles.headerActions}>
+                            <TutorialHelpButton onPress={tutorial.onReplayTour} />
+                            <TouchableOpacity
+                                onPress={handleDismiss}
+                                style={styles.closeBtn}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                                <CustomIcon
+                                    library="Feather"
+                                    name="x"
+                                    size={20}
+                                    color={Colors.TEXT_SECONDARY}
+                                />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     {/* Segmented 3-Tab Selector Bar with Highlighted Selected Pill and Full Labels */}
-                    <View style={styles.tabContainer}>
+                    <View
+                        ref={tabsContainerRef}
+                        onLayout={handleTabsLayout}
+                        style={styles.tabContainer}
+                    >
                         {tabs.map((tab) => {
                             const isActive = activeTab === tab.key;
                             const isRead = tab.isRead;
@@ -411,7 +480,7 @@ const LegalTermsModal = ({
                                             size={13}
                                             color={iconColor}
                                         />
-                                        <CustomText 
+                                        <CustomText
                                             numberOfLines={1}
                                             style={[
                                                 styles.tabText,
@@ -454,17 +523,22 @@ const LegalTermsModal = ({
                     </View>
 
                     {/* Interactive Action Button with Encapsulated Validation State & Sequential Guidance */}
-                    <CustomButton
-                        title={buttonTitle}
-                        onPress={handleButtonPress}
-                        variant={buttonVariant}
-                        validationState={buttonValidationState}
-                        isIdleDisabled={false}
-                        icon={buttonIcon}
-                        iconPosition={buttonIconPosition}
-                        iconLibrary="Feather"
-                        style={styles.closeBtnWrapper}
-                    />
+                    <View
+                        ref={actionButtonWrapperRef}
+                        onLayout={handleActionButtonLayout}
+                        style={styles.actionButtonWrapper}
+                    >
+                        <CustomButton
+                            title={buttonTitle}
+                            onPress={handleButtonPress}
+                            variant={buttonVariant}
+                            validationState={buttonValidationState}
+                            isIdleDisabled={false}
+                            icon={buttonIcon}
+                            iconPosition={buttonIconPosition}
+                            iconLibrary="Feather"
+                        />
+                    </View>
 
                     {/* Floating Toast Alert inside Modal with Responsive Docking */}
                     <CustomToast
@@ -480,6 +554,19 @@ const LegalTermsModal = ({
                         bottomOffset={toastBottomOffset}
                     />
                 </Animated.View>
+
+                {/* In-app walkthrough overlay for LegalTermsModal */}
+                <CustomTutorialModal
+                    visible={tutorial.isVisible}
+                    tourConfig={tutorial.tourConfig}
+                    currentStep={tutorial.currentStep}
+                    currentStepIndex={tutorial.currentStepIndex}
+                    totalSteps={tutorial.totalSteps}
+                    useModal={Platform.OS === 'web'}
+                    onNext={tutorial.onNextStep}
+                    onPrev={tutorial.onPrevStep}
+                    onSkip={tutorial.onSkipTour}
+                />
             </KeyboardAvoidingView>
         </Modal>
     );
@@ -489,6 +576,12 @@ const styles = StyleSheet.create({
     modalContainer: {
         flex: 1,
         justifyContent: 'flex-end',
+        position: 'relative',
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     backdrop: {
         ...StyleSheet.absoluteFill,
@@ -630,6 +723,10 @@ const styles = StyleSheet.create({
         height: 52,
     },
     closeBtnWrapper: {
+        marginTop: 14,
+        borderRadius: 16,
+    },
+    actionButtonWrapper: {
         marginTop: 14,
         borderRadius: 16,
     },

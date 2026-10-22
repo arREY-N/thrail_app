@@ -105,6 +105,8 @@ interface DocumentUploadCardProps {
     contentStyle?: StyleProp<ViewStyle>;
     /** Optional callback when an error occurs (skips inline error box if provided) */
     onError?: (msg: string) => void;
+    /** Optional ref attached to the upload button container for precise tutorial spotlight measurement */
+    uploadButtonRef?: React.RefObject<View | null>;
 }
 
 /**
@@ -130,6 +132,7 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     style,
     contentStyle,
     onError,
+    uploadButtonRef,
 }) => {
     
     const [isUploading, setIsUploading] = useState(false);
@@ -332,20 +335,22 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
                     )}
 
                     {!readOnly && (
-                        <TouchableOpacity 
-                            style={btnStyle}
-                            onPress={handleUploadPress} 
-                            activeOpacity={0.7}
-                            disabled={isUploading}
-                        >
-                            {isUploading ? (
-                                <ActivityIndicator size="small" color={spinnerColor} />
-                            ) : (
-                                <CustomText variant="caption" style={btnTextStyle}>
-                                    {btnText}
-                                </CustomText>
-                            )}
-                        </TouchableOpacity>
+                        <View ref={uploadButtonRef} collapsable={false}>
+                            <TouchableOpacity 
+                                style={btnStyle}
+                                onPress={handleUploadPress} 
+                                activeOpacity={0.7}
+                                disabled={isUploading}
+                            >
+                                {isUploading ? (
+                                    <ActivityIndicator size="small" color={spinnerColor} />
+                                ) : (
+                                    <CustomText variant="caption" style={btnTextStyle}>
+                                        {btnText}
+                                    </CustomText>
+                                )}
+                            </TouchableOpacity>
+                        </View>
                     )}
                 </View>
             </View>

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useCallback, useContext, useEffect, useRef } from 'react';
 import {
     GestureResponderEvent,
     LayoutChangeEvent,
@@ -6,13 +6,18 @@ import {
     StyleSheet,
     TextStyle,
     View,
-    ViewStyle
+    ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton, { ButtonValidationState } from '@/src/components/CustomButton';
 import CustomText from '@/src/components/CustomText';
 import { ToastContext, ToastType } from '@/src/components/Toast/Toast';
+import {
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+} from '@/src/components/Tutorial/Tutorial';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 
@@ -45,9 +50,9 @@ interface CustomStickyFooterProps {
 }
 
 /**
- * Calculates the exact scroll container paddingBottom needed so content 
+ * Calculates the exact scroll container paddingBottom needed so content
  * is not obscured by CustomStickyFooter when scrolled to the very bottom.
- * 
+ *
  * - Web Desktop: 96px (86px footer + 10px breathing room)
  * - Mobile: Math.max(bottomInset + 102, 120) (~136px with 34px gesture bar)
  */
@@ -55,8 +60,8 @@ export const getStickyFooterScrollPadding = (bottomInset: number = 0, isMobile: 
     return isMobile ? Math.max(bottomInset + 102, 120) : 96;
 };
 
-const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({ 
-    primaryButton, 
+const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
+    primaryButton,
     secondaryButton,
     layout = 'row',
     style,
@@ -76,6 +81,20 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
         };
     }, [enableToastDock, unregisterFooterHeight]);
 
+    const footerContainerRef = useRef<View>(null);
+
+    const measureFooterNow = useCallback(() => {
+        footerContainerRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('booking_footer', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        return registerMeasureCallback('booking_footer', measureFooterNow);
+    }, [measureFooterNow]);
+
     const handleLayout = (event: LayoutChangeEvent) => {
         if (enableToastDock && toastContext) {
             const { height } = event.nativeEvent.layout;
@@ -83,33 +102,40 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                 toastContext.registerFooterHeight(height);
             }
         }
+        if (isTutorialMeasurementActive()) {
+            measureFooterNow();
+        }
     };
 
     if (!primaryButton) return null;
 
     return (
-        <View 
-            onLayout={enableToastDock ? handleLayout : undefined}
+        <View
+            ref={footerContainerRef}
+            collapsable={false}
+            onLayout={handleLayout}
             style={[styles.footer, { paddingBottom: safeBottomPadding }, style]}
         >
             {secondaryButton ? (
                 layout === 'column' ? (
                     <View style={styles.buttonColumn}>
-                        <CustomButton 
-                            title={primaryButton.title}
-                            onPress={primaryButton.onPress}
-                            variant={primaryButton.variant || 'primary'}
-                            style={primaryButton.style}
-                            textStyle={primaryButton.textStyle}
-                            disabled={primaryButton.disabled}
-                            isLoading={primaryButton.isLoading}
-                            disabledToastMessage={primaryButton.disabledToastMessage}
-                            disabledToastType={primaryButton.disabledToastType}
-                            validationState={primaryButton.validationState}
-                            hasError={primaryButton.hasError}
-                            isIdleDisabled={primaryButton.isIdleDisabled}
-                        />
-                        <CustomButton 
+                        <View style={styles.singleButtonWrapper}>
+                            <CustomButton
+                                title={primaryButton.title}
+                                onPress={primaryButton.onPress}
+                                variant={primaryButton.variant || 'primary'}
+                                style={primaryButton.style}
+                                textStyle={primaryButton.textStyle}
+                                disabled={primaryButton.disabled}
+                                isLoading={primaryButton.isLoading}
+                                disabledToastMessage={primaryButton.disabledToastMessage}
+                                disabledToastType={primaryButton.disabledToastType}
+                                validationState={primaryButton.validationState}
+                                hasError={primaryButton.hasError}
+                                isIdleDisabled={primaryButton.isIdleDisabled}
+                            />
+                        </View>
+                        <CustomButton
                             title={secondaryButton.title}
                             onPress={secondaryButton.onPress}
                             variant={secondaryButton.variant || 'outline'}
@@ -127,7 +153,7 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                 ) : (
                     <View style={styles.buttonRow}>
                         <View style={styles.buttonWrapper}>
-                            <CustomButton 
+                            <CustomButton
                                 title={secondaryButton.title}
                                 onPress={secondaryButton.onPress}
                                 variant={secondaryButton.variant || 'outline'}
@@ -143,7 +169,7 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                             />
                         </View>
                         <View style={styles.buttonWrapper}>
-                            <CustomButton 
+                            <CustomButton
                                 title={primaryButton.title}
                                 onPress={primaryButton.onPress}
                                 variant={primaryButton.variant || 'primary'}
@@ -158,16 +184,23 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                                 isIdleDisabled={primaryButton.isIdleDisabled}
                             />
                             {primaryButton.showIndicator && (
-                                <View style={[
-                                    styles.indicatorBadge,
-                                    typeof primaryButton.badgeCount === 'number' && primaryButton.badgeCount > 0 && styles.indicatorBadgeWithCount
-                                ]}>
-                                    {typeof primaryButton.badgeCount === 'number' && primaryButton.badgeCount > 0 ? (
+                                <View
+                                    style={[
+                                        styles.indicatorBadge,
+                                        typeof primaryButton.badgeCount === 'number' &&
+                                            primaryButton.badgeCount > 0 &&
+                                            styles.indicatorBadgeWithCount,
+                                    ]}
+                                >
+                                    {typeof primaryButton.badgeCount === 'number' &&
+                                    primaryButton.badgeCount > 0 ? (
                                         <CustomText
                                             variant="caption"
                                             style={styles.indicatorBadgeText}
                                         >
-                                            {primaryButton.badgeCount > 99 ? '99+' : String(primaryButton.badgeCount)}
+                                            {primaryButton.badgeCount > 99
+                                                ? '99+'
+                                                : String(primaryButton.badgeCount)}
                                         </CustomText>
                                     ) : (
                                         <View style={styles.indicatorDot} />
@@ -179,7 +212,7 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                 )
             ) : (
                 <View style={styles.singleButtonWrapper}>
-                    <CustomButton 
+                    <CustomButton
                         title={primaryButton.title}
                         onPress={primaryButton.onPress}
                         variant={primaryButton.variant || 'primary'}
@@ -194,16 +227,23 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                         isIdleDisabled={primaryButton.isIdleDisabled}
                     />
                     {primaryButton.showIndicator && (
-                        <View style={[
-                            styles.indicatorBadge,
-                            typeof primaryButton.badgeCount === 'number' && primaryButton.badgeCount > 0 && styles.indicatorBadgeWithCount
-                        ]}>
-                            {typeof primaryButton.badgeCount === 'number' && primaryButton.badgeCount > 0 ? (
+                        <View
+                            style={[
+                                styles.indicatorBadge,
+                                typeof primaryButton.badgeCount === 'number' &&
+                                    primaryButton.badgeCount > 0 &&
+                                    styles.indicatorBadgeWithCount,
+                            ]}
+                        >
+                            {typeof primaryButton.badgeCount === 'number' &&
+                            primaryButton.badgeCount > 0 ? (
                                 <CustomText
                                     variant="caption"
                                     style={styles.indicatorBadgeText}
                                 >
-                                    {primaryButton.badgeCount > 99 ? '99+' : String(primaryButton.badgeCount)}
+                                    {primaryButton.badgeCount > 99
+                                        ? '99+'
+                                        : String(primaryButton.badgeCount)}
                                 </CustomText>
                             ) : (
                                 <View style={styles.indicatorDot} />
@@ -220,7 +260,7 @@ const styles = StyleSheet.create({
     footer: {
         position: 'absolute',
         bottom: 0,
-        alignSelf: 'center', 
+        alignSelf: 'center',
         width: '100%',
         maxWidth: Layout.MAX_WIDTH,
         backgroundColor: 'transparent',
@@ -230,22 +270,17 @@ const styles = StyleSheet.create({
         borderTopColor: 'transparent',
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
-        // ...GlobalStyles.dropShadow(10, 0.1, Colors.SHADOW, {
-        //     offset: { width: 0, height: -4 },
-        //     radius: 4
-        // }), 
-        
     },
-    buttonRow: { 
-        flexDirection: 'row', 
-        gap: 16, 
+    buttonRow: {
+        flexDirection: 'row',
+        gap: 16,
     },
     buttonColumn: {
         width: '100%',
         gap: 12,
     },
-    buttonWrapper: { 
-        flex: 1, 
+    buttonWrapper: {
+        flex: 1,
         position: 'relative',
     },
     singleButtonWrapper: {

@@ -3,7 +3,7 @@
  * @description Screen displaying organization profile details, admin staff details, and action buttons.
  */
 
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
     ActivityIndicator,
     StyleSheet,
@@ -18,6 +18,14 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import {
+    CustomTutorialModal,
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -69,8 +77,58 @@ const DashboardScreen = ({
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
     const insets = useSafeAreaInsets();
+    const tutorial = useTutorialGuide('admin_dashboard', !isLoading && !error);
 
     const isNavigatingRef = useRef<boolean>(false);
+    const overviewRef = useRef<View>(null);
+    const trailsBtnRef = useRef<View>(null);
+    const offersBtnRef = useRef<View>(null);
+    const personnelBtnRef = useRef<View>(null);
+
+    const measureOverviewNow = useCallback(() => {
+        overviewRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('admin_dash_overview', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureTrailsBtnNow = useCallback(() => {
+        trailsBtnRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('admin_action_0', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureOffersBtnNow = useCallback(() => {
+        offersBtnRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('admin_action_1', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measurePersonnelBtnNow = useCallback(() => {
+        personnelBtnRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('admin_action_2', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const unsubOverview = registerMeasureCallback('admin_dash_overview', measureOverviewNow);
+        const unsub0 = registerMeasureCallback('admin_action_0', measureTrailsBtnNow);
+        const unsub1 = registerMeasureCallback('admin_action_1', measureOffersBtnNow);
+        const unsub2 = registerMeasureCallback('admin_action_2', measurePersonnelBtnNow);
+        return () => {
+            unsubOverview();
+            unsub0();
+            unsub1();
+            unsub2();
+        };
+    }, [measureOverviewNow, measureTrailsBtnNow, measureOffersBtnNow, measurePersonnelBtnNow]);
 
     useFocusEffect(
         useCallback(() => {
@@ -198,7 +256,7 @@ const DashboardScreen = ({
                 Quick Actions
             </CustomText>
             <View style={styles.webActionContainer}>
-                <View style={styles.webButtonWrapper}>
+                <View ref={isWideScreen ? trailsBtnRef : undefined} collapsable={false} style={styles.webButtonWrapper}>
                     <CustomButton 
                         title="Trails"
                         onPress={() => handleNavPress(onManageTrailsPress)}
@@ -207,7 +265,7 @@ const DashboardScreen = ({
                         iconLibrary="Feather"
                     />
                 </View>
-                <View style={styles.webButtonWrapper}>
+                <View ref={isWideScreen ? offersBtnRef : undefined} collapsable={false} style={styles.webButtonWrapper}>
                     <CustomButton 
                         title="Offers"
                         onPress={() => handleNavPress(onManageOffersPress)}
@@ -216,7 +274,7 @@ const DashboardScreen = ({
                         iconLibrary="Ionicons"
                     />
                 </View>
-                <View style={styles.webButtonWrapper}>
+                <View ref={isWideScreen ? personnelBtnRef : undefined} collapsable={false} style={styles.webButtonWrapper}>
                     <CustomButton 
                         title="Personnel"
                         onPress={() => handleNavPress(onManageAdminsPress)}
@@ -238,7 +296,7 @@ const DashboardScreen = ({
                     Quick Actions
                 </CustomText>
                 <View style={styles.stickyButtonRow}>
-                    <View style={styles.stickyButtonWrapper}>
+                    <View ref={!isWideScreen ? trailsBtnRef : undefined} collapsable={false} style={styles.stickyButtonWrapper}>
                         <CustomButton 
                             title="Trails"
                             onPress={() => handleNavPress(onManageTrailsPress)}
@@ -251,7 +309,7 @@ const DashboardScreen = ({
                         />
                     </View>
 
-                    <View style={styles.stickyButtonWrapper}>
+                    <View ref={!isWideScreen ? offersBtnRef : undefined} collapsable={false} style={styles.stickyButtonWrapper}>
                         <CustomButton 
                             title="Offers"
                             onPress={() => handleNavPress(onManageOffersPress)}
@@ -264,7 +322,7 @@ const DashboardScreen = ({
                         />
                     </View>
 
-                    <View style={styles.stickyButtonWrapper}>
+                    <View ref={!isWideScreen ? personnelBtnRef : undefined} collapsable={false} style={styles.stickyButtonWrapper}>
                         <CustomButton 
                             title="Personnel"
                             onPress={() => handleNavPress(onManageAdminsPress)}
@@ -286,7 +344,8 @@ const DashboardScreen = ({
             <CustomHeader 
                 title="Admin Dashboard" 
                 centerTitle={true}
-                onBackPress={onBackPress} 
+                onBackPress={onBackPress}
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />} 
             />
 
             {isLoading ? (
@@ -339,7 +398,14 @@ const DashboardScreen = ({
                     ]}
                 >
                     {isWideScreen ? (
-                        <View style={styles.desktopColumns}>
+                        <View
+                            ref={overviewRef}
+                            collapsable={false}
+                            onLayout={() => {
+                                if (isTutorialMeasurementActive()) measureOverviewNow();
+                            }}
+                            style={styles.desktopColumns}
+                        >
                             <View style={styles.columnWide}>
                                 {renderBusinessCard()}
                             </View>
@@ -348,7 +414,14 @@ const DashboardScreen = ({
                             </View>
                         </View>
                     ) : (
-                        <View style={styles.mobileStack}>
+                        <View
+                            ref={overviewRef}
+                            collapsable={false}
+                            onLayout={() => {
+                                if (isTutorialMeasurementActive()) measureOverviewNow();
+                            }}
+                            style={styles.mobileStack}
+                        >
                             {renderBusinessCard()}
                             {renderAdminCard()}
                         </View>
@@ -359,6 +432,17 @@ const DashboardScreen = ({
             )}
 
             {!isLoading && !error && !isWideScreen && renderMobileStickyActions()}
+
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
+            />
         </ScreenWrapper>
     );
 };

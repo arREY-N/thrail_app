@@ -1,11 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
-import { useToast } from '@/src/components/Toast/Toast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { useToast } from '@/src/components/Toast/Toast';
+import {
+    CustomTutorialModal,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -52,6 +57,8 @@ const PaymentScreen = ({
     const isSubmittingRef = useRef(false);
     const [isWaitingForVerification, setIsWaitingForVerification] = useState(false);
     const [paymentError, setPaymentError] = useState<string | null>(null);
+    const activeTourId = currentStep === 2 ? 'payment_status' : 'payment';
+    const tutorial = useTutorialGuide(activeTourId, !isSubmitting && !isWaitingForVerification);
 
     useEffect(() => {
         if (Platform.OS !== 'web') return;
@@ -401,6 +408,7 @@ const PaymentScreen = ({
                 title={currentStep === 2 ? "Payment Status" : "Setup Payment"}
                 centerTitle={true}
                 onBackPress={currentStep === 2 ? undefined : handleHeaderBackPress}
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />}
             />
 
             <View style={styles.progressWrapper}>
@@ -450,6 +458,8 @@ const PaymentScreen = ({
                         isPayingBalance={isPayingBalance}
                         isMinor={isUserMinor}
                         minorName={hikerFullName}
+                        activeTutorialStep={tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined}
+                        isTutorialVisible={tutorial.isVisible}
                     />
                 )}
                 {currentStep === 2 && (
@@ -458,6 +468,8 @@ const PaymentScreen = ({
                         amountToPay={latestPayment?.amount || amountToPay}
                         bookingId={bookingData?.id}
                         referenceCode={latestPayment?.referenceCode || latestPayment?.sessionId}
+                        activeTutorialStep={tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined}
+                        isTutorialVisible={tutorial.isVisible}
                     />
                 )}
             </View>
@@ -475,6 +487,17 @@ const PaymentScreen = ({
                     style: footerConfig.style,
                     textStyle: footerConfig.textStyle,
                 }}
+            />
+
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
             />
         </ScreenWrapper>
     );

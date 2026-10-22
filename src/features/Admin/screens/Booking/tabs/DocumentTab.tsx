@@ -67,6 +67,7 @@ export interface DocumentTabProps {
     suggestions?: string[];
     onAttachmentRequired?: () => void;
     onInteraction?: () => void;
+    firstCardRef?: React.RefObject<View | null>;
 }
 
 /**
@@ -88,7 +89,8 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
     onViewFile,
     suggestions,
     onAttachmentRequired,
-    onInteraction
+    onInteraction,
+    firstCardRef,
 }) => {
     const { showToast } = useToast();
 
@@ -122,17 +124,22 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
                 </View>
             ) : (
                 docStates.map((doc, index) => (
-                    <DocumentReviewCard 
-                        key={index} 
-                        doc={doc} 
-                        index={index} 
-                        needsReview={!viewedDocs[index] && doc.valid === 'pending'}
-                        isViewed={!!viewedDocs[index]}
-                        isReviewComplete={isReviewComplete || isCancellationPending}
-                        isCancelledStatus={isCancelledStatus}
-                        onViewFile={onViewFile} 
-                        onToggleDecision={toggleDocDecision}
-                    />
+                    <View
+                        key={index}
+                        ref={index === 0 ? firstCardRef : undefined}
+                        collapsable={false}
+                    >
+                        <DocumentReviewCard 
+                            doc={doc} 
+                            index={index} 
+                            needsReview={!viewedDocs[index] && doc.valid === 'pending'}
+                            isViewed={!!viewedDocs[index]}
+                            isReviewComplete={isReviewComplete || isCancellationPending}
+                            isCancelledStatus={isCancelledStatus}
+                            onViewFile={onViewFile} 
+                            onToggleDecision={toggleDocDecision}
+                        />
+                    </View>
                 ))
             )}
 

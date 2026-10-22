@@ -1,5 +1,4 @@
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -14,6 +13,7 @@ export interface AdminBookingCardProps {
     offerId: string;
     onViewBooking: (bookingId: string, offerId: string) => void;
     isOfferLocked?: boolean;
+    style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -23,7 +23,8 @@ const AdminBookingCard = ({
     booking, 
     offerId, 
     onViewBooking,
-    isOfferLocked = false
+    isOfferLocked = false,
+    style,
 }: AdminBookingCardProps) => {
     const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
     const displayStatus = (hasRefundedPayment || booking.status === 'refund' || booking.status === 'refunded') ? 'refunded' : booking.status;
@@ -44,7 +45,8 @@ const AdminBookingCard = ({
                 styles.bookingCard, 
                 isCancellation 
                     ? styles.cancellationBorder 
-                    : (requiresAdminAction ? styles.highlightBorder : null)
+                    : (requiresAdminAction ? styles.highlightBorder : null),
+                style,
             ]}
             onPress={() => onViewBooking(booking.id, offerId)}
             activeOpacity={0.7}
