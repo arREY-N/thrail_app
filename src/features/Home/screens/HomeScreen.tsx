@@ -31,6 +31,12 @@ import { useLocation } from "@/src/hooks/useLocation";
 import { useWeather } from "@/src/hooks/useWeather";
 import { useWebDragScroll } from "@/src/hooks/useWebDragScroll";
 
+import {
+  CustomTutorialModal,
+  TutorialHelpButton,
+  useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
+
 import WeatherSection from "@/src/features/Home/components/WeatherSection";
 import { getDetailedWeatherSafety } from "@/src/core/utility/weatherHelpers";
 
@@ -315,6 +321,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   const { width } = useWindowDimensions();
   const { isDesktop, isTablet } = useBreakpoints();
   const isWideScreen = isDesktop || isTablet;
+  const tutorial = useTutorialGuide('tabs', !isLoading);
 
   const MAX_CONTAINER_WIDTH = 860;
   const effectiveWidth = Math.min(width, MAX_CONTAINER_WIDTH);
@@ -352,7 +359,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
 
   return (
     <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-      <CustomHeader title="Home" showDefaultIcons={true} />
+      <CustomHeader
+        title="Home"
+        showDefaultIcons={true}
+        rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />}
+      />
 
       <ResponsiveScrollView
         style={styles.container}
@@ -440,6 +451,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
       </ResponsiveScrollView>
 
       <CustomFAB onPress={onGroupPress} />
+
+      <CustomTutorialModal
+        visible={tutorial.isVisible}
+        tourConfig={tutorial.tourConfig}
+        currentStep={tutorial.currentStep}
+        currentStepIndex={tutorial.currentStepIndex}
+        totalSteps={tutorial.totalSteps}
+        onNext={tutorial.onNextStep}
+        onPrev={tutorial.onPrevStep}
+        onSkip={tutorial.onSkipTour}
+      />
     </ScreenWrapper>
   );
 };

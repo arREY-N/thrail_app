@@ -3,7 +3,7 @@
  * @description Screen component for hiker contact details, document upload requirements, and digital signature for booking reservations.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     LayoutAnimation,
     Platform,
@@ -21,6 +21,11 @@ import CustomText from '@/src/components/CustomText';
 import DocumentUploadCard, { getDocSubtitle, getStrictDocKey } from '@/src/components/DocumentUploadCard';
 import EmergencySetupModal, { UserSearchResult } from '@/src/components/EmergencyModal';
 import { useToast } from '@/src/components/Toast/Toast';
+import {
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
@@ -50,6 +55,8 @@ export interface DetailsScreenProps {
     onProgressChange?: (hasProgress: boolean) => void;
     isSubmitting?: boolean;
     onSearchUser?: (email: string) => Promise<UserSearchResult[]>;
+    activeTutorialStep?: string;
+    isTutorialVisible?: boolean;
 }
 
 const DetailsScreen: React.FC<DetailsScreenProps> = ({ 
@@ -60,6 +67,8 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     onProgressChange,
     isSubmitting,
     onSearchUser,
+    activeTutorialStep,
+    isTutorialVisible,
 }) => {
     const profile = useAuthStore(s => s.profile);
     const requiredDocuments = selectedOffer?.documents || [];
@@ -98,6 +107,98 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const isConfirmingRef = useRef(false);
     const scrollViewRef = useRef<ScrollView>(null);
+    const contactCardRef = useRef<View>(null);
+    const firstDocCardRef = useRef<View>(null);
+    const termsSectionRef = useRef<View>(null);
+    const docsSectionOffsetY = useRef<number>(0);
+    const termsSectionOffsetY = useRef<number>(0);
+
+    const measureContactCardNow = useCallback(() => {
+        contactCardRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('booking_details_contact', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureFirstDocCardNow = useCallback(() => {
+        firstDocCardRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('booking_details_docs', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureTermsSectionNow = useCallback(() => {
+        termsSectionRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('booking_details_terms', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureContactCard = useCallback(() => {
+        if (!isTutorialMeasurementActive()) return;
+        measureContactCardNow();
+    }, [measureContactCardNow]);
+
+    const measureFirstDocCard = useCallback(() => {
+        if (!isTutorialMeasurementActive()) return;
+        measureFirstDocCardNow();
+    }, [measureFirstDocCardNow]);
+
+    const measureTermsSection = useCallback(() => {
+        if (!isTutorialMeasurementActive()) return;
+        measureTermsSectionNow();
+    }, [measureTermsSectionNow]);
+
+    useEffect(() => {
+        const unsubContact = registerMeasureCallback('booking_details_contact', measureContactCardNow);
+        const unsubDocs = registerMeasureCallback('booking_details_docs', measureFirstDocCardNow);
+        const unsubTerms = registerMeasureCallback('booking_details_terms', measureTermsSectionNow);
+        return () => {
+            unsubContact();
+            unsubDocs();
+            unsubTerms();
+        };
+    }, [measureContactCardNow, measureFirstDocCardNow, measureTermsSectionNow]);
+
+    // Bidirectional auto-scroll for DetailsScreen tour steps (active only when tutorial is visible)
+    useEffect(() => {
+        if (!isTutorialVisible) return;
+
+        if (activeTutorialStep === 'booking_details_contact') {
+            scrollViewRef.current?.scrollTo({
+                y: 0,
+                animated: true,
+            });
+            const timer = setTimeout(measureContactCardNow, 250);
+            return () => clearTimeout(timer);
+        } else if (activeTutorialStep === 'booking_details_docs') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, docsSectionOffsetY.current - 16),
+                animated: true,
+            });
+            const timer = setTimeout(measureFirstDocCardNow, 250);
+            return () => clearTimeout(timer);
+        } else if (activeTutorialStep === 'booking_details_terms') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, termsSectionOffsetY.current - 16),
+                animated: true,
+            });
+            const timer = setTimeout(measureTermsSectionNow, 250);
+            return () => clearTimeout(timer);
+        }
+    }, [isTutorialVisible, activeTutorialStep, measureContactCardNow, measureFirstDocCardNow, measureTermsSectionNow]);
+
+    // Reset scroll to top when tutorial finishes / closes
+    const prevTutorialVisible = useRef(isTutorialVisible);
+    useEffect(() => {
+        if (prevTutorialVisible.current && !isTutorialVisible) {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        }
+        prevTutorialVisible.current = isTutorialVisible;
+    }, [isTutorialVisible]);
 
     const isMinor = checkIfMinor(profile?.birthday);
 
@@ -332,23 +433,31 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                             {/* Divider & Action Button inside Card */}
                             <View style={styles.cardDivider} />
 
-                            {/* Edit / Setup Action Button */}
-                            <TouchableOpacity 
-                                style={styles.cardEditButton} 
-                                onPress={() => setShowUnifiedModal(true)}
-                                activeOpacity={0.7}
-                            >
-                                <CustomIcon library="Feather" name={isContactComplete ? "edit-3" : "plus-circle"} size={14} color={Colors.PRIMARY} />
-                                <CustomText style={styles.cardEditButtonText}>
-                                    {isContactComplete ? "Edit Contact Details" : "Set Up Contact Details"}
-                                </CustomText>
-                            </TouchableOpacity>
+                            {/* Edit / Setup Action Button with Dedicated Spotlight Ref */}
+                            <View ref={contactCardRef} collapsable={false} onLayout={measureContactCard}>
+                                <TouchableOpacity 
+                                    style={styles.cardEditButton} 
+                                    onPress={() => setShowUnifiedModal(true)}
+                                    activeOpacity={0.7}
+                                >
+                                    <CustomIcon library="Feather" name={isContactComplete ? "edit-3" : "plus-circle"} size={14} color={Colors.PRIMARY} />
+                                    <CustomText style={styles.cardEditButtonText}>
+                                        {isContactComplete ? "Edit Contact Details" : "Set Up Contact Details"}
+                                    </CustomText>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
 
                     {/* Section 2: Required Documents (Unified Single Card) */}
                     {activeDocuments.length > 0 && (
-                        <View style={styles.section}>
+                        <View
+                            style={styles.section}
+                            onLayout={(e) => {
+                                docsSectionOffsetY.current = e.nativeEvent.layout.y;
+                                measureFirstDocCard();
+                            }}
+                        >
                             <View style={styles.sectionHeaderRow}>
                                 <CustomText variant="h2" style={styles.sectionTitleFlat}>
                                     Required Documents
@@ -368,6 +477,7 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                                         variant="row"
                                         showDivider={index < activeDocuments.length - 1}
                                         isUploaded={uploadedDocs[doc]} 
+                                        uploadButtonRef={index === 0 ? firstDocCardRef : undefined}
                                         onUploadSuccess={(url) => {
                                             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                                             setUploadedDocs(prev => ({ ...prev, [doc]: url }));
@@ -379,7 +489,14 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                     )}
 
                     {/* Section 3: Terms and Conditions */}
-                    <View style={styles.lastsection}>
+                    <View
+                        ref={termsSectionRef}
+                        onLayout={(e) => {
+                            termsSectionOffsetY.current = e.nativeEvent.layout.y;
+                            measureTermsSection();
+                        }}
+                        style={styles.lastsection}
+                    >
                         <TermsSignature 
                             isMinor={isMinor} 
                             minorName={profileFullName} 

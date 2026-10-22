@@ -4,15 +4,20 @@
  * with directional month navigation counters (< 1 and 3 >), future date indicators, and full-width expand/collapse action.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
-import { 
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import {
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+} from '@/src/components/Tutorial/Tutorial';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
@@ -21,11 +26,12 @@ export interface OfferCalendarProps {
     uniqueDates?: string[];
     selectedDate?: string | null;
     onSelectDate: (date: string) => void;
+    activeTutorialStep?: string;
 }
 
 const MONTH_NAMES = [
-    "January", "February", "March", "April", "May", "June", 
-    "July", "August", "September", "October", "November", "December"
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
 ] as const;
 
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
@@ -41,13 +47,45 @@ const getFirstDayOfMonth = (year: number, month: number): number => new Date(yea
  * @param {OfferCalendarProps} props - Component props
  * @returns {React.ReactElement} The rendered component
  */
-const OfferCalendar: React.FC<OfferCalendarProps> = ({ 
-    uniqueDates = [], 
-    selectedDate, 
-    onSelectDate 
+const OfferCalendar: React.FC<OfferCalendarProps> = ({
+    uniqueDates = [],
+    selectedDate,
+    onSelectDate,
+    activeTutorialStep,
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    
+    const cardRef = useRef<View>(null);
+
+    const measureCalendarCardNow = useCallback(() => {
+        cardRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('booking_calendar', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        return registerMeasureCallback('booking_calendar', measureCalendarCardNow);
+    }, [measureCalendarCardNow]);
+
+    const handleCardLayout = useCallback(() => {
+        if (!isTutorialMeasurementActive()) return;
+        measureCalendarCardNow();
+    }, [measureCalendarCardNow]);
+
+    useEffect(() => {
+        if (!isTutorialMeasurementActive()) return;
+        const timer = setTimeout(measureCalendarCardNow, 100);
+        return () => clearTimeout(timer);
+    }, [isExpanded, measureCalendarCardNow]);
+
+    useEffect(() => {
+        if (activeTutorialStep === 'booking_offers_calendar' || activeTutorialStep === 'booking_calendar') {
+            const timer = setTimeout(measureCalendarCardNow, 180);
+            return () => clearTimeout(timer);
+        }
+    }, [activeTutorialStep, measureCalendarCardNow]);
+
     const [monthOffset, setMonthOffset] = useState(0);
     const [prevSelectedDate, setPrevSelectedDate] = useState(selectedDate);
 
@@ -144,7 +182,7 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
     const calendarMatrix = useMemo(() => {
         const year = displayMonth.getFullYear();
         const month = displayMonth.getMonth();
-        
+
         const daysInMonth = getDaysInMonth(year, month);
         const firstDay = getFirstDayOfMonth(year, month);
 
@@ -174,7 +212,7 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
     }, [displayMonth]);
 
     return (
-        <View style={styles.cardContainer}>
+        <View ref={cardRef} onLayout={handleCardLayout} style={styles.cardContainer}>
             {/* 1. TOP INFORMATION ROW */}
             <View style={styles.topInfoRow}>
                 <View style={styles.dateInfoLeft}>
@@ -192,19 +230,19 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
                 </View>
 
                 <View style={[
-                    styles.statusBadge, 
-                    totalFutureDates > 0 ? styles.statusBadgeSuccess : styles.statusBadgeMuted
+                    styles.statusBadge,
+                    totalFutureDates > 0 ? styles.statusBadgeSuccess : styles.statusBadgeMuted,
                 ]}>
                     <View style={[
-                        styles.badgeDot, 
-                        totalFutureDates > 0 ? styles.badgeDotSuccess : styles.badgeDotMuted
+                        styles.badgeDot,
+                        totalFutureDates > 0 ? styles.badgeDotSuccess : styles.badgeDotMuted,
                     ]} />
                     <CustomText style={[
-                        styles.statusBadgeText, 
-                        totalFutureDates > 0 ? styles.statusBadgeTextSuccess : styles.statusBadgeTextMuted
+                        styles.statusBadgeText,
+                        totalFutureDates > 0 ? styles.statusBadgeTextSuccess : styles.statusBadgeTextMuted,
                     ]}>
-                        {totalFutureDates > 0 
-                            ? `${totalFutureDates} ${totalFutureDates === 1 ? 'Date' : 'Dates'} Available` 
+                        {totalFutureDates > 0
+                            ? `${totalFutureDates} ${totalFutureDates === 1 ? 'Date' : 'Dates'} Available`
                             : 'No Dates Available'
                         }
                     </CustomText>
@@ -218,21 +256,21 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
 
                     {/* Symmetrical Month Header with Directional Counters (< 1 and 2 >) */}
                     <View style={styles.monthHeaderRow}>
-                        <TouchableOpacity 
-                            onPress={handlePrevMonth} 
+                        <TouchableOpacity
+                            onPress={handlePrevMonth}
                             disabled={!canGoPrev}
                             style={[
-                                styles.navButton, 
+                                styles.navButton,
                                 !canGoPrev && styles.navButtonDisabled,
-                                prevDatesCount > 0 && canGoPrev && styles.navButtonWithCount
+                                prevDatesCount > 0 && canGoPrev && styles.navButtonWithCount,
                             ]}
                             activeOpacity={0.7}
                         >
-                            <CustomIcon 
-                                library="Feather" 
-                                name="chevron-left" 
-                                size={16} 
-                                color={canGoPrev ? (prevDatesCount > 0 ? Colors.PRIMARY : Colors.TEXT_PRIMARY) : Colors.GRAY_MEDIUM} 
+                            <CustomIcon
+                                library="Feather"
+                                name="chevron-left"
+                                size={16}
+                                color={canGoPrev ? (prevDatesCount > 0 ? Colors.PRIMARY : Colors.TEXT_PRIMARY) : Colors.GRAY_MEDIUM}
                             />
                             {prevDatesCount > 0 && canGoPrev ? (
                                 <CustomText style={styles.navCountText}>{prevDatesCount}</CustomText>
@@ -243,22 +281,22 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
                             {MONTH_NAMES[displayMonth.getMonth()]} {displayMonth.getFullYear()}
                         </CustomText>
 
-                        <TouchableOpacity 
-                            onPress={handleNextMonth} 
+                        <TouchableOpacity
+                            onPress={handleNextMonth}
                             style={[
                                 styles.navButton,
-                                nextDatesCount > 0 && styles.navButtonWithCount
+                                nextDatesCount > 0 && styles.navButtonWithCount,
                             ]}
                             activeOpacity={0.7}
                         >
                             {nextDatesCount > 0 ? (
                                 <CustomText style={styles.navCountText}>{nextDatesCount}</CustomText>
                             ) : null}
-                            <CustomIcon 
-                                library="Feather" 
-                                name="chevron-right" 
-                                size={16} 
-                                color={nextDatesCount > 0 ? Colors.PRIMARY : Colors.TEXT_PRIMARY} 
+                            <CustomIcon
+                                library="Feather"
+                                name="chevron-right"
+                                size={16}
+                                color={nextDatesCount > 0 ? Colors.PRIMARY : Colors.TEXT_PRIMARY}
                             />
                         </TouchableOpacity>
                     </View>
@@ -292,24 +330,24 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
                                     const hasOffer = uniqueDates.includes(formattedString);
 
                                     return (
-                                        <TouchableOpacity 
+                                        <TouchableOpacity
                                             key={formattedString}
                                             style={[
-                                                styles.dayCell, 
+                                                styles.dayCell,
                                                 isSelected && styles.dayCellSelected,
-                                                isPast && styles.dayCellPast
+                                                isPast && styles.dayCellPast,
                                             ]}
                                             onPress={() => handleDayPress(dateObj, isPast)}
                                             activeOpacity={isPast ? 1 : 0.7}
                                         >
-                                            <CustomText 
-                                                variant="body" 
+                                            <CustomText
+                                                variant="body"
                                                 style={[
                                                     styles.dayText,
                                                     isToday && !isSelected && styles.dayTextToday,
                                                     isSelected && styles.dayTextSelected,
                                                     !hasOffer && !isSelected && !isToday && styles.dayTextMuted,
-                                                    isPast && styles.dayTextPast
+                                                    isPast && styles.dayTextPast,
                                                 ]}
                                             >
                                                 {dateObj.getDate()}
@@ -328,23 +366,23 @@ const OfferCalendar: React.FC<OfferCalendarProps> = ({
             )}
 
             {/* 3. BOTTOM FULL-WIDTH EXPAND / COLLAPSE BUTTON */}
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[
-                    styles.expandButton, 
+                    styles.expandButton,
                     !isExpanded ? styles.expandButtonProminent : styles.expandButtonSubtle,
-                    { marginTop: isExpanded ? 10 : 14 }
-                ]} 
+                    { marginTop: isExpanded ? 10 : 14 },
+                ]}
                 onPress={() => setIsExpanded(!isExpanded)}
                 activeOpacity={0.7}
             >
                 <CustomText style={!isExpanded ? styles.expandButtonProminentText : styles.expandButtonText}>
                     {isExpanded ? "Hide Calendar" : "Show Calendar"}
                 </CustomText>
-                <CustomIcon 
-                    library="Feather" 
-                    name={isExpanded ? "chevron-up" : "chevron-down"} 
-                    size={16} 
-                    color={!isExpanded ? Colors.WHITE : Colors.PRIMARY} 
+                <CustomIcon
+                    library="Feather"
+                    name={isExpanded ? "chevron-up" : "chevron-down"}
+                    size={16}
+                    color={!isExpanded ? Colors.WHITE : Colors.PRIMARY}
                 />
             </TouchableOpacity>
         </View>

@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useCallback, useEffect, useRef } from 'react';
 import {
     Platform,
     StyleSheet,
@@ -9,6 +9,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import {
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -127,6 +132,26 @@ const CustomNavBar: React.FC<CustomNavBarProps> = ({
     navigation
 }) => {
     const insets = useSafeAreaInsets();
+    const tabRefs = useRef<Record<number, View | null>>({});
+
+    const measureTabByIndex = useCallback((index: number) => {
+        const node = tabRefs.current[index];
+        if (!node) return;
+        node.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout(`tab_${index}`, { x, y, width, height });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const cleanups = [0, 1, 2, 3, 4].map((idx) =>
+            registerMeasureCallback(`tab_${idx}`, () => measureTabByIndex(idx))
+        );
+        return () => {
+            cleanups.forEach((unsub) => unsub());
+        };
+    }, [measureTabByIndex]);
     
     const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 16);
     const exactHeight = 70 + bottomPadding;
@@ -170,7 +195,18 @@ const CustomNavBar: React.FC<CustomNavBarProps> = ({
                         style={styles.tabItem}
                         activeOpacity={0.7}
                     >
-                        <View style={[
+                        <View
+                            ref={(node) => {
+                                tabRefs.current[index] = node;
+                            }}
+                            onLayout={() => {
+                                if (!isTutorialMeasurementActive()) return;
+                                measureTabByIndex(index);
+                            }}
+                            collapsable={false}
+                            style={styles.tabMeasureTarget}
+                        >
+                            <View style={[
                             styles.iconPill, 
                             { backgroundColor: isFocused ? Colors.PRIMARY : 'transparent' }
                         ]}>
@@ -190,6 +226,7 @@ const CustomNavBar: React.FC<CustomNavBarProps> = ({
                         >
                             {config.label}
                         </CustomText>
+                        </View>
                     </TouchableOpacity>
                 );
             })}
@@ -211,6 +248,13 @@ const styles = StyleSheet.create({
             offset: { width: 0, height: -4 },
             radius: 6
         }),
+    },
+    tabMeasureTarget: {
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        gap: 4,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
     },
     tabItem: {
         flex: 1,

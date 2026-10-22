@@ -4,7 +4,7 @@
  */
 
 import { router } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutAnimation, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
@@ -14,6 +14,14 @@ import CustomLoading from '@/src/components/CustomLoading';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import { useToast } from '@/src/components/Toast/Toast';
+import {
+    CustomTutorialModal,
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 import EmergencySetupModal, { UserSearchResult } from '@/src/components/EmergencyModal';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -363,6 +371,161 @@ const BookingDetailsScreen = ({
         onViewReceipt,
     });
 
+    const tutorial = useTutorialGuide('my_booking_details', !isLoadingOffer);
+    const activeTutorialStep = tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined;
+
+    const scrollViewRef = useRef<ScrollView>(null);
+    const quickInfoRef = useRef<View>(null);
+    const statusTrackerRef = useRef<View>(null);
+    const documentsRef = useRef<View>(null);
+    const accordionsRef = useRef<View>(null);
+    const paymentSummaryRef = useRef<View>(null);
+
+    const statusOffsetY = useRef<number>(0);
+    const documentsOffsetY = useRef<number>(0);
+    const accordionsOffsetY = useRef<number>(0);
+    const paymentSummaryOffsetY = useRef<number>(0);
+
+    const measureQuickInfoNow = useCallback(() => {
+        quickInfoRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 40 && height > 16) {
+                registerTutorialLayout('my_booking_quick_info', {
+                    x: x + 20,
+                    y,
+                    width: width - 40,
+                    height: height - 16,
+                });
+            }
+        });
+    }, []);
+
+    const measureStatusTrackerNow = useCallback(() => {
+        statusTrackerRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 40 && height > 16) {
+                registerTutorialLayout('my_booking_status_tracker', {
+                    x: x + 20,
+                    y,
+                    width: width - 40,
+                    height: height - 16,
+                });
+            }
+        });
+    }, []);
+
+    const measureDocumentsNow = useCallback(() => {
+        documentsRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 40 && height > 12) {
+                registerTutorialLayout('my_booking_documents', {
+                    x: x + 20,
+                    y,
+                    width: width - 40,
+                    height: height - 12,
+                });
+            }
+        });
+    }, []);
+
+    const measureAccordionsNow = useCallback(() => {
+        accordionsRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 40 && height > 12) {
+                registerTutorialLayout('my_booking_accordions', {
+                    x: x + 20,
+                    y,
+                    width: width - 40,
+                    height: height - 12,
+                });
+            }
+        });
+    }, []);
+
+    const measurePaymentSummaryNow = useCallback(() => {
+        paymentSummaryRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 40 && height > 16) {
+                registerTutorialLayout('my_booking_payment_summary', {
+                    x: x + 20,
+                    y,
+                    width: width - 40,
+                    height: height - 16,
+                });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const unsubQuick = registerMeasureCallback('my_booking_quick_info', measureQuickInfoNow);
+        const unsubStatus = registerMeasureCallback('my_booking_status_tracker', measureStatusTrackerNow);
+        const unsubDocs = registerMeasureCallback('my_booking_documents', measureDocumentsNow);
+        const unsubAcc = registerMeasureCallback('my_booking_accordions', measureAccordionsNow);
+        const unsubPay = registerMeasureCallback('my_booking_payment_summary', measurePaymentSummaryNow);
+        return () => {
+            unsubQuick();
+            unsubStatus();
+            unsubDocs();
+            unsubAcc();
+            unsubPay();
+        };
+    }, [
+        measureQuickInfoNow,
+        measureStatusTrackerNow,
+        measureDocumentsNow,
+        measureAccordionsNow,
+        measurePaymentSummaryNow,
+    ]);
+
+    useEffect(() => {
+        if (!tutorial.isVisible) return;
+
+        if (activeTutorialStep === 'my_booking_quick_info' || activeTutorialStep === 'header_help') {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            const timer = setTimeout(measureQuickInfoNow, 260);
+            return () => clearTimeout(timer);
+        } else if (activeTutorialStep === 'my_booking_status_tracker') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, statusOffsetY.current - 24),
+                animated: true,
+            });
+            const timer = setTimeout(measureStatusTrackerNow, 260);
+            return () => clearTimeout(timer);
+        } else if (activeTutorialStep === 'my_booking_documents') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, documentsOffsetY.current - 24),
+                animated: true,
+            });
+            const timer = setTimeout(measureDocumentsNow, 260);
+            return () => clearTimeout(timer);
+        } else if (activeTutorialStep === 'my_booking_accordions') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, accordionsOffsetY.current - 24),
+                animated: true,
+            });
+            const timer = setTimeout(measureAccordionsNow, 260);
+            return () => clearTimeout(timer);
+        } else if (activeTutorialStep === 'my_booking_payment_summary') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, paymentSummaryOffsetY.current - 24),
+                animated: true,
+            });
+            const timer = setTimeout(measurePaymentSummaryNow, 260);
+            return () => clearTimeout(timer);
+        }
+    }, [
+        tutorial.isVisible,
+        activeTutorialStep,
+        measureQuickInfoNow,
+        measureStatusTrackerNow,
+        measureDocumentsNow,
+        measureAccordionsNow,
+        measurePaymentSummaryNow,
+    ]);
+
+    const prevTutorialVisible = useRef(tutorial.isVisible);
+    useEffect(() => {
+        if (prevTutorialVisible.current && !tutorial.isVisible) {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        }
+        prevTutorialVisible.current = tutorial.isVisible;
+    }, [tutorial.isVisible]);
+
     if (isLoadingOffer) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -371,7 +534,7 @@ const BookingDetailsScreen = ({
                     visible={true}
                     message="Loading itinerary..."
                 />
-            </ScreenWrapper>
+        </ScreenWrapper>
         );
     }
 
@@ -382,15 +545,16 @@ const BookingDetailsScreen = ({
                 centerTitle={true}
                 onBackPress={onBackPress}
                 rightActions={
-                    showMenuIcon ? (
+                    <View style={styles.headerActionsRow}><TutorialHelpButton onPress={tutorial.onReplayTour} />{showMenuIcon ? (
                         <TouchableOpacity style={styles.headerOptionsBtn} onPress={() => setShowActionMenu(true)} activeOpacity={0.7}>
                             <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.PRIMARY} />
                         </TouchableOpacity>
-                    ) : undefined
+                    ) : null}</View>
                 }
             />
 
             <ScrollView
+                ref={scrollViewRef}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 bounces={false}
@@ -399,7 +563,26 @@ const BookingDetailsScreen = ({
 
                     <HeroHeader booking={enhancedBooking} />
 
-                    <QuickInfoCard booking={enhancedBooking} />
+                    <View
+                        ref={quickInfoRef}
+                        onLayout={() => {
+                            if (isTutorialMeasurementActive()) {
+                                measureQuickInfoNow();
+                            }
+                        }}
+                    >
+                        <QuickInfoCard booking={enhancedBooking} />
+                    </View>
+
+                    <View
+                        ref={statusTrackerRef}
+                        onLayout={(e) => {
+                            statusOffsetY.current = e.nativeEvent.layout.y;
+                            if (isTutorialMeasurementActive()) {
+                                measureStatusTrackerNow();
+                            }
+                        }}
+                    >
 
                     <BookingStatusComponent
                         status={displayStatus}
@@ -473,6 +656,17 @@ const BookingDetailsScreen = ({
                         </View>
                     )}
 
+                    </View>
+
+                    <View
+                        ref={documentsRef}
+                        onLayout={(e) => {
+                            documentsOffsetY.current = e.nativeEvent.layout.y;
+                            if (isTutorialMeasurementActive()) {
+                                measureDocumentsNow();
+                            }
+                        }}
+                    >
                     <RequiredDocumentsSection
                         localDocs={localDocs}
                         originalRejectedIndices={originalRejectedIndices}
@@ -503,6 +697,17 @@ const BookingDetailsScreen = ({
                         onPreviewDoc={(url) => setPreviewDocUrl(url || null)}
                     />
 
+                    </View>
+
+                    <View
+                        ref={accordionsRef}
+                        onLayout={(e) => {
+                            accordionsOffsetY.current = e.nativeEvent.layout.y;
+                            if (isTutorialMeasurementActive()) {
+                                measureAccordionsNow();
+                            }
+                        }}
+                    >
                     {(user || localEmergencyContact) && (
                         <PersonalInformationSection
                             user={user}
@@ -559,7 +764,19 @@ const BookingDetailsScreen = ({
                         </AccordionItem>
                     )}
 
+                    </View>
+
                     <View style={styles.spacing} />
+
+                    <View
+                        ref={paymentSummaryRef}
+                        onLayout={(e) => {
+                            paymentSummaryOffsetY.current = e.nativeEvent.layout.y;
+                            if (isTutorialMeasurementActive()) {
+                                measurePaymentSummaryNow();
+                            }
+                        }}
+                    >
 
                     <PaymentSummaryCard
                         totalAmount={totalAmount}
@@ -569,6 +786,7 @@ const BookingDetailsScreen = ({
                     />
 
                 </View>
+                    </View>
             </ScrollView>
 
             {footerConfig && (
@@ -740,6 +958,16 @@ const BookingDetailsScreen = ({
                 images={previewDocUrl ? [previewDocUrl] : []}
                 onClose={() => setPreviewDocUrl(null)}
             />
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
+            />
         </ScreenWrapper>
     );
 };
@@ -760,7 +988,12 @@ const styles = StyleSheet.create({
         marginBottom: 16
     },
     paddingHorizontal: {
-        paddingHorizontal: 16
+        paddingHorizontal: 20,
+    },
+    headerActionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
     },
     headerOptionsBtn: {
         paddingHorizontal: 8

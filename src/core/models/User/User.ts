@@ -4,11 +4,14 @@ export * from "@/src/core/models/User/interfaces/User.types";
 
 // FACTORY & CONVERTER
 export {
-    attachEmergencyChatID, editUser,
+    // TODO: Comment out the unused functions
+    // attachEmergencyChatID,
+    editUser,
     newEmergencyContact, newMedicalProfile,
     newPreference,
     newSignUp,
     newUser,
+    normalizeTutorialComplete,
     userConverter
 } from "@/src/core/models/User/utils/UserFactory";
 
@@ -36,4 +39,3 @@ export { useUserWrite } from "@/src/core/models/User/hooks/useUserWrite";
 
 // REPOSITORIES
 export { UserRepo } from "@/src/core/models/User/repositories/UserRepository";
-

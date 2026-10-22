@@ -3,6 +3,7 @@ import {
     IEmergencyContact,
     IMedicalProfile,
     IPreference,
+    ITutorialProgress,
     IUserDB,
     User,
 } from "@/src/core/models/User/interfaces/User.types";
@@ -13,6 +14,27 @@ import {
     serverTimestamp,
     Timestamp,
 } from "firebase/firestore";
+
+/**
+ * Safely normalizes `onTutorialComplete` from Firestore or partial user initialization.
+ * Guarantees existing accounts without the field in Firestore receive `{}` and never crash.
+ *
+ * @param raw - Raw `onTutorialComplete` value from Firestore or partial User init
+ * @returns {ITutorialProgress} Normalized per-tour completion map
+ */
+export const normalizeTutorialComplete = (raw: unknown): ITutorialProgress => {
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+        const normalized: ITutorialProgress = {};
+        for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
+            normalized[key] = Boolean(val);
+        }
+        return normalized;
+    }
+    if (raw === true) {
+        return { all: true };
+    }
+    return {};
+};
 
 export const newPreference = (init?: Partial<IPreference>): IPreference => ({
     experience: '',
@@ -32,7 +54,7 @@ export const newEmergencyContact = (init?: Partial<IEmergencyContact>): IEmergen
         chatId: '',
         phoneVerifiedAt: toDateOrNull(init?.phoneVerifiedAt),
         ...init,
-    }
+    };
 };
 
 export const newMedicalProfile = (init?: Partial<IMedicalProfile>): IMedicalProfile => ({
@@ -67,10 +89,12 @@ export const newUser = (init?: Partial<User>): User => {
         createdAt: init?.createdAt ? toDate(init.createdAt) : new Date(),
         updatedAt: init?.updatedAt ? toDate(init.updatedAt) : new Date(),
         onBoardingComplete: false,
+        onTutorialComplete: normalizeTutorialComplete(init?.onTutorialComplete),
         phoneNumber: '',
         preferences: newPreference(init?.preferences),
         medicalProfile: newMedicalProfile(init?.medicalProfile),
         role: 'user',
+        businessId: init?.businessId ?? null,
         fcmTokens: [],
         emergencyContact: newEmergencyContact(init?.emergencyContact),
         phoneVerifiedAt: init?.phoneVerifiedAt ? toDate(init.phoneVerifiedAt) : null,
@@ -80,9 +104,13 @@ export const newUser = (init?: Partial<User>): User => {
         ...(init?.birthday ? { birthday: toDate(init.birthday) } : {}),
         ...(init?.createdAt ? { createdAt: toDate(init.createdAt) } : {}),
         ...(init?.updatedAt ? { updatedAt: toDate(init.updatedAt) } : {}),
+        ...(init?.onTutorialComplete !== undefined
+            ? { onTutorialComplete: normalizeTutorialComplete(init.onTutorialComplete) }
+            : {}),
         ...(init?.preferences ? { preferences: newPreference(init.preferences) } : {}),
         ...(init?.medicalProfile ? { medicalProfile: newMedicalProfile(init.medicalProfile) } : {}),
         ...(init?.emergencyContact ? { emergencyContact: newEmergencyContact(init.emergencyContact) } : {}),
+        ...(init?.businessId !== undefined ? { businessId: init.businessId } : {}),
     };
 };
 
@@ -94,6 +122,7 @@ const userFromFirestore = (id: string, data: IUserDB): User => {
     return {
         ...data,
         id,
+        businessId: data.businessId ?? null,
         fcmTokens: (data.fcmTokens ?? []).map(token => ({
             ...token,
             lastUpdated: toDate(token.lastUpdated),
@@ -101,6 +130,8 @@ const userFromFirestore = (id: string, data: IUserDB): User => {
         birthday: toDate(data.birthday),
         createdAt: toDate(data.createdAt),
         updatedAt: toDate(data.updatedAt),
+        onBoardingComplete: Boolean(data.onBoardingComplete),
+        onTutorialComplete: normalizeTutorialComplete(data.onTutorialComplete),
         preferences: newPreference(data.preferences),
         profileImage: data.profileImage || '',
         phoneVerifiedAt: data.phoneVerifiedAt ? toDate(data.phoneVerifiedAt) : null,
@@ -136,10 +167,12 @@ const userToFirestore = (user: User): IUserDB => {
         address: user.address,
         birthday: Timestamp.fromDate(toDate(user.birthday)),
         onBoardingComplete: user.onBoardingComplete,
+        onTutorialComplete: normalizeTutorialComplete(user.onTutorialComplete),
         phoneNumber: user.phoneNumber,
         preferences: user.preferences,
         medicalProfile: user.medicalProfile,
         role: user.role,
+        businessId: user.businessId ?? null,
         emergencyContact: user.emergencyContact ? {
             name: user.emergencyContact.name,
             contactNumber: user.emergencyContact.contactNumber,

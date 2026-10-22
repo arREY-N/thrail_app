@@ -3,7 +3,7 @@
  * @description Admin screen displaying a list of created offers and basic booking stats, including search, filter, and sorting features.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
@@ -19,6 +19,15 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import {
+    CustomTutorialModal,
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    requestTargetMeasurement,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
@@ -108,6 +117,8 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         uniqueTrailNames,
         filteredAndSortedOffers 
     } = useOfferFilters(offers);
+
+    const tutorial = useTutorialGuide('admin_offer_list', !isLoading);
     
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedEditId, setSelectedEditId] = useState<string | null>(null);
@@ -125,6 +136,53 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
 
     const cardWidth = (containerWidth - gap * (numColumns - 1)) / numColumns;
     const scrollViewRef = useRef<ScrollView>(null);
+    const addBtnRef = useRef<View>(null);
+    const searchFiltersRef = useRef<View>(null);
+    const firstOfferRef = useRef<View>(null);
+
+    const measureAddBtnNow = useCallback(() => {
+        addBtnRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_offer_add_btn', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    const measureFiltersNow = useCallback(() => {
+        searchFiltersRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_offer_filters', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    const measureFirstOfferNow = useCallback(() => {
+        firstOfferRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_offer_card', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const u1 = registerMeasureCallback('admin_offer_add_btn', measureAddBtnNow);
+        const u2 = registerMeasureCallback('admin_offer_filters', measureFiltersNow);
+        const u3 = registerMeasureCallback('admin_offer_card', measureFirstOfferNow);
+        return () => {
+            u1();
+            u2();
+            u3();
+        };
+    }, [measureAddBtnNow, measureFiltersNow, measureFirstOfferNow]);
+
+    useEffect(() => {
+        if (!tutorial.isVisible) return;
+        const stepTarget = tutorial.currentStep?.targetSpotlight;
+        if (stepTarget) {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            requestTargetMeasurement(stepTarget);
+        }
+    }, [tutorial.isVisible, tutorial.currentStep?.targetSpotlight]);
 
     const handleTabSelect = (tab: string) => {
         setActiveFilter(tab);
@@ -146,6 +204,10 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
 
     const HeaderAddAction = (
         <TouchableOpacity 
+            ref={addBtnRef}
+            onLayout={() => {
+                if (isTutorialMeasurementActive()) measureAddBtnNow();
+            }}
             style={styles.headerAddButton}
             onPress={onAddOffer}
             activeOpacity={0.7}
@@ -266,12 +328,20 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <View style={styles.container}>
-                <View style={styles.headerWrapper}>
+                <View
+                    style={styles.headerWrapper}
+                >
                     <CustomHeader 
+                        searchContainerRef={searchFiltersRef}
                         title="Manage Offers" 
                         centerTitle={true} 
                         onBackPress={onBackPress}
-                        rightActions={HeaderAddAction} 
+                        rightActions={
+                            <View style={styles.headerRightActions}>
+                                <TutorialHelpButton onPress={tutorial.onReplayTour} />
+                                {HeaderAddAction}
+                            </View>
+                        } 
                         hasSearch={true}
                         searchProps={{
                             searchPlaceholder: "Search by trail name...",
@@ -305,7 +375,14 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                         )}
 
                         {!isLoading && (!offers || offers.length === 0) && (
-                            <View style={styles.emptyState}>
+                            <View
+                                ref={firstOfferRef}
+                                collapsable={false}
+                                onLayout={() => {
+                                    if (isTutorialMeasurementActive()) measureFirstOfferNow();
+                                }}
+                                style={styles.emptyState}
+                            >
                                 <CustomIcon 
                                     library="Feather" 
                                     name="inbox" 
@@ -322,7 +399,14 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                         )}
 
                         {offers?.length > 0 && filteredAndSortedOffers.length === 0 && (
-                            <View style={styles.emptyState}>
+                            <View
+                                ref={firstOfferRef}
+                                collapsable={false}
+                                onLayout={() => {
+                                    if (isTutorialMeasurementActive()) measureFirstOfferNow();
+                                }}
+                                style={styles.emptyState}
+                            >
                                 <CustomIcon 
                                     library="Feather" 
                                     name="search" 
@@ -341,17 +425,26 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                         {filteredAndSortedOffers.length > 0 && (
                             <>
                                 <View style={styles.listContainer}>
-                                    {filteredAndSortedOffers.map((offer: Offer) => (
-                                        <OfferCard 
+                                    {filteredAndSortedOffers.map((offer: Offer, index: number) => (
+                                        <View
                                             key={offer.id}
-                                            offer={offer}
-                                            bookings={(bookingByOffer && Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id)) ? bookingByOffer[offer.id] : EMPTY_BOOKINGS}
-                                            statusDetails={getOfferStatusDetails(offer)}
-                                            actionableCount={actionableCountsByOffer[offer.id] ?? 0}
-                                            onViewBookings={onViewOfferBookings}
-                                            onEditPress={handleEditPress}
+                                            ref={index === 0 ? firstOfferRef : undefined}
+                                            collapsable={false}
+                                            onLayout={index === 0 ? () => {
+                                                if (isTutorialMeasurementActive()) measureFirstOfferNow();
+                                            } : undefined}
                                             style={{ width: cardWidth }}
-                                        />
+                                        >
+                                            <OfferCard 
+                                                offer={offer}
+                                                bookings={(bookingByOffer && Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id)) ? bookingByOffer[offer.id] : EMPTY_BOOKINGS}
+                                                statusDetails={getOfferStatusDetails(offer)}
+                                                actionableCount={actionableCountsByOffer[offer.id] ?? 0}
+                                                onViewBookings={onViewOfferBookings}
+                                                onEditPress={handleEditPress}
+                                                style={{ width: '100%' }}
+                                            />
+                                        </View>
                                     ))}
                                 </View>
                                 <View style={styles.footerContainer}>
@@ -384,6 +477,17 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                 initialValues={{ sortBy, filterTrailNames }}
                 defaultValues={{ sortBy: 'date-asc', filterTrailNames: [] }}
                 onApply={handleApplyFilters}
+            />
+
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
             />
         </ScreenWrapper>
     );
@@ -467,7 +571,12 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PLACEHOLDER,
         fontStyle: 'italic',
         fontSize: 14,
-    }
+    },
+    headerRightActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
 });
 
 export default OfferListScreen;
