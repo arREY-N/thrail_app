@@ -7,6 +7,7 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getStatusConfig } from '@/src/constants/statusConfig';
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
@@ -283,7 +284,9 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
                         title: hasRefundAmount ? "Refund Decision Finalized" : "Cancellation Finalized Without Refund",
                         time: formatDateToStandard(cancellation.refundedAt || cancellation.updatedAt || resolvedDate),
                         desc: hasRefundAmount
-                            ? `Organizer issued ₱${cancellation.refundAmount!.toFixed(2)} refund via PayMongo.`
+                            ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr'
+                                ? `Organizer issued ₱${cancellation.refundAmount!.toFixed(2)} refund.`
+                                : `Organizer issued ₱${cancellation.refundAmount!.toFixed(2)} refund via PayMongo.`)
                             : "Organizer finalized cancellation with ₱0.00 refund (Policy Forfeiture).",
                         reason: cancellation.adminNote || undefined,
                         status: hasRefundAmount ? "REFUNDED" : "NO REFUND (0%)",
@@ -306,7 +309,9 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
 
             if (cancellation.status === 'approved') {
                 const refundMsg = (cancellation.refundAmount && cancellation.refundAmount > 0)
-                    ? `Organizer approved cancellation with ₱${cancellation.refundAmount.toFixed(2)} refund via PayMongo.`
+                    ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr'
+                        ? `Organizer approved cancellation with ₱${cancellation.refundAmount.toFixed(2)} refund.`
+                        : `Organizer approved cancellation with ₱${cancellation.refundAmount.toFixed(2)} refund via PayMongo.`)
                     : "Organizer approved cancellation. Reserved slot released.";
                 timelineEvents.push({
                     title: "Cancellation Approved",
@@ -373,7 +378,9 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
             title: "Booking Refunded",
             time: booking.updatedAt ? formatDateToStandard(booking.updatedAt) : '',
             desc: totalRefunded > 0 
-                ? `Refund of ₱${totalRefunded.toFixed(2)} processed via PayMongo.` 
+                ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr'
+                    ? `Refund of ₱${totalRefunded.toFixed(2)} processed.`
+                    : `Refund of ₱${totalRefunded.toFixed(2)} processed via PayMongo.`)
                 : "Booking has been refunded.",
             reason: booking.cancellationReason || undefined,
             status: getStatusConfig('refunded', 'admin').label,
