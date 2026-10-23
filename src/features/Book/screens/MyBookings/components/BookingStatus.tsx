@@ -89,10 +89,24 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
             break;
         case 'downpayment':
             currentIndex = 2;
-            overrideLabel = '50% PAID';
-            overrideIcon = 'pie-chart';
+            if (isPaymentVerifying) {
+                overrideLabel = 'VERIFYING';
+                overrideIcon = 'clock';
+            } else {
+                overrideLabel = 'DOWNPAYMENT';
+                overrideIcon = 'pie-chart';
+            }
             break;
         case 'paid':
+            currentIndex = 2;
+            if (isPaymentVerifying) {
+                overrideLabel = 'VERIFYING';
+                overrideIcon = 'clock';
+            } else {
+                overrideLabel = 'PAID';
+                overrideIcon = 'check-circle';
+            }
+            break;
         case 'completed':
         case 'rescheduled':
         case 'finished':
@@ -177,7 +191,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                         circleBg = Colors.SUCCESS;
                         iconColor = Colors.WHITE;
                         iconName = 'check';
-                        labelText = step.defaultLabel;
+                        labelText = step.id === 2 ? 'PAID' : step.defaultLabel;
                         labelColor = Colors.TEXT_PRIMARY;
                     } else if (isCurrent) {
                         if (isErrorState) {
