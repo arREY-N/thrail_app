@@ -38,8 +38,8 @@ export const STATUS_UI_CONFIG = {
         icon: 'pie-chart'
     },
     'paid': {
-        userLabel: 'VERIFYING PAYMENT', userType: 'INFO', 
-        adminLabel: 'VERIFY PAYMENT', adminType: 'ACTION',
+        userLabel: 'PAID', userType: 'SUCCESS', 
+        adminLabel: 'PAID', adminType: 'ACTION',
         icon: 'check-circle'
     },
     'completed': {
