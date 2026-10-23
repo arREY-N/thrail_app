@@ -434,9 +434,16 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
 
     // 3. APPROVED & REFUNDED (Terminal State in History)
     if (isApprovedOrRefunded) {
-        const isRefundComplete = Boolean(cancellation?.adminRefundReceiptUrl || bookingStatus === 'refunded');
-        const isAwaitingPayout = Boolean(cancellation?.userWallet && !cancellation?.adminRefundReceiptUrl);
-        const isAwaitingWallet = Boolean(PAYMENT_CONFIG.PROVIDER === 'manual_qr' && isPaid && !cancellation?.userWallet && !cancellation?.adminRefundReceiptUrl);
+        const payments = booking.payment || [];
+        const isPayMongo = payments.some(p => p.gateway === 'paymongo');
+        const isManualRefund = !isPayMongo && (payments.some(p => p.gateway === 'manual_qr') || PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
+        const isRefundComplete = isPayMongo
+            ? (hasRefundedPayments || totalRefundedAmount > 0 || bookingStatus === 'refunded')
+            : (Boolean(cancellation?.adminRefundReceiptUrl) || cancellation?.handshakeStep === 'completed' || bookingStatus === 'refunded');
+
+        const isAwaitingPayout = isManualRefund && Boolean(cancellation?.userWallet && !cancellation?.adminRefundReceiptUrl);
+        const isAwaitingWallet = Boolean(isManualRefund && isPaid && !cancellation?.userWallet && !cancellation?.adminRefundReceiptUrl);
 
         const headerTitle = isPaid
             ? (isRefundComplete
@@ -450,7 +457,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
 
         const headerSubtitle = isPaid
             ? (isRefundComplete
-                ? 'Refund issued · Booking closed'
+                ? (isPayMongo ? 'Refund issued via PayMongo · Booking closed' : 'Refund issued · Booking closed')
                 : (isAwaitingPayout
                     ? 'Wallet submitted · Awaiting organizer payout'
                     : (isAwaitingWallet
@@ -515,16 +522,18 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                         <View style={styles.successBox}>
                             <CustomText style={styles.successMessage}>
                                 {isPaid
-                                    ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr'
+                                    ? (isManualRefund
                                         ? (isRefundComplete
                                             ? 'Your cancellation request has been approved and refund payout has been sent.'
                                             : (isAwaitingPayout
                                                 ? 'Your cancellation request has been approved. The organizer will send your refund to your submitted e-wallet.'
                                                 : 'Your cancellation request has been approved by the organizer. Please submit your refund wallet below.'))
-                                        : 'Your cancellation request has been approved. The refund transaction is being processed via PayMongo.')
+                                        : (isRefundComplete
+                                            ? 'Your cancellation request has been approved and your payment has been refunded to your original payment method via PayMongo.'
+                                            : 'Your cancellation request has been approved. The refund transaction is being processed via PayMongo.'))
                                     : 'Your cancellation request has been approved. Your reservation has been cancelled and slots released.'}
                             </CustomText>
-                            {isPaid && PAYMENT_CONFIG.PROVIDER === 'paymongo' && (
+                            {isPaid && isPayMongo && !isRefundComplete && (
                                 <View style={styles.timelineBox}>
                                     <CustomIcon
                                         library="Feather"
@@ -538,7 +547,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                                 </View>
                             )}
 
-                            {isPaid && PAYMENT_CONFIG.PROVIDER === 'manual_qr' && (
+                            {isPaid && isManualRefund && (
                                 <View style={styles.manualRefundHandshakeBox}>
                                     {cancellation?.adminRefundReceiptUrl ? (
                                         <View style={styles.payoutCompletedBox}>
