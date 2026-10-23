@@ -73,7 +73,8 @@ def engine(
     array_1: Union[List[float], np.ndarray],
     array_2: Union[List[float], np.ndarray],
     a: float,
-    peer_profiles: Optional[Union[List[List[float]], List[np.ndarray], np.ndarray]] = None
+    peer_profiles: Optional[Union[List[List[float]], List[np.ndarray], np.ndarray]] = None,
+    weights: Optional[Union[List[float], np.ndarray]] = None
 ) -> float:
     """
     TARS Recommendation Engine Function.
@@ -88,6 +89,7 @@ def engine(
         a:          Dynamic alpha score in range [0.5, 1.0]
         peer_profiles: Optional peer user(s) (User B) who have hiked or reviewed trails.
                        Can be a single profile vector or a list of profile vectors.
+        weights:    Optional 1D array of feature importance weights.
 
     Returns:
         float: R_tu score in [0.0, 1.0] (near 0.0 = highly recommended, near 1.0 = not recommended)
@@ -100,7 +102,7 @@ def engine(
     vec_trail_t = np.asarray(array_2, dtype=np.float32)
 
     # 2. CBF Component: similarity between User A and Trail T
-    cbf_score = func_cbf(vec_user_a, vec_trail_t)
+    cbf_score = func_cbf(vec_user_a, vec_trail_t, weights=weights)
 
     # 3. CF Component: similarity between User A and Peer User(s) B, and Peer User(s) B and Trail T
     #    Formula: (User_A - User_B) * (User_B - Trail_T)
@@ -121,9 +123,9 @@ def engine(
             peer_terms = []
             for vec_user_b in peers:
                 # Distance between User A and Peer User B
-                dist_a_b = func_cf(vec_user_a, vec_user_b)
+                dist_a_b = func_cf(vec_user_a, vec_user_b, weights=weights)
                 # Distance between Peer User B and Trail T
-                dist_b_t = func_cf(vec_user_b, vec_trail_t)
+                dist_b_t = func_cf(vec_user_b, vec_trail_t, weights=weights)
                 # Product of the two distances
                 peer_terms.append(dist_a_b * dist_b_t)
 
@@ -143,7 +145,8 @@ def engine_details(
     array_1: Union[List[float], np.ndarray],
     array_2: Union[List[float], np.ndarray],
     a: float,
-    peer_profiles: Optional[Union[List[List[float]], List[np.ndarray], np.ndarray]] = None
+    peer_profiles: Optional[Union[List[List[float]], List[np.ndarray], np.ndarray]] = None,
+    weights: Optional[Union[List[float], np.ndarray]] = None
 ) -> dict:
     """
     Returns full breakdown of TARS calculation:
@@ -155,7 +158,7 @@ def engine_details(
     vec_user_a = np.asarray(array_1, dtype=np.float32)
     vec_trail_t = np.asarray(array_2, dtype=np.float32)
 
-    cbf_score = float(func_cbf(vec_user_a, vec_trail_t))
+    cbf_score = float(func_cbf(vec_user_a, vec_trail_t, weights=weights))
     cf_score = 0.0
 
     if peer_profiles is not None:
@@ -170,8 +173,8 @@ def engine_details(
         if len(peers) > 0:
             peer_terms = []
             for vec_user_b in peers:
-                dist_a_b = func_cf(vec_user_a, vec_user_b)
-                dist_b_t = func_cf(vec_user_b, vec_trail_t)
+                dist_a_b = func_cf(vec_user_a, vec_user_b, weights=weights)
+                dist_b_t = func_cf(vec_user_b, vec_trail_t, weights=weights)
                 peer_terms.append(dist_a_b * dist_b_t)
             cf_score = float(np.mean(peer_terms))
 

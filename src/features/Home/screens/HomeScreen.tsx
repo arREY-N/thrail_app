@@ -37,10 +37,12 @@ import {
   useTutorialGuide,
 } from '@/src/components/Tutorial/Tutorial';
 
-import WeatherSection from "@/src/features/Home/components/WeatherSection";
 import { getDetailedWeatherSafety } from "@/src/core/utility/weatherHelpers";
+import TrailOfTheMonthCard from "@/src/features/Home/components/TrailOfTheMonthCard";
+import WeatherSection from "@/src/features/Home/components/WeatherSection";
 
 import { IOffer } from '@/src/core/models/Offer/Offer';
+import { Recommendation } from '@/src/core/models/Recommendation/Recommendation';
 import { ITrail } from '@/src/core/models/Trail/Trail';
 import { getTrailOffersCount } from '@/src/utils/offerHelpers';
 
@@ -49,9 +51,11 @@ import { getTrailOffersCount } from '@/src/utils/offerHelpers';
  *
  * @param onWeatherPress - Callback when the weather section is pressed.
  * @param onSeeMoreRecommendationsPress - Callback to view all recommended trails.
+ * @param onTrailOfTheMonthPress - Callback when the Trail of the Month spotlight card is pressed.
  * @param onSeeMoreDiscoverPress - Callback to view all discover trails.
  * @param onSeeMoreOffersPress - Callback to view all trails with offers.
- * @param recommendedTrails - Array of recommended trails.
+ * @param recommendation - Current month recommendation object containing scored trails.
+ * @param recommendedTrails - Legacy array of recommended trails.
  * @param discoverTrails - Array of discover trails.
  * @param trailsWithOffers - Array of trails that have upcoming active offers.
  * @param isOffersLoading - Loading state for the offers list.
@@ -70,10 +74,12 @@ import { getTrailOffersCount } from '@/src/utils/offerHelpers';
  */
 export interface HomeScreenProps {
   onWeatherPress: () => void;
-  onSeeMoreRecommendationsPress: () => void;
+  onSeeMoreRecommendationsPress?: () => void;
+  onTrailOfTheMonthPress: (trailId: string, monthId?: string) => void;
   onSeeMoreDiscoverPress: () => void;
   onSeeMoreOffersPress: () => void;
-  recommendedTrails: ITrail[];
+  recommendation?: Recommendation | null;
+  recommendedTrails?: ITrail[];
   discoverTrails: ITrail[];
   trailsWithOffers: ITrail[];
   isOffersLoading: boolean;
@@ -293,8 +299,10 @@ const ListSection: React.FC<ListSectionProps> = ({
 const HomeScreen: React.FC<HomeScreenProps> = ({
   onWeatherPress,
   onSeeMoreRecommendationsPress,
+  onTrailOfTheMonthPress,
   onSeeMoreDiscoverPress,
   onSeeMoreOffersPress,
+  recommendation,
   recommendedTrails = [],
   discoverTrails = [],
   trailsWithOffers = [],
@@ -328,7 +336,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   const cardWidth = Math.min(width * 0.85, 360);
 
   const hasAnyTrails =
-    recommendedTrails.length > 0 ||
+    Boolean(
+      (recommendation?.easy && recommendation.easy.length > 0) ||
+      (recommendation?.trails && recommendation.trails.length > 0) ||
+      (recommendation?.difficult && recommendation.difficult.length > 0)
+    ) ||
     discoverTrails.length > 0 ||
     trailsWithOffers.length > 0;
 
@@ -347,10 +359,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   //     reloadMountainWeatherBadges();
   // }, [reloadMountainWeatherBadges]);
 
-    // Helper to calculate active offers count for each card
-    const getTrailOffersCountForCard = (trailId: string) => {
-        return getTrailOffersCount(trailId, offers);
-    };
+  // Helper to calculate active offers count for each card
+  const getTrailOffersCountForCard = (trailId: string) => {
+    return getTrailOffersCount(trailId, offers);
+  };
 
   const safetyReport = React.useMemo(() => {
     if (!weatherData) return null;
@@ -402,18 +414,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           safetyReport={safetyReport}
         />
 
-        <ListSection
-          title="Recommendations"
-          data={recommendedTrails}
-          onViewAll={onSeeMoreRecommendationsPress}
-          isSectionLoading={isLoading || isRecommendationsLoading}
-          isRefreshing={isRefreshing}
+        {/* SPOTLIGHT: Trail of the Month */}
+        <TrailOfTheMonthCard
+          recommendation={recommendation}
+          trails={discoverTrails}
+          isLoading={isLoading || isRecommendationsLoading}
           error={recommendationsError}
-          isNewAccountSection={isNewAccount}
-          cardWidth={cardWidth}
-          effectiveWidth={effectiveWidth}
+          isNewAccount={isNewAccount}
+          onPress={onTrailOfTheMonthPress}
+          onExplorePress={onSeeMoreDiscoverPress}
           getItemRating={getItemRating}
-          onMountainPress={onMountainPress}
           onDownloadPress={onDownloadPress}
           getTrailOffersCount={getTrailOffersCountForCard}
         />

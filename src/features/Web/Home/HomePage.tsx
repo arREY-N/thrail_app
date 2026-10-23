@@ -2,7 +2,6 @@ import { HomeFlow } from "@/src/core/flows/HomeFlow";
 import { useLocalSearchParams } from "expo-router";
 
 import HomeScreen from "@/src/features/Home/screens/HomeScreen";
-import React from "react";
 
 const HomePage = () => {
   const { filter } = useLocalSearchParams<{ filter?: string }>();
@@ -23,11 +22,13 @@ const HomePage = () => {
     onDownloadPress,
     onWeatherPress,
     onSeeMoreRecommendationsPress,
+    onTrailOfTheMonthPress,
     onSeeMoreDiscoverPress,
     onSeeMoreOffersPress,
     onGroupPress,
     trails,
     onViewTrail,
+    recommendation,
     isNewAccount,
     recommendationError,
     recommendationIsLoading,
@@ -43,9 +44,11 @@ const HomePage = () => {
     <HomeScreen
       onWeatherPress={onWeatherPress}
       onSeeMoreRecommendationsPress={onSeeMoreRecommendationsPress}
+      onTrailOfTheMonthPress={onTrailOfTheMonthPress}
       onSeeMoreDiscoverPress={onSeeMoreDiscoverPress}
       onSeeMoreOffersPress={onSeeMoreOffersPress}
       recommendedTrails={[]}
+      recommendation={recommendation}
       isRecommendationsLoading={recommendationIsLoading}
       recommendationsError={recommendationError}
       isNewAccount={isNewAccount}

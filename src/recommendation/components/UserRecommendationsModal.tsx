@@ -1,10 +1,9 @@
 import CustomIcon from "@/src/components/CustomIcon";
 import { Colors, Palette } from "@/src/constants/colors";
-import { IRecommendedTrailItem, Recommendation } from "@/src/core/models/Recommendation/interfaces/Recommendation.types";
-import { RecommendationRepo } from "@/src/core/models/Recommendation/repositories/recommendationRepository";
+import { IRecommendedTrailItem, Recommendation, RecommendationRepo } from "@/src/core/models/Recommendation/Recommendation";
 import { User } from "@/src/core/models/User/User";
 import getRecoID from "@/src/core/utility/recommendation";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Modal,
@@ -396,12 +395,12 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
     },
     monthBadgeText: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Green800,
     },
     userSubText: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         marginTop: 2,
     },
@@ -426,12 +425,12 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     metaLabel: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         fontWeight: "500",
     },
     metaVal: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_PRIMARY,
     },
@@ -502,7 +501,7 @@ const styles = StyleSheet.create({
         paddingVertical: 1,
     },
     tabBadgeTextEasy: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.WHITE,
     },
@@ -513,7 +512,7 @@ const styles = StyleSheet.create({
         paddingVertical: 1,
     },
     tabBadgeTextDiff: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.WHITE,
     },
@@ -630,7 +629,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
     },
     trailIdText: {
-        fontSize: 10,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
     },
     categoryBadge: {
@@ -645,7 +644,7 @@ const styles = StyleSheet.create({
         backgroundColor: Palette.Amber100,
     },
     categoryBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
     },
     categoryBadgeTextEasy: {
@@ -674,7 +673,7 @@ const styles = StyleSheet.create({
         paddingVertical: 3,
     },
     scoreChipLabel: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         fontFamily: "monospace",
     },
@@ -684,7 +683,7 @@ const styles = StyleSheet.create({
         paddingVertical: 1,
     },
     scoreQualityText: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: "700",
     },
     hikedBadge: {
@@ -706,7 +705,7 @@ const styles = StyleSheet.create({
         borderColor: Palette.Slate200,
     },
     hikedBadgeText: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "600",
     },
     hikedBadgeTextYes: {

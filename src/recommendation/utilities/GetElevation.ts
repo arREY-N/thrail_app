@@ -55,10 +55,16 @@ export async function fetchElevations(coords: CoordinateLike[]): Promise<number[
             if (!response.ok) {
                 throw new Error(`Open-Meteo elevation error: ${response.statusText}`);
             }
-            const data: ElevationResponse = await response.json();
+            const rawText = await response.text();
+            // Sanitize unquoted nan/NaN emitted by Open-Meteo for invalid/ocean coordinates
+            const sanitizedText = rawText
+                .replace(/:\s*nan\b/gi, ': null')
+                .replace(/,\s*nan\b/gi, ', null')
+                .replace(/\[\s*nan\b/gi, '[ null');
+            const data: ElevationResponse = JSON.parse(sanitizedText);
             const elevations = Array.isArray(data.elevation)
-                ? data.elevation
-                : typeof data.elevation === "number"
+                ? data.elevation.map((v) => (typeof v === "number" && !isNaN(v) ? v : 0))
+                : typeof data.elevation === "number" && !isNaN(data.elevation)
                 ? [data.elevation]
                 : [];
             allElevations.push(...elevations);
