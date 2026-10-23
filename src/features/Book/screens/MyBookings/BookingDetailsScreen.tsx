@@ -203,7 +203,6 @@ const BookingDetailsScreen = ({
         cancellation?.cancelledBy === 'admin' ||
         (localStatus === 'cancelled' && booking?.cancelledBy === 'admin');
 
-    const payments = booking?.payment || [];
     const isPayMongo = payments.some(p => p.gateway === 'paymongo');
     const hasRefundedPayment = payments.some(p => p.status === 'refunded' || (p.refundedAmount || 0) > 0);
     const isAllRefunded = payments.length > 0 && payments.every(p => p.status === 'refunded');
