@@ -2038,7 +2038,7 @@ const styles = StyleSheet.create({
         borderColor: Colors.PRIMARY,
     },
     filterTabText: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.TEXT_SECONDARY,
     },
@@ -2101,13 +2101,13 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
     },
     th: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_SECONDARY,
         paddingHorizontal: 6,
     },
     thSubCenter: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: "500",
         color: Palette.Neutral400,
         textAlign: "center",
@@ -2166,7 +2166,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     valRaw: {
-        fontSize: 10,
+        fontSize: 12,
         color: Palette.Neutral400,
         textAlign: "center",
     },
@@ -2176,7 +2176,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
     },
     subUserText: {
-        fontSize: 10,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
     },
     anchorBadgeRow: {
@@ -2194,7 +2194,7 @@ const styles = StyleSheet.create({
         paddingVertical: 1,
     },
     easyBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Green700,
     },
@@ -2207,7 +2207,7 @@ const styles = StyleSheet.create({
         paddingVertical: 1,
     },
     difficultBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Amber700,
     },
@@ -2220,17 +2220,17 @@ const styles = StyleSheet.create({
         paddingVertical: 1,
     },
     medBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Red700,
     },
     savedBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "600",
         color: Palette.Green700,
     },
     unsavedBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "600",
         color: Palette.Amber700,
     },
@@ -2278,7 +2278,7 @@ const styles = StyleSheet.create({
         backgroundColor: Palette.Green600,
     },
     saveBtnText: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.WHITE,
     },
@@ -2292,7 +2292,7 @@ const styles = StyleSheet.create({
         borderRadius: 5,
     },
     inspectBtnText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.TEXT_PRIMARY,
     },
@@ -2306,7 +2306,7 @@ const styles = StyleSheet.create({
         borderRadius: 5,
     },
     recosActionBtnText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.WHITE,
     },
@@ -2353,12 +2353,12 @@ const styles = StyleSheet.create({
         paddingVertical: 1,
     },
     modalNavBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Green800,
     },
     viewRecoHintText: {
-        fontSize: 10,
+        fontSize: 12,
         color: Colors.PRIMARY,
         fontWeight: "600",
     },
@@ -2388,12 +2388,12 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
     },
     recoMonthBadgeText: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Green800,
     },
     recoMetaSubText: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         marginTop: 2,
     },
@@ -2409,7 +2409,7 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
     recoRefreshBtnText: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.PRIMARY,
     },
@@ -2446,7 +2446,7 @@ const styles = StyleSheet.create({
         borderColor: Palette.Amber300,
     },
     recoPillText: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.TEXT_SECONDARY,
     },
@@ -2512,7 +2512,7 @@ const styles = StyleSheet.create({
         fontFamily: "monospace",
     },
     recoErrorHint: {
-        fontSize: 11,
+        fontSize: 12,
         color: Palette.Red900,
         textAlign: "center",
         marginTop: 4,
@@ -2577,7 +2577,7 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
     },
     recoRankNum: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_SECONDARY,
     },
@@ -2587,7 +2587,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
     },
     recoTrailIdText: {
-        fontSize: 10,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
     },
     recoCategoryTag: {
@@ -2602,7 +2602,7 @@ const styles = StyleSheet.create({
         backgroundColor: Palette.Amber100,
     },
     recoCategoryTagText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
     },
     tagTextEasy: {
@@ -2631,7 +2631,7 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
     },
     recoScoreText: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         fontFamily: "monospace",
     },
@@ -2641,7 +2641,7 @@ const styles = StyleSheet.create({
         paddingVertical: 1,
     },
     recoQualityChipText: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: "700",
     },
     recoHikeTag: {
@@ -2663,7 +2663,7 @@ const styles = StyleSheet.create({
         borderColor: Palette.Slate200,
     },
     recoHikeTagText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "600",
     },
     tagHikedText: {
@@ -2689,7 +2689,7 @@ const styles = StyleSheet.create({
         backgroundColor: Palette.Slate100,
     },
     recoExpandHintText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.PRIMARY,
     },
@@ -2706,7 +2706,7 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     recoBreakdownHeading: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_PRIMARY,
         textTransform: "uppercase",
@@ -2738,13 +2738,13 @@ const styles = StyleSheet.create({
         gap: 2,
     },
     recoConfigKey: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.TEXT_SECONDARY,
         textTransform: "uppercase",
     },
     recoConfigVal: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.TEXT_PRIMARY,
     },
@@ -2774,26 +2774,26 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     recoCompTitleCbf: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Green800,
         textTransform: "uppercase",
     },
     recoCompTitleCf: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Amber800,
         textTransform: "uppercase",
     },
     recoCompWeightText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_SECONDARY,
     },
     recoCompDesc: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
-        lineHeight: 15,
+        lineHeight: 16,
         marginVertical: 2,
     },
     recoCompMathRow: {
@@ -2806,12 +2806,12 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     recoCompMathLabel: {
-        fontSize: 10,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         fontWeight: "500",
     },
     recoCompMathVal: {
-        fontSize: 11,
+        fontSize: 12,
         fontFamily: "monospace",
         color: Colors.TEXT_PRIMARY,
     },
@@ -2824,20 +2824,20 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     recoSynthesisLabel: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_PRIMARY,
     },
     recoSynthesisFormula: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.PRIMARY,
         fontFamily: "monospace",
     },
     recoSynthesisDesc: {
-        fontSize: 10,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
-        lineHeight: 14,
+        lineHeight: 16,
     },
     recoRawFormulaRow: {
         backgroundColor: Palette.Slate50,
@@ -2849,12 +2849,12 @@ const styles = StyleSheet.create({
         gap: 2,
     },
     recoRawFormulaLabel: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_SECONDARY,
     },
     recoRawFormulaCode: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         fontFamily: "monospace",
         color: Colors.PRIMARY,
@@ -2878,7 +2878,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     recoFeatTh: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_SECONDARY,
         textTransform: "uppercase",
@@ -2892,16 +2892,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     recoFeatTdName: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.TEXT_PRIMARY,
     },
     recoFeatTdSub: {
-        fontSize: 9,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
     },
     recoFeatTdVal: {
-        fontSize: 10,
+        fontSize: 12,
         fontFamily: "monospace",
         fontWeight: "600",
     },
@@ -2912,7 +2912,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
     recoFeatDiffText: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: "700",
         fontFamily: "monospace",
     },
@@ -2929,9 +2929,9 @@ const styles = StyleSheet.create({
     },
     recoColdStartText: {
         flex: 1,
-        fontSize: 10,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
-        lineHeight: 14,
+        lineHeight: 16,
     },
 
     centerContainer: {
@@ -2999,7 +2999,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
     },
     modalSubId: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         marginTop: 2,
     },
@@ -3091,7 +3091,7 @@ const styles = StyleSheet.create({
         borderBottomColor: Palette.Slate200,
     },
     calcTh: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_SECONDARY,
     },
@@ -3104,16 +3104,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     calcTdBold: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.TEXT_PRIMARY,
     },
     calcTd: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_PRIMARY,
     },
     tapInstructionText: {
-        fontSize: 11,
+        fontSize: 12,
         fontStyle: "italic",
         color: Colors.PRIMARY,
         fontWeight: "500",
@@ -3145,7 +3145,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     breakdownBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_SECONDARY,
         textTransform: "uppercase",
@@ -3159,7 +3159,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     breakdownMedBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Red700,
     },
@@ -3167,15 +3167,15 @@ const styles = StyleSheet.create({
         gap: 2,
     },
     breakdownLabel: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_SECONDARY,
         textTransform: "uppercase",
     },
     breakdownValue: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_PRIMARY,
-        lineHeight: 15,
+        lineHeight: 16,
     },
     breakdownTwinGrid: {
         flexDirection: "row",
@@ -3192,7 +3192,7 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     breakdownAnchorTitleEasy: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Green700,
         textTransform: "uppercase",
@@ -3207,25 +3207,25 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     breakdownAnchorTitleDiff: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Amber700,
         textTransform: "uppercase",
     },
     breakdownFormulaText: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_PRIMARY,
         fontFamily: "monospace",
-        lineHeight: 15,
+        lineHeight: 16,
     },
     breakdownResultEasy: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Green700,
         marginTop: 2,
     },
     breakdownResultDiff: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Amber700,
         marginTop: 2,

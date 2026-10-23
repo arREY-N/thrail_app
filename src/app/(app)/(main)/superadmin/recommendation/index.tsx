@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255, 255, 255, 0.25)",
     },
     badgeCountText: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_SECONDARY,
     },

@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional, Union, Callable
 
 from tars import engine, engine_details, compute_alpha, GD, ED, CS
-from profile_utils import flatten_profile_features, extract_user_anchor_profiles
+from profile_utils import flatten_profile_features, extract_user_anchor_profiles, build_feature_weight_vector
 from firebase_client import (
     initialize_firebase,
     fetch_trails,
@@ -20,6 +20,7 @@ from firebase_client import (
     save_user_recommendations,
     get_current_month_id
 )
+from gemini_reasoning import generate_gemini_reasoning
 
 logger = logging.getLogger("tars_engine")
 
@@ -31,7 +32,9 @@ def run_batch_recommendations(
     candidate_trails: Optional[List[Dict[str, Any]]] = None,
     users: Optional[List[Dict[str, Any]]] = None,
     user_hikes_map: Optional[Dict[str, set]] = None,
-    commit_to_firestore: bool = True
+    commit_to_firestore: bool = True,
+    feature_weights: Optional[Dict[str, float]] = None,
+    generate_ai_reasoning: bool = True
 ) -> Dict[str, Any]:
     """
     Executes a full recommendation batch run.
@@ -44,6 +47,7 @@ def run_batch_recommendations(
         users:            Optional pre-loaded list of user documents
         user_hikes_map:   Optional mapping of userId -> set of completed trail IDs (for tests/overrides)
         commit_to_firestore: Whether to save monthly documents directly to Firestore
+        feature_weights:  Optional custom importance weights dictionary for the 32 canonical features
 
     Returns:
         Dict[str, Any]: Execution report including counts and sample recommendations
@@ -89,6 +93,7 @@ def run_batch_recommendations(
     # 2. Extract and pre-flatten all candidate trail vectors
     # According to ITrailBase: general.name is the trail's name
     prepared_trails = []
+    trail_by_id = {str(t.get("id") or ""): t for t in trail_list}
     for t in trail_list:
         tid = str(t.get("id") or "")
         general = t.get("general") or {}
@@ -108,8 +113,12 @@ def run_batch_recommendations(
         })
 
     # 3. Compute dynamic alpha and prepare peer vectors for CF
+    # 3. Compute dynamic alpha and prepare peer vectors for CF
     user_count = len(user_list)
     alpha = compute_alpha(user_count)
+
+    # Resolve 32-element feature weight vector
+    weight_vector = build_feature_weight_vector(feature_weights)
 
     peer_vectors = []
     for u in user_list:
@@ -154,7 +163,8 @@ def run_batch_recommendations(
                 array_1=easy_vec,
                 array_2=tvec,
                 a=alpha,
-                peer_profiles=other_peers if other_peers else None
+                peer_profiles=other_peers if other_peers else None,
+                weights=weight_vector
             )
 
             # Calculate Difficult Score & breakdown
@@ -164,7 +174,8 @@ def run_batch_recommendations(
                 array_1=diff_vec,
                 array_2=tvec,
                 a=alpha,
-                peer_profiles=other_peers if other_peers else None
+                peer_profiles=other_peers if other_peers else None,
+                weights=weight_vector
             )
 
             easy_items.append({
@@ -191,6 +202,23 @@ def run_batch_recommendations(
         easy_items.sort(key=lambda x: x["score"])
         diff_items.sort(key=lambda x: x["score"])
 
+        # Generate Gemini AI reasoning for the top #1 easy recommendation (Trail of the Month)
+        ai_reasonings = {}
+        if generate_ai_reasoning and easy_items:
+            top_easy_item = easy_items[0]
+            top_trail_doc = trail_by_id.get(top_easy_item["id"])
+            try:
+                reasoning = generate_gemini_reasoning(
+                    trail=top_trail_doc,
+                    reco_item=top_easy_item,
+                    user=user,
+                    user_profile=raw_easy,
+                    month_label=active_month
+                )
+                ai_reasonings[top_easy_item["id"]] = reasoning
+            except Exception as e:
+                logger.warning(f"Failed to generate Gemini reasoning for user {uid}: {e}")
+
         # Construct monthly recommendation document matching required schema
         doc_data = {
             "id": active_month,
@@ -200,14 +228,16 @@ def run_batch_recommendations(
                 "cbf": str(cbf_engine),
                 "cf": str(cf_engine),
                 "alpha": round(alpha, 4),
-                "userCount": user_count
+                "userCount": user_count,
+                "featureWeights": feature_weights if feature_weights else "default"
             },
             "profile": {
                 "easy": raw_easy,
                 "difficult": raw_diff
             },
             "easy": easy_items,
-            "difficult": diff_items
+            "difficult": diff_items,
+            "aiReasonings": ai_reasonings
         }
 
         # Commit to Firestore if enabled

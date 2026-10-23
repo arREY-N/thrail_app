@@ -15,6 +15,7 @@ export function HomeFlow() {
         onDownloadPress,
         onWeatherPress,
         onSeeMoreRecommendationsPress,
+        onTrailOfTheMonthPress,
         onSeeMoreDiscoverPress,
         onSeeMoreOffersPress,
         onGroupPress
@@ -54,6 +55,7 @@ export function HomeFlow() {
 
     // recommendation
     const {
+        recommendation,
         isLoading: recommendationIsLoading,
         error: recommendationError,
     } = useRecommendationItem();
@@ -76,6 +78,7 @@ export function HomeFlow() {
         onDownloadPress,
         onWeatherPress,
         onSeeMoreRecommendationsPress,
+        onTrailOfTheMonthPress,
         onSeeMoreDiscoverPress,
         onSeeMoreOffersPress,
         onGroupPress,
@@ -84,6 +87,7 @@ export function HomeFlow() {
         onViewTrail,
         isNewAccount,
         getItemRating,
+        recommendation,
         recommendationIsLoading,
         recommendationError
     }

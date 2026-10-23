@@ -250,3 +250,43 @@ All multipliers, baselines, and preference weights have been decoupled from comp
 `src/recommendation/constants/RecommendationFactors.ts`
 
 Tuning engineers can adjust the engine's behavior, sensitivity, and difficulty contrast simply by modifying this single configuration file without altering formulas in `CreateProfile.ts` or UI logic in `UserDataset.tsx`.
+
+---
+
+## 10. Feature Weighting Architecture & Profile Update Considerations
+
+### 10.1 The Categorical vs. Physical Exertion Dilemma
+In an unweighted 32-dimensional feature space, every feature dimension contributes an identical fraction ($1/32 \approx 3.125\%$) to distance metrics (Gower's, Euclidean, Cosine). Consequently:
+- 11 tourism amenities (shelters, benches, information boards, clean water, etc.) collectively constitute **34.4%** of the entire distance calculation.
+- The 6 physical exertion metrics (classification, length, elevation, gain, slope, lasco rating) collectively account for only **18.75%**.
+
+**Why Unweighted Amenities Are Mathematically Illogical:**
+1. **Safety Constraints vs. Soft Preferences:** In mountaineering, physical exertion is a non-negotiable physiological limit. A beginner with low cardiovascular endurance cannot safely summit a 2,188 MASL mountain with a 30% slope simply because the trail offers resting benches and clean water. Physical endurance is a hard constraint; amenities are soft preferences.
+2. **Profile Update Distortion:** In the post-hike feedback loop (updating user profiles after completing hikes), if categorical amenities carry equal weight, a user who hikes a popular, commercialized minor trail with abundant amenities would see their entire vector inflated with high amenity weights. Subsequent recommendations would then prioritize commercialized, developed trails over raw wilderness trails, even if the user has developed the stamina for tougher wilderness routes.
+
+### 10.2 Calibrated 5 Pillar Category Model
+To resolve feature imbalance and provide a streamlined administrative workflow, the TARS engine structures all 32 dimensions into **5 Pillar Categories**. Physical trail characteristics (Difficulty, Terrain, Route Type) are all prioritized over geographic administrative boundaries (Location / Province), while Scenery & Amenities is configured as the smallest category overall:
+
+| Category Group | Features Included | Total Category Weight | Relative Influence & Domain Role |
+| :--- | :--- | :---: | :--- |
+| **1. Physical Difficulty** | 6 (Classification: 8.00; Length, Elev, Gain, Slope, Lasco: 8.40 ea) | **`50.00%`** | **Safety & capability threshold** (Primary constraint) |
+| **2. Terrain Type** | 4 (Muddy, Rocky, Grassland, Ridges: 5.00 ea) | **`20.00%`** | **Technical footing & trail hazard** (> Location) |
+| **3. Route Type** | 3 (Out-and-Back, Traverse, Circular Loop: 5.00 ea) | **`15.00%`** | **Physical trail layout & navigation structure** (> Location) |
+| **4. Location / Province** | 5 (Cavite, Laguna, Batangas, Rizal, Quezon: 2.00 ea) | **`10.00%`** | **Regional proximity & accessibility preference** |
+| **5. Scenery & Amenities** | 14 (3 Waterforms: 1.40% total; 11 Amenities: 3.60% total) | **`5.00%`** | **Smallest category overall** (Comfort & scenery tie-breakers) |
+| **Total** | **32 Features in 5 Groups** | **`100.00%`** | **Harmonious Multi-Attribute Balance** |
+
+Under this model:
+- **Physical Trail Features (85.00% total):** Physical Difficulty (50%) + Terrain (20%) + Route Type (15%) govern 85% of all distance computations.
+- **Route Type (15%) > Location (10%):** A point-to-point traverse requires fundamentally different navigation, physical stamina, and commitment level than an out-and-back trail (cannot simply turn back), which impacts hike difficulty much more than whether the trail is located in Batangas or Laguna.
+- **Terrain (20%) > Location (10%):** Technical footing and scrambling take precedence over administrative geographic borders.
+- **Scenery & Amenities (5%):** Lowest of all 5 categories, strictly preventing a bench or water station from overriding physical trail suitability.
+
+### 10.3 Superadmin Category Configuration & Expandable Drawer UX
+To streamline superadmin customization without cognitive overload:
+- **5 High-Level Category Cards:** Superadmins adjust weights across the 5 macro categories (e.g., 50%, 20%, 15%, 10%, 5%) rather than micro-managing 32 decimals.
+- **Expandable Feature Drawers (Accordions):** Each category card features a collapsible drawer. When expanded, superadmins can toggle individual features off (e.g. unchecking *Quezon* if trails there are temporarily closed). The category's allocated percentage automatically redistributes across the remaining active features in that category.
+- **Zero-Weight Guarantee:** Any feature or category with a weight of `0.0` contributes exactly `0.0` to the distance computation, mathematically removing it from vector evaluation regardless of user preference scores.
+- **Strict 100.00% Weight Constraint:** All 100.00% of category weights must be allocated before the engine can be executed. Pressing "Generate Recommendations" with unallocated or over-allocated weights blocks execution, alerts the superadmin, and docks an error banner.
+- **Auto-Balance Tool ("Balance to 100%"):** Superadmins can tap "Balance to 100%" at any time to automatically distribute weights proportionally across active categories to reach exactly 100.00%.
+- **Backend Continuity:** The frontend dynamically compiles the 5 category weights down to the exact 32-element `feature_weights` vector sent to FastAPI (`/api/admin/run-engine`), requiring zero modifications to the core recommendation formulas.
