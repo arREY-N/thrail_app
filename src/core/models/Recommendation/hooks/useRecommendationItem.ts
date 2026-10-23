@@ -4,19 +4,16 @@ import { useEffect } from "react";
 
 export function useRecommendationItem() {
     const recommendation = useRecommendationsStore(s => s.current);
-    const { profile } = useAuthHook();
+    const { profile, user } = useAuthHook();
     const isLoading = useRecommendationsStore(s => s.isLoading);
     const error = useRecommendationsStore(s => s.error);
 
     useEffect(() => {
-        const fetch = async () => {
-            if (!profile?.id) return;
+        const uid = profile?.id || user?.uid;
+        if (!uid) return;
 
-            useRecommendationsStore.getState().load(profile.id);
-        };
-
-        fetch();
-    }, [profile?.id]);
+        useRecommendationsStore.getState().load(uid);
+    }, [profile?.id, user?.uid]);
 
     return {
         recommendation,
