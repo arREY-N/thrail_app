@@ -1,10 +1,12 @@
-import { Booking, newBooking, useBookingDelete, useBookingsStore, useBookingUserList } from "@/src/core/models/Booking/Booking";
+import { Booking, newBooking, useBookingDelete, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { Cancellation, CancellationRequest } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
-import { createCancellationRequest, newCancellation } from "@/src/core/models/Cancellation/utils/CancellationFactory";
+import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { catchError, logger } from "@/src/core/utility/errorFormatter";
+import { functions } from "@/src/core/config/Firebase";
+import { httpsCallable } from "firebase/functions";
 import { useState } from "react";
 
 /**
@@ -24,7 +26,6 @@ export function useCancellationUser() {
     
     const write = useCancellationStore(s => s.write);
     const deleteCancellation = useCancellationStore(s => s.delete);
-    const { bookings } = useBookingUserList();
     const createBooking = useBookingsStore(s => s.create);
 
     /**
@@ -191,33 +192,13 @@ export function useCancellationUser() {
                 throw new Error("Only cancellations made by admins can be approved by users.");
             }
 
-            const updatedRequest: Cancellation = newCancellation(
-                request, 
-                { status: "approved" }
-            );
-
-            const booking = bookings.find(b => b.id === request.bookingId);
-
-            if(!booking) {
-                throw new Error("Booking not found.");
-            }
-
-            const updatedBooking = newBooking({
-                ...booking,
-                status: 'cancelled',
-                cancelledBy: 'admin',
-                updatedAt: new Date(),
+            const acceptAdminCancellationFn = httpsCallable(functions, 'acceptAdminCancellation');
+            await acceptAdminCancellationFn({
+                bookingId: request.bookingId,
+                cancellationId: request.id,
+                businessId: request.businessId,
             });
 
-            await Promise.all([
-                createBooking(updatedBooking, false, true),
-                write({
-                    cancellation: updatedRequest,
-                    oldCancellation: request,
-                    isAdmin: false
-                })
-            ]);
-            
         } catch (error) {
             catchError(error as Error, 'writingError', 'approveAdminRequest()');
             setWritingError((error as Error).message || "An unexpected error occurred.");
