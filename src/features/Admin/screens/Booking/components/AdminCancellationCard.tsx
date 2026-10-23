@@ -10,6 +10,7 @@ import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
+import { IPayment } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { SelectedFile } from '@/src/core/repositories/fileRepository';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
@@ -42,6 +43,8 @@ export interface AdminCancellationCardProps {
     onUploadRefundProof?: (file: SelectedFile) => Promise<boolean | void>;
     isUploadingProof?: boolean;
     onApproveWithManualRefund?: (amount: number) => Promise<void> | void;
+    payments?: IPayment<Date>[];
+    isPayMongo?: boolean;
 }
 
 /**
@@ -63,6 +66,8 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
     onUploadRefundProof,
     isUploadingProof = false,
     onApproveWithManualRefund,
+    payments,
+    isPayMongo,
 }) => {
     const [previewAdminProof, setPreviewAdminProof] = useState<string | null>(null);
 
@@ -98,9 +103,13 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
     const isDeclined = cancellation
         ? cancellation.status === 'rejected'
         : status === 'cancellation-rejected';
-    const isRefundComplete = PAYMENT_CONFIG.PROVIDER === 'manual_qr'
-        ? (Boolean(cancellation?.adminRefundReceiptUrl) || status === 'refunded')
-        : (totalRefundedAmount > 0 || status === 'refunded');
+
+    const resolvedIsPayMongo = isPayMongo ?? payments?.some(p => p.gateway === 'paymongo');
+    const isManualRefund = !resolvedIsPayMongo && (PAYMENT_CONFIG.PROVIDER === 'manual_qr' || payments?.some(p => p.gateway === 'manual_qr'));
+    const isRefundComplete = resolvedIsPayMongo
+        ? (totalRefundedAmount > 0 || status === 'refunded')
+        : (Boolean(cancellation?.adminRefundReceiptUrl) || cancellation?.handshakeStep === 'completed' || status === 'refunded');
+
     const isCancelled =
         (status === 'cancelled' && totalRefundedAmount === 0) ||
         (cancellation?.status === 'approved' && totalRefundedAmount === 0 && !cancellation?.refundAmount);
@@ -119,9 +128,9 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
         status === 'refunded'
     );
 
-    const isAwaitingRefundDecision = isApproved && isPaid && !isRefundComplete && (cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || (!cancellation?.handshakeStep && !cancellation?.refundDecision));
-    const isAwaitingWallet = isApproved && isPaid && !isRefundComplete && (cancellation?.handshakeStep === 'awaiting_user_wallet' || (!cancellation?.userWallet && !isAwaitingRefundDecision));
-    const isAwaitingPayout = isApproved && isPaid && !isRefundComplete && Boolean(cancellation?.userWallet) && !cancellation?.adminRefundReceiptUrl;
+    const isAwaitingRefundDecision = isManualRefund && isApproved && isPaid && !isRefundComplete && (cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || (!cancellation?.handshakeStep && !cancellation?.refundDecision));
+    const isAwaitingWallet = isManualRefund && isApproved && isPaid && !isRefundComplete && (cancellation?.handshakeStep === 'awaiting_user_wallet' || (!cancellation?.userWallet && !isAwaitingRefundDecision));
+    const isAwaitingPayout = isManualRefund && isApproved && isPaid && !isRefundComplete && Boolean(cancellation?.userWallet) && !cancellation?.adminRefundReceiptUrl;
 
     const headerTitle = isDirectCancellation
         ? 'Reservation Cancelled'
@@ -327,7 +336,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
             })()}
 
             {/* Manual QR Handshake: Uploaded Proof Display */}
-            {PAYMENT_CONFIG.PROVIDER === 'manual_qr' && cancellation?.adminRefundReceiptUrl && (
+            {isManualRefund && cancellation?.adminRefundReceiptUrl && (
                 <View style={styles.manualRefundAdminBox}>
                     <View style={styles.manualRefundHeader}>
                         <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
@@ -350,7 +359,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
             )}
 
             {/* Manual QR Handshake: Hiker Wallet Submitted Display & Upload Action */}
-            {PAYMENT_CONFIG.PROVIDER === 'manual_qr' && cancellation?.userWallet && !cancellation?.adminRefundReceiptUrl && (
+            {isManualRefund && cancellation?.userWallet && !cancellation?.adminRefundReceiptUrl && (
                 <View style={styles.walletDetailsAdminBox}>
                     <View style={styles.manualRefundHeader}>
                         <CustomIcon library="Feather" name="credit-card" size={16} color={Colors.PRIMARY} />
@@ -388,7 +397,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
             )}
 
             {/* Manual QR Handshake: Waiting for Hiker Wallet Banner */}
-            {PAYMENT_CONFIG.PROVIDER === 'manual_qr' && cancellation?.handshakeStep === 'awaiting_user_wallet' && !cancellation?.userWallet && (
+            {isManualRefund && cancellation?.handshakeStep === 'awaiting_user_wallet' && !cancellation?.userWallet && (
                 <View style={styles.waitingWalletBox}>
                     <View style={styles.waitingWalletLeft}>
                         <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_PENDING_TEXT} />
@@ -413,7 +422,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
 
             {/* Interactive Refund Resolution Banner for Paid Cancellations */}
             {isAwaitingRefundDecision && !cancellation?.userWallet && !cancellation?.adminRefundReceiptUrl && cancellation?.handshakeStep !== 'awaiting_user_wallet' && cancellation?.handshakeStep !== 'awaiting_admin_payout' && cancellation?.handshakeStep !== 'completed' && (
-                PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? (
+                isManualRefund ? (
                     <View style={styles.actionBanner}>
                         <View style={styles.actionBannerHeader}>
                             <CustomIcon library="Feather" name="alert-circle" size={15} color="#B45309" />
