@@ -37,10 +37,13 @@ export function useBusinessAdmin() {
         await useBusinessesStore.getState().load(businessId);
     }, [profile?.id, businessId]);
 
+    const updatePaymentConfig = useBusinessesStore(s => s.updatePaymentConfig);
+
     const isBusinessLoading = isAuthLoading || isLoading || isFetching || (!businessAccount && Boolean(businessId) && !error);
 
     return useMemo(() => ({
         onRefresh,
+        updatePaymentConfig,
         businessAccount,
         businessAdmins,
         businessOffers,
@@ -52,5 +55,5 @@ export function useBusinessAdmin() {
         isFetching,
         isAuthLoading,
         error,
-    }), [onRefresh, businessAccount, businessAdmins, businessOffers, businessBookings, profile, role, businessId, isBusinessLoading, isFetching, isAuthLoading, error]);
+    }), [onRefresh, updatePaymentConfig, businessAccount, businessAdmins, businessOffers, businessBookings, profile, role, businessId, isBusinessLoading, isFetching, isAuthLoading, error]);
 }
