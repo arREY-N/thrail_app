@@ -11,7 +11,9 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
+import { ManualQRVerificationCard } from '../components/ManualQRVerificationCard';
 
 /**
  * Props for PaymentTab component.
@@ -29,6 +31,10 @@ export interface PaymentTabProps {
     isRejectedStatus: boolean;
     isCancelledStatus: boolean;
     onConfirmPaymentClick?: () => void;
+    onVerifyManualPayment?: (classification: 'full' | 'downpayment', note?: string, verifiedAmount?: number) => Promise<void>;
+    onRejectManualPayment?: (reason: string) => Promise<void>;
+    onSettleRemainingBalance?: () => Promise<void>;
+    isProcessing?: boolean;
 }
 
 /**
@@ -40,7 +46,11 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     isApprovedStatus, 
     isRejectedStatus,
     isCancelledStatus,
-    onConfirmPaymentClick 
+    onConfirmPaymentClick,
+    onVerifyManualPayment,
+    onRejectManualPayment,
+    onSettleRemainingBalance,
+    isProcessing = false,
 }) => {
     const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
     const isLockedStatus = ['reservation-rejected', 'cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired', 'for-cancellation', 'for-reschedule'].includes(currentStatus);
@@ -74,7 +84,9 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
 
     const price = booking?.offer?.price || 0;
     const grossPaid = booking?.payment?.reduce((sum: number, p: IPayment<Date>) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
-    const totalRefunded = booking?.payment?.reduce((sum: number, p: IPayment<Date>) => sum + (p.refundedAmount || (p.status === 'refunded' ? p.amount : 0)), 0) || 0;
+    const totalRefunded = typeof booking?.refundedAmount === 'number' && booking.refundedAmount > 0
+        ? booking.refundedAmount
+        : (booking?.payment?.reduce((sum: number, p: IPayment<Date>) => sum + (p.refundedAmount || (p.status === 'refunded' ? p.amount : 0)), 0) || 0);
     const netPaid = Math.max(0, grossPaid - totalRefunded);
     const remainingBalance = Math.max(0, price - netPaid);
 
@@ -85,7 +97,12 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
         let iconName = 'credit-card';
         let displayName = gatewayName;
 
-        if (name.includes('gcash')) {
+        if (name.includes('manual_qr') || name.includes('manual')) {
+            bgColor = Colors.PRIMARY_LIGHT;
+            textColor = Colors.PRIMARY;
+            iconName = 'check-circle';
+            displayName = 'Manual QR';
+        } else if (name.includes('gcash')) {
             bgColor = Colors.STATUS_PENDING_BG;
             textColor = Colors.STATUS_PENDING_TEXT;
             iconName = 'smartphone';
@@ -111,10 +128,30 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
         );
     };
 
+    const hasPaymongoCaptured = Boolean(
+        booking?.payment?.some((p: IPayment<Date>) => p.gateway === 'paymongo' && p.status === 'captured')
+    );
+    const hasManualRecord = Boolean(
+        booking?.paymentVerificationStatus || 
+        booking?.payment?.some((p: IPayment<Date>) => p.gateway === 'manual_qr' || Boolean(p.receiptUrl))
+    );
+    const hasManualPayment = hasManualRecord || (!hasPaymongoCaptured && PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
     return (
         <View style={styles.tabContent}>
+
+            {/* Manual QR Verification Card for Admin */}
+            {hasManualPayment && onVerifyManualPayment && (
+                <ManualQRVerificationCard
+                    booking={booking}
+                    onVerifyPayment={onVerifyManualPayment}
+                    onRejectPayment={onRejectManualPayment || (async () => {})}
+                    onSettleBalance={onSettleRemainingBalance || (async () => {})}
+                    isProcessing={isProcessing}
+                />
+            )}
             
-            {currentStatus === 'for-payment' && !isLockedStatus && (
+            {currentStatus === 'for-payment' && !isLockedStatus && !hasManualPayment && (
                 <View style={styles.emptyPaymentBox}>
                     <CustomIcon 
                         library="Feather" 
@@ -161,7 +198,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                 badgeText = Colors.STATUS_FULLY_PAID_TEXT;
                                 badgeIcon = "check-circle";
                             } else if (isDown) {
-                                badgeLabel = "Downpayment (50%)";
+                                badgeLabel = "Downpayment";
                                 badgeBg = Colors.STATUS_DOWNPAYMENT_BG;
                                 badgeText = Colors.STATUS_DOWNPAYMENT_TEXT;
                                 badgeIcon = "pie-chart";
@@ -201,7 +238,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                     <View style={styles.breakdownColumns}>
                         <View style={styles.breakdownCol}>
                             <CustomText style={styles.breakdownColLabel}>
-                                {totalRefunded > 0 ? "Gross Collected" : (currentStatus === 'downpayment' ? "Paid (50% Downpayment)" : "Paid Amount")}
+                                {totalRefunded > 0 ? "Gross Collected" : (currentStatus === 'downpayment' ? "Downpayment Paid" : "Paid Amount")}
                             </CustomText>
                             <CustomText style={styles.breakdownColPaid}>₱{grossPaid.toFixed(2)}</CustomText>
                         </View>
@@ -348,38 +385,72 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                         ) : null
                     )}
 
-                    {/* PayMongo Refund & Settlement Rules Card */}
-                    <View style={styles.refundPolicyCard}>
-                        <View style={styles.refundPolicyHeader}>
-                            <CustomIcon library="Feather" name="info" size={16} color={Colors.PRIMARY} />
-                            <CustomText style={styles.refundPolicyTitle}>
-                                PayMongo Refund & Settlement Rules
-                            </CustomText>
+                    {/* Refund & Settlement Rules Card */}
+                    {PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? (
+                        <View style={styles.refundPolicyCard}>
+                            <View style={styles.refundPolicyHeader}>
+                                <CustomIcon library="Feather" name="info" size={16} color={Colors.PRIMARY} />
+                                <CustomText style={styles.refundPolicyTitle}>
+                                    Manual Refund & Cancellation Policy
+                                </CustomText>
+                            </View>
+                            <View style={styles.refundPolicyContent}>
+                                <View style={styles.refundPolicyRow}>
+                                    <CustomIcon library="Feather" name="check-circle" size={13} color={Colors.SUCCESS} style={styles.policyIcon} />
+                                    <CustomText style={styles.refundPolicyText}>
+                                        <CustomText style={styles.policyHighlight}>Direct E-Wallet Refund: </CustomText>
+                                        Refunds are sent directly to the hiker&apos;s GCash or Maya wallet.
+                                    </CustomText>
+                                </View>
+                                <View style={styles.refundPolicyRow}>
+                                    <CustomIcon library="Feather" name="clock" size={13} color="#D97706" style={styles.policyIcon} />
+                                    <CustomText style={styles.refundPolicyText}>
+                                        <CustomText style={styles.policyHighlight}>Same-Day Processing: </CustomText>
+                                        Any refund amount (full, partial, or custom) can be issued immediately today without overnight settlement delays.
+                                    </CustomText>
+                                </View>
+                                <View style={styles.refundPolicyRow}>
+                                    <CustomIcon library="Feather" name="shield" size={13} color={Colors.TEXT_SECONDARY} style={styles.policyIcon} />
+                                    <CustomText style={styles.refundPolicyText}>
+                                        <CustomText style={styles.policyHighlight}>Proof of Transfer: </CustomText>
+                                        After approval, the hiker provides their wallet details and the organizer uploads a payout transfer receipt.
+                                    </CustomText>
+                                </View>
+                            </View>
                         </View>
-                        <View style={styles.refundPolicyContent}>
-                            <View style={styles.refundPolicyRow}>
-                                <CustomIcon library="Feather" name="check-circle" size={13} color={Colors.SUCCESS} style={styles.policyIcon} />
-                                <CustomText style={styles.refundPolicyText}>
-                                    <CustomText style={styles.policyHighlight}>Full Refund (100%): </CustomText>
-                                    Can be processed immediately at any time, including on the same calendar day.
+                    ) : (
+                        <View style={styles.refundPolicyCard}>
+                            <View style={styles.refundPolicyHeader}>
+                                <CustomIcon library="Feather" name="info" size={16} color={Colors.PRIMARY} />
+                                <CustomText style={styles.refundPolicyTitle}>
+                                    PayMongo Refund & Settlement Rules
                                 </CustomText>
                             </View>
-                            <View style={styles.refundPolicyRow}>
-                                <CustomIcon library="Feather" name="clock" size={13} color="#D97706" style={styles.policyIcon} />
-                                <CustomText style={styles.refundPolicyText}>
-                                    <CustomText style={styles.policyHighlight}>Partial Refunds: </CustomText>
-                                    PayMongo requires overnight daily settlement. Partial refunds become available on the next calendar day.
-                                </CustomText>
-                            </View>
-                            <View style={styles.refundPolicyRow}>
-                                <CustomIcon library="Feather" name="shield" size={13} color={Colors.TEXT_SECONDARY} style={styles.policyIcon} />
-                                <CustomText style={styles.refundPolicyText}>
-                                    <CustomText style={styles.policyHighlight}>Custom Amounts: </CustomText>
-                                    Admins can refund exact sums (₱1.00 minimum up to total paid) under the same settlement rules.
-                                </CustomText>
+                            <View style={styles.refundPolicyContent}>
+                                <View style={styles.refundPolicyRow}>
+                                    <CustomIcon library="Feather" name="check-circle" size={13} color={Colors.SUCCESS} style={styles.policyIcon} />
+                                    <CustomText style={styles.refundPolicyText}>
+                                        <CustomText style={styles.policyHighlight}>Full Refund (100%): </CustomText>
+                                        Can be processed immediately at any time, including on the same calendar day.
+                                    </CustomText>
+                                </View>
+                                <View style={styles.refundPolicyRow}>
+                                    <CustomIcon library="Feather" name="clock" size={13} color="#D97706" style={styles.policyIcon} />
+                                    <CustomText style={styles.refundPolicyText}>
+                                        <CustomText style={styles.policyHighlight}>Partial Refunds: </CustomText>
+                                        PayMongo requires overnight daily settlement. Partial refunds become available on the next calendar day.
+                                    </CustomText>
+                                </View>
+                                <View style={styles.refundPolicyRow}>
+                                    <CustomIcon library="Feather" name="shield" size={13} color={Colors.TEXT_SECONDARY} style={styles.policyIcon} />
+                                    <CustomText style={styles.refundPolicyText}>
+                                        <CustomText style={styles.policyHighlight}>Custom Amounts: </CustomText>
+                                        Admins can refund exact sums (₱1.00 minimum up to total paid) under the same settlement rules.
+                                    </CustomText>
+                                </View>
                             </View>
                         </View>
-                    </View>
+                    )}
                 </View>
             )}
 
