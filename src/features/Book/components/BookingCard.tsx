@@ -11,6 +11,7 @@ import { DateInput, formatBookingDate, safeParseDateString } from '@/src/utils/d
 
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 
 const getFormattedUpdateStatus = (
     updatedAt: DateInput,
@@ -85,16 +86,31 @@ const BookingCard: React.FC<BookingCardProps> = ({
     let displayStatus = booking?.status;
 
     const payments = booking?.payment || [];
+    const isPayMongo = payments.some(p => p.gateway === 'paymongo');
+    const hasRefundedPayment = payments.some(p => p.status === 'refunded' || (p.refundedAmount || 0) > 0);
+    const isAllRefunded = payments.length > 0 && payments.every(p => p.status === 'refunded');
     const hasRefundReceipt = Boolean(cancellation?.adminRefundReceiptUrl);
-    const isRefundComplete = booking?.status === 'refunded' || hasRefundReceipt;
+
+    const isRefundComplete =
+        booking?.status === 'refunded' ||
+        hasRefundReceipt ||
+        cancellation?.handshakeStep === 'completed' ||
+        isAllRefunded ||
+        (isPayMongo && hasRefundedPayment);
 
     if (cancellation?.status === 'pending') {
         displayStatus = 'for-cancellation';
     } else if (cancellation?.status === 'approved') {
-        const hasPaidPayments = payments.some(p => p.status === 'captured' || (p.refundedAmount || 0) > 0);
+        const hasCapturedPayments = payments.some(p => p.status === 'captured');
+        const isManualRefundPending =
+            !isPayMongo &&
+            ((cancellation.handshakeStep && cancellation.handshakeStep !== 'completed') ||
+             payments.some(p => p.gateway === 'manual_qr') ||
+             PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
         if (isRefundComplete) {
             displayStatus = 'refunded';
-        } else if (hasPaidPayments || cancellation.refundAmount) {
+        } else if (isManualRefundPending && (hasCapturedPayments || cancellation.refundAmount)) {
             displayStatus = 'refund';
         } else {
             displayStatus = 'cancelled';
@@ -146,11 +162,14 @@ const BookingCard: React.FC<BookingCardProps> = ({
 
     if (!isPast && !isDead) {
         if (displayStatus === 'refund') {
-            if (!cancellation?.userWallet?.accountNumber) {
+            if (!isPayMongo && !cancellation?.userWallet?.accountNumber) {
                 actionLabel = "Submit Wallet";
                 actionColor = Colors.WARNING;
-            } else {
+            } else if (!isPayMongo) {
                 actionLabel = "Awaiting Payout";
+                actionColor = Colors.PRIMARY;
+            } else {
+                actionLabel = "View Details";
                 actionColor = Colors.PRIMARY;
             }
         } else if (['for-payment', 'approved-docs'].includes(displayStatus || '')) {
@@ -175,7 +194,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
 
     const isRejection = ['reservation-rejected', 'cancellation-rejected', 'reschedule-rejected'].includes(displayStatus || '') || isPaymentRejected;
     const isPaymentNeeded = ['for-payment', 'approved-docs'].includes(displayStatus || '') && !isPaymentVerifying;
-    const isWalletNeeded = displayStatus === 'refund' && !cancellation?.userWallet?.accountNumber;
+    const isWalletNeeded = displayStatus === 'refund' && !isPayMongo && !cancellation?.userWallet?.accountNumber;
     const isDownpayment = displayStatus === 'downpayment';
 
     const borderHighlightStyle = !isPast && !isDead
