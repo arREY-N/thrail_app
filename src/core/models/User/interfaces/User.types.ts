@@ -70,4 +70,4 @@ export type LogIn = {
     password: string;
 };
 
-export type Role = 'superadmin' | 'admin' | 'user';
+export type Role = 'superadmin' | 'admin' | 'owner' | 'user';
