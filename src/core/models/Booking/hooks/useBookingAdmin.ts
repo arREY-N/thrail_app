@@ -9,12 +9,14 @@ import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { toDateOrNull } from "@/src/core/utility/date";
 import { catchError, logger, refactorCatcher } from "@/src/core/utility/errorFormatter";
+import { functions } from "@/src/core/config/Firebase";
+import { httpsCallable } from "firebase/functions";
 import { useState } from "react";
 import { Alert } from "react-native";
 
 export function useBookingAdmin() {
     const [localError, setLocalError] = useState<string>();
-    const { profile, role } = useAuthHook();
+    const { profile } = useAuthHook();
     const create = useBookingsStore(s => s.create);
     const error = useBookingsStore(s => s.error);
     const isLoading = useBookingsStore(s => s.isLoading);
@@ -103,13 +105,15 @@ export function useBookingAdmin() {
                 // throw new Error('Missing booking information');
             }
 
-            if (booking.status !== 'paid' && booking.status !== 'downpayment') {
-                throw new Error('Booking is not ready to be confirmed');
+            if (booking.status !== 'paid' || ((booking.remainingBalance ?? 0) > 0)) {
+                throw new Error('Booking is not fully paid. Balance must be 0 before completing.');
             }
 
             const completedBook = newBooking({
                 ...booking,
-                status: 'completed'
+                status: 'completed',
+                remainingBalance: 0,
+                paymentVerificationStatus: 'fully_paid',
             });
 
             const success = await create(completedBook, true);
@@ -134,6 +138,76 @@ export function useBookingAdmin() {
             setLocalError((error as Error).message || 'Failed to confirm payment');
         }
     }
+
+    const onVerifyManualPayment = async (
+        booking: Booking,
+        classification: 'full' | 'downpayment',
+        note?: string,
+        verifiedAmount?: number
+    ) => {
+        try {
+            if (!booking) throw new Error('Missing booking information');
+
+            const verifyManualPaymentFn = httpsCallable(functions, 'verifyManualPayment');
+            await verifyManualPaymentFn({
+                bookingId: booking.id,
+                userId: booking.user?.id,
+                businessId: booking.business?.id,
+                offerId: booking.offer?.id,
+                classification,
+                note,
+                verifiedAmount,
+            });
+
+            return true;
+        } catch (error) {
+            catchError(error as Error, 'writingError', 'onVerifyManualPayment()');
+            setLocalError((error as Error).message || 'Failed to verify payment');
+            throw error;
+        }
+    };
+
+    const onRejectManualPayment = async (booking: Booking, reason: string) => {
+        try {
+            if (!booking) throw new Error('Missing booking information');
+            if (!reason.trim()) throw new Error('Rejection reason is required');
+
+            const verifyManualPaymentFn = httpsCallable(functions, 'verifyManualPayment');
+            await verifyManualPaymentFn({
+                bookingId: booking.id,
+                userId: booking.user?.id,
+                businessId: booking.business?.id,
+                offerId: booking.offer?.id,
+                isRejection: true,
+                rejectionReason: reason.trim(),
+            });
+
+            return true;
+        } catch (error) {
+            catchError(error as Error, 'writingError', 'onRejectManualPayment()');
+            setLocalError((error as Error).message || 'Failed to reject payment');
+            throw error;
+        }
+    };
+
+    const onSettleRemainingBalance = async (booking: Booking) => {
+        try {
+            if (!booking) throw new Error('Missing booking information');
+
+            const settleManualBalanceFn = httpsCallable(functions, 'settleManualBalance');
+            await settleManualBalanceFn({
+                bookingId: booking.id,
+                userId: booking.user?.id,
+                businessId: booking.business?.id,
+            });
+
+            return true;
+        } catch (error) {
+            catchError(error as Error, 'writingError', 'onSettleRemainingBalance()');
+            setLocalError((error as Error).message || 'Failed to settle remaining balance');
+            throw error;
+        }
+    };
 
     const onRejectBooking = async (
         reason: string,
@@ -227,6 +301,9 @@ export function useBookingAdmin() {
         onConfirmPayment,
         onRejectBooking,
         onRescheduleBooking,
+        onVerifyManualPayment,
+        onRejectManualPayment,
+        onSettleRemainingBalance,
         error: localError || error,
         isLoading
     }
