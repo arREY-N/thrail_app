@@ -22,6 +22,7 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { toDateOrNull } from '@/src/core/utility/date';
 
 export type RefundType = 'full' | 'partial' | 'custom' | 'none';
@@ -73,6 +74,8 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const isSubmittingRef = useRef<boolean>(false);
 
+    const isManualProvider = PAYMENT_CONFIG.PROVIDER === 'manual_qr';
+
     // Check if the payment was captured on the same calendar day
     const isCapturedToday = useMemo(() => {
         if (!paymentCapturedAt) return false;
@@ -85,6 +88,10 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
             captured.getDate() === now.getDate()
         );
     }, [paymentCapturedAt]);
+
+    // PayMongo gateways restrict same-day partial refunds until overnight settlement.
+    // Manual QR payments do not have gateway settlement restrictions.
+    const isPayMongoSameDay = !isManualProvider && isCapturedToday;
 
     // Reset internal state when modal opens by tracking previous visible state (React pattern: adjusting state during render)
     const [prevVisible, setPrevVisible] = useState<boolean>(visible);
@@ -115,7 +122,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
             setInputError('Minimum refund amount is ₱1.00');
         } else if (val > amountPaid) {
             setInputError(`Amount cannot exceed total paid (₱${amountPaid.toFixed(2)})`);
-        } else if (isCapturedToday && val < amountPaid) {
+        } else if (isPayMongoSameDay && val < amountPaid) {
             setInputError(`PayMongo Policy: Same-day payments cannot be partially refunded. You can issue a 100% full refund today (₱${amountPaid.toFixed(2)}) or wait until tomorrow.`);
         } else {
             setInputError(null);
@@ -125,7 +132,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
     const handlePresetChip = (percentage: number) => {
         const val = Math.round((amountPaid * (percentage / 100)) * 100) / 100;
         setCustomAmountText(val.toFixed(2));
-        if (isCapturedToday && val < amountPaid) {
+        if (isPayMongoSameDay && val < amountPaid) {
             setInputError(`PayMongo Policy: Same-day payments cannot be partially refunded. You can issue a 100% full refund today (₱${amountPaid.toFixed(2)}) or wait until tomorrow.`);
         } else {
             setInputError(null);
@@ -140,7 +147,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
     const handleConfirm = (type: RefundType) => {
         if (isSubmittingRef.current || isSubmitting || isLoading) return;
 
-        if (type === 'partial' && isCapturedToday) {
+        if (type === 'partial' && isPayMongoSameDay) {
             setInputError('PayMongo Policy: Partial refunds cannot be processed on the same calendar day the payment was captured. Please issue a 100% full refund today, or wait until tomorrow after daily settlement.');
             return;
         }
@@ -154,7 +161,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                 setInputError(`Amount cannot exceed total paid (₱${amountPaid.toFixed(2)})`);
                 return;
             }
-            if (isCapturedToday && parsedCustomAmount < amountPaid) {
+            if (isPayMongoSameDay && parsedCustomAmount < amountPaid) {
                 setInputError(`PayMongo Policy: Same-day payments cannot be partially refunded. Please enter ₱${amountPaid.toFixed(2)} for a full refund or wait until tomorrow.`);
                 return;
             }
@@ -189,7 +196,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
         ? Math.min(100, Math.round((parsedCustomAmount / amountPaid) * 100))
         : 0;
 
-    const isCustomDisabled = isSubmitting || isLoading || !!inputError || parsedCustomAmount < 1.00 || parsedCustomAmount > amountPaid || (isCapturedToday && parsedCustomAmount < amountPaid);
+    const isCustomDisabled = isSubmitting || isLoading || !!inputError || parsedCustomAmount < 1.00 || parsedCustomAmount > amountPaid || (isPayMongoSameDay && parsedCustomAmount < amountPaid);
 
     return (
         <Modal 
@@ -281,7 +288,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                     ]} 
                                     onPress={() => {
                                         setSelectedType('partial');
-                                        if (isCapturedToday) {
+                                        if (isPayMongoSameDay) {
                                             setInputError('PayMongo Policy: Partial refunds (< 100%) cannot be processed on the same calendar day. You may issue a 100% full refund today, or wait until tomorrow after daily settlement.');
                                         } else {
                                             handleConfirm('partial');
@@ -299,7 +306,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                             <CustomText variant="body" style={styles.optionLabel}>
                                                 Partial Refund (10%)
                                             </CustomText>
-                                            {isCapturedToday && (
+                                            {isPayMongoSameDay && (
                                                 <View style={styles.sameDayBadge}>
                                                     <CustomIcon library="Feather" name="clock" size={11} color="#B45309" />
                                                     <CustomText style={styles.sameDayBadgeText}>Available Tomorrow</CustomText>
@@ -316,8 +323,8 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                     </CustomText>
                                 </TouchableOpacity>
 
-                                {/* Same-Day Warning Box for Partial Refund */}
-                                {selectedType === 'partial' && isCapturedToday && (
+                                {/* Same-Day Warning Box for Partial Refund (PayMongo only) */}
+                                {selectedType === 'partial' && isPayMongoSameDay && (
                                     <View style={styles.sameDayWarningBox}>
                                         <CustomIcon library="Feather" name="alert-triangle" size={16} color="#B45309" />
                                         <CustomText style={styles.sameDayWarningText}>
@@ -428,16 +435,25 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                             </CustomText>
                                         ) : null}
 
-                                        {/* PayMongo Gateway Warning Box */}
-                                        <View style={styles.warningBox}>
-                                            <CustomIcon library="Feather" name="info" size={16} color="#B45309" />
-                                            <CustomText style={styles.warningText}>
-                                                {isCapturedToday
-                                                    ? "Note: This payment was captured today. PayMongo requires payments to settle overnight before partial refunds can be processed. Only 100% Full Refunds are available today."
-                                                    : "Note: PayMongo gateway does not allow partial refunds on the same calendar day the payment was captured."
-                                                }
-                                            </CustomText>
-                                        </View>
+                                        {/* Warning / Info Box */}
+                                        {isManualProvider ? (
+                                            <View style={[styles.warningBox, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
+                                                <CustomIcon library="Feather" name="info" size={16} color={Colors.PRIMARY} />
+                                                <CustomText style={[styles.warningText, { color: '#166534' }]}>
+                                                    Manual E-Wallet Refund: You can issue any refund amount on the same day. After approval, the hiker will submit their GCash or Maya details for direct transfer.
+                                                </CustomText>
+                                            </View>
+                                        ) : (
+                                            <View style={styles.warningBox}>
+                                                <CustomIcon library="Feather" name="info" size={16} color="#B45309" />
+                                                <CustomText style={styles.warningText}>
+                                                    {isCapturedToday
+                                                        ? "Note: This payment was captured today. PayMongo requires payments to settle overnight before partial refunds can be processed. Only 100% Full Refunds are available today."
+                                                        : "Note: PayMongo gateway does not allow partial refunds on the same calendar day the payment was captured."
+                                                    }
+                                                </CustomText>
+                                            </View>
+                                        )}
 
                                         {/* Custom Confirm Button */}
                                         <TouchableOpacity
@@ -536,7 +552,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                         <View style={[styles.warningBox, { backgroundColor: '#FEE2E2', borderColor: '#FECACA' }]}>
                                             <CustomIcon library="Feather" name="alert-triangle" size={16} color={Colors.ERROR} />
                                             <CustomText style={[styles.warningText, { color: '#991B1B' }]}>
-                                                Notice: The reserved slot will be released back to the tour inventory, but no PayMongo refund will be transferred.
+                                                Notice: The reserved slot will be released back to the tour inventory, but no refund will be transferred.
                                             </CustomText>
                                         </View>
 
