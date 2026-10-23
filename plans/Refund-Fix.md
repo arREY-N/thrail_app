@@ -699,6 +699,42 @@ Historical bookings paid and refunded via **PayMongo** (e.g., *Mt. Batulao*, *Mt
    - `isRefundComplete` evaluates `totalRefundedAmount > 0 || status === 'refunded'` for PayMongo transactions without requiring manual upload proof.
    - Scoped manual payout upload actions and wallet wait notices strictly to manual QR transactions.
 
+---
+
+## 16. Booking Status Tracker Lifecycle Alignment (Downpayment, Paid, Confirmed)
+
+### 🐛 Problem Statement
+1. **Misleading Downpayment Text**: When an organizer verifies a partial payment (downpayment), the 3rd step on the 4-step progress tracker displayed a hardcoded label `"50% PAID"` instead of `"DOWNPAYMENT"`.
+2. **Premature Confirmation**: Once full payment (or balance payment) was verified, the booking status transitioned to `'paid'`. However, the 4-step progress tracker immediately jumped to the 4th step and highlighted `"CONFIRMED"`, even though the organizer had not yet clicked `"Complete Booking"` in the admin review screen.
+
+### 🔍 Root Cause Analysis
+1. In [`BookingStatus.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/BookingStatus.tsx), `case 'downpayment'` hardcoded `overrideLabel = '50% PAID'`.
+2. In `BookingStatus.tsx`, `'paid'` was grouped together in the same switch case with `'completed'`:
+   ```ts
+   case 'paid':
+   case 'completed':
+   case 'rescheduled':
+   case 'finished':
+       currentIndex = 3;
+       overrideLabel = 'CONFIRMED';
+       overrideIcon = 'check-circle';
+       break;
+   ```
+   This assigned `currentIndex = 3` (the 4th step) as soon as the status became `'paid'`. In the application lifecycle, `'paid'` simply means the transaction amount has been captured; the organizer still has the action button `"Complete Booking"` in [ReviewScreen.tsx](file:///d:/thrail_app/src/features/Admin/screens/Booking/ReviewScreen.tsx) to finalize the reservation and add the hiker to the tour group chat (which sets `status = 'completed'`).
+
+### 🛠️ Resolution & Implementation Details
+1. **Downpayment Label**:
+   - In `BookingStatus.tsx`, `case 'downpayment'` now sets `overrideLabel = 'DOWNPAYMENT'` (or `'VERIFYING'` if balance verification is pending).
+2. **Decouple 'paid' from 'completed'**:
+   - `case 'paid'` now targets `currentIndex = 2` with `overrideLabel = 'PAID'` and `overrideIcon = 'check-circle'`.
+   - Step 4 (`CONFIRMED`) remains gray/pending while the booking is in `'paid'` status.
+3. **Confirmed State Upon Finalization**:
+   - Only `case 'completed'` (and terminal `'rescheduled'` / `'finished'`) sets `currentIndex = 3` to activate `"CONFIRMED"`.
+   - When `isDone` is true for Step 2 (index 2), the label displays `'PAID'` so the completed flow clearly reads: `DOCS REVIEW` $\rightarrow$ `PAYMENT` $\rightarrow$ `PAID` $\rightarrow$ `CONFIRMED`.
+4. **Status Configuration Alignment ([`statusConfig.ts`](file:///d:/thrail_app/src/constants/statusConfig.ts))**:
+   - Updated `'paid'` userLabel from `'VERIFYING PAYMENT'` to `'PAID'` to reflect verified payment status.
+
+
 
 
 
