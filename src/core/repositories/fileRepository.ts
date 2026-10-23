@@ -73,6 +73,33 @@ class FileRepositoryImpl {
             throw new Error('An error occurred while uploading document');
         }
     }
+
+    async uploadBusinessFile(businessId: string, folder: string, file: SelectedFile): Promise<string> {
+        if (!file) throw new Error('No file provided for upload');
+        const auth = getAuth();
+        const user = auth.currentUser;
+
+        try {
+            if (!user)
+                throw new Error('User must be authenticated to upload files');
+
+            const contentType = resolveContentType(file);
+            const response = await fetch(file.uri);
+            const blob: Blob = await response.blob();
+
+            const storageRef = ref(storage, `businesses/${businessId}/${folder}/${Date.now()}_${file.name}`);
+            const snapshot: UploadResult = await uploadBytes(storageRef, blob, { contentType });
+            const downloadURL = await getDownloadURL(snapshot.ref);
+
+            if (!downloadURL)
+                throw new Error('Failed to retrieve download URL after upload');
+
+            return downloadURL;
+        } catch (err) {
+            if (err instanceof Error) throw err;
+            throw new Error('An error occurred while uploading business file');
+        }
+    }
 }
 
 export const FileRepository = new FileRepositoryImpl();
