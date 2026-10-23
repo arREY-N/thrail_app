@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from tars import engine, compute_alpha, GD, ED, CS
 from batch_runner import run_batch_recommendations
+from profile_utils import CANONICAL_FEATURES
 from firebase_client import get_current_month_id, initialize_firebase, save_user_recommendations
 
 logging.basicConfig(
@@ -47,6 +48,8 @@ class AdminRunEngineRequest(BaseModel):
     candidate_trails: Optional[List[Dict[str, Any]]] = Field(default=None, description="Optional trail list override")
     users: Optional[List[Dict[str, Any]]] = Field(default=None, description="Optional user list override")
     commit_to_firestore: bool = Field(default=True, description="Save results directly into Firestore")
+    feature_weights: Optional[Dict[str, float]] = Field(default=None, description="Custom feature weights map")
+    generate_ai_reasoning: bool = Field(default=True, description="Pre-generate Gemini AI reasoning for top 1 recommendations")
 
 
 class SingleRecommendRequest(BaseModel):
@@ -56,6 +59,7 @@ class SingleRecommendRequest(BaseModel):
     cbf_engine: str = "GD"
     cf_engine: str = "GD"
     active_user_count: int = 10
+    feature_weights: Optional[Dict[str, float]] = None
 
 
 @app.get("/")
@@ -65,6 +69,18 @@ def health_check():
         "status": "healthy",
         "service": "TARS Recommendation Engine",
         "version": "2.0.0"
+    }
+
+
+@app.get("/api/admin/features")
+def get_canonical_features():
+    """
+    Returns the canonical 32-feature registry along with their default weights,
+    categories, and labels for Superadmin customization.
+    """
+    return {
+        "total_features": len(CANONICAL_FEATURES),
+        "features": CANONICAL_FEATURES
     }
 
 
@@ -84,7 +100,9 @@ async def admin_run_engine(payload: AdminRunEngineRequest):
             month_id=payload.month_id,
             candidate_trails=payload.candidate_trails,
             users=payload.users,
-            commit_to_firestore=payload.commit_to_firestore
+            commit_to_firestore=payload.commit_to_firestore,
+            feature_weights=payload.feature_weights,
+            generate_ai_reasoning=payload.generate_ai_reasoning
         )
         return report
     except Exception as e:
