@@ -13,6 +13,16 @@ export interface IRecommendedTrailItem {
     cfScore?: number;         // CF distance component
 }
 
+export interface IAITrailReasoning {
+    summary: string;
+    physicalFit: string;
+    terrainFit: string;
+    provinceFit: string;
+    safetyTips: string;
+    generatedAt: string;
+    source?: 'gemini' | 'algorithmic';
+}
+
 export interface IEngineConfig {
     cbf: string;
     cf: string;
@@ -34,6 +44,7 @@ export interface IRecommendationBase<T> {
     difficult: IRecommendedTrailItem[];        // All candidate trails scored for difficult profile
     engineConfig?: IEngineConfig;
     trails?: IRecommendedTrailItem[];          // Compatibility alias
+    aiReasonings?: Record<string, IAITrailReasoning>; // Cached AI reasoning per trailId
 }
 
 export type IRecommendationDB = IRecommendationBase<Timestamp | FieldValue>;
