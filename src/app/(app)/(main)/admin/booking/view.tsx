@@ -46,6 +46,9 @@ export default function AdminViewBooking() {
         onConfirmPayment,
         onRejectBooking,
         onRescheduleBooking,
+        onVerifyManualPayment,
+        onRejectManualPayment,
+        onSettleRemainingBalance,
         error: bookingError,
         isLoading: isBookingLoading,
     } = useBookingAdmin();
@@ -56,6 +59,8 @@ export default function AdminViewBooking() {
         processCancellationRequest,
         cancelUserBooking,
         revertCancellationRequest,
+        approveWithManualRefund,
+        uploadRefundProof,
         isWriting: isCancellationWriting,
         writingError: cancellationWritingError,
     } = useCancellationAdmin(bookingId);
@@ -118,6 +123,30 @@ export default function AdminViewBooking() {
                 }}
                 onRevertCancellation={revertCancellationRequest}
                 onAdminCancelBooking={cancelUserBooking}
+                onVerifyManualPayment={async (classification, note, b, verifiedAmount) => {
+                    const targetBooking = b || booking;
+                    if (targetBooking) {
+                        await onVerifyManualPayment(targetBooking, classification, note, verifiedAmount);
+                    }
+                }}
+                onRejectManualPayment={async (reason, b) => {
+                    const targetBooking = b || booking;
+                    if (targetBooking) {
+                        await onRejectManualPayment(targetBooking, reason);
+                    }
+                }}
+                onSettleRemainingBalance={async (b) => {
+                    const targetBooking = b || booking;
+                    if (targetBooking) {
+                        await onSettleRemainingBalance(targetBooking);
+                    }
+                }}
+                onUploadRefundProof={async (file, req, b) => {
+                    await uploadRefundProof(file, req || cancellationRequest, b || booking);
+                }}
+                onApproveWithManualRefund={async (amount, req, b) => {
+                    await approveWithManualRefund(amount, req || cancellationRequest, b || booking);
+                }}
             />
         </>
     );
