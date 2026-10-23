@@ -711,6 +711,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 onUploadRefundProof={onUploadRefundProof ? handleUploadRefundProof : undefined}
                                 isUploadingProof={isUploadingProof}
                                 onApproveWithManualRefund={onApproveWithManualRefund ? handleApproveWithManualRefund : undefined}
+                                payments={booking.payment}
                             />
 
                             {isHikerCancellationPending && isDecliningCancellation && (
