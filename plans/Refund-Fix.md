@@ -661,5 +661,44 @@ The webhook handler (`paymentWebhook`) uses a robust multi-strategy lookup:
 ### 🏁 Final Audit Verdict
 All partial refund display anomalies and status discrepancies across Hiker and Admin interfaces have been resolved. Partial refunds (e.g. ₱200 out of ₱1,100) now cleanly itemize the refund amount, calculate the net balance paid, display the `REFUNDED` badge, and ensure consistent financial logging across both Cloud Functions and frontend state.
 
+---
+
+## 15. Manual QR & PayMongo Refund Coexistence (Pending Tab & 'Submit Wallet' Fix)
+
+### 🐛 Problem Statement
+Historical bookings paid and refunded via **PayMongo** (e.g., *Mt. Batulao*, *Mt. Daraitan*, *Mt. Tagapo*) unexpectedly reappeared in the **Pending** tab with an amber `[REFUNDING]` badge and an action button reading `"Submit Wallet >"`, accompanied by past refund timestamps such as `"Refunded 3d ago"`.
+
+### 🔍 Root Cause Analysis
+1. **Global Provider Assumption**: The app switched its default provider configuration to `PAYMENT_CONFIG.PROVIDER = 'manual_qr'`. However, several status evaluation functions relied on `PAYMENT_CONFIG.PROVIDER === 'manual_qr'` rather than inspecting the specific booking's payment gateway (`payment.gateway`).
+2. **Missing Receipt URL on PayMongo**: When active manual refunds were routed to the **Pending** tab to allow hikers to submit their e-wallet details, completion was checked via `Boolean(cancellation.adminRefundReceiptUrl)`. Because PayMongo refunds are automated direct-to-wallet/card API refunds, they do not possess an admin receipt image upload (`adminRefundReceiptUrl` is `undefined`).
+3. **Status Misclassification**:
+   - In `useBookingFilters.ts`, because `adminRefundReceiptUrl` was undefined, `isRefundComplete` evaluated to `false`.
+   - The code then checked `payments.some(p => p.status === 'captured' || (p.refundedAmount || 0) > 0)`, which evaluated to `true` on refunded PayMongo transactions.
+   - This caused `getBookingEffectiveStatus` to return `'refund'` (refunding).
+   - Because `'refund'` was placed in the **Pending** tab and the hike dates were in the future, these past PayMongo bookings reappeared in **Pending**.
+4. **Phantom Wallet Action**:
+   - In `BookingCard.tsx`, because `displayStatus` was `'refund'` and `cancellation.userWallet` was undefined (PayMongo does not use the user wallet handshake), the card defaulted to `actionLabel = "Submit Wallet"` and highlighted the card in warning border style.
+
+### 🛠️ Resolution & Implementation Details
+1. **Per-Transaction Gateway Recognition ([`useBookingFilters.ts`](file:///d:/thrail_app/src/features/Book/hooks/useBookingFilters.ts))**:
+   - `getBookingEffectiveStatus` now inspects `payments.some(p => p.gateway === 'paymongo')`.
+   - If `(isPayMongo && hasRefundedPayment) || isAllRefunded || booking.status === 'refunded'`, it immediately returns `'refunded'`.
+   - Scopes `isManualRefundPending` strictly to non-PayMongo transactions (`!isPayMongo && ...`).
+   - Cleanly routes all historical PayMongo refunded bookings to the **History** tab with terminal `'refunded'` status.
+2. **Hiker Card Action Guard ([`BookingCard.tsx`](file:///d:/thrail_app/src/features/Book/components/BookingCard.tsx))**:
+   - Evaluates `isRefundComplete` with `(isPayMongo && hasRefundedPayment)`.
+   - Restricts `isWalletNeeded` and `actionLabel = "Submit Wallet"` to `!isPayMongo`. PayMongo transactions never prompt for wallet submission.
+3. **Hiker Booking Details Parity ([`BookingDetailsScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/BookingDetailsScreen.tsx))**:
+   - Updated `isRefundComplete` to recognize completed PayMongo refunds and all-refunded payment arrays.
+   - Restricts `isManualRefundPending` to `!isPayMongo`.
+4. **Hiker Lifecycle Cancellation Card ([`CancellationCard.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/CancellationCard.tsx))**:
+   - Differentiates `isManualRefund` from `isPayMongo` transactions.
+   - PayMongo refunded cancellations display "Refund issued via PayMongo · Booking closed" and confirm that the funds were returned to the original payment method without rendering the manual GCash/Maya wallet submission box.
+5. **Admin Review Interface ([`AdminCancellationCard.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/components/AdminCancellationCard.tsx) & [`ReviewScreen.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/ReviewScreen.tsx))**:
+   - Propagated `booking.payment` to `AdminCancellationCard`.
+   - `isRefundComplete` evaluates `totalRefundedAmount > 0 || status === 'refunded'` for PayMongo transactions without requiring manual upload proof.
+   - Scoped manual payout upload actions and wallet wait notices strictly to manual QR transactions.
+
+
 
 
