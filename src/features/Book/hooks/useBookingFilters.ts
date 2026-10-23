@@ -6,6 +6,8 @@ import { TabItem } from '@/src/features/Book/components/BookTabs';
 import { FilterSection } from '@/src/components/CustomFilterModal';
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
+
 export type TabId = 'upcoming' | 'pending' | 'history';
 export type SortBy = 'hike-date' | 'booked-date' | 'last-updated';
 export type SortOrder = 'asc' | 'desc';
@@ -21,15 +23,38 @@ export const getBookingEffectiveStatus = (
     const cancellationDoc = userCancellations?.find(
         c => c.bookingId === booking.id
     );
+    const payments = booking.payment || [];
+    const isPayMongo = payments.some(p => p.gateway === 'paymongo');
+    const hasRefundedPayment = payments.some(p => p.status === 'refunded' || (p.refundedAmount || 0) > 0);
+    const isAllRefunded = payments.length > 0 && payments.every(p => p.status === 'refunded');
+    const hasRefundReceipt = Boolean(cancellationDoc?.adminRefundReceiptUrl);
+
+    // A refund is fully completed if:
+    // 1. Booking status is already 'refunded'
+    // 2. Admin uploaded refund receipt proof (manual QR)
+    // 3. Handshake is marked 'completed'
+    // 4. PayMongo payment was already refunded
+    // 5. All payments are marked 'refunded'
+    const isFullyRefunded =
+        booking.status === 'refunded' ||
+        hasRefundReceipt ||
+        cancellationDoc?.handshakeStep === 'completed' ||
+        isAllRefunded ||
+        (isPayMongo && hasRefundedPayment);
+
+    if (isFullyRefunded) {
+        return 'refunded';
+    }
+
     if (cancellationDoc?.status === 'approved') {
-        const hasRefundReceipt = Boolean(cancellationDoc.adminRefundReceiptUrl);
-        const isFullyRefunded = booking.status === 'refunded' || hasRefundReceipt;
-        if (isFullyRefunded) {
-            return 'refunded';
-        }
-        const payments = booking.payment || [];
-        const hasPaidPayments = payments.some(p => p.status === 'captured' || (p.refundedAmount || 0) > 0);
-        if (hasPaidPayments || cancellationDoc.refundAmount) {
+        const hasCapturedPayments = payments.some(p => p.status === 'captured');
+        const isManualRefundPending =
+            !isPayMongo &&
+            ((cancellationDoc.handshakeStep && cancellationDoc.handshakeStep !== 'completed') ||
+             payments.some(p => p.gateway === 'manual_qr') ||
+             PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
+        if (isManualRefundPending && (hasCapturedPayments || cancellationDoc.refundAmount)) {
             return 'refund';
         }
         return 'cancelled';
@@ -44,6 +69,17 @@ export const getBookingEffectiveStatus = (
         booking.status !== 'refunded'
     ) {
         return 'cancellation-rejected';
+    }
+    if (booking.status === 'refund') {
+        const hasCapturedPayments = payments.some(p => p.status === 'captured');
+        const isManualRefundPending =
+            !isPayMongo &&
+            (payments.some(p => p.gateway === 'manual_qr') || PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
+        if (isManualRefundPending && (hasCapturedPayments || cancellationDoc?.refundAmount)) {
+            return 'refund';
+        }
+        return 'cancelled';
     }
     return booking.status;
 };
@@ -203,7 +239,6 @@ export default function useBookingFilters(
             const isPast = hikeDate.getTime() < today.getTime();
             const isDead = [
                 'cancelled',
-                'refund',
                 'refunded',
                 'finished',
                 'expired',
