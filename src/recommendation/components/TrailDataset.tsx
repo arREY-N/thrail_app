@@ -857,7 +857,7 @@ const styles = StyleSheet.create({
     },
     retryText: {
         color: Colors.WHITE,
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "600",
     },
     tableCard: {
@@ -890,20 +890,20 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
     },
     th: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_SECONDARY,
         paddingHorizontal: 6,
     },
     thSub: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: "500",
         color: Palette.Neutral400,
         paddingHorizontal: 6,
         marginTop: 2,
     },
     thSubCenter: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: "500",
         color: Palette.Neutral400,
         textAlign: "center",
@@ -939,7 +939,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     valRaw: {
-        fontSize: 10,
+        fontSize: 12,
         color: Palette.Neutral400,
         textAlign: "center",
     },
@@ -1002,12 +1002,12 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     savedBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "600",
         color: Palette.Green700,
     },
     unsavedBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "600",
         color: Palette.Amber700,
     },
@@ -1022,7 +1022,7 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
     inspectBtnText: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.TEXT_PRIMARY,
     },
@@ -1136,7 +1136,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
     },
     modalSubId: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         marginTop: 2,
     },
@@ -1192,7 +1192,7 @@ const styles = StyleSheet.create({
         borderBottomColor: Palette.Slate200,
     },
     calcTh: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "700",
         color: Colors.TEXT_SECONDARY,
     },
@@ -1205,16 +1205,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     calcTd: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_PRIMARY,
     },
     calcTdBold: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.TEXT_PRIMARY,
     },
     calcTdMuted: {
-        fontSize: 10,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
     },
     calcTdValue: {
@@ -1257,7 +1257,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     pendingBadgeText: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "600",
         color: Palette.Amber500,
     },
