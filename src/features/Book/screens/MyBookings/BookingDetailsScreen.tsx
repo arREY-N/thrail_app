@@ -29,6 +29,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { Booking, BookingStatus, Requirements } from "@/src/core/models/Booking/Booking";
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { IOffer } from "@/src/core/models/Offer/Offer";
 import { IEmergencyContact, User } from '@/src/core/models/User/User';
 import { logger } from '@/src/core/utility/errorFormatter';
@@ -202,16 +203,34 @@ const BookingDetailsScreen = ({
         cancellation?.cancelledBy === 'admin' ||
         (localStatus === 'cancelled' && booking?.cancelledBy === 'admin');
 
-    const isRefundComplete = Boolean(cancellation?.adminRefundReceiptUrl) || localStatus === 'refunded';
+    const payments = booking?.payment || [];
+    const isPayMongo = payments.some(p => p.gateway === 'paymongo');
+    const hasRefundedPayment = payments.some(p => p.status === 'refunded' || (p.refundedAmount || 0) > 0);
+    const isAllRefunded = payments.length > 0 && payments.every(p => p.status === 'refunded');
+    const hasRefundReceipt = Boolean(cancellation?.adminRefundReceiptUrl);
+
+    const isRefundComplete =
+        localStatus === 'refunded' ||
+        hasRefundReceipt ||
+        cancellation?.handshakeStep === 'completed' ||
+        isAllRefunded ||
+        (isPayMongo && hasRefundedPayment);
 
     let displayStatus: BookingStatus | undefined = localStatus;
 
     if (cancellation?.status === 'pending') {
         displayStatus = 'for-cancellation';
     } else if (cancellation?.status === 'approved') {
+        const hasCapturedPayments = payments.some(p => p.status === 'captured');
+        const isManualRefundPending =
+            !isPayMongo &&
+            ((cancellation.handshakeStep && cancellation.handshakeStep !== 'completed') ||
+             payments.some(p => p.gateway === 'manual_qr') ||
+             PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
         if (isRefundComplete) {
             displayStatus = 'refunded';
-        } else if (amountPaid > 0 || cancellation?.refundAmount) {
+        } else if (isManualRefundPending && (hasCapturedPayments || cancellation?.refundAmount)) {
             displayStatus = 'refund';
         } else {
             displayStatus = 'cancelled';
