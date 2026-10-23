@@ -22,6 +22,16 @@ export const getBookingEffectiveStatus = (
         c => c.bookingId === booking.id
     );
     if (cancellationDoc?.status === 'approved') {
+        const hasRefundReceipt = Boolean(cancellationDoc.adminRefundReceiptUrl);
+        const isFullyRefunded = booking.status === 'refunded' || hasRefundReceipt;
+        if (isFullyRefunded) {
+            return 'refunded';
+        }
+        const payments = booking.payment || [];
+        const hasPaidPayments = payments.some(p => p.status === 'captured' || (p.refundedAmount || 0) > 0);
+        if (hasPaidPayments || cancellationDoc.refundAmount) {
+            return 'refund';
+        }
         return 'cancelled';
     }
     if (cancellationDoc?.status === 'pending') {
@@ -41,7 +51,10 @@ export const getBookingEffectiveStatus = (
 /**
  * Checks whether a booking status requires user action or attention.
  */
-export const isActionNeededStatus = (status: string): boolean => {
+export const isActionNeededStatus = (status: string, cancellation?: Cancellation | null): boolean => {
+    if (status === 'refund') {
+        return !cancellation?.userWallet?.accountNumber;
+    }
     return [
         'reservation-rejected',
         'approved-docs',
@@ -81,10 +94,11 @@ export const computeOptimalTab = (
     today.setHours(0, 0, 0, 0);
 
     const hasPendingAction = bookings.some((b) => {
+        const cancelDoc = cancellations?.find(c => c.bookingId === b.id);
         const st = getBookingEffectiveStatus(b, cancellations);
         const hikeDate = safeParseDateString(b.offer?.date);
         const isPast = hikeDate.getTime() < today.getTime();
-        return !isPast && isActionNeededStatus(st) && [
+        return !isPast && isActionNeededStatus(st, cancelDoc) && [
             'for-reservation',
             'reservation-rejected',
             'approved-docs',
@@ -93,6 +107,7 @@ export const computeOptimalTab = (
             'for-cancellation',
             'cancellation-rejected',
             'reschedule-rejected',
+            'refund',
         ].includes(st);
     });
     if (hasPendingAction) return 'pending';
@@ -126,6 +141,7 @@ export const computeOptimalTab = (
             'for-cancellation',
             'cancellation-rejected',
             'reschedule-rejected',
+            'refund',
         ].includes(st);
     });
     if (hasPending) return 'pending';
@@ -208,11 +224,13 @@ export default function useBookingFilters(
                 'for-cancellation',
                 'cancellation-rejected',
                 'reschedule-rejected',
+                'refund',
             ].includes(status)) {
                 tab = 'pending';
             }
 
-            if (isActionNeededStatus(status)) {
+            const cancelDoc = userCancellations?.find(c => c.bookingId === booking.id);
+            if (isActionNeededStatus(status, cancelDoc)) {
                 counts[tab] += 1;
             }
         });
@@ -253,7 +271,6 @@ export default function useBookingFilters(
             const isPast = hikeDate.getTime() < today.getTime();
             const isDead = [
                 'cancelled',
-                'refund',
                 'refunded',
                 'finished',
                 'expired',
@@ -273,6 +290,7 @@ export default function useBookingFilters(
                     'for-cancellation',
                     'cancellation-rejected',
                     'reschedule-rejected',
+                    'refund',
                 ].includes(status);
             }
 
@@ -284,12 +302,16 @@ export default function useBookingFilters(
         });
 
         if (filterBy === 'action-needed') {
-            filtered = filtered.filter(b => isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations)));
+            filtered = filtered.filter(b => {
+                const cancelDoc = userCancellations?.find(c => c.bookingId === b.id);
+                return isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations), cancelDoc);
+            });
         } else if (filterBy === 'waiting') {
             filtered = filtered.filter(b => [
                 'for-reservation',
                 'for-reschedule',
                 'for-cancellation',
+                'refund',
             ].includes(getBookingEffectiveStatus(b, userCancellations)));
         } else if (filterBy === 'partial') {
             filtered = filtered.filter(b => getBookingEffectiveStatus(b, userCancellations) === 'downpayment');
@@ -298,8 +320,10 @@ export default function useBookingFilters(
         filtered.sort((a, b) => {
             // 1. Smart Action-First: prioritize action-needed bookings in pending and upcoming
             if (activeTab === 'pending' || activeTab === 'upcoming') {
-                const aAction = isActionNeededStatus(getBookingEffectiveStatus(a, userCancellations));
-                const bAction = isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations));
+                const aCancel = userCancellations?.find(c => c.bookingId === a.id);
+                const bCancel = userCancellations?.find(c => c.bookingId === b.id);
+                const aAction = isActionNeededStatus(getBookingEffectiveStatus(a, userCancellations), aCancel);
+                const bAction = isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations), bCancel);
                 if (aAction !== bAction) {
                     return aAction ? -1 : 1;
                 }
