@@ -297,6 +297,15 @@ match /users/{userId}/recommendations/{recoId} {
 }
 ```
 
+### 5.3. Pre-Generated AI Reasoning Specifications (`engine/gemini_reasoning.py`)
+To prevent client-side latency and avoid leaking API keys, AI reasoning for the spotlight recommendation is pre-computed during the monthly batch run and stored under `aiReasonings.{trailId}`.
+
+**Prompting & Output Governance Rules:**
+1. **Non-Interactive & Straight to the Point:** Explanations must be direct, concise, and objective. Conversational greetings ("Hey hiker!"), rhetorical questions, motivational cheerleading, and first-person coach banter are strictly prohibited.
+2. **System Naming Constraint:** Explanations must reference the recommendation engine exclusively as **"THARESYS"**. The full expanded name ("Thrail App Recommendation System") is never used in user-facing explanations.
+3. **Medical & Technical Terminology:** The term "compatibility" is strictly forbidden; explanations exclusively use **"profile match"** or **"profile similarity"** to reflect vector distance calculations.
+4. **Concrete Quantitative Comparisons:** Must explicitly contrast trail specs (length, elevation gain, gradient) against the user's calibrated numerical baselines.
+
 ---
 
 ## 6. Client-Side Data Models & Services

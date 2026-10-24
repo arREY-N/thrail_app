@@ -100,7 +100,7 @@ export const SAMPLE_CHALLENGE_RECOMMENDATION: Recommendation = {
     ],
     aiReasonings: {
         "mock_daraitan": {
-            summary: "None of our active trails are currently predicted to be easy for your baseline. As your Challenge of the Month, Mt. Daraitan (69% profile match) represents the nearest, most accessible challenge to your capabilities. At 8.0 km with +600 m elevation gain, it will push your stamina beyond your comfortable baseline. Please review the physical demands carefully and proceed with proper training, hydration, and caution.",
+            summary: "No trails in the database are currently predicted easy for your baseline. THARESYS selected Mt. Daraitan (69% profile match) as your Challenge of the Month because it is the nearest accessible difficult trail to your capabilities. At 8.0 km and +600 m elevation gain, it exceeds your baseline (4.8 km, +303 m) and requires adequate preparation and safety caution.",
             physicalFit: "Based on your calibrated baseline average length of 4.8 km, Mt. Daraitan's 8.0 km route represents a +3.2 km endurance challenge. Its +600 m ascent exceeds your +303 m climbing threshold, and its 15% gradient tests technical footwork on limestone terrain.",
             terrainFit: "Mt. Daraitan features rugged limestone scrambles and exposed forested paths. While technical, it has established guide infrastructure with local community marshals at the barangay hall.",
             provinceFit: "Situated in Tanay, Rizal, this trail aligns with your stated regional accessibility preference in Calabarzon.",

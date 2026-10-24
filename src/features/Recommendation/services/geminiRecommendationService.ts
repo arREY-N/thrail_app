@@ -92,7 +92,7 @@ export function buildAlgorithmicReasoning(
         ? " Calibrated with your health profile considerations, the physical demands remain safely cushioned within your comfort ceiling."
         : "";
 
-    const summary = `${trailName} was evaluated as your #1 spotlight match for ${monthLabel} with a ${profileMatch}% profile similarity. Based on your calibrated average length of ${userBaseKm} km, this ${distanceStr} route is an ideal fit (${lenComp}). Paired with an ascent of ${gainStr} (${gainComp} of +${userBaseGain} m), THARESYS identified this summit as the ideal balance of cardiovascular pacing and rewarding viewpoints.${medicalContext}`;
+    const summary = `${trailName} was evaluated by THARESYS as your #1 spotlight match for ${monthLabel} with a ${profileMatch}% profile similarity. At ${distanceStr} with ${gainStr} elevation gain, this route directly aligns with your calibrated baselines of ${userBaseKm} km (${lenComp}) and +${userBaseGain} m (${gainComp}).${medicalContext}`;
 
     const physicalFit = `Based on your calibrated average length of ${userBaseKm} km, the trail's ${distanceStr} route provides a comfortable cushion against endurance fatigue. Its ${gainStr} ascent is tailored to your +${userBaseGain} m elevation ceiling, while the ${slopeStr} gradient (against your ~${userBaseSlope}% baseline) ensures a steady, sustainable pace to the summit at ${elevStr}.`;
 

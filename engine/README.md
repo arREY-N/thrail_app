@@ -49,6 +49,12 @@ In [batch_runner.py](file:///c:/Users/LENOVO/Documents/dev/thrail_app/engine/bat
   - In the Recommendation Details screen (`view.tsx`), the header dynamically switches to **"Challenge of the Month"** and displays a prominent **Challenge Spotlight Notice** informing the user that no trails are currently predicted to be easy for their profile, prompting caution and thorough preparation.
   - Gemini AI reasoning acknowledges this challenge context directly in its narrative summary and safety tips.
 
+### AI Reasoning & Explanation Rules (`gemini_reasoning.py`)
+- **Tone & Style:** Strictly straight to the point, direct, concise, and objective. Non-interactive without conversational greetings ("Hey hiker!"), rhetorical questions, or coach banter.
+- **System Naming:** Strictly uses **"THARESYS"** only. Never expands to the full name ("Thrail App Recommendation System").
+- **Terminology:** Strictly uses **"profile match"** or **"profile similarity"** (never "compatibility").
+- **Quantitative Comparisons:** Grounded in direct numerical comparisons between the hiker's calibrated baselines (distance, elevation gain, gradient) and the trail's actual specs.
+
 ### UI Testing & Challenge Preview Mock
 To preview how the UI behaves when a user has no easy trails:
 - Sample Document: [sampleRecommendation.ts](file:///c:/Users/LENOVO/Documents/dev/thrail_app/src/core/models/Recommendation/mocks/sampleRecommendation.ts)

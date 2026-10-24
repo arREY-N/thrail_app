@@ -127,18 +127,16 @@ def build_algorithmic_reasoning(
 
     if is_challenge:
         summary = (
-            f"None of our available trails are currently predicted to be easy for your baseline. "
-            f"As your Challenge of the Month, {trail_name} ({profile_match}% profile match) represents the nearest, "
-            f"most accessible challenging trail to your capabilities. At {distance_str} with {gain_str} elevation gain, "
-            f"it will push your stamina beyond your comfortable baseline ({len_comp}, {gain_comp}). "
-            f"Please review the physical demands carefully and proceed with proper training and caution."
+            f"No trails in the database are currently predicted easy for your baseline. "
+            f"THARESYS selected {trail_name} ({profile_match}% profile match) as your Challenge of the Month because "
+            f"it is the nearest accessible difficult trail to your capabilities. At {distance_str} and {gain_str} elevation gain, "
+            f"it exceeds your baseline ({len_comp}, {gain_comp}) and requires adequate preparation and safety caution."
         )
     else:
         summary = (
-            f"{trail_name} was evaluated as your #1 spotlight match for {month_label} with a {profile_match}% profile similarity. "
-            f"Based on your calibrated average length of {user_base_km} km, this {distance_str} route is an ideal fit ({len_comp}). "
-            f"Paired with an ascent of {gain_str} ({gain_comp} of +{user_base_gain} m), "
-            f"THARESYS identified this summit as the ideal balance of cardiovascular pacing and rewarding viewpoints.{medical_context}"
+            f"THARESYS evaluated {trail_name} as your #1 spotlight match for {month_label} with a {profile_match}% profile similarity. "
+            f"At {distance_str} with {gain_str} elevation gain, this route directly aligns with your calibrated baselines of "
+            f"{user_base_km} km ({len_comp}) and +{user_base_gain} m ({gain_comp}).{medical_context}"
         )
 
     physical_fit = (
@@ -263,29 +261,40 @@ def generate_gemini_reasoning(
 
     if is_challenge:
         spotlight_context = (
-            f"IMPORTANT CONTEXT: None of the available trails in the database are currently predicted to be easy for this hiker's baseline. "
-            f"Therefore, THARESYS has selected {trail_name} as their #1 'Challenge of the Month'—it is the nearest, most accessible "
-            f"difficult trail relative to their profile. Explain that while it exceeds their comfortable baseline, "
-            f"it is their closest aspirational challenge. Emphasize proper preparation, guided hiking, and safety caution."
+            f"CONTEXT: None of the available trails in the database are currently predicted to be easy for this hiker's baseline. "
+            f"THARESYS has selected {trail_name} as their 'Challenge of the Month' because it is the nearest, most accessible "
+            f"difficult trail relative to their profile. State directly that it exceeds their comfortable baseline, "
+            f"serves as their closest aspirational challenge, and requires proper training and safety precautions."
         )
     else:
         spotlight_context = (
-            f"The Thrail App Recommendation System (THARESYS) has mathematically analyzed this hiker and crowned this trail as "
-            f"their #1 'Trail of the Month' based on their calibrated Easy Anchor profile. "
-            f"Explain the technical reasoning behind this recommendation in supportive, motivating, and safety-conscious language."
+            f"THARESYS has mathematically evaluated this hiker and identified {trail_name} as their "
+            f"#1 'Trail of the Month' based on their calibrated Easy Anchor profile. "
+            f"Provide a straight-to-the-point explanation of why this trail was selected based on their metrics."
         )
 
-    prompt = f"""You are an expert mountaineering coach and outdoor safety advisor for THRAIL, a hiking platform in the Philippines.
+    prompt = f"""You are a technical mountaineering analyst for THRAIL.
 {spotlight_context}
 
-CRITICAL INSTRUCTION ON TERMINOLOGY:
-NEVER use the word "compatibility". Always use "profile match" or "profile similarity", because THARESYS computes mathematical vector distance against calibrated anchor baselines, not clinical or medical compatibility.
+CRITICAL RULES:
+1. TONE AND STYLE:
+   - Be strictly straight to the point, direct, concise, and objective.
+   - Do NOT be conversational, interactive, or chatty.
+   - Do NOT use greetings, rhetorical questions, motivational cheerleading, or coach banter (e.g., no "Hey hiker!", "Welcome", "Are you ready?", "As your coach", or "Let's conquer this!").
+   - Deliver a clear, factual explanation focusing on the direct alignment between the hiker's metrics and the trail specifications.
 
-CRITICAL INSTRUCTION ON NUMERICAL COMPARISONS:
-You MUST include concrete numerical comparisons between the hiker's calibrated baseline metrics and the trail's actual specs in the "summary" and "physicalFit" sections:
-- Explicitly compare the trail length ({distance_str}) against their calibrated baseline average length of {user_base_km} km (e.g., "Based on your calibrated average length of {user_base_km} km, this {distance_str} route is an ideal fit...").
-- Compare the elevation gain ({gain_str}) against their target gain ceiling (+{user_base_gain} m).
-- Compare the route gradient ({slope_str}) against their baseline comfortable slope (~{user_base_slope}%).
+2. SYSTEM NAME:
+   - NEVER use the full name "Thrail App Recommendation System", "Thrail Recommendation System", or any expanded variation.
+   - Use "THARESYS" only when referring to the recommendation system.
+
+3. TERMINOLOGY:
+   - NEVER use the word "compatibility". Always use "profile match" or "profile similarity".
+
+4. NUMERICAL COMPARISONS:
+   - You MUST include direct numerical comparisons between the hiker's calibrated baseline metrics and the trail's actual specs in the "summary" and "physicalFit" sections:
+     * Compare trail length ({distance_str}) directly against calibrated average length of {user_base_km} km.
+     * Compare elevation gain ({gain_str}) directly against target gain ceiling (+{user_base_gain} m).
+     * Compare route gradient ({slope_str}) directly against baseline comfortable slope (~{user_base_slope}%).
 
 Hiker Calibrated Easy Anchor Profile (Target Baselines):
 - Calibrated Comfort Distance Baseline: {user_base_km} km
@@ -311,11 +320,11 @@ THARESYS Mathematical Scoring:
 
 Generate a JSON response strictly adhering to this schema (do NOT wrap in markdown backticks, output raw valid JSON):
 {{
-  "summary": "2-3 sentences providing an executive summary of why this trail is the #1 spotlight easy match for {month_label}.",
-  "physicalFit": "1-2 sentences on how the trail length, elevation gain, peak MASL, and slope gradient match the hiker's cardiovascular stamina threshold.",
-  "terrainFit": "1-2 sentences explaining how the {circuit_str} route layout and trail terrain provide comfortable navigation.",
-  "provinceFit": "1 sentence on the geographic proximity and province match for accessible travel.",
-  "safetyTips": "1-2 actionable, safety-first trail tips (hydration, footwear, weather pacing, medical mindfulness) tailored specifically for {trail_name}."
+  "summary": "1-2 direct, factual sentences summarizing why THARESYS selected this trail for {month_label}.",
+  "physicalFit": "1-2 direct sentences stating how length, elevation gain, peak MASL, and slope compare to the hiker's baseline.",
+  "terrainFit": "1 direct sentence on route layout ({circuit_str}) and terrain footing.",
+  "provinceFit": "1 direct sentence on regional location match in {province}.",
+  "safetyTips": "1-2 concise, actionable safety points tailored specifically for {trail_name}."
 }}"""
 
     for model_name in CANDIDATE_MODELS:
@@ -328,8 +337,8 @@ Generate a JSON response strictly adhering to this schema (do NOT wrap in markdo
                 }
             ],
             "generationConfig": {
-                "temperature": 0.3,
-                "maxOutputTokens": 700,
+                "temperature": 0.2,
+                "maxOutputTokens": 600,
                 "responseMimeType": "application/json"
             }
         }
