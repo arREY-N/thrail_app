@@ -1,10 +1,10 @@
-# TARS Recommendation Engine - Google Cloud Run Deployment Plan
+# THARESYS Recommendation Engine - Google Cloud Run Deployment Plan
 
 ## 1. Executive Summary
 
-This implementation plan details the strategy and step-by-step procedures to deploy the **Thrail Recommendation Engine (TARS)** microservice (`/engine`) to **Google Cloud Run**. 
+This implementation plan details the strategy and step-by-step procedures to deploy the **Thrail Recommendation Engine (THARESYS)** microservice (`/engine`) to **Google Cloud Run**. 
 
-Currently, TARS runs on a local development server (`http://localhost:8000` or `http://10.0.2.2:8000`), requiring a developer's machine to be running for recommendation generation and administration. Transitioning to Google Cloud Run decouples the system from local environments, providing high availability, automated scaling, automated HTTPS, and native integration with the existing Firebase Firestore project (`thrail`).
+Currently, THARESYS runs on a local development server (`http://localhost:8000` or `http://10.0.2.2:8000`), requiring a developer's machine to be running for recommendation generation and administration. Transitioning to Google Cloud Run decouples the system from local environments, providing high availability, automated scaling, automated HTTPS, and native integration with the existing Firebase Firestore project (`thrail`).
 
 ---
 
@@ -217,9 +217,9 @@ export const getTarsApiBaseUrl = (): string => {
 
 | Step | Action | Expected Result |
 | :--- | :--- | :--- |
-| **1. Health Check** | `GET https://<cloud-run-url>/` | Returns HTTP 200 with `{"status": "healthy", "service": "TARS Recommendation Engine"}`. |
+| **1. Health Check** | `GET https://<cloud-run-url>/` | Returns HTTP 200 with `{"status": "healthy", "service": "THARESYS Recommendation Engine"}`. |
 | **2. Feature Registry** | `GET https://<cloud-run-url>/api/admin/features` | Returns the 32 canonical features with categories and default weights. |
-| **3. Mobile App Connection** | Open SuperAdmin dashboard in Thrail App | TARS Status Indicator displays **"Online / Connected"** (green indicator). |
+| **3. Mobile App Connection** | Open SuperAdmin dashboard in Thrail App | THARESYS Status Indicator displays **"Online / Connected"** (green indicator). |
 | **4. Batch Recommendation Execution** | Trigger "Run Monthly Recommendations" from SuperAdmin | Executes batch run, generates similarity matrices, requests Gemini AI reasoning, and writes recommendations to `/users/{userId}/recommendations/{YYYY-MM}` in Firestore without timeouts. |
 | **5. Cold Start Verification** | Send request after 15 minutes of inactivity | Instance spins up within ~3-5 seconds and completes request successfully. |
 

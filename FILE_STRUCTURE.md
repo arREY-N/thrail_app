@@ -61,6 +61,18 @@ thrail_app/
 │   └── storage_export/
 │       └── buckets.json
 │
+├── engine/                         ← Production TARS Recommendation Microservice (FastAPI + Batch Runner)
+│   ├── README.md                   ← Architecture, 32-dim features, & local setup guide
+│   ├── app.py                      ← FastAPI server endpoints
+│   ├── batch_runner.py             ← Batch runner with disjoint partitioning
+│   ├── tars.py                     ← Core hybrid blending formula & dynamic alpha
+│   ├── profile_utils.py            ← 32-feature vector extraction & weights
+│   ├── gemini_reasoning.py         ← Gemini AI coach reasoning generator
+│   ├── firebase_client.py          ← Firestore persistence & data access
+│   ├── test_metrics.py             ← Distance formula verification tests
+│   ├── formula/                    ← Gower, Euclidean, Cosine distance engines
+│   └── requirements.txt
+│
 ├── functions/                     ← Firebase Cloud Functions
 │   ├── index.js
 │   ├── package.json
