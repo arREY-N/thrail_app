@@ -162,7 +162,11 @@ const BookingCard: React.FC<BookingCardProps> = ({
 
     if (!isPast && !isDead) {
         if (displayStatus === 'refund') {
-            if (!isPayMongo && !cancellation?.userWallet?.accountNumber) {
+            const isAwaitingDecision = cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || (!cancellation?.refundAmount && cancellation?.refundDecision !== 'no_refund');
+            if (isAwaitingDecision) {
+                actionLabel = "Awaiting Decision";
+                actionColor = Colors.STATUS_PENDING_TEXT;
+            } else if (!isPayMongo && !cancellation?.userWallet?.accountNumber) {
                 actionLabel = "Submit Wallet";
                 actionColor = Colors.WARNING;
             } else if (!isPayMongo) {
