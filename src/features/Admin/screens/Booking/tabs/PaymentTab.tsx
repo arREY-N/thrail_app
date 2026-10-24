@@ -4,15 +4,17 @@
  * Provides functions to verify downpayment and full payment amounts.
  */
 
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
+import { formatDate } from '@/src/core/utility/date';
 import { ManualQRVerificationCard } from '../components/ManualQRVerificationCard';
 
 /**
@@ -52,6 +54,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     onSettleRemainingBalance,
     isProcessing = false,
 }) => {
+    const [previewReceiptUrl, setPreviewReceiptUrl] = useState<string | null>(null);
     const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
     const isLockedStatus = ['reservation-rejected', 'cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired', 'for-cancellation', 'for-reschedule'].includes(currentStatus);
 
@@ -323,6 +326,32 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                     </CustomText>
                                 </View>
 
+                                {/* Payment Classification Row (Downpayment vs Full Payment) */}
+                                {paymentRecord.classification && (
+                                    <View style={styles.paymentRow}>
+                                        <CustomText style={styles.paymentLabel}>Payment Type</CustomText>
+                                        <View style={[
+                                            styles.classificationBadge,
+                                            paymentRecord.classification === 'downpayment'
+                                                ? styles.classificationBadgeDownpayment
+                                                : styles.classificationBadgeFull
+                                        ]}>
+                                            <CustomIcon
+                                                library="Feather"
+                                                name={paymentRecord.classification === 'downpayment' ? 'pie-chart' : 'check-circle'}
+                                                size={11}
+                                                color={paymentRecord.classification === 'downpayment' ? Colors.STATUS_DOWNPAYMENT_TEXT : Colors.SUCCESS}
+                                            />
+                                            <CustomText style={[
+                                                styles.classificationBadgeText,
+                                                { color: paymentRecord.classification === 'downpayment' ? Colors.STATUS_DOWNPAYMENT_TEXT : Colors.SUCCESS }
+                                            ]}>
+                                                {paymentRecord.classification === 'downpayment' ? 'DOWNPAYMENT' : 'FULL PAYMENT'}
+                                            </CustomText>
+                                        </View>
+                                    </View>
+                                )}
+
                                 {/* Original Amount Row */}
                                 <View style={styles.paymentRow}>
                                     <CustomText style={styles.paymentLabel}>Original Amount</CustomText>
@@ -357,12 +386,133 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                 )}
 
                                 {/* Reference Code (stacked row - prioritizes pay_ ID) */}
-                                <View style={[styles.paymentRowStacked, styles.noBorder]}>
+                                <View style={[styles.paymentRowStacked, (!paymentRecord.receiptUrl && !paymentRecord.refundProofUrl) && styles.noBorder]}>
                                     <CustomText style={styles.paymentLabelStacked}>Reference No.</CustomText>
                                     <CustomText style={styles.paymentValueStacked} selectable={true}>
                                         {paymentRecord.gatewayId || paymentRecord.referenceCode || paymentRecord.sessionId || 'N/A'}
                                     </CustomText>
                                 </View>
+
+                                {/* User Payment Receipt Screenshot (Documented for Audit) */}
+                                {paymentRecord.receiptUrl && (
+                                    <View style={styles.receiptProofSection}>
+                                        <View style={styles.receiptProofHeader}>
+                                            <View style={styles.receiptProofHeaderTitle}>
+                                                <CustomIcon library="MaterialCommunityIcons" name="receipt-text-outline" size={15} color={Colors.PRIMARY} />
+                                                <CustomText style={styles.receiptProofTitle}>
+                                                    Payment Receipt
+                                                </CustomText>
+                                            </View>
+                                            {(paymentRecord.paidAt || paymentRecord.createdAt) && (
+                                                <CustomText style={styles.receiptProofDate}>
+                                                    {formatDate(paymentRecord.paidAt || paymentRecord.createdAt)}
+                                                </CustomText>
+                                            )}
+                                        </View>
+
+                                        <View style={styles.receiptProofContent}>
+                                            <TouchableOpacity
+                                                activeOpacity={0.85}
+                                                onPress={() => setPreviewReceiptUrl(paymentRecord.receiptUrl!)}
+                                                style={styles.receiptThumbnailWrapper}
+                                                accessibilityRole="button"
+                                                accessibilityLabel="View payment receipt in full screen"
+                                            >
+                                                <Image 
+                                                    source={{ uri: paymentRecord.receiptUrl }} 
+                                                    style={styles.receiptThumbnail} 
+                                                    resizeMode="cover" 
+                                                />
+                                                <View style={styles.receiptZoomOverlay}>
+                                                    <CustomIcon library="Feather" name="maximize-2" size={11} color={Colors.WHITE} />
+                                                    <CustomText style={styles.receiptZoomText}>View</CustomText>
+                                                </View>
+                                            </TouchableOpacity>
+
+                                            <View style={styles.receiptProofMeta}>
+                                                <CustomText style={styles.receiptTapHint}>
+                                                    User submitted payment receipt screenshot. Tap to view full size.
+                                                </CustomText>
+
+                                                {paymentRecord.adminNote ? (
+                                                    <View style={styles.receiptAdminNoteBox}>
+                                                        <CustomText style={styles.receiptAdminNoteLabel}>Admin Note:</CustomText>
+                                                        <CustomText style={styles.receiptAdminNoteText}>
+                                                            {paymentRecord.adminNote}
+                                                        </CustomText>
+                                                    </View>
+                                                ) : null}
+
+                                                <TouchableOpacity
+                                                    activeOpacity={0.8}
+                                                    onPress={() => setPreviewReceiptUrl(paymentRecord.receiptUrl!)}
+                                                    style={styles.enlargeButton}
+                                                >
+                                                    <CustomIcon library="Feather" name="zoom-in" size={13} color={Colors.PRIMARY} />
+                                                    <CustomText style={styles.enlargeButtonText}>
+                                                        Enlarge Receipt
+                                                    </CustomText>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    </View>
+                                )}
+
+                                {/* Refund Payout Proof (if available) */}
+                                {paymentRecord.refundProofUrl && (
+                                    <View style={[styles.receiptProofSection, styles.refundProofSection]}>
+                                        <View style={styles.receiptProofHeader}>
+                                            <View style={styles.receiptProofHeaderTitle}>
+                                                <CustomIcon library="Feather" name="arrow-up-right" size={15} color={Colors.ERROR} />
+                                                <CustomText style={[styles.receiptProofTitle, { color: Colors.ERROR }]}>
+                                                    Refund Payout Proof
+                                                </CustomText>
+                                            </View>
+                                            {paymentRecord.refundedAt && (
+                                                <CustomText style={styles.receiptProofDate}>
+                                                    {formatDate(paymentRecord.refundedAt)}
+                                                </CustomText>
+                                            )}
+                                        </View>
+
+                                        <View style={styles.receiptProofContent}>
+                                            <TouchableOpacity
+                                                activeOpacity={0.85}
+                                                onPress={() => setPreviewReceiptUrl(paymentRecord.refundProofUrl!)}
+                                                style={styles.receiptThumbnailWrapper}
+                                                accessibilityRole="button"
+                                                accessibilityLabel="View refund payout proof in full screen"
+                                            >
+                                                <Image 
+                                                    source={{ uri: paymentRecord.refundProofUrl }} 
+                                                    style={styles.receiptThumbnail} 
+                                                    resizeMode="cover" 
+                                                />
+                                                <View style={styles.receiptZoomOverlay}>
+                                                    <CustomIcon library="Feather" name="maximize-2" size={11} color={Colors.WHITE} />
+                                                    <CustomText style={styles.receiptZoomText}>View</CustomText>
+                                                </View>
+                                            </TouchableOpacity>
+
+                                            <View style={styles.receiptProofMeta}>
+                                                <CustomText style={styles.receiptTapHint}>
+                                                    Proof of refund transfer to hiker. Tap to view full size.
+                                                </CustomText>
+
+                                                <TouchableOpacity
+                                                    activeOpacity={0.8}
+                                                    onPress={() => setPreviewReceiptUrl(paymentRecord.refundProofUrl!)}
+                                                    style={styles.enlargeButton}
+                                                >
+                                                    <CustomIcon library="Feather" name="zoom-in" size={13} color={Colors.ERROR} />
+                                                    <CustomText style={[styles.enlargeButtonText, { color: Colors.ERROR }]}>
+                                                        Enlarge Proof
+                                                    </CustomText>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    </View>
+                                )}
                             </View>
                         );
                     })}
@@ -470,6 +620,15 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                         You must approve all documents before accessing the payment verification phase.
                     </CustomText>
                 </View>
+            )}
+
+            {/* Fullscreen Image Preview Modal */}
+            {previewReceiptUrl && (
+                <ImagePreviewModal
+                    visible={Boolean(previewReceiptUrl)}
+                    imageUrl={previewReceiptUrl}
+                    onClose={() => setPreviewReceiptUrl(null)}
+                />
             )}
             
         </View>
@@ -785,6 +944,137 @@ const styles = StyleSheet.create({
     policyHighlight: {
         fontWeight: '700',
         color: Colors.TEXT_PRIMARY,
+    },
+
+    // Classification Badge
+    classificationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    classificationBadgeDownpayment: {
+        backgroundColor: Colors.STATUS_DOWNPAYMENT_BG,
+    },
+    classificationBadgeFull: {
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+    },
+    classificationBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+    },
+
+    // Receipt Proof Section inside Transaction Box
+    receiptProofSection: {
+        marginTop: 10,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_ULTRALIGHT,
+    },
+    refundProofSection: {
+        borderTopColor: Colors.ERROR_BORDER,
+    },
+    receiptProofHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    receiptProofHeaderTitle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    receiptProofTitle: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+    },
+    receiptProofDate: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+    },
+    receiptProofContent: {
+        flexDirection: 'row',
+        gap: 12,
+        alignItems: 'flex-start',
+    },
+    receiptThumbnailWrapper: {
+        width: 84,
+        height: 110,
+        borderRadius: 8,
+        overflow: 'hidden',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        position: 'relative',
+    },
+    receiptThumbnail: {
+        width: '100%',
+        height: '100%',
+    },
+    receiptZoomOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 3,
+        gap: 3,
+    },
+    receiptZoomText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: Colors.WHITE,
+    },
+    receiptProofMeta: {
+        flex: 1,
+        justifyContent: 'space-between',
+        gap: 6,
+    },
+    receiptTapHint: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 15,
+    },
+    receiptAdminNoteBox: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 6,
+        padding: 6,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
+    },
+    receiptAdminNoteLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: Colors.TEXT_SECONDARY,
+    },
+    receiptAdminNoteText: {
+        fontSize: 11,
+        color: Colors.TEXT_PRIMARY,
+        marginTop: 2,
+    },
+    enlargeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        alignSelf: 'flex-start',
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 6,
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    enlargeButtonText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: Colors.PRIMARY,
     },
 });
 
