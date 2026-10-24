@@ -6,7 +6,6 @@
 
 import { HomeFlow } from '@/src/core/flows/HomeFlow';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
-import React from 'react';
 
 /**
  * Controller for the Home Tab.
@@ -20,6 +19,7 @@ export default function Home() {
         onDownloadPress,
         onWeatherPress,
         onSeeMoreRecommendationsPress,
+        onTrailOfTheMonthPress,
         onSeeMoreDiscoverPress,
         onSeeMoreOffersPress,
         onGroupPress,
@@ -27,6 +27,7 @@ export default function Home() {
         trails,
         onViewTrail,
         isNewAccount,
+        recommendation,
         recommendationError,
         recommendationIsLoading,
         offers,
@@ -37,14 +38,14 @@ export default function Home() {
         onRefreshPress,
     } = HomeFlow();
 
-
     return (
         <HomeScreen
             onWeatherPress={onWeatherPress}
             onSeeMoreRecommendationsPress={onSeeMoreRecommendationsPress}
+            onTrailOfTheMonthPress={onTrailOfTheMonthPress}
             onSeeMoreDiscoverPress={onSeeMoreDiscoverPress}
             onSeeMoreOffersPress={onSeeMoreOffersPress}
-            recommendedTrails={[]}
+            recommendation={recommendation}
             isRecommendationsLoading={recommendationIsLoading}
             recommendationsError={recommendationError}
             isNewAccount={isNewAccount}
