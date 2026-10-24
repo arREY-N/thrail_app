@@ -53,7 +53,8 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [previewReceiptVisible, setPreviewReceiptVisible] = useState<boolean>(false);
 
-    const refundAmount = cancellation?.refundAmount || (booking?.payment?.reduce((sum, p) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0);
+    const isAwaitingAdminDecision = (cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || cancellation?.refundAmount === undefined) && !existingWallet?.accountNumber;
+    const refundAmount = cancellation?.refundAmount ?? 0;
     const hasSubmittedWallet = Boolean(existingWallet?.accountNumber);
     const adminProofReceipt = cancellation?.adminRefundReceiptUrl;
 
@@ -64,6 +65,11 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
     };
 
     const handleSubmit = async () => {
+        if (isAwaitingAdminDecision) {
+            showToast.error('Please wait for the organizer to specify the refund amount before submitting wallet details.');
+            return;
+        }
+
         const cleanedNumber = accountNumber.replace(/\D/g, '');
         if (cleanedNumber.length !== 11 || !cleanedNumber.startsWith('09')) {
             showToast.error('Please enter a valid 11-digit Philippine mobile number starting with 09.');
@@ -114,10 +120,10 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
                                 <CustomIcon library="Feather" name="corner-up-left" size={28} color={Colors.PRIMARY} />
                             </View>
                             <CustomText variant="caption" style={styles.heroSubtitle}>
-                                Approved Refund Amount
+                                {isAwaitingAdminDecision ? 'Refund Amount Pending' : 'Approved Refund Amount'}
                             </CustomText>
-                            <CustomText variant="h1" style={styles.heroAmount}>
-                                ₱{refundAmount.toFixed(2)}
+                            <CustomText variant={isAwaitingAdminDecision ? 'h2' : 'h1'} style={isAwaitingAdminDecision ? styles.heroAmountPending : styles.heroAmount}>
+                                {isAwaitingAdminDecision ? 'Awaiting Organizer' : `₱${refundAmount.toFixed(2)}`}
                             </CustomText>
                             <View style={styles.trailInfoBox}>
                                 <CustomText style={styles.trailName} numberOfLines={1}>
@@ -165,8 +171,19 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
                             <CustomText style={styles.formInstructions}>
                                 {hasSubmittedWallet
                                     ? 'The organizer will transfer your refund to the account below and provide receipt proof.'
-                                    : 'Please choose GCash or Maya and provide your 11-digit mobile number and registered account name.'}
+                                    : (isAwaitingAdminDecision
+                                        ? 'The organizer is currently setting the refund amount. You will be able to submit your wallet once confirmed.'
+                                        : 'Please choose GCash or Maya and provide your 11-digit mobile number and registered account name.')}
                             </CustomText>
+
+                            {isAwaitingAdminDecision && (
+                                <View style={styles.decisionPendingBanner}>
+                                    <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_PENDING_TEXT} />
+                                    <CustomText style={styles.decisionPendingText}>
+                                        The organizer has not yet set the refund amount for this booking. Wallet submission will be enabled once the amount is finalized.
+                                    </CustomText>
+                                </View>
+                            )}
 
                             {/* Wallet Selector */}
                             <View style={styles.walletTypeRow}>
@@ -242,9 +259,10 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
                             />
 
                             <CustomButton
-                                title={isSubmitting ? 'Saving...' : (hasSubmittedWallet ? 'Update Wallet Details' : 'Submit Refund Wallet')}
-                                variant="primary"
+                                title={isSubmitting ? 'Saving...' : (isAwaitingAdminDecision ? 'Awaiting Organizer Amount' : (hasSubmittedWallet ? 'Update Wallet Details' : 'Submit Refund Wallet'))}
+                                variant={isAwaitingAdminDecision ? 'outline' : 'primary'}
                                 onPress={handleSubmit}
+                                disabled={isAwaitingAdminDecision}
                                 isLoading={isSubmitting || isLoading}
                                 style={styles.submitBtn}
                             />
@@ -306,6 +324,26 @@ const styles = StyleSheet.create({
         fontSize: 32,
         fontWeight: 'bold',
         color: Colors.PRIMARY,
+    },
+    heroAmountPending: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: Colors.STATUS_PENDING_TEXT,
+    },
+    decisionPendingBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: Colors.STATUS_PENDING_BG,
+        padding: 12,
+        borderRadius: 10,
+        marginBottom: 10,
+    },
+    decisionPendingText: {
+        flex: 1,
+        fontSize: 12,
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 16,
     },
     trailInfoBox: {
         marginTop: 8,
