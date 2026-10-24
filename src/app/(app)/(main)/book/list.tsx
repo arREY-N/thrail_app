@@ -3,13 +3,13 @@ import { CreateBookingFlow } from "@/src/core/flows/CreateBookingFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useBookingUserList, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useCancellationUser, useCancellationUserList } from "@/src/core/models/Cancellation/Cancellation";
-import { getOffer, newOffer } from "@/src/core/models/Offer/Offer";
+import { getOffer, useOfferList } from "@/src/core/models/Offer/Offer";
 import { useRescheduleUser } from "@/src/core/models/Reschedule/Reschedule";
 import { useAuthHook } from "@/src/core/models/User/User";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import MyBookingsScreen from "@/src/features/Book/screens/MyBookings/MyBookingsScreen";
 import { useLocalSearchParams } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 export default function ListBook() {
     const { bookingId: rawBookingId, view: rawView } = useLocalSearchParams();
@@ -75,6 +75,13 @@ export default function ListBook() {
         }
     }, [profileId]);
 
+    const [currentTime] = useState(() => Date.now());
+    const { offers } = useOfferList();
+    const futureOffers = useMemo(
+        () => offers.filter(o => o.id && new Date(o.date).getTime() > currentTime),
+        [offers, currentTime]
+    );
+
     return (
         <MyBookingsScreen
             userBookings={bookings || []}
@@ -93,7 +100,7 @@ export default function ListBook() {
             onRescheduleBooking={onRescheduleBooking}
             onPayOffer={onPayOffer}
             getBookOffer={getOffer}
-            availableFutureOffers={[newOffer(), newOffer()]}
+            availableFutureOffers={futureOffers}
             initialBookingId={bookingId}
             initialView={view}
             currentUserProfile={profile}
