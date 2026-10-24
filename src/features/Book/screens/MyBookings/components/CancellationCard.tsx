@@ -289,6 +289,25 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                                                     <CustomText style={styles.updateWalletBtnText}>Edit Wallet Details</CustomText>
                                                 </TouchableOpacity>
                                             </View>
+                                        ) : cancellation?.refundDecision === 'no_refund' || (cancellation?.refundAmount === 0 && cancellation?.status === 'approved') ? (
+                                            <View style={styles.infoBanner}>
+                                                <CustomIcon library="Feather" name="info" size={16} color={Colors.TEXT_SECONDARY} />
+                                                <CustomText style={styles.infoBannerText}>
+                                                    This booking has been cancelled and finalized without a refund.
+                                                </CustomText>
+                                            </View>
+                                        ) : (cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || cancellation?.refundAmount === undefined) ? (
+                                            <View style={styles.awaitingDecisionBox}>
+                                                <View style={styles.awaitingDecisionHeader}>
+                                                    <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_PENDING_TEXT} />
+                                                    <CustomText style={styles.awaitingDecisionTitle}>
+                                                        Cancellation Accepted — Awaiting Refund Amount
+                                                    </CustomText>
+                                                </View>
+                                                <CustomText style={styles.awaitingDecisionText}>
+                                                    You have accepted the cancellation. The organizer is reviewing this booking to set the refund amount. Once the organizer specifies the amount, you will be prompted to submit your GCash or Maya wallet details here.
+                                                </CustomText>
+                                            </View>
                                         ) : (
                                             <View style={styles.needWalletBox}>
                                                 <View style={styles.needWalletHeader}>
@@ -298,7 +317,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                                                     </CustomText>
                                                 </View>
                                                 <CustomText style={styles.needWalletText}>
-                                                    Please submit your GCash or Maya wallet so the organizer can send your refund of ₱{(cancellation?.refundAmount || totalAmountPaid).toFixed(2)}.
+                                                    The organizer has approved a refund of ₱{(cancellation?.refundAmount ?? totalAmountPaid).toFixed(2)}. Please submit your GCash or Maya wallet so the organizer can send your payment.
                                                 </CustomText>
                                                 <TouchableOpacity
                                                     style={styles.enterWalletBtn}
@@ -588,6 +607,25 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                                                 <CustomText style={styles.updateWalletBtnText}>Edit Wallet Details</CustomText>
                                             </TouchableOpacity>
                                         </View>
+                                    ) : cancellation?.refundDecision === 'no_refund' || (cancellation?.refundAmount === 0 && cancellation?.status === 'approved') ? (
+                                        <View style={styles.infoBanner}>
+                                            <CustomIcon library="Feather" name="info" size={16} color={Colors.TEXT_SECONDARY} />
+                                            <CustomText style={styles.infoBannerText}>
+                                                Your cancellation has been approved and finalized without a refund.
+                                            </CustomText>
+                                        </View>
+                                    ) : (cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || cancellation?.refundAmount === undefined) ? (
+                                        <View style={styles.awaitingDecisionBox}>
+                                            <View style={styles.awaitingDecisionHeader}>
+                                                <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_PENDING_TEXT} />
+                                                <CustomText style={styles.awaitingDecisionTitle}>
+                                                    Cancellation Approved — Awaiting Refund Amount
+                                                </CustomText>
+                                            </View>
+                                            <CustomText style={styles.awaitingDecisionText}>
+                                                Your cancellation request is approved. The organizer is currently finalizing the refund amount. You will be prompted to submit your GCash or Maya wallet details once the amount is set.
+                                            </CustomText>
+                                        </View>
                                     ) : (
                                         <View style={styles.needWalletBox}>
                                             <View style={styles.needWalletHeader}>
@@ -597,7 +635,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                                                 </CustomText>
                                             </View>
                                             <CustomText style={styles.needWalletText}>
-                                                Please submit your GCash or Maya wallet so the organizer can send your refund of ₱{(cancellation?.refundAmount || totalAmountPaid).toFixed(2)}.
+                                                The organizer has approved a refund of ₱{(cancellation?.refundAmount ?? totalAmountPaid).toFixed(2)}. Please submit your GCash or Maya wallet so the organizer can send your payment.
                                             </CustomText>
                                             <TouchableOpacity
                                                 style={styles.enterWalletBtn}
@@ -1080,6 +1118,27 @@ const styles = StyleSheet.create({
     manualRefundHandshakeBox: {
         marginTop: 12,
         gap: 10,
+    },
+    awaitingDecisionBox: {
+        backgroundColor: Colors.STATUS_PENDING_BG,
+        borderRadius: 12,
+        padding: 14,
+        gap: 6,
+    },
+    awaitingDecisionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    awaitingDecisionTitle: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: Colors.STATUS_PENDING_TEXT,
+    },
+    awaitingDecisionText: {
+        fontSize: 12,
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 16,
     },
     needWalletBox: {
         backgroundColor: Colors.PRIMARY_LIGHT,
