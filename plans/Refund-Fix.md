@@ -755,14 +755,132 @@ When hikers selected "Manual Payment (QR Code)" and tapped **"Save QR to Gallery
      - `photosPermission`: "Allow Thrail to save payment QR codes to your photo gallery."
      - `savePhotosPermission`: "Allow Thrail to save payment QR codes to your photo gallery."
    - Added `"WRITE_EXTERNAL_STORAGE"` to Android permissions array to support older Android devices.
-3. **Gallery Save Workflow (`ManualQRMethodScreen.tsx`)**:
-   - Imported `* as MediaLibrary from 'expo-media-library'`.
+3. **Gallery Save Workflow & Web/SSR Compatibility (`ManualQRMethodScreen.tsx`)**:
+   - Imported `* as MediaLibrary from 'expo-media-library/legacy'` to prevent Metro SSR / Node web bundling crashes (`TypeError: Class extends value undefined is not a constructor or null` caused by the unmocked experimental `next` class module in Node).
    - Updated `handleSaveQR`:
      - Downloads remote QR code image to a local temporary file in document directory.
      - Requests permission via `MediaLibrary.requestPermissionsAsync()`.
      - Upon permission grant (`permission.granted`), invokes `MediaLibrary.saveToLibraryAsync(uri)`.
      - Shows toast confirmation: `"QR Code saved to Gallery!"`.
      - Gracefully falls back to `Sharing.shareAsync(uri)` if permissions are denied or if the device environment encounters a media library exception.
+
+---
+
+## 18. Manual Refund Handshake Sequencing: Admin Decision Precedes Hiker Wallet Entry
+
+### 🐛 Problem Statement
+When an organizer cancels a hike and the hiker approves/accepts the cancellation:
+1. The hiker was immediately prompted with **"Action Required: Submit Refund Wallet"** (`[Enter GCash / Maya Wallet Details]`), even though the organizer had not yet specified the refund amount.
+2. The UI defaulted the refund amount to 100% of the payment captured (`totalAmountPaid`), giving the hiker the false expectation of a full refund.
+3. If the hiker submitted their wallet before the organizer acted, the cancellation transitioned to `awaiting_admin_payout`, completely bypassing the organizer's **"Action Required: Refund Decision"** banner and locking the refund into an automatic full refund without organizer consent.
+
+### 🔍 Root Cause Analysis
+1. In Cloud Function [`acceptAdminCancellation`](file:///d:/thrail_app/functions/index.js#L2269), accepting an organizer cancellation transitions the cancellation document to:
+   - `status: "approved"`
+   - `handshakeStep: "awaiting_admin_refund_decision"`
+   - `refundAmount`: `undefined`
+2. In [`CancellationCard.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/CancellationCard.tsx#L251-L314) and lines 550–613, the manual refund handshake block used a simple 3-way branch:
+   - `adminRefundReceiptUrl` $\rightarrow$ Payout Sent
+   - `userWallet` $\rightarrow$ Wallet Submitted — Awaiting Payout
+   - `else` $\rightarrow$ **Action Required: Submit Refund Wallet**
+   Because `userWallet` was not yet submitted, it unconditionally defaulted to prompting the user for their wallet, ignoring that `handshakeStep === 'awaiting_admin_refund_decision'`.
+3. In [`UserRefundScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Refund/UserRefundScreen.tsx#L56), `refundAmount` computed `cancellation?.refundAmount || totalAmountPaid`, falsely reporting "Approved Refund Amount: ₱1000.00" before any approval had been made.
+4. In [`BookingCard.tsx`](file:///d:/thrail_app/src/features/Book/components/BookingCard.tsx#L165), any `displayStatus === 'refund'` card without a wallet displayed `actionLabel = "Submit Wallet"` with a yellow warning border.
+
+### 🛠️ Resolution & Implementation Details
+1. **Cancellation Card Handshake Awareness ([`CancellationCard.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/CancellationCard.tsx))**:
+   - For both organizer-initiated and hiker-initiated cancellations, added a state check for `cancellation.handshakeStep === 'awaiting_admin_refund_decision' || cancellation.refundAmount === undefined`.
+   - When awaiting decision: Renders an informational banner **"Cancellation Accepted — Awaiting Refund Amount"**: *"The organizer is reviewing the booking to set the refund amount. Once the organizer specifies the amount, you will be prompted to submit your GCash or Maya wallet details here."*
+   - Only renders **"Action Required: Submit Refund Wallet"** when `cancellation.handshakeStep === 'awaiting_user_wallet'` OR when `cancellation.refundAmount !== undefined` and `> 0`.
+   - Handles `refundDecision === 'no_refund'` or `refundAmount === 0` by showing a finalized notice without prompting for wallet info.
+2. **Hiker Refund Submission Screen Guard ([`UserRefundScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Refund/UserRefundScreen.tsx))**:
+   - Detects `isAwaitingAdminDecision`.
+   - Replaces the misleading "Approved Refund Amount" with "Awaiting Amount / Decision Pending".
+   - Disables wallet submission until the organizer has finalized the refund amount.
+3. **Booking Card Action Alignment ([`BookingCard.tsx`](file:///d:/thrail_app/src/features/Book/components/BookingCard.tsx))**:
+   - Checks `isAwaitingDecision` (`handshakeStep === 'awaiting_admin_refund_decision' || (!cancellation?.refundAmount && cancellation?.refundDecision !== 'no_refund')`).
+   - Sets `actionLabel = "Awaiting Decision"` with neutral styling instead of prompting the hiker to `"Submit Wallet"`.
+
+---
+
+## 19. Reschedule Modal & OfferCard React Native Text Rendering Crash
+
+### 🐛 Problem Statement
+When clicking **"Reschedule to Another Date"** in the hike cancellation card, the app crashed with the following error:
+```text
+ERROR Text strings must be rendered within a <Text> component.
+Code: OfferCard.tsx
+  65 |     isWithinAdvanceCutoff = false,
+  66 |     isToday = false,
+> 67 | }) => {
+Call Stack:
+  OfferCard (src\features\Book\components\OfferCard.tsx:67:7)
+  <global> (src\features\Book\screens\MyBookings\components\RescheduleModal.tsx:12)
+```
+
+### 🔍 Root Cause Analysis
+1. In React Native, rendering a primitive string (`""`) or number (`0`) directly as a child of a `<View>` triggers `ERROR Text strings must be rendered within a <Text> component`.
+2. In [`src/app/(app)/(main)/book/list.tsx`](file:///d:/thrail_app/src/app/(app)/(main)/book/list.tsx#L96), the prop was hardcoded as:
+   `availableFutureOffers={[newOffer(), newOffer()]}`.
+   `newOffer()` creates an empty offer where `minPax: 0`, `maxPax: 0`, `duration: ""`, `description: ""`.
+3. In [`OfferCard.tsx`](file:///d:/thrail_app/src/features/Book/components/OfferCard.tsx):
+   - Line 206: `{(offer.minPax || offer.maxPax) && (` evaluated `(0 || 0)` to `0`, resulting in `0 && <CustomText>` evaluating to the primitive number `0` inside a `<View>`.
+   - Line 142: `{offer.duration && (` evaluated `"" && <View>` to `""` (empty string) directly inside a `<View>`.
+   - Line 217: `{offer.description && (` similarly returned `""`.
+
+### 🛠️ Resolution & Implementation Details
+1. **Conditional Type Safety ([`OfferCard.tsx`](file:///d:/thrail_app/src/features/Book/components/OfferCard.tsx))**:
+   - Wrapped all non-boolean JSX conditions in `Boolean(...)`:
+     - `{Boolean(offer.duration) && ...}`
+     - `{Boolean(offer.minPax || offer.maxPax) && ...}`
+     - `{Boolean(offer.description) && ...}`
+     - `{Boolean(offer.schedule && offer.schedule.length > 0) && ...}`
+     - `{Boolean(offer.inclusions && offer.inclusions.length > 0) && ...}`
+     - `{Boolean(offer.thingsToBring && offer.thingsToBring.length > 0) && ...}`
+     - `{Boolean(offer.reminders && offer.reminders.length > 0) && ...}`
+   - Guarantees that truthy/falsy evaluations resolve strictly to `false` (which React Native cleanly ignores) rather than `0` or `""`.
+2. **Safe Keys and Selection ([`RescheduleModal.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/RescheduleModal.tsx))**:
+   - Used index fallback for offer key mapping (`offer.id || 'offer-${idx}'`).
+   - Guarded selection logic against empty offer IDs.
+3. **Real Offers Integration ([`list.tsx`](file:///d:/thrail_app/src/app/(app)/(main)/book/list.tsx))**:
+   - Replaced placeholder `[newOffer(), newOffer()]` with live offers from `useOfferList()` filtered by future dates.
+   - Enforced React Compiler purity rules by initializing `currentTime` via a deterministic `useState(() => Date.now())` initializer and memoizing with `useMemo`, preventing impure function call errors during render.
+   - If no future offers are scheduled, `RescheduleModal` properly renders its clean empty state (*"No future dates available for this organizer"*) and guides the hiker to **[Explore Mountains]**.
+
+---
+
+## 20. Documented Transaction Receipts in Admin Transaction Summary
+
+### 🎯 Feature Overview
+To guarantee comprehensive financial auditing and transparent payment history, the Admin Booking Review **Payment Tab** ([`PaymentTab.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/tabs/PaymentTab.tsx)) now documents each transaction's receipt screenshot directly within the **Transaction Summary**.
+
+### 🔍 Problem & Use Case
+When a hiker pays in multiple installments (such as an initial 50% downpayment followed by balance settlement via Manual QR):
+- Previously, only the active pending payment receipt was previewed in `ManualQRVerificationCard.tsx`.
+- Once payments were verified and the booking reached `'downpayment'`, `'paid'`, or `'completed'`, the Transaction Summary cards in `PaymentTab.tsx` only showed textual metadata (`Gateway`, `Channel`, `Status`, `Original Amount`, `Reference No.`).
+- The admin had no way in the transaction history to inspect or audit previous payment proofs (such as the initial downpayment receipt screenshot).
+
+### 🛠️ Resolution & Implementation Details
+1. **Interactive Fullscreen Preview ([`PaymentTab.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/tabs/PaymentTab.tsx))**:
+   - Added `previewReceiptUrl` state and imported [`ImagePreviewModal`](file:///d:/thrail_app/src/components/ImagePreviewModal.tsx).
+   - Rendered `ImagePreviewModal` at the root level of `PaymentTab`, enabling full pan, pinch-to-zoom, and high-resolution inspection.
+
+2. **Per-Transaction Receipt Card ([`PaymentTab.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/tabs/PaymentTab.tsx))**:
+   - For every transaction in `booking.payment` containing a `receiptUrl`:
+     - Displays a styled thumbnail with a darkened zoom overlay (*"View"*).
+     - Renders an **Enlarge Receipt** action button with icon.
+     - Displays the submission date/time (`paidAt` / `createdAt`) formatted using `formatDate`.
+     - Displays any admin verification feedback (`adminNote`).
+     - Includes a clear helper notice: *"User submitted payment receipt screenshot. Tap to view full size."*
+
+3. **Payment Classification Badging**:
+   - If `paymentRecord.classification` is present, renders a distinct badge for **`DOWNPAYMENT`** (amber with pie-chart icon) or **`FULL PAYMENT`** (green with check-circle icon).
+
+4. **Refund Proof Payout Documentation**:
+   - If `paymentRecord.refundProofUrl` is attached (for refunded or partially refunded transactions), renders a dedicated **Refund Payout Proof** block allowing full-screen verification of the organizer's payout transfer.
+
+
+
 
 
 
