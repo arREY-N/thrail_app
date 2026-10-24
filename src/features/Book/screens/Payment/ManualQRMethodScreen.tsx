@@ -16,6 +16,7 @@ import {
     View,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
@@ -145,10 +146,24 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
             } else {
                 const fileUri = `${FileSystem.documentDirectory || ''}payment-qr-${Date.now()}.png`;
                 const { uri } = await FileSystem.downloadAsync(qrCodeUrl, fileUri);
-                if (await Sharing.isAvailableAsync()) {
-                    await Sharing.shareAsync(uri);
-                } else {
-                    showToast.info('Image saved to device.');
+
+                try {
+                    const permission = await MediaLibrary.requestPermissionsAsync();
+                    if (permission.granted) {
+                        await MediaLibrary.saveToLibraryAsync(uri);
+                        showToast.success('QR Code saved to Gallery!');
+                    } else if (await Sharing.isAvailableAsync()) {
+                        await Sharing.shareAsync(uri);
+                    } else {
+                        showToast.error('Permission to save to Gallery was denied.');
+                    }
+                } catch (mediaErr) {
+                    console.warn('MediaLibrary save failed, falling back to Sharing:', mediaErr);
+                    if (await Sharing.isAvailableAsync()) {
+                        await Sharing.shareAsync(uri);
+                    } else {
+                        throw mediaErr;
+                    }
                 }
             }
         } catch (err) {
