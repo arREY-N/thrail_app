@@ -97,7 +97,7 @@ export const getWebNavTourSteps = (role?: string | null): TutorialStep[] => {
             targetSpotlight: 'web_drawer_community',
             title: 'Community — Reviews & Leaderboards',
             description:
-                'Read authentic trail reviews and photos from fellow hikers, check monthly top hiker leaderboards, and access your hike group chat rooms.',
+                'Read authentic trail reviews and photos from fellow hikers, check monthly top hiker leaderboards.',
             actionTip: 'Discover reviews from real hikers and connect with group members.',
         },
         {
