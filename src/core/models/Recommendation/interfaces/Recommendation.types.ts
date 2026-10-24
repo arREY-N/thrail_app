@@ -9,8 +9,11 @@ export interface IRecommendedTrailItem {
     category: RecommendationCategory;
     haveHiked: boolean;
     score: number;            // Recommendation score (0.0 = closest match)
+    easyScore?: number;       // Distance to easy anchor
+    diffScore?: number;       // Distance to difficult anchor
     cbfScore?: number;        // CBF distance component
     cfScore?: number;         // CF distance component
+    isChallengeOfMonth?: boolean; // True if featured as Challenge of the Month due to lack of easy trails
 }
 
 export interface IAITrailReasoning {

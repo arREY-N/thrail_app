@@ -144,6 +144,9 @@ export interface TarsBatchResponse {
 }
 
 export const getTarsApiBaseUrl = (): string => {
+    if (process.env.EXPO_PUBLIC_THARESYS_API_URL) {
+        return process.env.EXPO_PUBLIC_THARESYS_API_URL.replace(/\/+$/, '');
+    }
     if (process.env.EXPO_PUBLIC_TARS_API_URL) {
         return process.env.EXPO_PUBLIC_TARS_API_URL.replace(/\/+$/, '');
     }
@@ -152,8 +155,10 @@ export const getTarsApiBaseUrl = (): string => {
     return `http://${host}:8000`;
 };
 
+export const getTharesysApiBaseUrl = getTarsApiBaseUrl;
+
 /**
- * Checks if the TARS Python recommendation server is running and reachable.
+ * Checks if the THARESYS Python recommendation server is running and reachable.
  */
 export async function checkTarsHealth(): Promise<{ healthy: boolean; message: string }> {
     const baseUrl = getTarsApiBaseUrl();
@@ -169,18 +174,20 @@ export async function checkTarsHealth(): Promise<{ healthy: boolean; message: st
 
         if (res.ok) {
             const data = await res.json();
-            return { healthy: true, message: data.service || 'TARS Engine is online' };
+            return { healthy: true, message: data.service || 'THARESYS Engine is online' };
         }
         return { healthy: false, message: `Server returned HTTP ${res.status}` };
     } catch (err: any) {
         return {
             healthy: false,
             message: err.name === 'AbortError'
-                ? 'Connection timed out. Ensure TARS server is running on port 8000.'
-                : `Cannot reach TARS server (${err.message || 'Network error'})`,
+                ? 'Connection timed out. Ensure THARESYS server is running on port 8000.'
+                : `Cannot reach THARESYS server (${err.message || 'Network error'})`,
         };
     }
 }
+
+export const checkTharesysHealth = checkTarsHealth;
 
 /**
  * Triggers a full recommendation batch run across all eligible users.
@@ -220,8 +227,12 @@ export async function runTarsEngine(options?: TarsBatchRequest): Promise<TarsBat
     } catch (err: any) {
         clearTimeout(timeoutId);
         if (err.name === 'AbortError') {
-            throw new Error('TARS batch execution timed out after 300 seconds.');
+            throw new Error('THARESYS batch execution timed out after 300 seconds.');
         }
-        throw new Error(err.message || 'Failed connecting to TARS Recommendation API.');
+        throw new Error(err.message || 'Failed connecting to THARESYS Recommendation API.');
     }
 }
+
+export const runTharesysEngine = runTarsEngine;
+export type TharesysBatchRequest = TarsBatchRequest;
+export type TharesysBatchResponse = TarsBatchResponse;

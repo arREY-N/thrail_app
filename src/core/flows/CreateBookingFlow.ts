@@ -1,7 +1,7 @@
 import { EmergencyContactFlow } from "@/src/core/flows/EmergencyContactFlow";
+import { HandleGroupMemberFlow } from "@/src/core/flows/HandleGroupMemberFlow";
 import { calculateVerificationValidity } from "@/src/core/flows/PhoneVerificationFlow";
 import { TEdit } from "@/src/core/interface/domainHookInterface";
-import { HandleGroupMemberFlow } from "@/src/core/flows/HandleGroupMemberFlow";
 import { Booking, BookingLogic, newBooking, Requirements, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { IGroupMember, useGroupStore } from "@/src/core/models/Group/Group";
 import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
@@ -437,18 +437,19 @@ export function CreateBookingFlow() {
             }
 
             // Self-heal group membership if the booking is active
-            const isActive = ['for-reservation', 'for-payment', 'paid', 'downpayment', 'completed'].includes(bookingToCheck.status);
-            if (isActive && bookingToCheck.offer?.id) {
-                const groupMember: IGroupMember = {
-                    id: profile.id,
-                    username: profile.username,
-                    firstname: profile.firstname,
-                    lastname: profile.lastname,
-                    email: profile.email,
-                    bookingId: bookingToCheck.id,
-                };
-                await onAddMemberToGroup(groupMember, bookingToCheck.offer.id);
-            }
+            // const isActive = ['for-reservation', 'for-payment', 'paid', 'downpayment', 'completed'].includes(bookingToCheck.status);
+            // if (isActive && bookingToCheck.offer?.id) {
+            //     const groupMember: IGroupMember = {
+            //         id: profile.id,
+            //         username: profile.username,
+            //         firstname: profile.firstname,
+            //         lastname: profile.lastname,
+            //         email: profile.email,
+            //         bookingId: bookingToCheck.id,
+            //     };
+            //     console.log('in onSyncBookingVerification');
+            //     await onAddMemberToGroup(groupMember, bookingToCheck.offer.id);
+            // }
         } catch (err: unknown) {
             console.warn('[CreateBookingFlow] onSyncBookingVerification failed:', err);
         }

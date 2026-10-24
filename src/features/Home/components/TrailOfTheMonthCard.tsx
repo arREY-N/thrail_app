@@ -10,7 +10,7 @@ import CustomImage from "@/src/components/CustomImage";
 import CustomText from "@/src/components/CustomText";
 import { Colors, Palette } from "@/src/constants/colors";
 import { GlobalStyles } from "@/src/constants/globalStyles";
-import { Recommendation } from "@/src/core/models/Recommendation/interfaces/Recommendation.types";
+import { Recommendation } from "@/src/core/models/Recommendation/Recommendation";
 import { ITrail, useTrailItem } from "@/src/core/models/Trail/Trail";
 import { getHeroImageSource } from "@/src/features/Trail/utils/TrailDetailsHelpers";
 import { LinearGradient } from "expo-linear-gradient";
@@ -48,7 +48,15 @@ export default function TrailOfTheMonthCard({
     onDownloadPress,
     getTrailOffersCount,
 }: TrailOfTheMonthCardProps) {
-    // Top 1 recommendation item (supports easy, trails, or difficult lists)
+    // Whether this card is in "Challenge of the Month" mode because no easy trails exist
+    const isChallengeMode = useMemo(() => {
+        const hasEasy = recommendation?.easy && recommendation.easy.length > 0;
+        const hasTrails = recommendation?.trails && recommendation.trails.length > 0;
+        const hasDiff = recommendation?.difficult && recommendation.difficult.length > 0;
+        return category === 'difficult' || (!hasEasy && !hasTrails && hasDiff);
+    }, [category, recommendation]);
+
+    // Top 1 recommendation item (supports easy, trails, or nearest difficult trail to easy profile)
     const topEasy = useMemo(() => {
         if (category === 'difficult') {
             if (recommendation?.difficult && recommendation.difficult.length > 0) {
@@ -62,13 +70,18 @@ export default function TrailOfTheMonthCard({
         if (recommendation?.trails && recommendation.trails.length > 0) {
             return recommendation.trails[0];
         }
+        // Fallback when no easy trails exist: select the nearest difficult trail to the easy profile
         if (recommendation?.difficult && recommendation.difficult.length > 0) {
-            return recommendation.difficult[0];
+            return recommendation.difficult.reduce((closest, curr) => {
+                const closestDist = typeof closest.easyScore === 'number' ? closest.easyScore : closest.score;
+                const currDist = typeof curr.easyScore === 'number' ? curr.easyScore : curr.score;
+                return currDist < closestDist ? curr : closest;
+            }, recommendation.difficult[0]);
         }
         return null;
-    }, [category, recommendation?.easy, recommendation?.trails, recommendation?.difficult]);
+    }, [category, recommendation]);
 
-    const targetTrailId = topEasy?.id || (topEasy as any)?.trailId || "";
+    const targetTrailId = topEasy?.id || "";
 
     // Matched ITrail object from passed trails dataset (check id and name)
     const matchedTrail = useMemo(() => {
@@ -84,7 +97,7 @@ export default function TrailOfTheMonthCard({
     }, [topEasy, targetTrailId, trails]);
 
     // If not found in the discover trails list, fetch this specific trail standalone from Firestore
-    const { trail: standaloneTrail, trailLoading: isStandaloneLoading } = useTrailItem(matchedTrail ? "" : targetTrailId);
+    const { trail: standaloneTrail } = useTrailItem(matchedTrail ? "" : targetTrailId);
 
     const effectiveTrail = matchedTrail || standaloneTrail || null;
 
@@ -107,26 +120,6 @@ export default function TrailOfTheMonthCard({
             },
         } as ITrail;
     }, [effectiveTrail, topEasy, targetTrailId]);
-
-    // Profile match percentage
-    const profileMatch = useMemo(() => {
-        if (!topEasy) return 85;
-        const score = typeof topEasy.score === "number" ? topEasy.score : 0.18;
-        return Math.max(0, Math.min(100, Math.round((1.0 - score) * 100)));
-    }, [topEasy]);
-
-    // Format month label
-    const formattedMonth = useMemo(() => {
-        const code = recommendation?.id;
-        if (code && code.includes("-")) {
-            const [y, m] = code.split("-");
-            const date = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
-            if (!isNaN(date.getTime())) {
-                return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-            }
-        }
-        return "Spotlight";
-    }, [recommendation?.id]);
 
     const hasRecommendations = Boolean(topEasy);
     const imageSource = displayTrail ? getHeroImageSource(displayTrail) : undefined;
@@ -184,7 +177,7 @@ export default function TrailOfTheMonthCard({
                                     {/* Top: Section Title */}
                                     {showHeaderTitle && (
                                         <CustomText variant="caption" style={styles.cardHeaderTitle}>
-                                            {headerTitle || "Your Trail of the Month"}
+                                            {headerTitle || (isChallengeMode ? "Your Challenge of the Month" : "Your Trail of the Month")}
                                         </CustomText>
                                     )}
 
@@ -278,7 +271,7 @@ export default function TrailOfTheMonthCard({
                                                 color={Colors.YELLOW}
                                             />
                                             <CustomText variant="caption" style={styles.metaText}>
-                                                ThAReSys
+                                                THARESYS
                                             </CustomText>
                                         </View>
                                     </View>

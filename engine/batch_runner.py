@@ -1,9 +1,24 @@
 """
-TARS Batch Recommendation Runner
+THARESYS Batch Recommendation Runner
 
 Runs the recommendation engine across all candidate trails for all registered users,
 evaluating both Easy and Difficult anchor profiles, checking hike completion history,
 and saving monthly recommendation documents to Firestore.
+
+Architecture & Partitioning Logic:
+    1. Dual-Anchor Evaluation:
+       Each candidate trail is scored against the user's Easy Profile (comfortable baseline capability)
+       and Difficult Profile (aspirational challenge limit).
+    2. Disjoint Partitioning (Zero Overlap):
+       Trails are assigned exclusively to whichever profile has the lower distance score (closer match).
+       A trail never appears in both 'easy' and 'difficult' recommendation lists for the same user.
+    3. Safety-First Empty List Policy:
+       If all available trails exceed the user's comfortable capability (score_diff < score_easy for all),
+       the 'easy' list remains empty as-is. Difficult trails are never falsely forced into the easy category,
+       preventing hazardous mismatches for beginner or recovering hikers.
+    4. AI Reasoning & Trail of the Month:
+       Google Gemini AI synthesizes personalized coaching narrative for the top recommendation,
+       prioritizing Easy trails when present, and falling back safely to Difficult trails if no easy trails exist.
 """
 
 import logging
@@ -22,7 +37,7 @@ from firebase_client import (
 )
 from gemini_reasoning import generate_gemini_reasoning
 
-logger = logging.getLogger("tars_engine")
+logger = logging.getLogger("tharesys_engine")
 
 
 def run_batch_recommendations(
@@ -39,6 +54,12 @@ def run_batch_recommendations(
     """
     Executes a full recommendation batch run.
 
+    Disjoint Partitioning Strategy:
+        - For every candidate trail, computes R_tu distance for both Easy and Difficult anchor vectors.
+        - Compares scores: if easy_score <= diff_score -> assigned strictly to 'easy'; else -> 'difficult'.
+        - Guarantees zero duplicates between 'easy' and 'difficult' arrays.
+        - If no trails match the user's easy capability, 'easy' is preserved as empty [] (no category forcing).
+
     Parameters:
         cbf_engine: Formula for CBF ('GD', 'ED', 'CS')
         cf_engine:  Formula for CF ('GD', 'ED', 'CS')
@@ -48,12 +69,13 @@ def run_batch_recommendations(
         user_hikes_map:   Optional mapping of userId -> set of completed trail IDs (for tests/overrides)
         commit_to_firestore: Whether to save monthly documents directly to Firestore
         feature_weights:  Optional custom importance weights dictionary for the 32 canonical features
+        generate_ai_reasoning: Whether to synthesize Gemini reasoning for top #1 recommendation
 
     Returns:
-        Dict[str, Any]: Execution report including counts and sample recommendations
+        Dict[str, Any]: Execution report including user counts, alpha, and sample recommendations
     """
     active_month = month_id or get_current_month_id()
-    logger.info(f"Starting TARS batch run for month '{active_month}' using CBF={cbf_engine}, CF={cf_engine}")
+    logger.info(f"Starting THARESYS batch run for month '{active_month}' using CBF={cbf_engine}, CF={cf_engine}")
 
     # 1. Fetch trails and users if not passed in directly
     db = initialize_firebase()
@@ -178,44 +200,68 @@ def run_batch_recommendations(
                 weights=weight_vector
             )
 
-            easy_items.append({
-                "id": tid,
-                "trailName": tname,
-                "category": "easy",
-                "haveHiked": have_hiked,
-                "score": round(float(res_easy["score"]), 4),
-                "cbfScore": round(float(res_easy["cbf"]), 4),
-                "cfScore": round(float(res_easy["cf"]), 4),
-            })
+            easy_score = round(float(res_easy["score"]), 4)
+            diff_score = round(float(res_diff["score"]), 4)
 
-            diff_items.append({
-                "id": tid,
-                "trailName": tname,
-                "category": "difficult",
-                "haveHiked": have_hiked,
-                "score": round(float(res_diff["score"]), 4),
-                "cbfScore": round(float(res_diff["cbf"]), 4),
-                "cfScore": round(float(res_diff["cf"]), 4),
-            })
+            # Disjoint partitioning: assign trail exclusively to whichever profile it is closer to (lower distance)
+            # If scores tie, assign to easy as a safe default.
+            # If no trails are easy for a user, easy_items remains empty as-is (safety first).
+            if easy_score <= diff_score:
+                easy_items.append({
+                    "id": tid,
+                    "trailName": tname,
+                    "category": "easy",
+                    "haveHiked": have_hiked,
+                    "score": easy_score,
+                    "easyScore": easy_score,
+                    "diffScore": diff_score,
+                    "cbfScore": round(float(res_easy["cbf"]), 4),
+                    "cfScore": round(float(res_easy["cf"]), 4),
+                })
+            else:
+                diff_items.append({
+                    "id": tid,
+                    "trailName": tname,
+                    "category": "difficult",
+                    "haveHiked": have_hiked,
+                    "score": diff_score,
+                    "easyScore": easy_score,
+                    "diffScore": diff_score,
+                    "cbfScore": round(float(res_diff["cbf"]), 4),
+                    "cfScore": round(float(res_diff["cf"]), 4),
+                })
 
         # Sort each list ascending by score (0.0 = closest match / highest recommendation)
         easy_items.sort(key=lambda x: x["score"])
         diff_items.sort(key=lambda x: x["score"])
 
-        # Generate Gemini AI reasoning for the top #1 easy recommendation (Trail of the Month)
+        # Generate Gemini AI reasoning for the top #1 recommendation
+        # If easy trails exist -> Trail of the Month (top easy)
+        # If no easy trails exist -> Challenge of the Month (nearest difficult trail to the easy profile)
         ai_reasonings = {}
-        if generate_ai_reasoning and easy_items:
-            top_easy_item = easy_items[0]
-            top_trail_doc = trail_by_id.get(top_easy_item["id"])
+        if generate_ai_reasoning and (easy_items or diff_items):
+            if easy_items:
+                top_item = easy_items[0]
+                top_profile = raw_easy
+                is_challenge = False
+            else:
+                # Select the nearest difficult trail to the easy profile (lowest easyScore)
+                top_item = min(diff_items, key=lambda x: x.get("easyScore", x["score"]))
+                top_item["isChallengeOfMonth"] = True
+                top_profile = raw_easy  # Use easy profile baseline so reasoning compares distance to baseline
+                is_challenge = True
+
+            top_trail_doc = trail_by_id.get(top_item["id"])
             try:
                 reasoning = generate_gemini_reasoning(
                     trail=top_trail_doc,
-                    reco_item=top_easy_item,
+                    reco_item=top_item,
                     user=user,
-                    user_profile=raw_easy,
-                    month_label=active_month
+                    user_profile=top_profile,
+                    month_label=active_month,
+                    is_challenge=is_challenge
                 )
-                ai_reasonings[top_easy_item["id"]] = reasoning
+                ai_reasonings[top_item["id"]] = reasoning
             except Exception as e:
                 logger.warning(f"Failed to generate Gemini reasoning for user {uid}: {e}")
 
@@ -249,11 +295,13 @@ def run_batch_recommendations(
         if len(sample_outputs) < 2:
             sample_outputs.append({
                 "userId": uid,
+                "easy_count": len(easy_items),
+                "difficult_count": len(diff_items),
                 "top_easy": easy_items[:3],
                 "top_difficult": diff_items[:2]
             })
 
-    logger.info(f"TARS batch run completed: {processed_count} users processed across {len(prepared_trails)} trails.")
+    logger.info(f"THARESYS batch run completed: {processed_count} users processed across {len(prepared_trails)} trails.")
 
     return {
         "status": "success",

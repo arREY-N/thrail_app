@@ -1,5 +1,5 @@
 """
-FastAPI Microservice for Thrail App Recommendation System (TARS)
+FastAPI Microservice for Thrail App Recommendation System (THARESYS)
 
 Provides endpoints to trigger batch recommendation runs across all users,
 calculate individual user recommendations, and inspect monthly recommendations.
@@ -23,10 +23,10 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"
 )
-logger = logging.getLogger("tars_api")
+logger = logging.getLogger("tharesys_api")
 
 app = FastAPI(
-    title="Thrail Recommendation Engine (TARS)",
+    title="Thrail Recommendation Engine (THARESYS)",
     description="FastAPI service powering personalized hiking trail recommendations for Thrail.",
     version="2.0.0"
 )
@@ -67,7 +67,7 @@ def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "service": "TARS Recommendation Engine",
+        "service": "THARESYS Recommendation Engine",
         "version": "2.0.0"
     }
 
@@ -91,7 +91,7 @@ async def admin_run_engine(payload: AdminRunEngineRequest):
     Evaluates all users against all trails and writes monthly recommendation
     documents into /users/{userId}/recommendations/{YYYY-MM}.
     """
-    logger.info(f"Superadmin initiated TARS batch run: CBF={payload.cbf_engine}, CF={payload.cf_engine}")
+    logger.info(f"Superadmin initiated THARESYS batch run: CBF={payload.cbf_engine}, CF={payload.cf_engine}")
 
     try:
         report = run_batch_recommendations(

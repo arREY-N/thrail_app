@@ -1,5 +1,5 @@
 """
-TARS: Thrail App Recommendation System Core Engine
+THARESYS: Thrail App Recommendation System Core Engine
 
 Formula:
     R_tu = (alpha * CBF) + ( (1 - alpha) * CF )
@@ -77,7 +77,7 @@ def engine(
     weights: Optional[Union[List[float], np.ndarray]] = None
 ) -> float:
     """
-    TARS Recommendation Engine Function.
+    THARESYS Recommendation Engine Function.
 
     Calculates the hybrid recommendation score (R_tu) for a user and a trail.
 
@@ -149,7 +149,7 @@ def engine_details(
     weights: Optional[Union[List[float], np.ndarray]] = None
 ) -> dict:
     """
-    Returns full breakdown of TARS calculation:
+    Returns full breakdown of THARESYS calculation:
     { "score": float, "cbf": float, "cf": float, "alpha": float }
     """
     func_cbf = resolve_formula(cbf_engine)
@@ -191,7 +191,7 @@ def engine_details(
 
 if __name__ == "__main__":
     print("==================================================")
-    print("  TESTING TARS ENGINE FUNCTION WITH COMBINATIONS  ")
+    print("  TESTING THARESYS ENGINE FUNCTION WITH COMBINATIONS  ")
     print("==================================================")
 
     # Sample data
