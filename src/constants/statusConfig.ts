@@ -33,13 +33,13 @@ export const STATUS_UI_CONFIG = {
         icon: 'credit-card'
     },
     'downpayment': {
-        userLabel: 'DOWNPAYMENT (50%)', userType: 'WARNING', 
-        adminLabel: 'DOWNPAYMENT (50%)', adminType: 'WARNING', 
+        userLabel: 'DOWNPAYMENT', userType: 'WARNING', 
+        adminLabel: 'DOWNPAYMENT', adminType: 'WARNING', 
         icon: 'pie-chart'
     },
     'paid': {
-        userLabel: 'VERIFYING PAYMENT', userType: 'INFO', 
-        adminLabel: 'VERIFY PAYMENT', adminType: 'ACTION',
+        userLabel: 'PAID', userType: 'SUCCESS', 
+        adminLabel: 'PAID', adminType: 'ACTION',
         icon: 'check-circle'
     },
     'completed': {
@@ -83,8 +83,8 @@ export const STATUS_UI_CONFIG = {
         icon: 'x-circle'
     },
     'refund': {
-        userLabel: 'REFUNDED', userType: 'ERROR',         
-        adminLabel: 'REFUNDED', adminType: 'ERROR',
+        userLabel: 'REFUNDING', userType: 'WARNING',         
+        adminLabel: 'REFUNDING', adminType: 'WARNING',
         icon: 'refresh-ccw'
     },
     'refunded': {

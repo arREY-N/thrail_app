@@ -43,14 +43,24 @@ export interface IPayment<T> {
     /** Records the receipt ID once available, will be null initially */
     referenceCode?: string | null;
 
-    status: "pending" | "captured" | "failed" | "refunded" | "abandoned" | "processing_refund";
+    status: "pending" | "captured" | "failed" | "refunded" | "abandoned" | "processing_refund" | "rejected";
     refundableUntil?: T;
     amount: number;
     refundedAmount?: number;
     createdAt: T;
     capturedAt?: T;
+    paidAt?: T;
     refundedAt?: T;
     refundReason?: string;
+    refundProofUrl?: string;
+    refundMethod?: string;
+
+    // Manual QR verification fields:
+    receiptUrl?: string;
+    classification?: 'full' | 'downpayment';
+    adminNote?: string;
+    verifiedBy?: string;
+    verifiedAt?: T;
 }
 
 export interface IUserBooking<T> extends IUserSummary {
@@ -73,6 +83,12 @@ export interface IBookingBase<T> {
     documents: Requirements[];
     cancellationReason?: string;
     cancelledBy?: string;
+
+    // Manual QR tracking fields:
+    remainingBalance?: number;
+    paymentVerificationStatus?: 'pending_verification' | 'downpayment' | 'fully_paid' | 'rejected';
+    paymentRejectionReason?: string;
+    refundedAmount?: number;
 }
 
 export interface UsePayBookingParams {

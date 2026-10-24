@@ -1,6 +1,6 @@
 import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { Admin } from "@/src/core/models/Admin/Admin";
-import { Business } from "@/src/core/models/Business/interfaces/Business.types";
+import { Business, IBusinessPaymentConfig } from "@/src/core/models/Business/interfaces/Business.types";
 import { BusinessRepo } from "@/src/core/models/Business/repositories/businessRepository";
 import { User } from "@/src/core/models/User/User";
 import { upsertItem } from "@/src/core/models/utils/upsert";
@@ -32,6 +32,7 @@ export interface BusinessState {
     createBusinessAdmin: (admin: AdminUI) => Promise<void>;
     loadBusinessAdmins: (providedBusinessId: string | null) => Promise<void>;
     reloadBusinessAdmins: (providedBusinessId: string | null) => Promise<void>;
+    updatePaymentConfig: (businessId: string, paymentConfig: IBusinessPaymentConfig<Date> | null) => Promise<boolean>;
 }
 
 const init = {
@@ -179,6 +180,31 @@ export const businessStoreCreator: StateCreator<
 
     edit: () => {
 
+    },
+
+    updatePaymentConfig: async (businessId: string, paymentConfig: IBusinessPaymentConfig<Date> | null) => {
+        set({ isLoading: true, error: null });
+        try {
+            await BusinessRepo.updatePaymentConfig(businessId, paymentConfig);
+            set((state) => {
+                if (state.current && state.current.id === businessId) {
+                    state.current.paymentConfig = paymentConfig || undefined;
+                }
+                const idx = state.data.findIndex(b => b.id === businessId);
+                if (idx !== -1) {
+                    state.data[idx].paymentConfig = paymentConfig || undefined;
+                }
+                state.isLoading = false;
+            });
+            return true;
+        } catch (err) {
+            console.error((err as Error).message);
+            set({
+                error: (err as Error).message ?? 'Failed to update payment config',
+                isLoading: false,
+            });
+            return false;
+        }
     },
 
     delete: async (id: string) => {

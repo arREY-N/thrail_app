@@ -3,10 +3,11 @@
  * @description Screen displaying organization profile details, admin staff details, and action buttons.
  */
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     StyleSheet,
+    TouchableOpacity,
     View
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
@@ -30,10 +31,11 @@ import {
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import { Business } from '@/src/core/models/Business/Business';
+import { Business, IBusinessPaymentConfig } from '@/src/core/models/Business/Business';
 import { User } from '@/src/core/models/User/User';
 import { formatDate } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { OwnerQRModal } from './components/OwnerQRModal';
 
 /**
  * Props for the DashboardScreen component.
@@ -58,6 +60,8 @@ export interface DashboardScreenProps {
     onBackPress: () => void; 
     isLoading?: boolean;
     onRetryPress?: () => void;
+    isOwner?: boolean;
+    onSavePaymentConfig?: (config: IBusinessPaymentConfig<Date> | null) => Promise<boolean>;
 }
 
 /**
@@ -73,12 +77,15 @@ const DashboardScreen = ({
     onBackPress,
     isLoading = false,
     onRetryPress,
+    isOwner = false,
+    onSavePaymentConfig,
 }: DashboardScreenProps): React.JSX.Element => {
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
     const insets = useSafeAreaInsets();
     const tutorial = useTutorialGuide('admin_dashboard', !isLoading && !error);
 
+    const [showQRModal, setShowQRModal] = useState<boolean>(false);
     const isNavigatingRef = useRef<boolean>(false);
     const overviewRef = useRef<View>(null);
     const trailsBtnRef = useRef<View>(null);
@@ -208,8 +215,34 @@ const DashboardScreen = ({
                 <InfoRow 
                     label="Approved" 
                     value={businessAccount?.createdAt ? formatDate(businessAccount.createdAt) : 'N/A'} 
-                    noMargin={true}
+                    noMargin={!isOwner}
                 />
+
+                {isOwner && (
+                    <View style={styles.paymentConfigSection}>
+                        <View style={styles.paymentConfigHeader}>
+                            <View style={styles.paymentConfigTitleRow}>
+                                <CustomIcon library="MaterialCommunityIcons" name="qrcode-scan" size={16} color={Colors.PRIMARY} />
+                                <CustomText style={styles.paymentConfigTitle}>Manual Payment QR</CustomText>
+                            </View>
+                            <TouchableOpacity 
+                                style={styles.paymentConfigEditBtn}
+                                onPress={() => setShowQRModal(true)}
+                                activeOpacity={0.7}
+                            >
+                                <CustomText style={styles.paymentConfigEditBtnText}>
+                                    {businessAccount?.paymentConfig?.qrCodeUrl ? 'Manage QR' : 'Setup QR'}
+                                </CustomText>
+                                <CustomIcon library="Feather" name="chevron-right" size={14} color={Colors.PRIMARY} />
+                            </TouchableOpacity>
+                        </View>
+                        <CustomText style={styles.paymentConfigSubtitle}>
+                            {businessAccount?.paymentConfig?.qrCodeUrl 
+                                ? `Active QR: ${businessAccount.paymentConfig.accountName || 'Configured'} (${businessAccount.paymentConfig.accountNumber || ''})`
+                                : 'No master QR configured. Hikers will not be able to pay manually.'}
+                        </CustomText>
+                    </View>
+                )}
             </View>
         </View>
     );
@@ -443,6 +476,16 @@ const DashboardScreen = ({
                 onPrev={tutorial.onPrevStep}
                 onSkip={tutorial.onSkipTour}
             />
+
+            {businessAccount && (
+                <OwnerQRModal
+                    visible={showQRModal}
+                    onClose={() => setShowQRModal(false)}
+                    business={businessAccount}
+                    isOwner={Boolean(isOwner)}
+                    onSavePaymentConfig={onSavePaymentConfig || (async () => false)}
+                />
+            )}
         </ScreenWrapper>
     );
 };
@@ -673,6 +716,48 @@ const styles = StyleSheet.create({
     },
     mobileButtonText: {
         fontSize: 12,
+    },
+
+    paymentConfigSection: {
+        marginTop: 14,
+        paddingTop: 14,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_ULTRALIGHT,
+    },
+    paymentConfigHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    paymentConfigTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    paymentConfigTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+    },
+    paymentConfigEditBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 2,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 6,
+        backgroundColor: Colors.PRIMARY_LIGHT,
+    },
+    paymentConfigEditBtnText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.PRIMARY,
+    },
+    paymentConfigSubtitle: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 16,
     },
 });
 

@@ -39,6 +39,7 @@ import {
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 
 import useReviewLogic from '@/src/features/Admin/hooks/useReviewLogic';
 import { ActivityLog } from '@/src/features/Admin/screens/Booking/components/ActivityLog';
@@ -55,6 +56,7 @@ import { Booking } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { User } from '@/src/core/models/User/User';
+import { SelectedFile } from '@/src/core/repositories/fileRepository';
 import {
     CANCELLATION_DECLINE_REASONS,
     getDynamicRejectionSuggestions,
@@ -101,6 +103,11 @@ export interface ReviewScreenProps {
     onDeclineCancellation?: (reason: string, request?: Cancellation | null, booking?: Booking) => Promise<void>;
     onRevertCancellation?: (request?: Cancellation | null) => Promise<void>;
     onAdminCancelBooking?: (booking: Booking, reason: string) => Promise<void>;
+    onVerifyManualPayment?: (classification: 'full' | 'downpayment', note?: string, booking?: Booking, verifiedAmount?: number) => Promise<void>;
+    onRejectManualPayment?: (reason: string, booking?: Booking) => Promise<void>;
+    onSettleRemainingBalance?: (booking?: Booking) => Promise<void>;
+    onUploadRefundProof?: (file: SelectedFile, request?: Cancellation | null, booking?: Booking | null) => Promise<void | string>;
+    onApproveWithManualRefund?: (amount: number, request?: Cancellation | null, booking?: Booking | null) => Promise<void | Cancellation>;
 }
 
 /**
@@ -124,6 +131,11 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     onDeclineCancellation,
     onRevertCancellation,
     onAdminCancelBooking,
+    onVerifyManualPayment,
+    onRejectManualPayment,
+    onSettleRemainingBalance,
+    onUploadRefundProof,
+    onApproveWithManualRefund,
 }) => {
     const { width } = useWindowDimensions();
     const isWide = width >= 768;
@@ -254,9 +266,38 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const [isConfirmCancellationVisible, setIsConfirmCancellationVisible] = useState(false);
     const [isConfirmDeclineVisible, setIsConfirmDeclineVisible] = useState(false);
     const [isConfirmRevertVisible, setIsConfirmRevertVisible] = useState(false);
+    const [isUploadingProof, setIsUploadingProof] = useState(false);
 
     const { showToast } = useToast();
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
+
+    const handleUploadRefundProof = async (file: SelectedFile) => {
+        if (!onUploadRefundProof) return;
+        setIsUploadingProof(true);
+        try {
+            await onUploadRefundProof(file, cancellationRequest, booking);
+            showToast.success("Refund payout proof uploaded successfully.");
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to upload refund proof";
+            showToast.error(errorMessage);
+        } finally {
+            setIsUploadingProof(false);
+        }
+    };
+
+    const handleApproveWithManualRefund = async (amount: number) => {
+        if (!onApproveWithManualRefund) return;
+        setIsProcessingAction(true);
+        try {
+            await onApproveWithManualRefund(amount, cancellationRequest, booking);
+            showToast.success(`Refund of ₱${amount.toFixed(2)} approved. Awaiting hiker wallet.`);
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to approve refund";
+            showToast.error(errorMessage);
+        } finally {
+            setIsProcessingAction(false);
+        }
+    };
 
     const isRejecting = hasRejections || isRejectingBooking;
 
@@ -269,7 +310,11 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     );
 
     const totalAmountPaid = booking?.payment?.reduce((sum: number, p) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
-    const totalRefundedAmount = booking?.payment?.reduce((sum: number, p) => (p.status === 'refunded' || ((p.refundedAmount || 0) > 0)) ? sum + (p.refundedAmount || p.amount) : sum, 0) || 0;
+    const totalRefundedAmount = typeof booking?.refundedAmount === 'number' && booking.refundedAmount > 0
+        ? booking.refundedAmount
+        : (typeof cancellationRequest?.refundAmount === 'number' && cancellationRequest.refundAmount > 0
+            ? cancellationRequest.refundAmount
+            : (booking?.payment?.reduce((sum: number, p) => (p.status === 'refunded' || ((p.refundedAmount || 0) > 0)) ? sum + (p.refundedAmount || p.amount) : sum, 0) || 0));
     const remainingRefundableAmount = Math.max(0, totalAmountPaid - totalRefundedAmount);
     const isOfferFinished = Boolean(booking?.offer?.date && new Date(booking.offer.date) < new Date());
     const lastCapturedPayment = booking?.payment?.slice().reverse().find(p => p.status === 'captured');
@@ -418,13 +463,21 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         };
     }, [isRejecting, isSecondaryVisible, isProcessingAction, handleSecondaryPress]);
 
+    const hasRemainingBalance = Boolean(booking?.remainingBalance !== undefined && booking.remainingBalance > 0);
+    const isDownpaymentStatus = currentStatus === 'downpayment' || hasRemainingBalance;
     const isLockedStatus = isCancelledStatus || ['reservation-rejected', 'cancellation-rejected', 'for-cancellation', 'for-reschedule'].includes(currentStatus);
-    const isPaymentActionable = (currentStatus === 'paid' || currentStatus === 'downpayment') && !isLockedStatus;
+    const isPaymentActionable = currentStatus === 'paid' && !hasRemainingBalance && !isLockedStatus;
     const isTutorialFooterPreview = tutorial.isVisible && tutorial.currentStep?.targetSpotlight === 'booking_footer';
 
     const paymentPrimaryConfig = useMemo(() => {
+        const remainingBalAmount = booking?.remainingBalance ?? (booking?.offer?.price ? booking.offer.price / 2 : 0);
+        let buttonTitle = isProcessingAction ? "Completing..." : "Complete Booking";
+        if (isDownpaymentStatus) {
+            buttonTitle = `Balance Pending (₱${remainingBalAmount.toFixed(2)})`;
+        }
+
         return {
-            title: isProcessingAction ? "Completing..." : "Complete Booking",
+            title: buttonTitle,
             variant: 'primary' as const,
             disabled: !isPaymentActionable || isProcessingAction,
             onPress: () => {
@@ -433,7 +486,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 }
             },
         };
-    }, [isProcessingAction, isPaymentActionable]);
+    }, [isProcessingAction, isPaymentActionable, isDownpaymentStatus, booking?.remainingBalance, booking?.offer?.price]);
 
     const cancellationPrimaryConfig = useMemo(() => {
         if (isDecliningCancellation) {
@@ -655,6 +708,10 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                     setRefundModalInitialType('none');
                                     setShowRefundModal(true);
                                 }}
+                                onUploadRefundProof={onUploadRefundProof ? handleUploadRefundProof : undefined}
+                                isUploadingProof={isUploadingProof}
+                                onApproveWithManualRefund={onApproveWithManualRefund ? handleApproveWithManualRefund : undefined}
+                                payments={booking.payment}
                             />
 
                             {isHikerCancellationPending && isDecliningCancellation && (
@@ -761,6 +818,40 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                     isRejectedStatus={isRejectedStatus}
                                     isCancelledStatus={isCancelledStatus}
                                     onConfirmPaymentClick={() => setIsConfirmPaymentVisible(true)}
+                                    onVerifyManualPayment={onVerifyManualPayment ? async (classification, note, verifiedAmount) => {
+                                        setIsProcessingAction(true);
+                                        try {
+                                            await onVerifyManualPayment(classification, note, booking, verifiedAmount);
+                                            showToast.success(classification === 'full' ? 'Full payment verified!' : 'Payment verified and balance updated!');
+                                        } catch (err: unknown) {
+                                            showToast.error(err instanceof Error ? err.message : 'Failed to verify payment');
+                                        } finally {
+                                            setIsProcessingAction(false);
+                                        }
+                                    } : undefined}
+                                    onRejectManualPayment={onRejectManualPayment ? async (reason) => {
+                                        setIsProcessingAction(true);
+                                        try {
+                                            await onRejectManualPayment(reason, booking);
+                                            showToast.success('Payment receipt rejected. Hiker notified.');
+                                        } catch (err: unknown) {
+                                            showToast.error(err instanceof Error ? err.message : 'Failed to reject payment');
+                                        } finally {
+                                            setIsProcessingAction(false);
+                                        }
+                                    } : undefined}
+                                    onSettleRemainingBalance={onSettleRemainingBalance ? async () => {
+                                        setIsProcessingAction(true);
+                                        try {
+                                            await onSettleRemainingBalance(booking);
+                                            showToast.success('Remaining balance settled in full!');
+                                        } catch (err: unknown) {
+                                            showToast.error(err instanceof Error ? err.message : 'Failed to settle balance');
+                                        } finally {
+                                            setIsProcessingAction(false);
+                                        }
+                                    } : undefined}
+                                    isProcessing={isProcessingAction}
                                 />
                             )}
                             </View>
@@ -963,25 +1054,40 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         setIsProcessingAction(true);
                         try {
                             const isCancellationFlow = Boolean(cancellationRequest) || isCancellationPending || isCancelledStatus || isHikerCancellationPending || isAdminCancellationPending;
-                            if (isCancellationFlow && onApproveCancellation) {
-                                await onApproveCancellation(cancellationRequest, booking, refundType, customAmount, adminNote);
-                                showToast.success(refundType === 'none'
-                                    ? 'Cancellation approved and slot released without refund.'
-                                    : 'Cancellation approved and refund processed successfully via PayMongo.');
+                            const isManualProvider = PAYMENT_CONFIG.PROVIDER === 'manual_qr';
+
+                            if (isCancellationFlow) {
+                                if (refundType === 'none') {
+                                    if (onApproveCancellation) {
+                                        await onApproveCancellation(cancellationRequest, booking, 'none', 0, adminNote);
+                                        showToast.success('Cancellation approved and slot released without refund.');
+                                    }
+                                } else if (isManualProvider && onApproveWithManualRefund) {
+                                    const resolvedAmount = refundType === 'custom'
+                                        ? (customAmount || totalAmountPaid)
+                                        : (refundType === 'partial' ? Math.round(totalAmountPaid * 0.10 * 100) / 100 : totalAmountPaid);
+                                    await onApproveWithManualRefund(resolvedAmount, cancellationRequest, booking);
+                                    showToast.success(`Cancellation approved. Refund of ₱${resolvedAmount.toFixed(2)} set. Awaiting hiker wallet.`);
+                                } else if (onApproveCancellation) {
+                                    await onApproveCancellation(cancellationRequest, booking, refundType, customAmount, adminNote);
+                                    showToast.success('Cancellation approved and refund processed successfully.');
+                                }
                             } else if (refundType === 'none') {
                                 showToast.error('Policy forfeiture without refund is only applicable when cancelling a booking.');
+                            } else if (isManualProvider) {
+                                showToast.info('Direct refund outside cancellation is not supported for manual payments. Please issue via cancellation.');
                             } else if (onRefund) {
                                 await onRefund(booking, refundType, customAmount);
-                                showToast.success('Refund processed successfully via PayMongo.');
+                                showToast.success('Refund processed successfully.');
                             }
                         } catch (err: unknown) {
                                 const rawMessage = err instanceof Error ? err.message : String(err || '');
                                 let displayMessage = 'Failed to process refund. Please try again.';
 
                                 if (rawMessage.includes('Cannot partially refund') || rawMessage.includes('same day')) {
-                                    displayMessage = 'PayMongo Policy: Partial refunds cannot be processed on the same calendar day. You may issue a 100% full refund today, or wait until tomorrow after gateway settlement.';
+                                    displayMessage = 'Payment Policy: Partial refunds cannot be processed on the same calendar day for gateway payments.';
                                 } else if (rawMessage.includes('Insufficient') || rawMessage.includes('balance')) {
-                                    displayMessage = 'Your PayMongo account has insufficient merchant balance to cover this refund.';
+                                    displayMessage = 'Your account has insufficient merchant balance to cover this refund.';
                                 } else if (rawMessage) {
                                     displayMessage = rawMessage.replace('Payment Gateway Error: ', '').replace('PayMongo API Error: ', '');
                                 }

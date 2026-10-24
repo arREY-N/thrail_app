@@ -1,34 +1,47 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
+import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
-import React from 'react';
+import React, { useState } from 'react';
 
 export interface ReceiptScreenProps {
     bookingData: Booking;
+    cancellation?: Cancellation | null;
     onFinish: () => void;
 }
 
 const ReceiptScreen = ({ 
     bookingData, 
+    cancellation,
     onFinish 
 }: ReceiptScreenProps) => {
+    const [previewProofUrl, setPreviewProofUrl] = useState<string | null>(null);
     const payments = Array.isArray(bookingData?.payment) 
         ? bookingData.payment.filter((p: IPayment<Date>) => p.status !== 'abandoned')
         : [];
     const capturedPayments = payments.filter((p: IPayment<Date>) => p.status === 'captured');
     const refundedPayments = payments.filter((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
-    const totalRefunded = payments.reduce((sum: number, p: IPayment<Date>) => sum + (p.refundedAmount || (p.status === 'refunded' ? p.amount : 0)), 0);
+    const calculatedRefunded = payments.reduce((sum: number, p: IPayment<Date>) => sum + (p.refundedAmount || (p.status === 'refunded' ? p.amount : 0)), 0);
+    const totalRefunded = (typeof bookingData?.refundedAmount === 'number' && bookingData.refundedAmount > 0)
+        ? bookingData.refundedAmount
+        : (typeof cancellation?.refundAmount === 'number' && cancellation.refundAmount > 0
+            ? cancellation.refundAmount
+            : calculatedRefunded);
     const hasRefund = totalRefunded > 0 || refundedPayments.length > 0;
+    
+    const refundProofReceiptUrl = cancellation?.adminRefundReceiptUrl ||
+        payments.find((p: IPayment<Date>) => Boolean(p.refundProofUrl))?.refundProofUrl;
     
     const latestPayment: IPayment<Date> = capturedPayments[capturedPayments.length - 1] || refundedPayments[refundedPayments.length - 1] || payments[0];
     
@@ -210,8 +223,42 @@ const ReceiptScreen = ({
                             </View>
                         </View>
                     </View>
+
+                    {Boolean(refundProofReceiptUrl) && (
+                        <View style={styles.refundProofCard}>
+                            <View style={styles.refundProofHeader}>
+                                <View style={styles.refundProofIconBox}>
+                                    <CustomIcon library="Feather" name="check-circle" size={18} color={Colors.SUCCESS} />
+                                </View>
+                                <View style={styles.refundProofHeaderTextGroup}>
+                                    <CustomText variant="label" style={styles.refundProofTitle}>
+                                        Organizer Refund Receipt Proof
+                                    </CustomText>
+                                    <CustomText variant="caption" style={styles.refundProofSubtitle}>
+                                        Official payout proof transferred to your e-wallet.
+                                    </CustomText>
+                                </View>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.viewProofButton}
+                                onPress={() => setPreviewProofUrl(refundProofReceiptUrl || null)}
+                                activeOpacity={0.8}
+                            >
+                                <CustomIcon library="Feather" name="eye" size={16} color={Colors.PRIMARY} />
+                                <CustomText style={styles.viewProofButtonText}>View Refund Receipt Proof</CustomText>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
             </ScrollView>
+
+            {previewProofUrl && (
+                <ImagePreviewModal
+                    visible={Boolean(previewProofUrl)}
+                    imageUrl={previewProofUrl}
+                    onClose={() => setPreviewProofUrl(null)}
+                />
+            )}
 
             <CustomStickyFooter
                 primaryButton={{
@@ -343,6 +390,58 @@ const styles = StyleSheet.create({
     },
     totalValue: { 
         fontWeight: 'bold' 
+    },
+    refundProofCard: {
+        marginTop: 16,
+        backgroundColor: Colors.WHITE,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        ...GlobalStyles.dropShadow(2),
+    },
+    refundProofHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 12,
+    },
+    refundProofIconBox: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    refundProofHeaderTextGroup: {
+        flex: 1,
+    },
+    refundProofTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+    },
+    refundProofSubtitle: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 2,
+    },
+    viewProofButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        paddingVertical: 12,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: Colors.PRIMARY,
+    },
+    viewProofButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: Colors.PRIMARY,
     }
 });
 

@@ -127,6 +127,7 @@ export function CreateBookingFlow() {
 
             const finalBooking = newBooking({
                 ...booking,
+                business: offer.business,
                 trail: offer.trail,
                 user: {
                     ...UserLogic.toBookingSummary(profile),
@@ -143,6 +144,21 @@ export function CreateBookingFlow() {
                 throw new Error('Cannot continue with booking as group has not been set yet.');
 
             const created = await createBooking(finalBooking);
+
+            // Add hiker to the group chat immediately upon reservation so they can chat directly with the organizer/group
+            const groupMember: IGroupMember = {
+                id: profile.id,
+                username: profile.username,
+                firstname: profile.firstname,
+                lastname: profile.lastname,
+                email: profile.email,
+                bookingId: created.id,
+            };
+            try {
+                await onAddMemberToGroup(groupMember, offer.id);
+            } catch (groupErr) {
+                console.warn("[CreateBookingFlow] Failed adding member to group chat on reservation:", groupErr);
+            }
 
             // Persist updated phone and emergency contact to User Profile in Firestore
             if (isPhoneChanged || isEmergencyChanged) {
@@ -420,9 +436,9 @@ export function CreateBookingFlow() {
                 }
             }
 
-            // Self-heal group membership if the booking is approved
-            const isApproved = ['for-payment', 'paid', 'downpayment', 'completed'].includes(bookingToCheck.status);
-            if (isApproved && bookingToCheck.offer?.id) {
+            // Self-heal group membership if the booking is active
+            const isActive = ['for-reservation', 'for-payment', 'paid', 'downpayment', 'completed'].includes(bookingToCheck.status);
+            if (isActive && bookingToCheck.offer?.id) {
                 const groupMember: IGroupMember = {
                     id: profile.id,
                     username: profile.username,

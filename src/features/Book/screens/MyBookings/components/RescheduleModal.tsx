@@ -104,19 +104,21 @@ const RescheduleModal = ({
                         contentContainerStyle={styles.scrollContent}
                     >
                         {availableFutureOffers.length > 0 ? (
-                            availableFutureOffers.map((offer) => (
-                                <View key={offer.id} style={styles.cardWrapper}>
+                            availableFutureOffers.map((offer, idx) => (
+                                <View key={offer.id || `offer-${idx}`} style={styles.cardWrapper}>
                                     <CustomText variant="label" style={styles.trailLabel}>
                                         {offer.trail?.name || 'Hike'} — {formatDateToStandard(offer.date)}
                                     </CustomText>
                                     
                                     <OfferCard 
                                         offer={offer as unknown as OfferData}
-                                        isSelected={selectedOfferId === offer.id}
+                                        isSelected={Boolean(offer.id && selectedOfferId === offer.id)}
                                         onSelect={() => {
-                                            setSelectedOfferId(
-                                                selectedOfferId === offer.id ? null : offer.id
-                                            );
+                                            if (offer.id) {
+                                                setSelectedOfferId(
+                                                    selectedOfferId === offer.id ? null : offer.id
+                                                );
+                                            }
                                         }}
                                     />
                                 </View>

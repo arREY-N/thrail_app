@@ -10,6 +10,8 @@ import { Booking } from "@/src/core/models/Booking/Booking";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useCancellationAdminList } from "@/src/core/models/Cancellation/hooks/useCancellationAdminList";
 import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
+import { FileRepository, SelectedFile } from "@/src/core/repositories/fileRepository";
+import { PAYMENT_CONFIG } from "@/src/core/config/paymentConfig";
 
 export function useCancellationAdmin(bookingId: string) {
     const { profile, role, businessId } = useAuthHook();
@@ -119,14 +121,19 @@ export function useCancellationAdmin(bookingId: string) {
             if (role !== "admin")
                 throw new Error("Only admins can cancel bookings through this path.");
 
-            const cancellationNotice = createCancellationRequest({
-                bookingId: booking.id,
-                reason: reason,
-                userId: booking.user.id,
-                cancelledBy: "admin",
-                offerId: booking.offer.id,
-                businessId: booking.business.id,
-            });
+            const cancellationNotice = createCancellationRequest(
+                {
+                    bookingId: booking.id,
+                    reason: reason,
+                    userId: booking.user.id,
+                    cancelledBy: "admin",
+                    offerId: booking.offer.id,
+                    businessId: booking.business.id,
+                },
+                PAYMENT_CONFIG.PROVIDER === 'manual_qr'
+                    ? { handshakeStep: "awaiting_user_acceptance" }
+                    : {}
+            );
 
             await createCancellation({
                 cancellation: cancellationNotice,
@@ -138,6 +145,86 @@ export function useCancellationAdmin(bookingId: string) {
             setWritingError((error as Error).message || "An unexpected error occurred.");
         }
     }
+
+    /**
+     * Approves a cancellation request under the Manual QR workflow and requests the hiker's wallet details.
+     * @param amount - The refund amount to be sent.
+     * @param request - Optional cancellation document target.
+     */
+    const approveWithManualRefund = async (
+        amount: number,
+        request?: Cancellation | null,
+        targetBooking?: Booking | null
+    ) => {
+        try {
+            setWritingError(null);
+            const target = request || cancellationRequest;
+            if (!target) throw new Error("No cancellation request found.");
+            const resolvedBusinessId = target.businessId || businessId || targetBooking?.business?.id;
+            if (!resolvedBusinessId) throw new Error("Business ID is required.");
+
+            const updatedCancellation: Cancellation = {
+                ...target,
+                businessId: resolvedBusinessId,
+                status: "approved",
+                refundAmount: amount,
+                refundDecision: "issue_refund",
+                handshakeStep: "awaiting_user_wallet",
+                updatedAt: new Date(),
+            };
+
+            await createCancellation({
+                cancellation: updatedCancellation,
+                isAdmin: true,
+            });
+
+            return updatedCancellation;
+        } catch (error) {
+            catchError(error as Error, 'writingError', 'approveWithManualRefund()');
+            setWritingError((error as Error).message || "Failed to approve refund.");
+            throw error;
+        }
+    };
+
+    /**
+     * Uploads the admin's manual refund payout receipt screenshot to Firebase Storage and closes the handshake.
+     * @param file - The picked receipt screenshot file.
+     * @param request - Optional cancellation document.
+     * @param targetBooking - Optional target booking to transition status to 'refunded'.
+     */
+    const uploadRefundProof = async (
+        file: SelectedFile,
+        request?: Cancellation | null,
+        targetBooking?: Booking | null
+    ) => {
+        try {
+            setWritingError(null);
+            const target = request || cancellationRequest;
+            if (!target) throw new Error("No cancellation request found.");
+            if (!businessId) throw new Error("Business ID is required.");
+
+            // 1. Upload proof screenshot to storage
+            const downloadUrl = await FileRepository.uploadBusinessFile(businessId, 'refunds', file);
+
+            // 2. Atomically commit cancellation, booking, offer slot, and group chat updates via Cloud Function
+            const completeManualRefundFn = httpsCallable(functions, 'completeManualRefund');
+            await completeManualRefundFn({
+                bookingId: target.bookingId || targetBooking?.id,
+                userId: target.userId || targetBooking?.user?.id,
+                businessId: target.businessId || businessId,
+                offerId: target.offerId || targetBooking?.offer?.id,
+                cancellationId: target.id,
+                receiptUrl: downloadUrl,
+                refundAmount: target.refundAmount || targetBooking?.offer?.price,
+            });
+
+            return downloadUrl;
+        } catch (error) {
+            catchError(error as Error, 'writingError', 'uploadRefundProof()');
+            setWritingError((error as Error).message || "Failed to upload refund proof.");
+            throw error;
+        }
+    };
 
     /**
      * Reverts a cancellation request made by an admin.
@@ -250,6 +337,8 @@ export function useCancellationAdmin(bookingId: string) {
         processCancellationRequest,
         cancelUserBooking,
         revertCancellationRequest,
-        proceedToRefund
-    }
+        proceedToRefund,
+        approveWithManualRefund,
+        uploadRefundProof,
+    };
 }

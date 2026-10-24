@@ -81,17 +81,23 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
         try {
             set({ isWriting: true, error: null });
 
+            const isHandshakeUpdate = Boolean(
+                cancellation.handshakeStep ||
+                cancellation.userWallet ||
+                cancellation.adminRefundReceiptUrl ||
+                cancellation.refundAmount
+            );
+
+            const isNewApproval = oldCancellation ? (oldCancellation.status !== "approved" && cancellation.status === "approved") : false;
             const alreadyApproved = oldCancellation?.status === "approved";
 
-            const alreadyProcessed = alreadyApproved || (oldCancellation?.status === "rejected" && isAdmin);
+            const alreadyProcessed = !isHandshakeUpdate && (alreadyApproved || (oldCancellation?.status === "rejected" && isAdmin));
 
             if (alreadyProcessed) {
                 throw new Error("Cannot modify a cancellation that has already been processed.");
             }
 
-            const forApproval = cancellation.status === "approved";
-
-            if (forApproval && !isAdmin) {
+            if (isNewApproval && !isAdmin) {
                 if (isAdmin && cancellation.cancelledBy === 'admin')
                     throw new Error("This cancellation was made by an admin and cannot be approved by an admin.");
 

@@ -5,6 +5,7 @@
  */
 
 import { Colors } from '@/src/constants/colors';
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { VerificationStatus } from '@/src/core/flows/PhoneVerificationFlow';
 
 /**
@@ -127,7 +128,9 @@ export const REVIEW_MODALS = {
         title: "Approve Cancellation",
         message: (isPaid: boolean, amount?: number): string =>
             isPaid
-                ? `Are you sure you want to approve this cancellation? This will process a refund of ₱${(amount || 0).toFixed(2)} via PayMongo and release the reserved slot.`
+                ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr'
+                    ? `Are you sure you want to approve this cancellation? This will approve a refund of ₱${(amount || 0).toFixed(2)} and prompt the hiker for their e-wallet details.`
+                    : `Are you sure you want to approve this cancellation? This will process a refund of ₱${(amount || 0).toFixed(2)} via PayMongo and release the reserved slot.`)
                 : "Are you sure you want to approve this cancellation? The reserved slot will be released immediately.",
         confirmText: "Approve Cancellation",
         cancelText: "Keep Reviewing",

@@ -1837,6 +1837,454 @@ exports.processCancellationApproval = https.onCall({ secrets: [paymongoSecret] }
     };
 });
 
+/**
+ * Atomically verifies or rejects a manual QR payment.
+ * On verification:
+ *   1. Updates booking status to 'paid' (if full) or 'downpayment' (if partial).
+ *   2. Sets remainingBalance.
+ *   3. Captures payment record with verifiedAt, verifiedBy, and classification.
+ *   4. Atomically adds hiker to tour group chat (groups/{offerId}) participants and members.
+ * On rejection:
+ *   1. Resets booking status to 'for-payment' with rejection reason.
+ *   2. Marks payment as 'rejected'.
+ */
+exports.verifyManualPayment = https.onCall(async (request) => {
+    const {
+        bookingId,
+        userId,
+        businessId: inputBusinessId,
+        offerId: inputOfferId,
+        classification = 'full',
+        verifiedAmount,
+        note,
+        isRejection = false,
+        rejectionReason = ''
+    } = request.data || {};
+
+    const caller = request.auth;
+    if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
+    if (!bookingId || !userId) throw new HttpsError('invalid-argument', 'bookingId and userId are required.');
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+    if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+    const bookingData = bookingSnap.data();
+
+    const businessId = inputBusinessId || bookingData.business?.id;
+    const offerId = inputOfferId || bookingData.offer?.id;
+
+    // Authorization: Must be admin or owner for this business, or superadmin
+    const adminBusinessId = caller.token.businessId || caller.token.owner;
+    const isAdmin = caller.token.role === 'admin' && (!businessId || adminBusinessId === businessId);
+    const isOwner = caller.token.role === 'owner' && (!businessId || adminBusinessId === businessId);
+    const isSuperAdmin = caller.token.role === 'superadmin';
+
+    if (!isAdmin && !isOwner && !isSuperAdmin) {
+        throw new HttpsError('permission-denied', 'Only administrators can verify manual payments.');
+    }
+
+    const batch = db.batch();
+    const payments = bookingData.payment || [];
+    const pendingPaymentIndex = payments.findIndex(p => p.gateway === 'manual_qr' && p.status === 'pending');
+
+    if (isRejection) {
+        if (!rejectionReason || !rejectionReason.trim()) {
+            throw new HttpsError('invalid-argument', 'Rejection reason is required.');
+        }
+
+        const updatedPayments = payments.map((p, idx) => {
+            if (idx === pendingPaymentIndex || (p.gateway === 'manual_qr' && p.status === 'pending')) {
+                return {
+                    ...p,
+                    status: 'rejected',
+                    adminNote: rejectionReason.trim(),
+                };
+            }
+            return p;
+        });
+
+        batch.update(bookingRef, {
+            status: 'for-payment',
+            paymentVerificationStatus: 'rejected',
+            paymentRejectionReason: rejectionReason.trim(),
+            payment: updatedPayments,
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        await batch.commit();
+        console.log(`[verifyManualPayment] Rejected manual payment for booking ${bookingId}`);
+        return { success: true, verified: false, message: 'Payment rejected.' };
+    }
+
+    // ─── VERIFICATION (Full or Downpayment) ──────────────────────────────────
+    const totalPrice = bookingData.totalPrice || bookingData.offer?.price || 0;
+    const previouslyCaptured = payments.reduce((sum, p) => (p.status === 'captured' ? sum + (p.amount || 0) : sum), 0);
+    const currentRemaining = typeof bookingData.remainingBalance === 'number'
+        ? bookingData.remainingBalance
+        : Math.max(0, totalPrice - previouslyCaptured);
+
+    const approvedAmount = typeof verifiedAmount === 'number' && verifiedAmount > 0
+        ? verifiedAmount
+        : (classification === 'full' ? currentRemaining : Math.min(currentRemaining, currentRemaining / 2));
+
+    const remaining = Math.max(0, currentRemaining - approvedAmount);
+    const isFull = remaining === 0 || (classification === 'full' && approvedAmount >= currentRemaining);
+    const effectiveClassification = isFull ? 'full' : 'downpayment';
+
+    let refundableDeadline = null;
+    if (bookingData.offer && bookingData.offer.date) {
+        const rawDate = bookingData.offer.date.toDate ? bookingData.offer.date.toDate() : new Date(bookingData.offer.date);
+        const deadline = new Date(rawDate);
+        deadline.setDate(deadline.getDate() - 10);
+        refundableDeadline = Timestamp.fromDate(deadline);
+    }
+
+    let paymentFound = false;
+    const updatedPayments = payments.map((p, idx) => {
+        if (idx === pendingPaymentIndex || (p.gateway === 'manual_qr' && p.status === 'pending')) {
+            paymentFound = true;
+            return {
+                ...p,
+                amount: approvedAmount,
+                status: 'captured',
+                classification: effectiveClassification,
+                paidAt: Timestamp.now(),
+                verifiedBy: caller.uid,
+                verifiedAt: Timestamp.now(),
+                adminNote: note ? note.trim() : null,
+                ...(refundableDeadline ? { refundableUntil: refundableDeadline } : {}),
+            };
+        }
+        return p;
+    });
+
+    if (!paymentFound) {
+        updatedPayments.push({
+            gateway: 'manual_qr',
+            sessionId: `manual_${Date.now()}`,
+            referenceCode: `MANUAL-${Date.now()}`,
+            amount: approvedAmount,
+            status: 'captured',
+            classification: effectiveClassification,
+            createdAt: Timestamp.now(),
+            paidAt: Timestamp.now(),
+            verifiedBy: caller.uid,
+            verifiedAt: Timestamp.now(),
+            adminNote: note ? note.trim() : null,
+            ...(refundableDeadline ? { refundableUntil: refundableDeadline } : {}),
+        });
+    }
+
+    batch.update(bookingRef, {
+        status: isFull ? 'paid' : 'downpayment',
+        remainingBalance: remaining,
+        paymentVerificationStatus: isFull ? 'fully_paid' : 'downpayment',
+        paymentRejectionReason: FieldValue.delete(),
+        payment: updatedPayments,
+        updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    // Atomically add hiker to tour group chat
+    if (offerId) {
+        try {
+            const groupRef = db.collection('groups').doc(offerId);
+            const groupSnap = await groupRef.get();
+            if (groupSnap.exists) {
+                const groupData = groupSnap.data();
+                const members = groupData.members || [];
+                const alreadyMember = members.some(m => m.id === userId);
+                const hikerUser = bookingData.user || {};
+
+                const newMember = {
+                    id: userId,
+                    username: hikerUser.username || '',
+                    firstname: hikerUser.firstname || '',
+                    lastname: hikerUser.lastname || '',
+                    email: hikerUser.email || '',
+                    bookingId,
+                };
+
+                const updatedMembers = alreadyMember ? members : [...members, newMember];
+
+                batch.update(groupRef, {
+                    participantsIds: FieldValue.arrayUnion(userId),
+                    members: updatedMembers,
+                    updatedAt: FieldValue.serverTimestamp(),
+                });
+            }
+        } catch (groupErr) {
+            console.warn(`[verifyManualPayment] Could not update group chat:`, groupErr.message);
+        }
+    }
+
+    await batch.commit();
+    console.log(`[verifyManualPayment] Successfully verified ${classification} payment for booking ${bookingId}`);
+    return {
+        success: true,
+        verified: true,
+        classification,
+        remainingBalance: remaining,
+        message: isFull ? 'Full payment verified.' : 'Downpayment verified.',
+    };
+});
+
+/**
+ * Atomically completes a manual refund payout.
+ * 1. Updates cancellation document to 'approved' with payout receipt URL and completed step.
+ * 2. Updates booking document to 'refunded'.
+ * 3. Atomically releases 1 slot in businesses/{businessId}/offers/{offerId}.
+ * 4. Atomically removes hiker from groups/{offerId}.
+ */
+exports.completeManualRefund = https.onCall(async (request) => {
+    const {
+        bookingId,
+        userId,
+        businessId: inputBusinessId,
+        offerId: inputOfferId,
+        cancellationId,
+        receiptUrl,
+        refundAmount
+    } = request.data || {};
+
+    const caller = request.auth;
+    if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
+    if (!bookingId || !userId) throw new HttpsError('invalid-argument', 'bookingId and userId are required.');
+    if (!receiptUrl) throw new HttpsError('invalid-argument', 'Receipt proof URL is required.');
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+    if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+    const bookingData = bookingSnap.data();
+
+    const businessId = inputBusinessId || bookingData.business?.id;
+    const offerId = inputOfferId || bookingData.offer?.id;
+
+    // Authorization: Must be admin or owner for this business, or superadmin
+    const adminBusinessId = caller.token.businessId || caller.token.owner;
+    const isAdmin = caller.token.role === 'admin' && (!businessId || adminBusinessId === businessId);
+    const isOwner = caller.token.role === 'owner' && (!businessId || adminBusinessId === businessId);
+    const isSuperAdmin = caller.token.role === 'superadmin';
+
+    if (!isAdmin && !isOwner && !isSuperAdmin) {
+        throw new HttpsError('permission-denied', 'Only administrators can complete refunds.');
+    }
+
+    const batch = db.batch();
+
+    // 1. Cancellation Document Update
+    let resolvedCancellationRef = null;
+    if (cancellationId && businessId) {
+        resolvedCancellationRef = db.collection('businesses').doc(businessId).collection('cancellations').doc(cancellationId);
+    } else if (businessId) {
+        const cSnap = await db.collection('businesses').doc(businessId).collection('cancellations')
+            .where('bookingId', '==', bookingId).limit(1).get();
+        if (!cSnap.empty) {
+            resolvedCancellationRef = cSnap.docs[0].ref;
+        }
+    }
+
+    const totalPaid = (bookingData.payment || []).reduce((sum, p) => p.status === 'captured' ? sum + p.amount : sum, 0);
+    const resolvedRefundAmount = typeof refundAmount === 'number' && refundAmount > 0 ? refundAmount : totalPaid;
+
+    if (resolvedCancellationRef) {
+        batch.update(resolvedCancellationRef, {
+            status: 'approved',
+            adminRefundReceiptUrl: receiptUrl,
+            adminRefundReceiptUploadedAt: FieldValue.serverTimestamp(),
+            handshakeStep: 'completed',
+            refundAmount: resolvedRefundAmount,
+            refundedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+    }
+
+    // 2. Booking Document Update
+    let remainingToRefund = resolvedRefundAmount;
+    const updatedPayments = (bookingData.payment || []).map(p => {
+        if (p.status === 'captured') {
+            const thisRefund = Math.min(p.amount, Math.max(0, remainingToRefund));
+            remainingToRefund -= thisRefund;
+            return {
+                ...p,
+                status: thisRefund >= p.amount ? 'refunded' : 'captured',
+                refundedAmount: thisRefund,
+                refundedAt: Timestamp.now(),
+                refundReason: 'Manual payout receipt verified',
+            };
+        }
+        return p;
+    });
+
+    batch.update(bookingRef, {
+        status: 'refunded',
+        paymentVerificationStatus: 'refunded',
+        refundedAmount: resolvedRefundAmount,
+        payment: updatedPayments,
+        updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    // 3. Release 1 Tour Slot in Offer
+    if (businessId && offerId) {
+        try {
+            const offerRef = db.collection('businesses').doc(businessId).collection('offers').doc(offerId);
+            const offerSnap = await offerRef.get();
+            if (offerSnap.exists && (offerSnap.data()?.reservedPax || 0) > 0) {
+                batch.update(offerRef, {
+                    reservedPax: FieldValue.increment(-1),
+                    updatedAt: FieldValue.serverTimestamp(),
+                });
+            }
+        } catch (offerErr) {
+            console.warn(`[completeManualRefund] Could not update offer slot:`, offerErr.message);
+        }
+    }
+
+    // 4. Remove Hiker from Group Chat
+    if (offerId) {
+        try {
+            const groupRef = db.collection('groups').doc(offerId);
+            const groupSnap = await groupRef.get();
+            if (groupSnap.exists) {
+                const groupData = groupSnap.data();
+                const updatedMembers = (groupData.members || []).filter(m => m.id !== userId);
+                batch.update(groupRef, {
+                    participantsIds: FieldValue.arrayRemove(userId),
+                    members: updatedMembers,
+                    updatedAt: FieldValue.serverTimestamp(),
+                });
+            }
+        } catch (groupErr) {
+            console.warn(`[completeManualRefund] Could not update group chat:`, groupErr.message);
+        }
+    }
+
+    await batch.commit();
+    console.log(`[completeManualRefund] Successfully committed atomic manual refund for booking ${bookingId}`);
+    return {
+        success: true,
+        refundAmount: resolvedRefundAmount,
+        message: 'Refund payout proof uploaded and booking marked refunded.',
+    };
+});
+
+/**
+ * Atomically marks remaining balance for a booking as paid on-site or via cash.
+ */
+exports.settleManualBalance = https.onCall(async (request) => {
+    const { bookingId, userId, businessId: inputBusinessId } = request.data || {};
+    const caller = request.auth;
+
+    if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
+    if (!bookingId || !userId) throw new HttpsError('invalid-argument', 'bookingId and userId are required.');
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+    if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+    const bookingData = bookingSnap.data();
+
+    const businessId = inputBusinessId || bookingData.business?.id;
+
+    // Authorization Check
+    const adminBusinessId = caller.token.businessId || caller.token.owner;
+    const isAdmin = caller.token.role === 'admin' && (!businessId || adminBusinessId === businessId);
+    const isOwner = caller.token.role === 'owner' && (!businessId || adminBusinessId === businessId);
+    const isSuperAdmin = caller.token.role === 'superadmin';
+
+    if (!isAdmin && !isOwner && !isSuperAdmin) {
+        throw new HttpsError('permission-denied', 'Only administrators can settle balances.');
+    }
+
+    const balAmount = bookingData.remainingBalance || (bookingData.offer?.price ? bookingData.offer.price / 2 : 0);
+
+    const balancePayment = {
+        gateway: 'manual_qr',
+        sessionId: `manual_balance_${Date.now()}`,
+        referenceCode: `CASH-BAL-${Date.now()}`,
+        amount: balAmount,
+        status: 'captured',
+        classification: 'full',
+        createdAt: Timestamp.now(),
+        paidAt: Timestamp.now(),
+        verifiedBy: caller.uid,
+        verifiedAt: Timestamp.now(),
+    };
+
+    const batch = db.batch();
+    batch.update(bookingRef, {
+        status: 'paid',
+        remainingBalance: 0,
+        paymentVerificationStatus: 'fully_paid',
+        payment: [...(bookingData.payment || []), balancePayment],
+        updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+    console.log(`[settleManualBalance] Settled remaining balance for booking ${bookingId}`);
+    return {
+        success: true,
+        message: 'Remaining balance marked as paid.',
+    };
+});
+
+/**
+ * Atomically records hiker acceptance of an organizer-initiated cancellation.
+ * 1. Updates cancellation document to 'approved' and sets handshakeStep to 'awaiting_admin_refund_decision'.
+ * 2. Updates booking document with cancellation acknowledgment.
+ */
+exports.acceptAdminCancellation = https.onCall(async (request) => {
+    const { bookingId, cancellationId, businessId: inputBusinessId } = request.data || {};
+    const caller = request.auth;
+
+    if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
+    if (!bookingId) throw new HttpsError('invalid-argument', 'bookingId is required.');
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(caller.uid).collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+    if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+    const bookingData = bookingSnap.data();
+
+    const businessId = inputBusinessId || bookingData.business?.id;
+
+    const batch = db.batch();
+
+    // 1. Cancellation Document Update
+    let resolvedCancellationRef = null;
+    if (cancellationId && businessId) {
+        resolvedCancellationRef = db.collection('businesses').doc(businessId).collection('cancellations').doc(cancellationId);
+    } else if (businessId) {
+        const cSnap = await db.collection('businesses').doc(businessId).collection('cancellations')
+            .where('bookingId', '==', bookingId).limit(1).get();
+        if (!cSnap.empty) {
+            resolvedCancellationRef = cSnap.docs[0].ref;
+        }
+    }
+
+    if (resolvedCancellationRef) {
+        batch.update(resolvedCancellationRef, {
+            status: 'approved',
+            handshakeStep: 'awaiting_admin_refund_decision',
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+    }
+
+    // 2. Booking Update
+    batch.update(bookingRef, {
+        cancellationReason: 'Cancellation accepted by hiker',
+        updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+    console.log(`[acceptAdminCancellation] Hiker ${caller.uid} accepted cancellation for booking ${bookingId}`);
+    return {
+        success: true,
+        message: 'Cancellation accepted successfully.',
+    };
+});
+
 // ─── GROUP-CENTRIC PROGRESSIVE T-MINUS WEATHER ALERT ENGINE ──────────────────
 // Monitors active hike groups (/groups/{groupId}) across the T-minus schedule:
 // T-168h (7 days), T-72h (3 days), T-24h (1 day with 3-hr watch), T-3h (Departure)
