@@ -4,16 +4,18 @@ import {
     ScrollView,
     StyleSheet,
     TextInput,
+    TextStyle,
     TouchableOpacity,
     View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
-import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomSelectionModal from '@/src/components/CustomSelectionModal';
+import CustomStickyFooter, { getStickyFooterScrollPadding } from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import DynamicListBuilder from '@/src/components/DynamicListBuilder';
@@ -32,17 +34,20 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import ScheduleBuilderModal from '@/src/features/Admin/screens/Offer/components/ScheduleBuilderModal';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 import { TEdit } from '@/src/core/interface/domainHookInterface';
-import { Offer } from '@/src/core/models/Offer/Offer';
+import { ISchedule, Offer } from '@/src/core/models/Offer/Offer';
+import { Trail } from '@/src/core/models/Trail/Trail';
+import { DateInput, safeParseDateString } from '@/src/utils/dateFormatter';
 
 const PRESET_DOCS = ["Valid ID", "Medical Certificate"];
 const PRESET_INC = ["Guide Fee"];
 const PRESET_BRING = ["Water (2L+)", "Trail Snacks", "Extra Clothes", "First-aid kit", "Headlamp", "Tent"];
 
 export interface OfferWriteScreenProps {
-    offer: any;
-    trails: any[];
+    offer: Offer;
+    trails: Trail[];
     isLoading: boolean;
     error?: string | null;
     onSubmitOffer: () => void;
@@ -78,13 +83,15 @@ const OfferWriteScreen = ({
     const [showBackWarningModal, setShowBackWarningModal] = useState(false);
     const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
 
+    const insets = useSafeAreaInsets();
+    const { isMobile } = useBreakpoints();
+    const isStackedColumn = Boolean(isMobile && isEditing);
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const scrollViewRef = useRef<ScrollView>(null);
     const trailRef = useRef<View>(null);
     const pricingRef = useRef<View>(null);
     const scheduleRef = useRef<View>(null);
     const checklistsRef = useRef<View>(null);
-    const saveBtnRef = useRef<View>(null);
 
     const measureTrailNow = useCallback(() => {
         trailRef.current?.measureInWindow((x, y, w, h) => {
@@ -118,28 +125,18 @@ const OfferWriteScreen = ({
         });
     }, []);
 
-    const measureSaveBtnNow = useCallback(() => {
-        saveBtnRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('booking_footer', { x, y, width: w, height: h });
-            }
-        });
-    }, []);
-
     useEffect(() => {
         const u1 = registerMeasureCallback('admin_write_trail_dates', measureTrailNow);
         const u2 = registerMeasureCallback('admin_write_pricing_pax', measurePricingNow);
         const u3 = registerMeasureCallback('admin_write_schedule', measureScheduleNow);
         const u4 = registerMeasureCallback('admin_write_checklists', measureChecklistsNow);
-        const u5 = registerMeasureCallback('booking_footer', measureSaveBtnNow);
         return () => {
             u1();
             u2();
             u3();
             u4();
-            u5();
         };
-    }, [measureTrailNow, measurePricingNow, measureScheduleNow, measureChecklistsNow, measureSaveBtnNow]);
+    }, [measureTrailNow, measurePricingNow, measureScheduleNow, measureChecklistsNow]);
 
     useEffect(() => {
         if (!tutorial.isVisible) return;
@@ -164,11 +161,11 @@ const OfferWriteScreen = ({
         onUpdateOffer(params);
     };
 
-    const computeDuration = (startVal?: any, endVal?: any, sched?: any[]) => {
+    const computeDuration = (startVal?: DateInput | null, endVal?: DateInput | null, sched?: ISchedule<Date>[]) => {
         if (startVal && endVal) {
-            const start = new Date(startVal);
+            const start = safeParseDateString(startVal);
             start.setHours(0, 0, 0, 0);
-            const end = new Date(endVal);
+            const end = safeParseDateString(endVal);
             end.setHours(0, 0, 0, 0);
 
             if (end.getTime() >= start.getTime()) {
@@ -197,9 +194,9 @@ const OfferWriteScreen = ({
 
     const computedDays = (() => {
         if (offer?.date && offer?.endDate) {
-            const start = new Date(offer.date);
+            const start = safeParseDateString(offer.date);
             start.setHours(0, 0, 0, 0);
-            const end = new Date(offer.endDate);
+            const end = safeParseDateString(offer.endDate);
             end.setHours(0, 0, 0, 0);
             if (end.getTime() >= start.getTime()) {
                 const diffTime = Math.abs(end.getTime() - start.getTime());
@@ -215,13 +212,13 @@ const OfferWriteScreen = ({
     const days = computedDays > 0 ? String(computedDays) : '';
     const nights = computedDays > 1 ? String(computedDays - 1) : computedDays === 1 ? '0' : '';
 
-    const handleStartDateChange = (val: any) => {
+    const handleStartDateChange = (val: DateInput) => {
         handleUpdate({ section: 'root', id: 'date', value: val });
         
         const scheduleLength = offer?.schedule?.length || 0;
         let newEnd = offer?.endDate;
         if (val && scheduleLength > 0) {
-            const computedEnd = new Date(val);
+            const computedEnd = safeParseDateString(val);
             computedEnd.setHours(0, 0, 0, 0);
             computedEnd.setDate(computedEnd.getDate() + scheduleLength - 1);
             newEnd = computedEnd;
@@ -231,12 +228,12 @@ const OfferWriteScreen = ({
         handleUpdate({ section: 'root', id: 'duration', value: dur });
     };
 
-    const handleEndDateChange = (val: any) => {
+    const handleEndDateChange = (val: DateInput) => {
         let validEnd = val;
         if (offer?.date && val) {
-            const start = new Date(offer.date);
+            const start = safeParseDateString(offer.date);
             start.setHours(0, 0, 0, 0);
-            const end = new Date(val);
+            const end = safeParseDateString(val);
             end.setHours(0, 0, 0, 0);
             if (end.getTime() < start.getTime()) {
                 validEnd = offer.date;
@@ -245,9 +242,9 @@ const OfferWriteScreen = ({
         handleUpdate({ section: 'root', id: 'endDate', value: validEnd });
 
         if (offer?.date && validEnd) {
-            const start = new Date(offer.date);
+            const start = safeParseDateString(offer.date);
             start.setHours(0, 0, 0, 0);
-            const end = new Date(validEnd);
+            const end = safeParseDateString(validEnd);
             end.setHours(0, 0, 0, 0);
             
             if (end >= start) {
@@ -261,7 +258,7 @@ const OfferWriteScreen = ({
                     for (let i = 0; i < daysToAdd; i++) {
                         currentSchedule.push({ 
                             day: currentSchedule.length + 1, 
-                            activities: [{ hourVal: '', minuteVal: '', periodVal: 'AM', event: '' }] 
+                            activities: [{ time: safeParseDateString(offer?.date) || new Date(), event: '' }] 
                         });
                     }
                     handleUpdate({ section: 'root', id: 'schedule', value: currentSchedule });
@@ -313,11 +310,26 @@ const OfferWriteScreen = ({
         return hasTrail && hasDesc && hasPrice && hasDate && hasEndDate && hasDuration && hasMinPax && hasMaxPax && hasSchedule && hasDocs;
     };
 
+    const getDisabledReason = (): string | undefined => {
+        if (!offer?.trail?.id) return 'Please select a mountain trail';
+        if (!offer?.description || offer.description.trim() === '') return 'Please enter an offer description';
+        if (!offer?.price || Number(offer.price) <= 0) return 'Please set a price per pax';
+        if (!offer?.minPax || Number(offer.minPax) <= 0) return 'Please set minimum pax capacity';
+        if (!offer?.maxPax || Number(offer.maxPax) < Number(offer.minPax)) return 'Please set valid max pax capacity (at least min pax)';
+        if (!offer?.date) return 'Please select a start date';
+        if (!offer?.endDate) return 'Please select an end date';
+        if (!offer?.duration || offer.duration.trim() === '') return 'Please set valid package duration';
+        if (!Array.isArray(offer?.schedule) || offer.schedule.length === 0) return 'Please configure the itinerary schedule';
+        const hasDocs = (Array.isArray(offer?.documents) && offer.documents.length > 0) || docInput.trim() !== '';
+        if (!hasDocs) return 'Please specify at least one required document';
+        return undefined;
+    };
+
     const isReadyToSubmit = isFormValid() && !isLoading;
 
     const totalDays = Number(days) || 0;
-    const totalActivities = offer?.schedule?.reduce((acc: number, curr: any) => {
-        const validActivies = curr.activities?.reduce((actAcc: any[], act: any) => {
+    const totalActivities = offer?.schedule?.reduce((acc: number, curr) => {
+        const validActivies = curr.activities?.reduce<typeof curr.activities>((actAcc, act) => {
             if (act.event.trim() !== '') actAcc.push(act);
             return actAcc;
         }, []) || [];
@@ -383,7 +395,10 @@ const OfferWriteScreen = ({
             <ScrollView 
                 showsVerticalScrollIndicator={false} 
                 ref={scrollViewRef}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    { paddingBottom: getStickyFooterScrollPadding(insets.bottom, isMobile, isStackedColumn) }
+                ]}
             >
                 <View style={styles.constrainer}>
 
@@ -652,32 +667,39 @@ const OfferWriteScreen = ({
 
                         {error && <ErrorMessage error={error} />}
 
-                        <View
-                            ref={saveBtnRef}
-                            collapsable={false}
-                            style={styles.buttonContainer}
-                        >
-                            <CustomButton 
-                                title={isLoading ? "Saving..." : "Save Offer"}
-                                onPress={handleSaveClick}
-                                variant="primary"
-                                style={!isReadyToSubmit ? styles.disabledButton : undefined}
-                            />
-                            
-                            {isEditing && (
-                                <CustomButton 
-                                    title="Delete Offer"
-                                    onPress={() => setIsDeleteModalVisible(true)}
-                                    variant="outline"
-                                    style={[styles.deleteBtn, isLoading && styles.disabledButton]}
-                                    textStyle={{ color: Colors.ERROR }}
-                                />
-                            )}
-                        </View>
-
                     </View>
                 </View>
             </ScrollView>
+
+            <CustomStickyFooter
+                targetSpotlight="booking_footer"
+                enableToastDock={true}
+                layout={isStackedColumn ? 'column' : 'row'}
+                buttonDistribution="prominent-primary"
+                primaryButton={{
+                    title: isLoading ? 'Saving...' : 'Save Offer',
+                    onPress: handleSaveClick,
+                    variant: 'primary',
+                    disabled: !isReadyToSubmit,
+                    validationState: isReadyToSubmit ? 'valid' : 'idle',
+                    disabledToastMessage: getDisabledReason(),
+                    disabledToastType: 'warning',
+                    disabledToastMode: 'dismissible',
+                    isLoading,
+                }}
+                secondaryButton={
+                    isEditing
+                        ? {
+                              title: 'Delete Offer',
+                              onPress: () => setIsDeleteModalVisible(true),
+                              variant: 'outline',
+                              textStyle: { color: Colors.ERROR },
+                              style: { borderColor: Colors.ERROR },
+                              disabled: isLoading,
+                          }
+                        : undefined
+                }
+            />
 
             <CustomSelectionModal 
                 visible={showTrailModal}
@@ -685,11 +707,11 @@ const OfferWriteScreen = ({
                 title="Select Trail"
                 options={trailOptions}
                 selectedValue={offer?.trail?.id}
-                onSelect={(selected: any) => {
+                onSelect={(selected) => {
                     handleUpdate({ 
                         section: 'root', 
                         id: 'trail', 
-                        value: { id: selected.value, name: selected.label } 
+                        value: { id: String(selected.value || ''), name: selected.label } 
                     });
                     setShowTrailModal(false);
                 }}
@@ -700,7 +722,7 @@ const OfferWriteScreen = ({
                 onClose={() => setShowScheduleModal(false)}
                 initialSchedule={offer.schedule}
                 offerDays={Number(days) || 0}
-                onSave={(newSchedule: any[]) => {
+                onSave={(newSchedule: ISchedule<Date>[]) => {
                     handleUpdate({ section: 'root', id: 'schedule', value: newSchedule });
                     setShowScheduleModal(false);
 
@@ -895,7 +917,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY, 
         textAlign: 'center', 
         ...Platform.select({
-            web: { outlineStyle: 'none' } as any
+            web: { outlineStyle: 'none' } as unknown as TextStyle
         })
     },
     verticalDivider: { 
@@ -921,16 +943,6 @@ const styles = StyleSheet.create({
         textAlignVertical: 'top', 
         paddingTop: 16, 
         paddingBottom: 16 
-    },
-    buttonContainer: { 
-        marginTop: 8,
-        gap: 12 
-    },
-    deleteBtn: { 
-        borderColor: Colors.ERROR 
-    },
-    disabledButton: { 
-        opacity: 0.5 
     }
 });
 

@@ -3,7 +3,7 @@
  * @description Standardized customizable button component for the Thrail application, supporting icons, states, and custom variants.
  */
 
-import React, { ReactNode, useContext, useRef } from 'react';
+import React, { ReactNode, useContext, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     GestureResponderEvent,
@@ -18,7 +18,7 @@ import {
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import { ToastContext, ToastType } from '@/src/components/Toast/Toast';
+import { ToastContext, ToastMode, ToastType } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { IconLibrary } from '@/src/types/ui.types';
@@ -60,6 +60,8 @@ export type ButtonValidationState = 'valid' | 'idle' | 'error';
  * @param iconColor - Color override for the icon.
  * @param disabledToastMessage - Optional toast message to show when button is tapped while disabled.
  * @param disabledToastType - Semantic type of disabled toast notification.
+ * @param disabledToastMode - Optional toast presentation mode ('simple' or 'dismissible').
+ * @param onToastHide - Optional callback invoked when the disabled toast is dismissed or expires.
  * @param validationState - Semantic tri-state validation ('valid' | 'idle' | 'error').
  * @param hasError - Convenience shorthand for validationState="error".
  * @param isIdleDisabled - Convenience shorthand for validationState="idle".
@@ -81,6 +83,8 @@ export interface CustomButtonProps {
     iconColor?: string;
     disabledToastMessage?: string;
     disabledToastType?: ToastType;
+    disabledToastMode?: ToastMode;
+    onToastHide?: () => void;
     validationState?: ButtonValidationState;
     hasError?: boolean;
     isIdleDisabled?: boolean;
@@ -106,15 +110,21 @@ const CustomButton: React.FC<CustomButtonProps> = ({
     iconColor,
     disabledToastMessage,
     disabledToastType = 'error',
+    disabledToastMode,
+    onToastHide,
     validationState,
     hasError = false,
     isIdleDisabled = false,
 }) => {
     const toastContext = useContext(ToastContext);
+    const [isToastHighlighted, setIsToastHighlighted] = useState<boolean>(false);
 
-    const resolvedValidationState: ButtonValidationState = hasError
+    const isHighlighted = isToastHighlighted && (disabled || validationState === 'idle');
+    const resolvedValidationState: ButtonValidationState = isHighlighted
         ? 'error'
-        : (isIdleDisabled ? 'idle' : (validationState ?? 'valid'));
+        : hasError
+            ? 'error'
+            : (isIdleDisabled ? 'idle' : (validationState ?? 'valid'));
     
     let buttonStyle = styles.primary as StyleProp<ViewStyle>;
     let labelStyle = styles.textPrimary as StyleProp<TextStyle>;
@@ -160,8 +170,15 @@ const CustomButton: React.FC<CustomButtonProps> = ({
             return;
         }
 
-        if (disabled && disabledToastMessage && toastContext) {
-            toastContext.showToast(disabledToastMessage, disabledToastType);
+        if ((disabled || resolvedValidationState === 'idle') && disabledToastMessage && toastContext) {
+            setIsToastHighlighted(true);
+            toastContext.showToast(disabledToastMessage, disabledToastType, {
+                mode: disabledToastMode ?? 'dismissible',
+                onHide: () => {
+                    setIsToastHighlighted(false);
+                    onToastHide?.();
+                },
+            });
             return;
         }
 

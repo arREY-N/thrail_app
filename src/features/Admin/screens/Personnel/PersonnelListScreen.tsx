@@ -5,10 +5,11 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { Animated, Easing, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomStickyFooter, { getStickyFooterScrollPadding } from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -17,6 +18,7 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { IAdmin } from '@/src/core/models/Admin/Admin';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { getInitials } from '@/src/utils/dateFormatter';
 
 /**
@@ -52,6 +54,8 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
     onBackPress,
     onAddAdminPress
 }) => {
+    const insets = useSafeAreaInsets();
+    const { isMobile } = useBreakpoints();
 
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [isReloading, setIsReloading] = useState<boolean>(false);
@@ -181,19 +185,13 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
                 title="Personnel"
                 centerTitle={true}
                 onBackPress={onBackPress}
-                rightActions={
-                    <CustomButton
-                        title="Add"
-                        onPress={onAddAdminPress}
-                        variant="primary"
-                        style={styles.headerAddBtn}
-                        textStyle={styles.headerAddBtnText}
-                    />
-                }
             />
 
             <ResponsiveScrollView
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    { paddingBottom: getStickyFooterScrollPadding(insets.bottom, isMobile) }
+                ]}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -242,6 +240,15 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
                     </TouchableOpacity>
                 </View>
             </ResponsiveScrollView>
+
+            <CustomStickyFooter
+                enableToastDock={true}
+                primaryButton={{
+                    title: "+ Add Admin",
+                    onPress: onAddAdminPress,
+                    variant: "primary",
+                }}
+            />
         </ScreenWrapper>
     );
 };
@@ -257,21 +264,6 @@ const styles = StyleSheet.create({
         maxWidth: Layout.MAX_WIDTH,
         alignSelf: 'center',
         flex: 1,
-    },
-    headerAddBtn: {
-        paddingHorizontal: 16,
-        paddingVertical: 0,
-        height: 32,
-        width: 70,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        alignSelf: 'center',
-    },
-    headerAddBtnText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        // marginTop: -2,
     },
     list: {
         gap: 12,

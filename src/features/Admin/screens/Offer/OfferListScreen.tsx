@@ -8,14 +8,15 @@ import {
     ActivityIndicator,
     ScrollView,
     StyleSheet,
-    TouchableOpacity,
     View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomFilterModal from '@/src/components/CustomFilterModal';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomStickyFooter, { getStickyFooterScrollPadding } from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -124,7 +125,8 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
     const [selectedEditId, setSelectedEditId] = useState<string | null>(null);
     const [showFilterModal, setShowFilterModal] = useState(false);
 
-    const { width } = useBreakpoints();
+    const insets = useSafeAreaInsets();
+    const { width, isMobile } = useBreakpoints();
     const gap = 16;
     const padding = 16;
     const maxConstrainedWidth = Layout.MAX_WIDTH;
@@ -136,17 +138,8 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
 
     const cardWidth = (containerWidth - gap * (numColumns - 1)) / numColumns;
     const scrollViewRef = useRef<ScrollView>(null);
-    const addBtnRef = useRef<View>(null);
     const searchFiltersRef = useRef<View>(null);
     const firstOfferRef = useRef<View>(null);
-
-    const measureAddBtnNow = useCallback(() => {
-        addBtnRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('admin_offer_add_btn', { x, y, width: w, height: h });
-            }
-        });
-    }, []);
 
     const measureFiltersNow = useCallback(() => {
         searchFiltersRef.current?.measureInWindow((x, y, w, h) => {
@@ -165,15 +158,13 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
     }, []);
 
     useEffect(() => {
-        const u1 = registerMeasureCallback('admin_offer_add_btn', measureAddBtnNow);
         const u2 = registerMeasureCallback('admin_offer_filters', measureFiltersNow);
         const u3 = registerMeasureCallback('admin_offer_card', measureFirstOfferNow);
         return () => {
-            u1();
             u2();
             u3();
         };
-    }, [measureAddBtnNow, measureFiltersNow, measureFirstOfferNow]);
+    }, [measureFiltersNow, measureFirstOfferNow]);
 
     useEffect(() => {
         if (!tutorial.isVisible) return;
@@ -201,28 +192,6 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
             onEditOffer(selectedEditId);
         }
     };
-
-    const HeaderAddAction = (
-        <TouchableOpacity 
-            ref={addBtnRef}
-            onLayout={() => {
-                if (isTutorialMeasurementActive()) measureAddBtnNow();
-            }}
-            style={styles.headerAddButton}
-            onPress={onAddOffer}
-            activeOpacity={0.7}
-        >
-            <CustomIcon 
-                library="Feather" 
-                name="plus" 
-                size={16} 
-                color={Colors.WHITE} 
-            />
-            <CustomText style={styles.headerAddText}>
-                New
-            </CustomText>
-        </TouchableOpacity>
-    );
 
     const getOfferStatusDetails = useCallback((offer: Offer) => {
         const status = (offer.status || '').toString().toLowerCase();
@@ -336,12 +305,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                         title="Manage Offers" 
                         centerTitle={true} 
                         onBackPress={onBackPress}
-                        rightActions={
-                            <View style={styles.headerRightActions}>
-                                <TutorialHelpButton onPress={tutorial.onReplayTour} />
-                                {HeaderAddAction}
-                            </View>
-                        } 
+                        rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />} 
                         hasSearch={true}
                         searchProps={{
                             searchPlaceholder: "Search by trail name...",
@@ -360,7 +324,10 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                 <ScrollView 
                     ref={scrollViewRef}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        { paddingBottom: getStickyFooterScrollPadding(insets.bottom, isMobile) }
+                    ]}
                 >
                     <View style={styles.constrainer}>
                         <ErrorMessage error={error} />
@@ -456,6 +423,16 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                         )}
                     </View>
                 </ScrollView>
+
+                <CustomStickyFooter
+                    targetSpotlight="admin_offer_add_btn"
+                    enableToastDock={true}
+                    primaryButton={{
+                        title: "+ Add New Offer",
+                        onPress: onAddOffer,
+                        variant: "primary",
+                    }}
+                />
             </View>
 
             <ConfirmationModal 
@@ -521,23 +498,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center', 
         alignItems: 'center' 
     },
-    headerAddButton: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        backgroundColor: Colors.PRIMARY, 
-        paddingHorizontal: 16, 
-        height: 32, 
-        alignSelf: 'center', 
-        borderRadius: 16, 
-        gap: 4 
-    },
-    headerAddText: { 
-        color: Colors.WHITE, 
-        fontWeight: 'bold', 
-        fontSize: 12,
-        marginTop: -2
-    },
     emptyState: { 
         alignItems: 'center', 
         justifyContent: 'center', 
@@ -560,6 +520,7 @@ const styles = StyleSheet.create({
     listContainer: { 
         flexDirection: 'row',
         flexWrap: 'wrap',
+        justifyContent: 'center',
         gap: 16 
     },
     footerContainer: {
@@ -571,11 +532,6 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PLACEHOLDER,
         fontStyle: 'italic',
         fontSize: 14,
-    },
-    headerRightActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
     },
 });
 
