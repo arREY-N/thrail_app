@@ -734,6 +734,37 @@ Historical bookings paid and refunded via **PayMongo** (e.g., *Mt. Batulao*, *Mt
 4. **Status Configuration Alignment ([`statusConfig.ts`](file:///d:/thrail_app/src/constants/statusConfig.ts))**:
    - Updated `'paid'` userLabel from `'VERIFYING PAYMENT'` to `'PAID'` to reflect verified payment status.
 
+---
+
+## 17. Direct QR Code Save to Device Gallery (`expo-media-library`)
+
+### 🐛 Problem Statement
+When hikers selected "Manual Payment (QR Code)" and tapped **"Save QR to Gallery"**, the application previously presented the Android / iOS native sharing dialog (showing "Sharing image", Quick Share, Gmail, Google Drive, Print, etc.) instead of directly downloading and saving the QR code into the phone's native Photos / Gallery app.
+
+### 🔍 Root Cause Analysis
+1. In [`ManualQRMethodScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Payment/ManualQRMethodScreen.tsx#L145-L153), the code downloaded the organizer's QR code image into `FileSystem.documentDirectory` (an app-internal sandbox directory).
+2. It then invoked `Sharing.shareAsync(uri)`.
+3. In React Native / Expo, `expo-sharing` is strictly designed for triggering the system-level Share Sheet to broadcast files to other apps. It does not insert images into the user's Camera Roll / DCIM / MediaStore gallery.
+4. The project was missing `expo-media-library`, which is the Expo module required to request photo storage permissions and save images directly to device storage.
+
+### 🛠️ Resolution & Implementation Details
+1. **Dependency Installation (`package.json` & `package-lock.json`)**:
+   - Installed `expo-media-library@~57.0.5` matching the project's Expo SDK 52 / React Native 0.76 environment.
+2. **App Configuration & Permissions (`app.json`)**:
+   - Added `expo-media-library` config plugin with custom permission strings:
+     - `photosPermission`: "Allow Thrail to save payment QR codes to your photo gallery."
+     - `savePhotosPermission`: "Allow Thrail to save payment QR codes to your photo gallery."
+   - Added `"WRITE_EXTERNAL_STORAGE"` to Android permissions array to support older Android devices.
+3. **Gallery Save Workflow (`ManualQRMethodScreen.tsx`)**:
+   - Imported `* as MediaLibrary from 'expo-media-library'`.
+   - Updated `handleSaveQR`:
+     - Downloads remote QR code image to a local temporary file in document directory.
+     - Requests permission via `MediaLibrary.requestPermissionsAsync()`.
+     - Upon permission grant (`permission.granted`), invokes `MediaLibrary.saveToLibraryAsync(uri)`.
+     - Shows toast confirmation: `"QR Code saved to Gallery!"`.
+     - Gracefully falls back to `Sharing.shareAsync(uri)` if permissions are denied or if the device environment encounters a media library exception.
+
+
 
 
 
