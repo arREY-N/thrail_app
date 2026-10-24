@@ -92,6 +92,9 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
     setHydrated: (hydrated) => set({ isHydrated: hydrated }),
 
     initialize: () => {
+        let lastCheckedUid: string | null = null;
+        let hasForceRefreshedToken = false;
+
         try {
             const unsubscribeAuth = onIdTokenChanged(auth, async (firebaseUser) => {
                 set({ error: null });
@@ -110,6 +113,10 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                 logger("authStoreCreator", 'line 90')
 
                 if (firebaseUser) {
+                    if (lastCheckedUid !== firebaseUser.uid) {
+                        lastCheckedUid = firebaseUser.uid;
+                        hasForceRefreshedToken = false;
+                    }
 
                     try {
                         logger("authStoreCreator", "with user");
@@ -147,11 +154,13 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                                         null;
 
                                     // If user has admin/superadmin role but the cached token lacks businessId claims,
-                                    // force refresh the token to obtain fresh claims set by Cloud Functions.
-                                    if ((profileData.role === 'admin' || profileData.role === 'superadmin') &&
+                                    // force refresh the token once to obtain fresh claims set by Cloud Functions without looping.
+                                    if (!hasForceRefreshedToken &&
+                                        (profileData.role === 'admin' || profileData.role === 'superadmin') &&
                                         !(idTokenResult.claims as CustomClaims).businessId &&
                                         !(idTokenResult.claims as CustomClaims).owner) {
                                         try {
+                                            hasForceRefreshedToken = true;
                                             idTokenResult = await firebaseUser.getIdTokenResult(true);
                                             activeBusinessId =
                                                 (idTokenResult.claims as CustomClaims).businessId ||
@@ -199,6 +208,8 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                         return;
                     }
                 } else {
+                    lastCheckedUid = null;
+                    hasForceRefreshedToken = false;
                     logger("authStoreCreator", "no user");
                     const currentUnsub = get()._unsubscribe;
 

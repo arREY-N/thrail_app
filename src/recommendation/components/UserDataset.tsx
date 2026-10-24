@@ -1,14 +1,14 @@
 import CustomIcon from "@/src/components/CustomIcon";
 import { Colors, Palette } from "@/src/constants/colors";
 import { Hike } from "@/src/core/models/Hike/Hike";
+import { IRecommendedTrailItem, Recommendation } from "@/src/core/models/Recommendation/interfaces/Recommendation.types";
+import { RecommendationRepo } from "@/src/core/models/Recommendation/repositories/recommendationRepository";
 import { Review } from "@/src/core/models/Review/Review";
 import { Trail } from "@/src/core/models/Trail/Trail";
 import { User } from "@/src/core/models/User/User";
-import { formatDate } from "@/src/core/utility/date";
-import { Profile, UserProfiles } from "@/src/recommendation/interfaces/Profile";
-import { IRecommendedTrailItem, Recommendation } from "@/src/core/models/Recommendation/interfaces/Recommendation.types";
-import { RecommendationRepo } from "@/src/core/models/Recommendation/repositories/recommendationRepository";
 import getRecoID from "@/src/core/utility/recommendation";
+import { RecommendationFactors } from "@/src/recommendation/constants/RecommendationFactors";
+import { Profile, UserProfiles } from "@/src/recommendation/interfaces/Profile";
 import {
     useRecommendationHikeStore,
     useRecommendationReviewStore,
@@ -17,8 +17,7 @@ import {
     BatchTrailProfile,
     GenerateUserProfile,
     HasMedicalCondition,
-    MatchSurveyTrails,
-    MEDICAL_CONDITION_FACTOR,
+    MatchSurveyTrails
 } from "@/src/recommendation/utilities/CreateProfile";
 import { calculateTrailGain } from "@/src/recommendation/utilities/GetElevation";
 import {
@@ -27,7 +26,6 @@ import {
     DatasetBounds,
     resolveTerrainFeatures,
 } from "@/src/recommendation/utilities/NormalizeTrails";
-import { RecommendationFactors } from "@/src/recommendation/constants/RecommendationFactors";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
@@ -560,356 +558,356 @@ export default function UserDataset({
                             >
                                 {/* Table Body (Two rows per user: Easy Anchor and Difficult Anchor) */}
                                 {paginatedUsers.map((user, index) => {
-                                const fullName = `${user.firstname || ""} ${user.lastname || ""}`.trim() || user.username || "Unnamed User";
-                                const profiles = resolveProfiles(user);
-                                const isSavedInDb = !!user.profile || !!savedProfilesMap[user.id];
-                                const isSaving = savingUserId === user.id;
-                                const isEven = index % 2 === 0;
-                                const globalIndex = (page - 1) * PAGE_SIZE + index + 1;
-                                const hasMed = HasMedicalCondition(user);
+                                    const fullName = `${user.firstname || ""} ${user.lastname || ""}`.trim() || user.username || "Unnamed User";
+                                    const profiles = resolveProfiles(user);
+                                    const isSavedInDb = !!user.profile || !!savedProfilesMap[user.id];
+                                    const isSaving = savingUserId === user.id;
+                                    const isEven = index % 2 === 0;
+                                    const globalIndex = (page - 1) * PAGE_SIZE + index + 1;
+                                    const hasMed = HasMedicalCondition(user);
 
-                                const easy = profiles.easy.features;
-                                const diff = profiles.difficult.features;
+                                    const easy = profiles.easy.features;
+                                    const diff = profiles.difficult.features;
 
-                                return (
-                                    <View key={user.id || index} style={[styles.userBlock, isEven ? styles.rowEven : styles.rowOdd]}>
-                                        {/* Spanned Index Column */}
-                                        <View style={[styles.colIndex, styles.centerCell, { justifyContent: "center" }]}>
-                                            <Text style={[styles.td, styles.textMuted]}>
-                                                {globalIndex}
-                                            </Text>
-                                        </View>
-
-                                        {/* Spanned User Column */}
-                                        <TouchableOpacity
-                                            style={[styles.colUser, { justifyContent: "center" }]}
-                                            activeOpacity={0.7}
-                                            onPress={() => setSelectedUser(user)}
-                                        >
-                                            <Text style={styles.nameCell} numberOfLines={1}>
-                                                {fullName}
-                                            </Text>
-                                            <Text style={styles.subUserText} numberOfLines={1}>
-                                                @{user.username || user.email?.split("@")[0] || "user"}
-                                            </Text>
-                                            <View style={{ marginTop: 2, flexDirection: "row", alignItems: "center", gap: 4 }}>
-                                                {isSavedInDb ? (
-                                                    <Text style={styles.savedBadgeText}>● Saved in DB</Text>
-                                                ) : (
-                                                    <Text style={styles.unsavedBadgeText}>● Unsaved preview</Text>
-                                                )}
-                                                <Text style={styles.viewRecoHintText}>• Tap to inspect</Text>
+                                    return (
+                                        <View key={user.id || index} style={[styles.userBlock, isEven ? styles.rowEven : styles.rowOdd]}>
+                                            {/* Spanned Index Column */}
+                                            <View style={[styles.colIndex, styles.centerCell, { justifyContent: "center" }]}>
+                                                <Text style={[styles.td, styles.textMuted]}>
+                                                    {globalIndex}
+                                                </Text>
                                             </View>
-                                        </TouchableOpacity>
 
-                                        {/* Two Anchor Sub-Rows Stacked Vertically */}
-                                        <View style={{ flexDirection: "column" }}>
-                                            {/* SUB-ROW 1: EASY ANCHOR */}
-                                            <View style={styles.subTableRow}>
-                                                {/* Anchor Column */}
-                                                <View style={[styles.colAnchor, styles.centerCell, { justifyContent: "center" }]}>
-                                                    <View style={styles.easyBadge}>
-                                                        <Text style={styles.easyBadgeText}>Easy Anchor</Text>
-                                                    </View>
-                                                    {hasMed && (
-                                                        <View style={[styles.medBadge, { marginTop: 2 }]}>
-                                                            <Text style={styles.medBadgeText}>Med 0.80x</Text>
-                                                        </View>
+                                            {/* Spanned User Column */}
+                                            <TouchableOpacity
+                                                style={[styles.colUser, { justifyContent: "center" }]}
+                                                activeOpacity={0.7}
+                                                onPress={() => setSelectedUser(user)}
+                                            >
+                                                <Text style={styles.nameCell} numberOfLines={1}>
+                                                    {fullName}
+                                                </Text>
+                                                <Text style={styles.subUserText} numberOfLines={1}>
+                                                    @{user.username || user.email?.split("@")[0] || "user"}
+                                                </Text>
+                                                <View style={{ marginTop: 2, flexDirection: "row", alignItems: "center", gap: 4 }}>
+                                                    {isSavedInDb ? (
+                                                        <Text style={styles.savedBadgeText}>● Saved in DB</Text>
+                                                    ) : (
+                                                        <Text style={styles.unsavedBadgeText}>● Unsaved preview</Text>
                                                     )}
+                                                    <Text style={styles.viewRecoHintText}>• Tap to inspect</Text>
                                                 </View>
+                                            </TouchableOpacity>
 
-                                                {/* Classification */}
-                                                <View style={[styles.tdCell, styles.colClass, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.classification}</Text>
-                                                    <Text style={styles.valRaw}>(Minor)</Text>
-                                                </View>
-
-                                                {/* Lasco / Easy */}
-                                                <View style={[styles.tdCell, styles.colLasco, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.easy.toFixed(3)}</Text>
-                                                    <Text style={styles.valRaw}>(Anchor)</Text>
-                                                </View>
-
-                                                {/* Length */}
-                                                <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.length.toFixed(3)}</Text>
-                                                    <Text style={styles.valRaw}>(Norm)</Text>
-                                                </View>
-
-                                                {/* Peak MASL */}
-                                                <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.elevation.toFixed(3)}</Text>
-                                                    <Text style={styles.valRaw}>(Norm)</Text>
-                                                </View>
-
-                                                {/* Start Elev */}
-                                                <View style={[styles.tdCell, styles.colElev, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.elevation.toFixed(3)}</Text>
-                                                    <Text style={styles.valRaw}>(Base)</Text>
-                                                </View>
-
-                                                {/* Gain */}
-                                                <View style={[styles.tdCell, styles.colGain, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.gain.toFixed(3)}</Text>
-                                                    <Text style={styles.valRaw}>(Norm)</Text>
-                                                </View>
-
-                                                {/* Slope */}
-                                                <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.slope.toFixed(3)}</Text>
-                                                    <Text style={styles.valRaw}>(Norm)</Text>
-                                                </View>
-
-                                                {/* Provinces */}
-                                                {PROVINCES.map((prov) => {
-                                                    const pVal = easy.province[prov.toLowerCase() as keyof Profile['features']['province']];
-                                                    const isHigh = pVal > 0.5;
-                                                    return (
-                                                        <View key={prov} style={[styles.tdCell, styles.colProvince, styles.centerCell]}>
-                                                            <Text style={[styles.valNormalized, isHigh ? styles.textPrimary : styles.textMuted]}>
-                                                                {pVal.toFixed(3)}
-                                                            </Text>
-                                                            <Text style={styles.valRaw}>({isHigh ? "Pref" : "Low"})</Text>
+                                            {/* Two Anchor Sub-Rows Stacked Vertically */}
+                                            <View style={{ flexDirection: "column" }}>
+                                                {/* SUB-ROW 1: EASY ANCHOR */}
+                                                <View style={styles.subTableRow}>
+                                                    {/* Anchor Column */}
+                                                    <View style={[styles.colAnchor, styles.centerCell, { justifyContent: "center" }]}>
+                                                        <View style={styles.easyBadge}>
+                                                            <Text style={styles.easyBadgeText}>Easy Anchor</Text>
                                                         </View>
-                                                    );
-                                                })}
-
-                                                {/* Terrain: Muddy, Rocky, Grass, Ridge */}
-                                                <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.terrain.muddy.toFixed(3)}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.terrain.rocky.toFixed(3)}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.terrain.grassland.toFixed(3)}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.terrain.ridges.toFixed(3)}</Text>
-                                                </View>
-
-                                                {/* Circularity: Out-Back, Traverse, Circular */}
-                                                <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.circularity.out_and_back.toFixed(3)}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.circularity.traverse.toFixed(3)}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.circularity.circular.toFixed(3)}</Text>
-                                                </View>
-
-                                                {/* Waterforms: Fall, River, Lake */}
-                                                <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.waterforms.fall != null ? easy.waterforms.fall.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.waterforms.river != null ? easy.waterforms.river.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.waterforms.lake != null ? easy.waterforms.lake.toFixed(3) : "-"}</Text>
-                                                </View>
-
-                                                {/* Tourism Amenities */}
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.tourism.shelter != null ? easy.tourism.shelter.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.tourism.resting != null ? easy.tourism.resting.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.tourism.information_board != null ? easy.tourism.information_board.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.tourism.clean_water != null ? easy.tourism.clean_water.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.tourism.monument != null ? easy.tourism.monument.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.tourism.community != null ? easy.tourism.community.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.tourism.viewpoint != null ? easy.tourism.viewpoint.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{easy.tourism.network_connection != null ? easy.tourism.network_connection.toFixed(3) : "-"}</Text>
-                                                </View>
-
-                                                {/* Action Button: Save to Firestore */}
-                                                <View style={[styles.tdCell, styles.colAction, styles.centerCell]}>
-                                                    <TouchableOpacity
-                                                        style={[styles.saveBtn, isSavedInDb && styles.savedBtn]}
-                                                        onPress={() => handleSaveProfile(user, profiles)}
-                                                        disabled={isSaving}
-                                                        accessibilityLabel={`Save profile for ${fullName}`}
-                                                    >
-                                                        {isSaving ? (
-                                                            <ActivityIndicator size="small" color={Colors.WHITE} />
-                                                        ) : (
-                                                            <>
-                                                                <CustomIcon
-                                                                    library="Feather"
-                                                                    name={isSavedInDb ? "refresh-cw" : "save"}
-                                                                    size={12}
-                                                                    color={Colors.WHITE}
-                                                                />
-                                                                <Text style={styles.saveBtnText}>
-                                                                    {isSavedInDb ? "Update Profile" : "Save to DB"}
-                                                                </Text>
-                                                            </>
+                                                        {hasMed && (
+                                                            <View style={[styles.medBadge, { marginTop: 2 }]}>
+                                                                <Text style={styles.medBadgeText}>Med 0.80x</Text>
+                                                            </View>
                                                         )}
-                                                    </TouchableOpacity>
-                                                </View>
-                                            </View>
-
-                                            {/* SUB-ROW 2: DIFFICULT ANCHOR */}
-                                            <View style={[styles.subTableRow, styles.subTableRowDivider]}>
-                                                {/* Anchor Column */}
-                                                <View style={[styles.colAnchor, styles.centerCell, { justifyContent: "center" }]}>
-                                                    <View style={styles.difficultBadge}>
-                                                        <Text style={styles.difficultBadgeText}>Difficult Anchor</Text>
                                                     </View>
-                                                    {hasMed && (
-                                                        <View style={[styles.medBadge, { marginTop: 2 }]}>
-                                                            <Text style={styles.medBadgeText}>Med 0.80x</Text>
+
+                                                    {/* Classification */}
+                                                    <View style={[styles.tdCell, styles.colClass, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.classification}</Text>
+                                                        <Text style={styles.valRaw}>(Minor)</Text>
+                                                    </View>
+
+                                                    {/* Lasco / Easy */}
+                                                    <View style={[styles.tdCell, styles.colLasco, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.easy.toFixed(3)}</Text>
+                                                        <Text style={styles.valRaw}>(Anchor)</Text>
+                                                    </View>
+
+                                                    {/* Length */}
+                                                    <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.length.toFixed(3)}</Text>
+                                                        <Text style={styles.valRaw}>(Norm)</Text>
+                                                    </View>
+
+                                                    {/* Peak MASL */}
+                                                    <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.elevation.toFixed(3)}</Text>
+                                                        <Text style={styles.valRaw}>(Norm)</Text>
+                                                    </View>
+
+                                                    {/* Start Elev */}
+                                                    <View style={[styles.tdCell, styles.colElev, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.elevation.toFixed(3)}</Text>
+                                                        <Text style={styles.valRaw}>(Base)</Text>
+                                                    </View>
+
+                                                    {/* Gain */}
+                                                    <View style={[styles.tdCell, styles.colGain, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.gain.toFixed(3)}</Text>
+                                                        <Text style={styles.valRaw}>(Norm)</Text>
+                                                    </View>
+
+                                                    {/* Slope */}
+                                                    <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.slope.toFixed(3)}</Text>
+                                                        <Text style={styles.valRaw}>(Norm)</Text>
+                                                    </View>
+
+                                                    {/* Provinces */}
+                                                    {PROVINCES.map((prov) => {
+                                                        const pVal = easy.province[prov.toLowerCase() as keyof Profile['features']['province']];
+                                                        const isHigh = pVal > 0.5;
+                                                        return (
+                                                            <View key={prov} style={[styles.tdCell, styles.colProvince, styles.centerCell]}>
+                                                                <Text style={[styles.valNormalized, isHigh ? styles.textPrimary : styles.textMuted]}>
+                                                                    {pVal.toFixed(3)}
+                                                                </Text>
+                                                                <Text style={styles.valRaw}>({isHigh ? "Pref" : "Low"})</Text>
+                                                            </View>
+                                                        );
+                                                    })}
+
+                                                    {/* Terrain: Muddy, Rocky, Grass, Ridge */}
+                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.terrain.muddy.toFixed(3)}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.terrain.rocky.toFixed(3)}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.terrain.grassland.toFixed(3)}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.terrain.ridges.toFixed(3)}</Text>
+                                                    </View>
+
+                                                    {/* Circularity: Out-Back, Traverse, Circular */}
+                                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.circularity.out_and_back.toFixed(3)}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.circularity.traverse.toFixed(3)}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.circularity.circular.toFixed(3)}</Text>
+                                                    </View>
+
+                                                    {/* Waterforms: Fall, River, Lake */}
+                                                    <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.waterforms.fall != null ? easy.waterforms.fall.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.waterforms.river != null ? easy.waterforms.river.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.waterforms.lake != null ? easy.waterforms.lake.toFixed(3) : "-"}</Text>
+                                                    </View>
+
+                                                    {/* Tourism Amenities */}
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.tourism.shelter != null ? easy.tourism.shelter.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.tourism.resting != null ? easy.tourism.resting.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.tourism.information_board != null ? easy.tourism.information_board.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.tourism.clean_water != null ? easy.tourism.clean_water.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.tourism.monument != null ? easy.tourism.monument.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.tourism.community != null ? easy.tourism.community.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.tourism.viewpoint != null ? easy.tourism.viewpoint.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{easy.tourism.network_connection != null ? easy.tourism.network_connection.toFixed(3) : "-"}</Text>
+                                                    </View>
+
+                                                    {/* Action Button: Save to Firestore */}
+                                                    <View style={[styles.tdCell, styles.colAction, styles.centerCell]}>
+                                                        <TouchableOpacity
+                                                            style={[styles.saveBtn, isSavedInDb && styles.savedBtn]}
+                                                            onPress={() => handleSaveProfile(user, profiles)}
+                                                            disabled={isSaving}
+                                                            accessibilityLabel={`Save profile for ${fullName}`}
+                                                        >
+                                                            {isSaving ? (
+                                                                <ActivityIndicator size="small" color={Colors.WHITE} />
+                                                            ) : (
+                                                                <>
+                                                                    <CustomIcon
+                                                                        library="Feather"
+                                                                        name={isSavedInDb ? "refresh-cw" : "save"}
+                                                                        size={12}
+                                                                        color={Colors.WHITE}
+                                                                    />
+                                                                    <Text style={styles.saveBtnText}>
+                                                                        {isSavedInDb ? "Update Profile" : "Save to DB"}
+                                                                    </Text>
+                                                                </>
+                                                            )}
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+
+                                                {/* SUB-ROW 2: DIFFICULT ANCHOR */}
+                                                <View style={[styles.subTableRow, styles.subTableRowDivider]}>
+                                                    {/* Anchor Column */}
+                                                    <View style={[styles.colAnchor, styles.centerCell, { justifyContent: "center" }]}>
+                                                        <View style={styles.difficultBadge}>
+                                                            <Text style={styles.difficultBadgeText}>Difficult Anchor</Text>
                                                         </View>
-                                                    )}
-                                                </View>
+                                                        {hasMed && (
+                                                            <View style={[styles.medBadge, { marginTop: 2 }]}>
+                                                                <Text style={styles.medBadgeText}>Med 0.80x</Text>
+                                                            </View>
+                                                        )}
+                                                    </View>
 
-                                                {/* Classification */}
-                                                <View style={[styles.tdCell, styles.colClass, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.classification}</Text>
-                                                    <Text style={styles.valRaw}>(Major)</Text>
-                                                </View>
+                                                    {/* Classification */}
+                                                    <View style={[styles.tdCell, styles.colClass, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.classification}</Text>
+                                                        <Text style={styles.valRaw}>(Major)</Text>
+                                                    </View>
 
-                                                {/* Lasco / Easy */}
-                                                <View style={[styles.tdCell, styles.colLasco, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.easy.toFixed(3)}</Text>
-                                                    <Text style={styles.valRaw}>(Anchor)</Text>
-                                                </View>
+                                                    {/* Lasco / Easy */}
+                                                    <View style={[styles.tdCell, styles.colLasco, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.easy.toFixed(3)}</Text>
+                                                        <Text style={styles.valRaw}>(Anchor)</Text>
+                                                    </View>
 
-                                                {/* Length */}
-                                                <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.length.toFixed(3)}</Text>
-                                                    <Text style={styles.valRaw}>(Norm)</Text>
-                                                </View>
+                                                    {/* Length */}
+                                                    <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.length.toFixed(3)}</Text>
+                                                        <Text style={styles.valRaw}>(Norm)</Text>
+                                                    </View>
 
-                                                {/* Peak MASL */}
-                                                <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.elevation.toFixed(3)}</Text>
-                                                    <Text style={styles.valRaw}>(Norm)</Text>
-                                                </View>
+                                                    {/* Peak MASL */}
+                                                    <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.elevation.toFixed(3)}</Text>
+                                                        <Text style={styles.valRaw}>(Norm)</Text>
+                                                    </View>
 
-                                                {/* Start Elev */}
-                                                <View style={[styles.tdCell, styles.colElev, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.elevation.toFixed(3)}</Text>
-                                                    <Text style={styles.valRaw}>(Base)</Text>
-                                                </View>
+                                                    {/* Start Elev */}
+                                                    <View style={[styles.tdCell, styles.colElev, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.elevation.toFixed(3)}</Text>
+                                                        <Text style={styles.valRaw}>(Base)</Text>
+                                                    </View>
 
-                                                {/* Gain */}
-                                                <View style={[styles.tdCell, styles.colGain, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.gain.toFixed(3)}</Text>
-                                                    <Text style={styles.valRaw}>(Norm)</Text>
-                                                </View>
+                                                    {/* Gain */}
+                                                    <View style={[styles.tdCell, styles.colGain, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.gain.toFixed(3)}</Text>
+                                                        <Text style={styles.valRaw}>(Norm)</Text>
+                                                    </View>
 
-                                                {/* Slope */}
-                                                <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.slope.toFixed(3)}</Text>
-                                                    <Text style={styles.valRaw}>(Norm)</Text>
-                                                </View>
+                                                    {/* Slope */}
+                                                    <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.slope.toFixed(3)}</Text>
+                                                        <Text style={styles.valRaw}>(Norm)</Text>
+                                                    </View>
 
-                                                {/* Provinces */}
-                                                {PROVINCES.map((prov) => {
-                                                    const pVal = diff.province[prov.toLowerCase() as keyof Profile['features']['province']];
-                                                    const isHigh = pVal > 0.5;
-                                                    return (
-                                                        <View key={prov} style={[styles.tdCell, styles.colProvince, styles.centerCell]}>
-                                                            <Text style={[styles.valNormalized, isHigh ? styles.textPrimary : styles.textMuted]}>
-                                                                {pVal.toFixed(3)}
-                                                            </Text>
-                                                            <Text style={styles.valRaw}>({isHigh ? "High" : "Low"})</Text>
-                                                        </View>
-                                                    );
-                                                })}
+                                                    {/* Provinces */}
+                                                    {PROVINCES.map((prov) => {
+                                                        const pVal = diff.province[prov.toLowerCase() as keyof Profile['features']['province']];
+                                                        const isHigh = pVal > 0.5;
+                                                        return (
+                                                            <View key={prov} style={[styles.tdCell, styles.colProvince, styles.centerCell]}>
+                                                                <Text style={[styles.valNormalized, isHigh ? styles.textPrimary : styles.textMuted]}>
+                                                                    {pVal.toFixed(3)}
+                                                                </Text>
+                                                                <Text style={styles.valRaw}>({isHigh ? "High" : "Low"})</Text>
+                                                            </View>
+                                                        );
+                                                    })}
 
-                                                {/* Terrain: Muddy, Rocky, Grass, Ridge */}
-                                                <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.terrain.muddy.toFixed(3)}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.terrain.rocky.toFixed(3)}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.terrain.grassland.toFixed(3)}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.terrain.ridges.toFixed(3)}</Text>
-                                                </View>
+                                                    {/* Terrain: Muddy, Rocky, Grass, Ridge */}
+                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.terrain.muddy.toFixed(3)}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.terrain.rocky.toFixed(3)}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.terrain.grassland.toFixed(3)}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.terrain.ridges.toFixed(3)}</Text>
+                                                    </View>
 
-                                                {/* Circularity: Out-Back, Traverse, Circular */}
-                                                <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.circularity.out_and_back.toFixed(3)}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.circularity.traverse.toFixed(3)}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.circularity.circular.toFixed(3)}</Text>
-                                                </View>
+                                                    {/* Circularity: Out-Back, Traverse, Circular */}
+                                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.circularity.out_and_back.toFixed(3)}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.circularity.traverse.toFixed(3)}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.circularity.circular.toFixed(3)}</Text>
+                                                    </View>
 
-                                                {/* Waterforms: Fall, River, Lake */}
-                                                <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.waterforms.fall != null ? diff.waterforms.fall.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.waterforms.river != null ? diff.waterforms.river.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.waterforms.lake != null ? diff.waterforms.lake.toFixed(3) : "-"}</Text>
-                                                </View>
+                                                    {/* Waterforms: Fall, River, Lake */}
+                                                    <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.waterforms.fall != null ? diff.waterforms.fall.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.waterforms.river != null ? diff.waterforms.river.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.waterforms.lake != null ? diff.waterforms.lake.toFixed(3) : "-"}</Text>
+                                                    </View>
 
-                                                {/* Tourism Amenities */}
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.tourism.shelter != null ? diff.tourism.shelter.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.tourism.resting != null ? diff.tourism.resting.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.tourism.information_board != null ? diff.tourism.information_board.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.tourism.clean_water != null ? diff.tourism.clean_water.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.tourism.monument != null ? diff.tourism.monument.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.tourism.community != null ? diff.tourism.community.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.tourism.viewpoint != null ? diff.tourism.viewpoint.toFixed(3) : "-"}</Text>
-                                                </View>
-                                                <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.valNormalized}>{diff.tourism.network_connection != null ? diff.tourism.network_connection.toFixed(3) : "-"}</Text>
-                                                </View>
+                                                    {/* Tourism Amenities */}
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.tourism.shelter != null ? diff.tourism.shelter.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.tourism.resting != null ? diff.tourism.resting.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.tourism.information_board != null ? diff.tourism.information_board.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.tourism.clean_water != null ? diff.tourism.clean_water.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.tourism.monument != null ? diff.tourism.monument.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.tourism.community != null ? diff.tourism.community.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.tourism.viewpoint != null ? diff.tourism.viewpoint.toFixed(3) : "-"}</Text>
+                                                    </View>
+                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                        <Text style={styles.valNormalized}>{diff.tourism.network_connection != null ? diff.tourism.network_connection.toFixed(3) : "-"}</Text>
+                                                    </View>
 
-                                                {/* Action Column: Inspect Button */}
-                                                <View style={[styles.tdCell, styles.colAction, styles.centerCell]}>
-                                                    <TouchableOpacity
-                                                        style={styles.inspectBtn}
-                                                        onPress={() => setSelectedUser(user)}
-                                                    >
-                                                        <CustomIcon library="Feather" name="eye" size={12} color={Colors.TEXT_PRIMARY} />
-                                                        <Text style={styles.inspectBtnText}>Inspect & Recos</Text>
-                                                    </TouchableOpacity>
+                                                    {/* Action Column: Inspect Button */}
+                                                    <View style={[styles.tdCell, styles.colAction, styles.centerCell]}>
+                                                        <TouchableOpacity
+                                                            style={styles.inspectBtn}
+                                                            onPress={() => setSelectedUser(user)}
+                                                        >
+                                                            <CustomIcon library="Feather" name="eye" size={12} color={Colors.TEXT_PRIMARY} />
+                                                            <Text style={styles.inspectBtnText}>Inspect & Recos</Text>
+                                                        </TouchableOpacity>
+                                                    </View>
                                                 </View>
                                             </View>
                                         </View>
-                                    </View>
-                                );
-                            })}
+                                    );
+                                })}
                             </ScrollView>
                         </View>
                     </ScrollView>
@@ -1073,926 +1071,926 @@ export default function UserDataset({
                                         {(modalSectionTab === "both" || modalSectionTab === "profile") && (
                                             <View style={styles.detailSection}>
 
-                                        {/* Survey Preferences Summary */}
-                                        <Text style={[styles.detailSectionTitle, { marginTop: 12 }]}>
-                                            Survey & Preference Inputs
-                                        </Text>
-                                        <View style={styles.detailRow}>
-                                            <Text style={styles.detailKey}>Medical Concerns:</Text>
-                                            <Text
-                                                style={[
-                                                    styles.detailVal,
-                                                    {
-                                                        color: HasMedicalCondition(selectedUser) ? Palette.Red700 : Colors.TEXT_SECONDARY,
-                                                        fontWeight: HasMedicalCondition(selectedUser) ? "600" : "400",
-                                                    },
-                                                ]}
-                                            >
-                                                {HasMedicalCondition(selectedUser)
-                                                    ? `Yes (${(Array.isArray(selectedUser.medicalProfile?.details) ? selectedUser.medicalProfile.details.join(", ") : selectedUser.medicalProfile?.details) || "Active condition"}) • 0.80x downshift applied`
-                                                    : "None reported (Standard difficulty)"}
-                                            </Text>
-                                        </View>
-                                        <View style={styles.detailRow}>
-                                            <Text style={styles.detailKey}>Experience Level:</Text>
-                                            <Text style={styles.detailVal}>
-                                                {selectedUser.preferences?.experience || "Not set"}
-                                            </Text>
-                                        </View>
-                                        <View style={styles.detailRow}>
-                                            <Text style={styles.detailKey}>Hiked Before:</Text>
-                                            <Text style={styles.detailVal}>
-                                                {selectedUser.preferences?.hiked ? "Yes" : "No"}
-                                            </Text>
-                                        </View>
-                                        <View style={styles.detailRow}>
-                                            <Text style={styles.detailKey}>Survey Locations:</Text>
-                                            <Text style={styles.detailVal}>
-                                                {surveyLocations.length > 0
-                                                    ? surveyLocations.join(", ")
-                                                    : "None selected"}
-                                            </Text>
-                                        </View>
-                                        <View style={styles.detailRow}>
-                                            <Text style={styles.detailKey}>Matched Trails in DB:</Text>
-                                            <Text style={[styles.detailVal, { color: matched.length > 0 ? Colors.PRIMARY : Colors.TEXT_SECONDARY }]}>
-                                                {matched.length > 0
-                                                    ? `${matched.map((m) => m.general?.name || m.id).join(", ")} (${matched.length} matched)`
-                                                    : "None (Defaults to Beginner formulation)"}
-                                            </Text>
-                                        </View>
-                                        <View style={styles.detailRow}>
-                                            <Text style={styles.detailKey}>Preferred Provinces:</Text>
-                                            <Text style={styles.detailVal}>
-                                                {selectedUser.preferences?.province?.length
-                                                    ? selectedUser.preferences.province.join(", ")
-                                                    : "None"}
-                                            </Text>
-                                        </View>
-
-                                        {/* Twin Anchors Comparison Table with Interactive Feature Breakdown */}
-                                        <View style={{ marginTop: 16, marginBottom: 4 }}>
-                                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-                                                <Text style={styles.detailSectionTitle}>
-                                                    Generated Two-Anchor Vectors
+                                                {/* Survey Preferences Summary */}
+                                                <Text style={[styles.detailSectionTitle, { marginTop: 12 }]}>
+                                                    Survey & Preference Inputs
                                                 </Text>
-                                                <Text style={styles.tapInstructionText}>
-                                                    Tap a feature to view score breakdown
-                                                </Text>
-                                            </View>
-                                        </View>
-
-                                        {(() => {
-                                            const hasMed = HasMedicalCondition(selectedUser);
-                                            const isExp = matched.length > 0;
-
-                                            // Calculate centroid average vector across matched survey trails
-                                            let avgVector: Profile['features'] | null = null;
-                                            if (isExp) {
-                                                const matchedProfiles: Profile[] = [];
-                                                const missingTrails: Trail[] = [];
-                                                for (const t of matched) {
-                                                    const p = trailProfilesMap.get(t.id) || t.profile;
-                                                    if (p) {
-                                                        matchedProfiles.push(p);
-                                                    } else {
-                                                        missingTrails.push(t);
-                                                    }
-                                                }
-                                                if (missingTrails.length > 0) {
-                                                    matchedProfiles.push(...buildTrailProfiles(missingTrails, startElevations));
-                                                }
-                                                avgVector = BatchTrailProfile(matchedProfiles);
-                                            }
-
-                                            const easyFeats = userModalProfiles.easy.features;
-                                            const diffFeats = userModalProfiles.difficult.features;
-
-                                            const easyFactorStr = RecommendationFactors.EXPERIENCED.EASY_FACTOR.toFixed(2);
-                                            const diffFactorStr = RecommendationFactors.EXPERIENCED.DIFFICULT_FACTOR.toFixed(2);
-                                            const medFactorStr = RecommendationFactors.MEDICAL_CONDITION_FACTOR.toFixed(2);
-                                            const begEasyStr = RecommendationFactors.BEGINNER.EASY_BASE.toFixed(3);
-                                            const begDiffStr = RecommendationFactors.BEGINNER.DIFFICULT_BASE.toFixed(3);
-                                            const prefWeightStr = RecommendationFactors.PROVINCE.PREFERRED_WEIGHT.toFixed(3);
-                                            const unselectedWeightStr = RecommendationFactors.PROVINCE.UNSELECTED_WEIGHT.toFixed(3);
-
-                                            const featureItems = [
-                                                {
-                                                    id: "classification",
-                                                    label: "Classification",
-                                                    category: "Classification",
-                                                    easyDisplay: easyFeats.classification === 1 ? "1 (Major)" : "0 (Minor)",
-                                                    diffDisplay: diffFeats.classification === 1 ? "1 (Major)" : "0 (Minor)",
-                                                    rawScore: isExp
-                                                        ? matched.map((t) => `${t.general?.name || t.id}: ${t.difficulty?.classification || "minor"}`).join(", ")
-                                                        : "Beginner formulation defaults (Minor = 0, Major = 1)",
-                                                    normFormula: "Classification values: Major = 1.0, Minor = 0.0",
-                                                    easyFormula: "Fixed anchor target: 0 (Minor trails only - suitable for leisurely hikes)",
-                                                    diffFormula: "Fixed anchor target: 1 (Major trails only - demanding technical summit hikes)",
-                                                },
-                                                {
-                                                    id: "easy",
-                                                    label: "Lasco / Easy",
-                                                    category: "Physical Exertion",
-                                                    easyDisplay: easyFeats.easy.toFixed(3),
-                                                    diffDisplay: diffFeats.easy.toFixed(3),
-                                                    rawScore: isExp
-                                                        ? `${matched.map((t) => `${t.general?.name || t.id}: ${t.difficulty?.lascoRating ?? 0}/9`).join(", ")} (Average: ${(matched.reduce((acc, t) => acc + (t.difficulty?.lascoRating ?? 0), 0) / matched.length).toFixed(2)}/9)`
-                                                        : "No survey trails. Calibrated baseline: ~2.25/9 (Easy) vs ~6.75/9 (Difficult)",
-                                                    normFormula: isExp && avgVector
-                                                        ? `lascoRating / 9 -> Average Normalized Vector: ${avgVector.easy.toFixed(3)}`
-                                                        : `Calibrated normalized base: ${begEasyStr} (Easy) / ${begDiffStr} (Difficult)`,
-                                                    easyFormula: isExp && avgVector
-                                                        ? `avg (${avgVector.easy.toFixed(3)}) * ${easyFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.easy.toFixed(3)}`
-                                                        : `${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.easy.toFixed(3)}`,
-                                                    diffFormula: isExp && avgVector
-                                                        ? `clamp(avg (${avgVector.easy.toFixed(3)}) * ${diffFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""}) = ${diffFeats.easy.toFixed(3)}`
-                                                        : `${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.easy.toFixed(3)}`,
-                                                },
-                                                {
-                                                    id: "length",
-                                                    label: "Length",
-                                                    category: "Physical Exertion",
-                                                    easyDisplay: easyFeats.length.toFixed(3),
-                                                    diffDisplay: diffFeats.length.toFixed(3),
-                                                    rawScore: isExp
-                                                        ? `${matched.map((t) => `${t.general?.name || t.id}: ${t.difficulty?.length ?? 0} km`).join(", ")} (Average: ${(matched.reduce((acc, t) => acc + (t.difficulty?.length ?? 0), 0) / matched.length).toFixed(2)} km)`
-                                                        : `Calibrated baseline (Dataset bounds: ${bounds.length.min.toFixed(1)} km to ${bounds.length.max.toFixed(1)} km)`,
-                                                    boundsText: `Dataset Bounds: ${bounds.length.min.toFixed(1)} km to ${bounds.length.max.toFixed(1)} km`,
-                                                    normFormula: isExp && avgVector
-                                                        ? `(length - min) / (max - min) -> Average Normalized Vector: ${avgVector.length.toFixed(3)}`
-                                                        : `Calibrated normalized base: ${begEasyStr} (Easy) / ${begDiffStr} (Difficult)`,
-                                                    easyFormula: isExp && avgVector
-                                                        ? `avg (${avgVector.length.toFixed(3)}) * ${easyFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.length.toFixed(3)}`
-                                                        : `${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.length.toFixed(3)}`,
-                                                    diffFormula: isExp && avgVector
-                                                        ? `clamp(avg (${avgVector.length.toFixed(3)}) * ${diffFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""}) = ${diffFeats.length.toFixed(3)}`
-                                                        : `${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.length.toFixed(3)}`,
-                                                },
-                                                {
-                                                    id: "elevation",
-                                                    label: "Peak (MASL)",
-                                                    category: "Physical Exertion",
-                                                    easyDisplay: easyFeats.elevation.toFixed(3),
-                                                    diffDisplay: diffFeats.elevation.toFixed(3),
-                                                    rawScore: isExp
-                                                        ? `${matched.map((t) => `${t.general?.name || t.id}: ${t.geography?.masl || t.difficulty?.elevation || 0} m`).join(", ")} (Average: ${Math.round(matched.reduce((acc, t) => acc + (t.geography?.masl || t.difficulty?.elevation || 0), 0) / matched.length)} m)`
-                                                        : `Calibrated baseline (Dataset bounds: ${Math.round(bounds.elevation.min)} m to ${Math.round(bounds.elevation.max)} m)`,
-                                                    boundsText: `Dataset Bounds: ${Math.round(bounds.elevation.min)} m to ${Math.round(bounds.elevation.max)} m`,
-                                                    normFormula: isExp && avgVector
-                                                        ? `(masl - min) / (max - min) -> Average Normalized Vector: ${avgVector.elevation.toFixed(3)}`
-                                                        : `Calibrated normalized base: ${begEasyStr} (Easy) / ${begDiffStr} (Difficult)`,
-                                                    easyFormula: isExp && avgVector
-                                                        ? `avg (${avgVector.elevation.toFixed(3)}) * ${easyFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.elevation.toFixed(3)}`
-                                                        : `${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.elevation.toFixed(3)}`,
-                                                    diffFormula: isExp && avgVector
-                                                        ? `clamp(avg (${avgVector.elevation.toFixed(3)}) * ${diffFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""}) = ${diffFeats.elevation.toFixed(3)}`
-                                                        : `${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.elevation.toFixed(3)}`,
-                                                },
-                                                {
-                                                    id: "gain",
-                                                    label: "Gain",
-                                                    category: "Physical Exertion",
-                                                    easyDisplay: easyFeats.gain.toFixed(3),
-                                                    diffDisplay: diffFeats.gain.toFixed(3),
-                                                    rawScore: isExp
-                                                        ? `${matched.map((t) => `${t.general?.name || t.id}: ${calculateTrailGain(t, startElevations[t.id])} m`).join(", ")} (Average: ${Math.round(matched.reduce((acc, t) => acc + calculateTrailGain(t, startElevations[t.id]), 0) / matched.length)} m)`
-                                                        : `Calibrated baseline (Dataset bounds: ${Math.round(bounds.gain.min)} m to ${Math.round(bounds.gain.max)} m)`,
-                                                    boundsText: `Dataset Bounds: ${Math.round(bounds.gain.min)} m to ${Math.round(bounds.gain.max)} m (Peak MASL - Start Elevation)`,
-                                                    normFormula: isExp && avgVector
-                                                        ? `(gain - min) / (max - min) -> Average Normalized Vector: ${avgVector.gain.toFixed(3)}`
-                                                        : `Calibrated normalized base: ${begEasyStr} (Easy) / ${begDiffStr} (Difficult)`,
-                                                    easyFormula: isExp && avgVector
-                                                        ? `avg (${avgVector.gain.toFixed(3)}) * ${easyFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.gain.toFixed(3)}`
-                                                        : `${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.gain.toFixed(3)}`,
-                                                    diffFormula: isExp && avgVector
-                                                        ? `clamp(avg (${avgVector.gain.toFixed(3)}) * ${diffFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""}) = ${diffFeats.gain.toFixed(3)}`
-                                                        : `${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.gain.toFixed(3)}`,
-                                                },
-                                                {
-                                                    id: "slope",
-                                                    label: "Slope",
-                                                    category: "Physical Exertion",
-                                                    easyDisplay: easyFeats.slope.toFixed(3),
-                                                    diffDisplay: diffFeats.slope.toFixed(3),
-                                                    rawScore: isExp
-                                                        ? `${matched.map((t) => `${t.general?.name || t.id}: ${t.difficulty?.slope ?? 0}%`).join(", ")} (Average: ${(matched.reduce((acc, t) => acc + (t.difficulty?.slope ?? 0), 0) / matched.length).toFixed(1)}%)`
-                                                        : `Calibrated baseline (Dataset bounds: ${bounds.slope.min.toFixed(1)}% to ${bounds.slope.max.toFixed(1)}%)`,
-                                                    boundsText: `Dataset Bounds: ${bounds.slope.min.toFixed(1)}% to ${bounds.slope.max.toFixed(1)}%`,
-                                                    normFormula: isExp && avgVector
-                                                        ? `(slope - min) / (max - min) -> Average Normalized Vector: ${avgVector.slope.toFixed(3)}`
-                                                        : `Calibrated normalized base: ${begEasyStr} (Easy) / ${begDiffStr} (Difficult)`,
-                                                    easyFormula: isExp && avgVector
-                                                        ? `avg (${avgVector.slope.toFixed(3)}) * ${easyFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.slope.toFixed(3)}`
-                                                        : `${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.slope.toFixed(3)}`,
-                                                    diffFormula: isExp && avgVector
-                                                        ? `clamp(avg (${avgVector.slope.toFixed(3)}) * ${diffFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""}) = ${diffFeats.slope.toFixed(3)}`
-                                                        : `${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.slope.toFixed(3)}`,
-                                                },
-                                                ...PROVINCES.map((prov) => {
-                                                    const pKey = prov.toLowerCase() as keyof Profile['features']['province'];
-                                                    const isPref = selectedUser.preferences?.province?.some(
-                                                        (p) => typeof p === "string" && p.toLowerCase().includes(pKey)
-                                                    );
-                                                    const mInProv = matched.filter((t) =>
-                                                        t.general?.province?.some((p) => typeof p === "string" && p.toLowerCase().includes(pKey))
-                                                    );
-
-                                                    return {
-                                                        id: `prov_${pKey}`,
-                                                        label: prov,
-                                                        category: "Province Preference" as const,
-                                                        easyDisplay: easyFeats.province[pKey].toFixed(3),
-                                                        diffDisplay: diffFeats.province[pKey].toFixed(3),
-                                                        rawScore: isExp
-                                                            ? mInProv.length > 0
-                                                                ? `${mInProv.map((t) => t.general?.name || t.id).join(", ")} (${mInProv.length} of ${matched.length} matched trails, ${((mInProv.length / matched.length) * 100).toFixed(0)}%)`
-                                                                : `0 of ${matched.length} matched trails located in ${prov}`
-                                                            : isPref
-                                                                ? "Selected in survey preferences (Preferred Province)"
-                                                                : "Not selected in survey preferences",
-                                                        normFormula: isExp && avgVector
-                                                            ? mInProv.length > 0
-                                                                ? `Direct Geographic Preservation: historical affinity vector (${avgVector.province[pKey].toFixed(3)})`
-                                                                : "Unobserved in trail history (0.000) -> Softened via survey preference prior"
-                                                            : `Preferred = ${prefWeightStr} (comfort), Unselected = ${unselectedWeightStr} (baseline)`,
-                                                        easyFormula: isExp
-                                                            ? mInProv.length > 0
-                                                                ? `Preserved raw affinity: Easy = ${easyFeats.province[pKey].toFixed(3)}`
-                                                                : isPref
-                                                                    ? `Survey preferred prior (comfort) = ${prefWeightStr}`
-                                                                    : `Unselected baseline prior = ${unselectedWeightStr}`
-                                                            : isPref
-                                                                ? `High preference affinity weight = ${prefWeightStr}`
-                                                                : `Unselected baseline = ${unselectedWeightStr}`,
-                                                        diffFormula: isExp
-                                                            ? mInProv.length > 0
-                                                                ? `Preserved raw affinity: Difficult = ${diffFeats.province[pKey].toFixed(3)}`
-                                                                : isPref
-                                                                    ? `Exploration downweight = ${unselectedWeightStr}`
-                                                                    : `Exploration discovery incentive prior = ${prefWeightStr}`
-                                                            : isPref
-                                                                ? `Exploration downweight = ${unselectedWeightStr}`
-                                                                : `Exploration discovery incentive = ${prefWeightStr}`,
-                                                    };
-                                                }),
-                                                ...([
-                                                    ["muddy", "Muddy Terrain"],
-                                                    ["rocky", "Rocky Terrain"],
-                                                    ["grassland", "Grassland"],
-                                                    ["ridges", "Ridges"],
-                                                ] as const).map(([tKey, tLabel]) => {
-                                                    const mWithTerrain = matched.filter((t) => {
-                                                        const resolved = resolveTerrainFeatures([
-                                                            ...(t.difficulty?.quality || []),
-                                                            ...(t.difficulty?.difficulty_points || []),
-                                                        ]);
-                                                        return resolved[tKey] > 0;
-                                                    });
-
-                                                    return {
-                                                        id: `terrain_${tKey}`,
-                                                        label: tLabel,
-                                                        category: "Terrain Feature" as const,
-                                                        easyDisplay: easyFeats.terrain[tKey].toFixed(3),
-                                                        diffDisplay: diffFeats.terrain[tKey].toFixed(3),
-                                                        rawScore: isExp
-                                                            ? mWithTerrain.length > 0
-                                                                ? `${mWithTerrain.map((t) => t.general?.name || t.id).join(", ")} (${mWithTerrain.length} of ${matched.length} trails)`
-                                                                : `Not present in any matched survey trails`
-                                                            : "Default beginner baseline (no historical terrain encounters)",
-                                                        normFormula: isExp && avgVector
-                                                            ? mWithTerrain.length > 0
-                                                                ? `Average Normalized Vector across matched trails: ${avgVector.terrain[tKey].toFixed(3)}`
-                                                                : "Unobserved in trail history (0.000) -> Softened to beginner baseline prior"
-                                                            : `Calibrated normalized base: ${begEasyStr} (Easy) / ${begDiffStr} (Difficult)`,
-                                                        easyFormula: isExp && avgVector
-                                                            ? mWithTerrain.length > 0
-                                                                ? `avg (${avgVector.terrain[tKey].toFixed(3)}) * ${easyFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.terrain[tKey].toFixed(3)}`
-                                                                : `Unobserved baseline: ${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.terrain[tKey].toFixed(3)}`
-                                                            : `${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.terrain[tKey].toFixed(3)}`,
-                                                        diffFormula: isExp && avgVector
-                                                            ? mWithTerrain.length > 0
-                                                                ? `clamp(avg (${avgVector.terrain[tKey].toFixed(3)}) * ${diffFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""}) = ${diffFeats.terrain[tKey].toFixed(3)}`
-                                                                : `Unobserved baseline: ${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.terrain[tKey].toFixed(3)}`
-                                                            : `${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.terrain[tKey].toFixed(3)}`,
-                                                    };
-                                                }),
-                                            ];
-
-                                            return (
-                                                <View style={styles.calcTable}>
-                                                    <View style={styles.calcTableRowHeader}>
-                                                        <Text style={[styles.calcTh, { flex: 2 }]}>Feature</Text>
-                                                        <Text style={[styles.calcTh, { flex: 1.5, textAlign: "center", color: Palette.Green700 }]}>
-                                                            Easy Anchor
-                                                        </Text>
-                                                        <Text style={[styles.calcTh, { flex: 1.5, textAlign: "center", color: Palette.Amber700 }]}>
-                                                            Difficult Anchor
-                                                        </Text>
-                                                    </View>
-
-                                                    {featureItems.map((feat) => {
-                                                        const isExpanded = expandedFeatureKey === feat.id;
-
-                                                        return (
-                                                            <React.Fragment key={feat.id}>
-                                                                <TouchableOpacity
-                                                                    activeOpacity={0.7}
-                                                                    onPress={() => setExpandedFeatureKey(isExpanded ? null : feat.id)}
-                                                                    style={[
-                                                                        styles.calcTableRow,
-                                                                        isExpanded && styles.calcTableRowActive,
-                                                                    ]}
-                                                                >
-                                                                    <View style={{ flex: 2, flexDirection: "row", alignItems: "center", gap: 6 }}>
-                                                                        <CustomIcon
-                                                                            library="Feather"
-                                                                            name={isExpanded ? "chevron-up" : "chevron-down"}
-                                                                            size={12}
-                                                                            color={isExpanded ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
-                                                                        />
-                                                                        <Text style={[styles.calcTdBold, isExpanded && { color: Colors.PRIMARY }]}>
-                                                                            {feat.label}
-                                                                        </Text>
-                                                                    </View>
-                                                                    <Text style={[styles.calcTd, { flex: 1.5, textAlign: "center", color: Palette.Green700, fontWeight: "600" }]}>
-                                                                        {feat.easyDisplay}
-                                                                    </Text>
-                                                                    <Text style={[styles.calcTd, { flex: 1.5, textAlign: "center", color: Palette.Amber700, fontWeight: "600" }]}>
-                                                                        {feat.diffDisplay}
-                                                                    </Text>
-                                                                </TouchableOpacity>
-
-                                                                {/* Expanded Dropdown Breakdown */}
-                                                                {isExpanded && (
-                                                                    <View style={styles.breakdownCard}>
-                                                                        <View style={styles.breakdownHeader}>
-                                                                            <View style={styles.breakdownBadge}>
-                                                                                <Text style={styles.breakdownBadgeText}>{feat.category}</Text>
-                                                                            </View>
-                                                                            {hasMed && (feat.category === "Physical Exertion" || feat.category === "Terrain Feature") && (
-                                                                                <View style={styles.breakdownMedBadge}>
-                                                                                    <Text style={styles.breakdownMedBadgeText}>{medFactorStr}x Medical Downshift</Text>
-                                                                                </View>
-                                                                            )}
-                                                                        </View>
-
-                                                                        {/* Raw Score Breakdown */}
-                                                                        <View style={styles.breakdownSection}>
-                                                                            <Text style={styles.breakdownLabel}>Raw Score / Data Source:</Text>
-                                                                            <Text style={styles.breakdownValue}>{feat.rawScore}</Text>
-                                                                        </View>
-
-                                                                        {/* Bounds / Range if applicable */}
-                                                                        {"boundsText" in feat && feat.boundsText ? (
-                                                                            <View style={styles.breakdownSection}>
-                                                                                <Text style={styles.breakdownLabel}>Dataset Normalization Range:</Text>
-                                                                                <Text style={styles.breakdownValue}>{feat.boundsText}</Text>
-                                                                            </View>
-                                                                        ) : null}
-
-                                                                        {/* Normalized Base Formula */}
-                                                                        <View style={styles.breakdownSection}>
-                                                                            <Text style={styles.breakdownLabel}>Normalized Base Formula:</Text>
-                                                                            <Text style={styles.breakdownValue}>{feat.normFormula}</Text>
-                                                                        </View>
-
-                                                                        {/* Two-Anchor Computation */}
-                                                                        <View style={styles.breakdownTwinGrid}>
-                                                                            <View style={styles.breakdownAnchorBoxEasy}>
-                                                                                <Text style={styles.breakdownAnchorTitleEasy}>Easy Anchor Computation</Text>
-                                                                                <Text style={styles.breakdownFormulaText}>{feat.easyFormula}</Text>
-                                                                                <Text style={styles.breakdownResultEasy}>Final Vector: {feat.easyDisplay}</Text>
-                                                                            </View>
-                                                                            <View style={styles.breakdownAnchorBoxDiff}>
-                                                                                <Text style={styles.breakdownAnchorTitleDiff}>Difficult Anchor Computation</Text>
-                                                                                <Text style={styles.breakdownFormulaText}>{feat.diffFormula}</Text>
-                                                                                <Text style={styles.breakdownResultDiff}>Final Vector: {feat.diffDisplay}</Text>
-                                                                            </View>
-                                                                        </View>
-                                                                    </View>
-                                                                )}
-                                                            </React.Fragment>
-                                                        );
-                                                    })}
-                                                </View>
-                                            );
-                                        })()}
-                                    </View>
-                                )}
-
-                                {/* 2. USER RECOMMENDATIONS SECTION (Grouped by Easy/Difficult, with Match Scores & Hike Status) */}
-                                {(modalSectionTab === "both" || modalSectionTab === "recos") && (
-                                    <View style={styles.recoSection}>
-                                        {/* Header Strip */}
-                                        <View style={styles.recoSectionHeader}>
-                                            <View style={{ flex: 1 }}>
-                                                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                                                    <CustomIcon library="Feather" name="compass" size={16} color={Colors.PRIMARY} />
-                                                    <Text style={styles.recoSectionTitle}>Monthly Recommended Trails</Text>
-                                                    <View style={styles.recoMonthBadge}>
-                                                        <Text style={styles.recoMonthBadgeText}>{recoMonth}</Text>
-                                                    </View>
-                                                </View>
-                                                <Text style={styles.recoMetaSubText}>
-                                                    {userRecommendations?.engineConfig
-                                                        ? `Engine: CBF (${userRecommendations.engineConfig.cbf}) + CF (${userRecommendations.engineConfig.cf}) • alpha = ${userRecommendations.engineConfig.alpha}`
-                                                        : "Stored in /users/{userId}/recommendations/" + recoMonth}
-                                                </Text>
-                                            </View>
-
-                                            <TouchableOpacity
-                                                style={styles.recoRefreshBtn}
-                                                onPress={() => {
-                                                    if (selectedUser?.id) {
-                                                        setIsLoadingRecos(true);
-                                                        setRecoError(null);
-                                                        RecommendationRepo.fetchByMonth(selectedUser.id, recoMonth)
-                                                            .then((data) => {
-                                                                setUserRecommendations(data);
-                                                                setRecoError(null);
-                                                            })
-                                                            .catch((err: any) => {
-                                                                console.error("[UserDataset] Failed to refresh recommendations for user", selectedUser.id, err);
-                                                                setRecoError(err?.message || "Failed to load user recommendations from Firestore.");
-                                                                setUserRecommendations(null);
-                                                            })
-                                                            .finally(() => setIsLoadingRecos(false));
-                                                    }
-                                                }}
-                                                disabled={isLoadingRecos}
-                                            >
-                                                <CustomIcon
-                                                    library="Feather"
-                                                    name="rotate-cw"
-                                                    size={12}
-                                                    color={isLoadingRecos ? Colors.GRAY : Colors.PRIMARY}
-                                                />
-                                                <Text style={styles.recoRefreshBtnText}>
-                                                    {isLoadingRecos ? "Loading..." : "Refresh"}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        </View>
-
-                                        {/* Category Selector & Search Controls */}
-                                        <View style={styles.recoControlsRow}>
-                                            <View style={styles.recoCategoryPills}>
-                                                <TouchableOpacity
-                                                    style={[styles.recoPill, recoCategoryTab === "all" && styles.recoPillActive]}
-                                                    onPress={() => setRecoCategoryTab("all")}
-                                                >
-                                                    <Text style={[styles.recoPillText, recoCategoryTab === "all" && styles.recoPillTextActive]}>
-                                                        All ({modalEasyTrails.length + modalDifficultTrails.length})
-                                                    </Text>
-                                                </TouchableOpacity>
-
-                                                <TouchableOpacity
-                                                    style={[styles.recoPill, recoCategoryTab === "easy" && styles.recoPillActiveEasy]}
-                                                    onPress={() => setRecoCategoryTab("easy")}
-                                                >
-                                                    <Text style={[styles.recoPillText, recoCategoryTab === "easy" && styles.recoPillTextActiveEasy]}>
-                                                        Easy ({modalEasyTrails.length})
-                                                    </Text>
-                                                </TouchableOpacity>
-
-                                                <TouchableOpacity
-                                                    style={[styles.recoPill, recoCategoryTab === "difficult" && styles.recoPillActiveDiff]}
-                                                    onPress={() => setRecoCategoryTab("difficult")}
-                                                >
-                                                    <Text style={[styles.recoPillText, recoCategoryTab === "difficult" && styles.recoPillTextActiveDiff]}>
-                                                        Difficult ({modalDifficultTrails.length})
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            </View>
-
-                                            <View style={styles.recoSearchRow}>
-                                                <CustomIcon library="Feather" name="search" size={13} color={Colors.TEXT_SECONDARY} />
-                                                <TextInput
-                                                    style={styles.recoSearchInput}
-                                                    placeholder="Filter recommended trails..."
-                                                    placeholderTextColor={Colors.TEXT_SECONDARY}
-                                                    value={recoSearchQuery}
-                                                    onChangeText={setRecoSearchQuery}
-                                                />
-                                                {recoSearchQuery.length > 0 && (
-                                                    <TouchableOpacity onPress={() => setRecoSearchQuery("")}>
-                                                        <CustomIcon library="Feather" name="x" size={12} color={Colors.TEXT_SECONDARY} />
-                                                    </TouchableOpacity>
-                                                )}
-                                            </View>
-                                        </View>
-
-                                        {/* Recommendations Content State */}
-                                        {isLoadingRecos ? (
-                                            <View style={styles.recoCenterBox}>
-                                                <ActivityIndicator size="small" color={Colors.PRIMARY} />
-                                                <Text style={styles.recoLoadingText}>
-                                                    Loading recommendations for {recoMonth}...
-                                                </Text>
-                                            </View>
-                                        ) : recoError ? (
-                                            <View style={styles.recoErrorBox}>
-                                                <CustomIcon library="Feather" name="alert-triangle" size={24} color={Palette.Red700} />
-                                                <Text style={styles.recoErrorTitle}>Firestore Permission / Access Blocked</Text>
-                                                <Text style={styles.recoErrorDesc}>{recoError}</Text>
-                                                <Text style={styles.recoErrorHint}>
-                                                    Deploy the updated firestore.rules to Firebase to grant Superadmin read access across all users' recommendation subcollections.
-                                                </Text>
-                                            </View>
-                                        ) : !userRecommendations || (modalEasyTrails.length === 0 && modalDifficultTrails.length === 0) ? (
-                                            <View style={styles.recoEmptyBox}>
-                                                <CustomIcon library="Feather" name="inbox" size={32} color={Colors.TEXT_SECONDARY} />
-                                                <Text style={styles.recoEmptyTitle}>
-                                                    No Recommendations for {recoMonth}
-                                                </Text>
-                                                <Text style={styles.recoEmptyDesc}>
-                                                    {isSaved
-                                                        ? "This user has a saved profile in Firestore, but recommendations haven't been run yet for this month."
-                                                        : "Save this user's profile to Firestore first, then run the engine to generate recommendations."}
-                                                </Text>
-                                                {onRunEnginePress && (
-                                                    <TouchableOpacity
-                                                        style={styles.recoRunNowBtn}
-                                                        onPress={() => {
-                                                            setSelectedUser(null);
-                                                            onRunEnginePress();
-                                                        }}
+                                                <View style={styles.detailRow}>
+                                                    <Text style={styles.detailKey}>Medical Concerns:</Text>
+                                                    <Text
+                                                        style={[
+                                                            styles.detailVal,
+                                                            {
+                                                                color: HasMedicalCondition(selectedUser) ? Palette.Red700 : Colors.TEXT_SECONDARY,
+                                                                fontWeight: HasMedicalCondition(selectedUser) ? "600" : "400",
+                                                            },
+                                                        ]}
                                                     >
-                                                        <CustomIcon library="Feather" name="play" size={13} color={Colors.WHITE} />
-                                                        <Text style={styles.recoRunNowText}>Run Engine Now</Text>
-                                                    </TouchableOpacity>
-                                                )}
-                                            </View>
-                                        ) : displayedModalTrails.length === 0 ? (
-                                            <View style={styles.recoEmptyBox}>
-                                                <CustomIcon library="Feather" name="search" size={24} color={Colors.TEXT_SECONDARY} />
-                                                <Text style={styles.recoEmptyTitle}>No Trails Match Filter</Text>
-                                                <Text style={styles.recoEmptyDesc}>
-                                                    Try adjusting your search query or switching categories.
-                                                </Text>
-                                            </View>
-                                        ) : (
-                                            <View style={styles.recoGrid}>
-                                                {displayedModalTrails.map((trail, idx) => {
-                                                    const badgeColor = getScoreBadgeColor(trail.score);
-                                                    const isEasy = trail.category === "easy";
-                                                    const cardKey = `${trail.category}-${trail.id}-${idx}`;
-                                                    const isExpanded = expandedRecoId === cardKey;
+                                                        {HasMedicalCondition(selectedUser)
+                                                            ? `Yes (${(Array.isArray(selectedUser.medicalProfile?.details) ? selectedUser.medicalProfile.details.join(", ") : selectedUser.medicalProfile?.details) || "Active condition"}) • 0.80x downshift applied`
+                                                            : "None reported (Standard difficulty)"}
+                                                    </Text>
+                                                </View>
+                                                <View style={styles.detailRow}>
+                                                    <Text style={styles.detailKey}>Experience Level:</Text>
+                                                    <Text style={styles.detailVal}>
+                                                        {selectedUser.preferences?.experience || "Not set"}
+                                                    </Text>
+                                                </View>
+                                                <View style={styles.detailRow}>
+                                                    <Text style={styles.detailKey}>Hiked Before:</Text>
+                                                    <Text style={styles.detailVal}>
+                                                        {selectedUser.preferences?.hiked ? "Yes" : "No"}
+                                                    </Text>
+                                                </View>
+                                                <View style={styles.detailRow}>
+                                                    <Text style={styles.detailKey}>Survey Locations:</Text>
+                                                    <Text style={styles.detailVal}>
+                                                        {surveyLocations.length > 0
+                                                            ? surveyLocations.join(", ")
+                                                            : "None selected"}
+                                                    </Text>
+                                                </View>
+                                                <View style={styles.detailRow}>
+                                                    <Text style={styles.detailKey}>Matched Trails in DB:</Text>
+                                                    <Text style={[styles.detailVal, { color: matched.length > 0 ? Colors.PRIMARY : Colors.TEXT_SECONDARY }]}>
+                                                        {matched.length > 0
+                                                            ? `${matched.map((m) => m.general?.name || m.id).join(", ")} (${matched.length} matched)`
+                                                            : "None (Defaults to Beginner formulation)"}
+                                                    </Text>
+                                                </View>
+                                                <View style={styles.detailRow}>
+                                                    <Text style={styles.detailKey}>Preferred Provinces:</Text>
+                                                    <Text style={styles.detailVal}>
+                                                        {selectedUser.preferences?.province?.length
+                                                            ? selectedUser.preferences.province.join(", ")
+                                                            : "None"}
+                                                    </Text>
+                                                </View>
 
-                                                    const alpha = userRecommendations?.engineConfig?.alpha ?? 1.0;
-                                                    const cbfCode = userRecommendations?.engineConfig?.cbf ?? "GD";
-                                                    const cfCode = userRecommendations?.engineConfig?.cf ?? "GD";
+                                                {/* Twin Anchors Comparison Table with Interactive Feature Breakdown */}
+                                                <View style={{ marginTop: 16, marginBottom: 4 }}>
+                                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                                                        <Text style={styles.detailSectionTitle}>
+                                                            Generated Two-Anchor Vectors
+                                                        </Text>
+                                                        <Text style={styles.tapInstructionText}>
+                                                            Tap a feature to view score breakdown
+                                                        </Text>
+                                                    </View>
+                                                </View>
 
-                                                    // Use stored cbfScore/cfScore if present, or reconstruct with exact mathematical consistency
-                                                    const cbfValue = trail.cbfScore != null
-                                                        ? trail.cbfScore
-                                                        : (alpha === 1.0 ? trail.score : trail.score / Math.max(alpha, 0.001));
-                                                    const cfValue = trail.cfScore != null
-                                                        ? trail.cfScore
-                                                        : 0.0;
+                                                {(() => {
+                                                    const hasMed = HasMedicalCondition(selectedUser);
+                                                    const isExp = matched.length > 0;
 
-                                                    const cbfWeighted = alpha * cbfValue;
-                                                    const cfWeighted = (1.0 - alpha) * cfValue;
+                                                    // Calculate centroid average vector across matched survey trails
+                                                    let avgVector: Profile['features'] | null = null;
+                                                    if (isExp) {
+                                                        const matchedProfiles: Profile[] = [];
+                                                        const missingTrails: Trail[] = [];
+                                                        for (const t of matched) {
+                                                            const p = trailProfilesMap.get(t.id) || t.profile;
+                                                            if (p) {
+                                                                matchedProfiles.push(p);
+                                                            } else {
+                                                                missingTrails.push(t);
+                                                            }
+                                                        }
+                                                        if (missingTrails.length > 0) {
+                                                            matchedProfiles.push(...buildTrailProfiles(missingTrails, startElevations));
+                                                        }
+                                                        avgVector = BatchTrailProfile(matchedProfiles);
+                                                    }
 
-                                                    const candidateTrail = trails.find((t) => t.id === trail.id);
-                                                    const candidateProfile = trailProfilesMap.get(trail.id) || candidateTrail?.profile;
-                                                    const candidateFeats = candidateProfile?.features;
-                                                    const targetAnchorFeats = isEasy ? userModalProfiles.easy.features : userModalProfiles.difficult.features;
-                                                    const userCount = userRecommendations?.engineConfig?.userCount ?? (filteredUsers.filter((u) => !!u.profile).length || 1);
+                                                    const easyFeats = userModalProfiles.easy.features;
+                                                    const diffFeats = userModalProfiles.difficult.features;
+
+                                                    const easyFactorStr = RecommendationFactors.EXPERIENCED.EASY_FACTOR.toFixed(2);
+                                                    const diffFactorStr = RecommendationFactors.EXPERIENCED.DIFFICULT_FACTOR.toFixed(2);
+                                                    const medFactorStr = RecommendationFactors.MEDICAL_CONDITION_FACTOR.toFixed(2);
+                                                    const begEasyStr = RecommendationFactors.BEGINNER.EASY_BASE.toFixed(3);
+                                                    const begDiffStr = RecommendationFactors.BEGINNER.DIFFICULT_BASE.toFixed(3);
+                                                    const prefWeightStr = RecommendationFactors.PROVINCE.PREFERRED_WEIGHT.toFixed(3);
+                                                    const unselectedWeightStr = RecommendationFactors.PROVINCE.UNSELECTED_WEIGHT.toFixed(3);
+
+                                                    const featureItems = [
+                                                        {
+                                                            id: "classification",
+                                                            label: "Classification",
+                                                            category: "Classification",
+                                                            easyDisplay: easyFeats.classification === 1 ? "1 (Major)" : "0 (Minor)",
+                                                            diffDisplay: diffFeats.classification === 1 ? "1 (Major)" : "0 (Minor)",
+                                                            rawScore: isExp
+                                                                ? matched.map((t) => `${t.general?.name || t.id}: ${t.difficulty?.classification || "minor"}`).join(", ")
+                                                                : "Beginner formulation defaults (Minor = 0, Major = 1)",
+                                                            normFormula: "Classification values: Major = 1.0, Minor = 0.0",
+                                                            easyFormula: "Fixed anchor target: 0 (Minor trails only - suitable for leisurely hikes)",
+                                                            diffFormula: "Fixed anchor target: 1 (Major trails only - demanding technical summit hikes)",
+                                                        },
+                                                        {
+                                                            id: "easy",
+                                                            label: "Lasco / Easy",
+                                                            category: "Physical Exertion",
+                                                            easyDisplay: easyFeats.easy.toFixed(3),
+                                                            diffDisplay: diffFeats.easy.toFixed(3),
+                                                            rawScore: isExp
+                                                                ? `${matched.map((t) => `${t.general?.name || t.id}: ${t.difficulty?.lascoRating ?? 0}/9`).join(", ")} (Average: ${(matched.reduce((acc, t) => acc + (t.difficulty?.lascoRating ?? 0), 0) / matched.length).toFixed(2)}/9)`
+                                                                : "No survey trails. Calibrated baseline: ~2.25/9 (Easy) vs ~6.75/9 (Difficult)",
+                                                            normFormula: isExp && avgVector
+                                                                ? `lascoRating / 9 -> Average Normalized Vector: ${avgVector.easy.toFixed(3)}`
+                                                                : `Calibrated normalized base: ${begEasyStr} (Easy) / ${begDiffStr} (Difficult)`,
+                                                            easyFormula: isExp && avgVector
+                                                                ? `avg (${avgVector.easy.toFixed(3)}) * ${easyFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.easy.toFixed(3)}`
+                                                                : `${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.easy.toFixed(3)}`,
+                                                            diffFormula: isExp && avgVector
+                                                                ? `clamp(avg (${avgVector.easy.toFixed(3)}) * ${diffFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""}) = ${diffFeats.easy.toFixed(3)}`
+                                                                : `${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.easy.toFixed(3)}`,
+                                                        },
+                                                        {
+                                                            id: "length",
+                                                            label: "Length",
+                                                            category: "Physical Exertion",
+                                                            easyDisplay: easyFeats.length.toFixed(3),
+                                                            diffDisplay: diffFeats.length.toFixed(3),
+                                                            rawScore: isExp
+                                                                ? `${matched.map((t) => `${t.general?.name || t.id}: ${t.difficulty?.length ?? 0} km`).join(", ")} (Average: ${(matched.reduce((acc, t) => acc + (t.difficulty?.length ?? 0), 0) / matched.length).toFixed(2)} km)`
+                                                                : `Calibrated baseline (Dataset bounds: ${bounds.length.min.toFixed(1)} km to ${bounds.length.max.toFixed(1)} km)`,
+                                                            boundsText: `Dataset Bounds: ${bounds.length.min.toFixed(1)} km to ${bounds.length.max.toFixed(1)} km`,
+                                                            normFormula: isExp && avgVector
+                                                                ? `(length - min) / (max - min) -> Average Normalized Vector: ${avgVector.length.toFixed(3)}`
+                                                                : `Calibrated normalized base: ${begEasyStr} (Easy) / ${begDiffStr} (Difficult)`,
+                                                            easyFormula: isExp && avgVector
+                                                                ? `avg (${avgVector.length.toFixed(3)}) * ${easyFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.length.toFixed(3)}`
+                                                                : `${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.length.toFixed(3)}`,
+                                                            diffFormula: isExp && avgVector
+                                                                ? `clamp(avg (${avgVector.length.toFixed(3)}) * ${diffFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""}) = ${diffFeats.length.toFixed(3)}`
+                                                                : `${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.length.toFixed(3)}`,
+                                                        },
+                                                        {
+                                                            id: "elevation",
+                                                            label: "Peak (MASL)",
+                                                            category: "Physical Exertion",
+                                                            easyDisplay: easyFeats.elevation.toFixed(3),
+                                                            diffDisplay: diffFeats.elevation.toFixed(3),
+                                                            rawScore: isExp
+                                                                ? `${matched.map((t) => `${t.general?.name || t.id}: ${t.geography?.masl || t.difficulty?.elevation || 0} m`).join(", ")} (Average: ${Math.round(matched.reduce((acc, t) => acc + (t.geography?.masl || t.difficulty?.elevation || 0), 0) / matched.length)} m)`
+                                                                : `Calibrated baseline (Dataset bounds: ${Math.round(bounds.elevation.min)} m to ${Math.round(bounds.elevation.max)} m)`,
+                                                            boundsText: `Dataset Bounds: ${Math.round(bounds.elevation.min)} m to ${Math.round(bounds.elevation.max)} m`,
+                                                            normFormula: isExp && avgVector
+                                                                ? `(masl - min) / (max - min) -> Average Normalized Vector: ${avgVector.elevation.toFixed(3)}`
+                                                                : `Calibrated normalized base: ${begEasyStr} (Easy) / ${begDiffStr} (Difficult)`,
+                                                            easyFormula: isExp && avgVector
+                                                                ? `avg (${avgVector.elevation.toFixed(3)}) * ${easyFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.elevation.toFixed(3)}`
+                                                                : `${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.elevation.toFixed(3)}`,
+                                                            diffFormula: isExp && avgVector
+                                                                ? `clamp(avg (${avgVector.elevation.toFixed(3)}) * ${diffFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""}) = ${diffFeats.elevation.toFixed(3)}`
+                                                                : `${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.elevation.toFixed(3)}`,
+                                                        },
+                                                        {
+                                                            id: "gain",
+                                                            label: "Gain",
+                                                            category: "Physical Exertion",
+                                                            easyDisplay: easyFeats.gain.toFixed(3),
+                                                            diffDisplay: diffFeats.gain.toFixed(3),
+                                                            rawScore: isExp
+                                                                ? `${matched.map((t) => `${t.general?.name || t.id}: ${calculateTrailGain(t, startElevations[t.id])} m`).join(", ")} (Average: ${Math.round(matched.reduce((acc, t) => acc + calculateTrailGain(t, startElevations[t.id]), 0) / matched.length)} m)`
+                                                                : `Calibrated baseline (Dataset bounds: ${Math.round(bounds.gain.min)} m to ${Math.round(bounds.gain.max)} m)`,
+                                                            boundsText: `Dataset Bounds: ${Math.round(bounds.gain.min)} m to ${Math.round(bounds.gain.max)} m (Peak MASL - Start Elevation)`,
+                                                            normFormula: isExp && avgVector
+                                                                ? `(gain - min) / (max - min) -> Average Normalized Vector: ${avgVector.gain.toFixed(3)}`
+                                                                : `Calibrated normalized base: ${begEasyStr} (Easy) / ${begDiffStr} (Difficult)`,
+                                                            easyFormula: isExp && avgVector
+                                                                ? `avg (${avgVector.gain.toFixed(3)}) * ${easyFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.gain.toFixed(3)}`
+                                                                : `${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.gain.toFixed(3)}`,
+                                                            diffFormula: isExp && avgVector
+                                                                ? `clamp(avg (${avgVector.gain.toFixed(3)}) * ${diffFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""}) = ${diffFeats.gain.toFixed(3)}`
+                                                                : `${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.gain.toFixed(3)}`,
+                                                        },
+                                                        {
+                                                            id: "slope",
+                                                            label: "Slope",
+                                                            category: "Physical Exertion",
+                                                            easyDisplay: easyFeats.slope.toFixed(3),
+                                                            diffDisplay: diffFeats.slope.toFixed(3),
+                                                            rawScore: isExp
+                                                                ? `${matched.map((t) => `${t.general?.name || t.id}: ${t.difficulty?.slope ?? 0}%`).join(", ")} (Average: ${(matched.reduce((acc, t) => acc + (t.difficulty?.slope ?? 0), 0) / matched.length).toFixed(1)}%)`
+                                                                : `Calibrated baseline (Dataset bounds: ${bounds.slope.min.toFixed(1)}% to ${bounds.slope.max.toFixed(1)}%)`,
+                                                            boundsText: `Dataset Bounds: ${bounds.slope.min.toFixed(1)}% to ${bounds.slope.max.toFixed(1)}%`,
+                                                            normFormula: isExp && avgVector
+                                                                ? `(slope - min) / (max - min) -> Average Normalized Vector: ${avgVector.slope.toFixed(3)}`
+                                                                : `Calibrated normalized base: ${begEasyStr} (Easy) / ${begDiffStr} (Difficult)`,
+                                                            easyFormula: isExp && avgVector
+                                                                ? `avg (${avgVector.slope.toFixed(3)}) * ${easyFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.slope.toFixed(3)}`
+                                                                : `${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.slope.toFixed(3)}`,
+                                                            diffFormula: isExp && avgVector
+                                                                ? `clamp(avg (${avgVector.slope.toFixed(3)}) * ${diffFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""}) = ${diffFeats.slope.toFixed(3)}`
+                                                                : `${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.slope.toFixed(3)}`,
+                                                        },
+                                                        ...PROVINCES.map((prov) => {
+                                                            const pKey = prov.toLowerCase() as keyof Profile['features']['province'];
+                                                            const isPref = selectedUser.preferences?.province?.some(
+                                                                (p) => typeof p === "string" && p.toLowerCase().includes(pKey)
+                                                            );
+                                                            const mInProv = matched.filter((t) =>
+                                                                t.general?.province?.some((p) => typeof p === "string" && p.toLowerCase().includes(pKey))
+                                                            );
+
+                                                            return {
+                                                                id: `prov_${pKey}`,
+                                                                label: prov,
+                                                                category: "Province Preference" as const,
+                                                                easyDisplay: easyFeats.province[pKey].toFixed(3),
+                                                                diffDisplay: diffFeats.province[pKey].toFixed(3),
+                                                                rawScore: isExp
+                                                                    ? mInProv.length > 0
+                                                                        ? `${mInProv.map((t) => t.general?.name || t.id).join(", ")} (${mInProv.length} of ${matched.length} matched trails, ${((mInProv.length / matched.length) * 100).toFixed(0)}%)`
+                                                                        : `0 of ${matched.length} matched trails located in ${prov}`
+                                                                    : isPref
+                                                                        ? "Selected in survey preferences (Preferred Province)"
+                                                                        : "Not selected in survey preferences",
+                                                                normFormula: isExp && avgVector
+                                                                    ? mInProv.length > 0
+                                                                        ? `Direct Geographic Preservation: historical affinity vector (${avgVector.province[pKey].toFixed(3)})`
+                                                                        : "Unobserved in trail history (0.000) -> Softened via survey preference prior"
+                                                                    : `Preferred = ${prefWeightStr} (comfort), Unselected = ${unselectedWeightStr} (baseline)`,
+                                                                easyFormula: isExp
+                                                                    ? mInProv.length > 0
+                                                                        ? `Preserved raw affinity: Easy = ${easyFeats.province[pKey].toFixed(3)}`
+                                                                        : isPref
+                                                                            ? `Survey preferred prior (comfort) = ${prefWeightStr}`
+                                                                            : `Unselected baseline prior = ${unselectedWeightStr}`
+                                                                    : isPref
+                                                                        ? `High preference affinity weight = ${prefWeightStr}`
+                                                                        : `Unselected baseline = ${unselectedWeightStr}`,
+                                                                diffFormula: isExp
+                                                                    ? mInProv.length > 0
+                                                                        ? `Preserved raw affinity: Difficult = ${diffFeats.province[pKey].toFixed(3)}`
+                                                                        : isPref
+                                                                            ? `Exploration downweight = ${unselectedWeightStr}`
+                                                                            : `Exploration discovery incentive prior = ${prefWeightStr}`
+                                                                    : isPref
+                                                                        ? `Exploration downweight = ${unselectedWeightStr}`
+                                                                        : `Exploration discovery incentive = ${prefWeightStr}`,
+                                                            };
+                                                        }),
+                                                        ...([
+                                                            ["muddy", "Muddy Terrain"],
+                                                            ["rocky", "Rocky Terrain"],
+                                                            ["grassland", "Grassland"],
+                                                            ["ridges", "Ridges"],
+                                                        ] as const).map(([tKey, tLabel]) => {
+                                                            const mWithTerrain = matched.filter((t) => {
+                                                                const resolved = resolveTerrainFeatures([
+                                                                    ...(t.difficulty?.quality || []),
+                                                                    ...(t.difficulty?.difficulty_points || []),
+                                                                ]);
+                                                                return resolved[tKey] > 0;
+                                                            });
+
+                                                            return {
+                                                                id: `terrain_${tKey}`,
+                                                                label: tLabel,
+                                                                category: "Terrain Feature" as const,
+                                                                easyDisplay: easyFeats.terrain[tKey].toFixed(3),
+                                                                diffDisplay: diffFeats.terrain[tKey].toFixed(3),
+                                                                rawScore: isExp
+                                                                    ? mWithTerrain.length > 0
+                                                                        ? `${mWithTerrain.map((t) => t.general?.name || t.id).join(", ")} (${mWithTerrain.length} of ${matched.length} trails)`
+                                                                        : `Not present in any matched survey trails`
+                                                                    : "Default beginner baseline (no historical terrain encounters)",
+                                                                normFormula: isExp && avgVector
+                                                                    ? mWithTerrain.length > 0
+                                                                        ? `Average Normalized Vector across matched trails: ${avgVector.terrain[tKey].toFixed(3)}`
+                                                                        : "Unobserved in trail history (0.000) -> Softened to beginner baseline prior"
+                                                                    : `Calibrated normalized base: ${begEasyStr} (Easy) / ${begDiffStr} (Difficult)`,
+                                                                easyFormula: isExp && avgVector
+                                                                    ? mWithTerrain.length > 0
+                                                                        ? `avg (${avgVector.terrain[tKey].toFixed(3)}) * ${easyFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.terrain[tKey].toFixed(3)}`
+                                                                        : `Unobserved baseline: ${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.terrain[tKey].toFixed(3)}`
+                                                                    : `${begEasyStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${easyFeats.terrain[tKey].toFixed(3)}`,
+                                                                diffFormula: isExp && avgVector
+                                                                    ? mWithTerrain.length > 0
+                                                                        ? `clamp(avg (${avgVector.terrain[tKey].toFixed(3)}) * ${diffFactorStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""}) = ${diffFeats.terrain[tKey].toFixed(3)}`
+                                                                        : `Unobserved baseline: ${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.terrain[tKey].toFixed(3)}`
+                                                                    : `${begDiffStr} ${hasMed ? `* ${medFactorStr} (medical)` : ""} = ${diffFeats.terrain[tKey].toFixed(3)}`,
+                                                            };
+                                                        }),
+                                                    ];
 
                                                     return (
-                                                        <View key={cardKey} style={[styles.recoCard, isExpanded && styles.recoCardExpanded]}>
-                                                            <TouchableOpacity
-                                                                activeOpacity={0.7}
-                                                                onPress={() => setExpandedRecoId(isExpanded ? null : cardKey)}
-                                                                style={styles.recoCardClickable}
-                                                            >
-                                                                <View style={styles.recoCardTop}>
-                                                                    <View style={styles.recoRankBox}>
-                                                                        <Text style={styles.recoRankNum}>#{idx + 1}</Text>
-                                                                    </View>
-                                                                    <View style={{ flex: 1 }}>
-                                                                        <Text style={styles.recoTrailTitle} numberOfLines={1}>
-                                                                            {trail.trailName}
-                                                                        </Text>
-                                                                        <Text style={styles.recoTrailIdText}>ID: {trail.id}</Text>
-                                                                    </View>
-                                                                    <View
-                                                                        style={[
-                                                                            styles.recoCategoryTag,
-                                                                            isEasy ? styles.tagEasy : styles.tagDiff,
-                                                                        ]}
-                                                                    >
-                                                                        <Text
+                                                        <View style={styles.calcTable}>
+                                                            <View style={styles.calcTableRowHeader}>
+                                                                <Text style={[styles.calcTh, { flex: 2 }]}>Feature</Text>
+                                                                <Text style={[styles.calcTh, { flex: 1.5, textAlign: "center", color: Palette.Green700 }]}>
+                                                                    Easy Anchor
+                                                                </Text>
+                                                                <Text style={[styles.calcTh, { flex: 1.5, textAlign: "center", color: Palette.Amber700 }]}>
+                                                                    Difficult Anchor
+                                                                </Text>
+                                                            </View>
+
+                                                            {featureItems.map((feat) => {
+                                                                const isExpanded = expandedFeatureKey === feat.id;
+
+                                                                return (
+                                                                    <React.Fragment key={feat.id}>
+                                                                        <TouchableOpacity
+                                                                            activeOpacity={0.7}
+                                                                            onPress={() => setExpandedFeatureKey(isExpanded ? null : feat.id)}
                                                                             style={[
-                                                                                styles.recoCategoryTagText,
-                                                                                isEasy ? styles.tagTextEasy : styles.tagTextDiff,
+                                                                                styles.calcTableRow,
+                                                                                isExpanded && styles.calcTableRowActive,
                                                                             ]}
                                                                         >
-                                                                            {isEasy ? "Easy Set" : "Difficult Set"}
-                                                                        </Text>
-                                                                    </View>
-                                                                </View>
-
-                                                                <View style={styles.recoCardBottom}>
-                                                                    <View
-                                                                        style={[
-                                                                            styles.recoScoreBadge,
-                                                                            {
-                                                                                backgroundColor: badgeColor.bg,
-                                                                                borderColor: badgeColor.border,
-                                                                            },
-                                                                        ]}
-                                                                    >
-                                                                        <Text
-                                                                            style={[
-                                                                                styles.recoScoreText,
-                                                                                { color: badgeColor.text },
-                                                                            ]}
-                                                                        >
-                                                                            Score: {trail.score.toFixed(4)}
-                                                                        </Text>
-                                                                        <View
-                                                                            style={[
-                                                                                styles.recoQualityChip,
-                                                                                { backgroundColor: badgeColor.border },
-                                                                            ]}
-                                                                        >
-                                                                            <Text
-                                                                                style={[
-                                                                                    styles.recoQualityChipText,
-                                                                                    { color: badgeColor.text },
-                                                                                ]}
-                                                                            >
-                                                                                {badgeColor.label}
-                                                                            </Text>
-                                                                        </View>
-                                                                    </View>
-
-                                                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                                                                        <View
-                                                                            style={[
-                                                                                styles.recoHikeTag,
-                                                                                trail.haveHiked ? styles.tagHiked : styles.tagUnhiked,
-                                                                            ]}
-                                                                        >
-                                                                            <CustomIcon
-                                                                                library="Feather"
-                                                                                name={trail.haveHiked ? "check-circle" : "clock"}
-                                                                                size={11}
-                                                                                color={trail.haveHiked ? Palette.Green700 : Palette.Slate600}
-                                                                            />
-                                                                            <Text
-                                                                                style={[
-                                                                                    styles.recoHikeTagText,
-                                                                                    trail.haveHiked ? styles.tagHikedText : styles.tagUnhikedText,
-                                                                                ]}
-                                                                            >
-                                                                                {trail.haveHiked ? "Completed Hike" : "Not Yet Hiked"}
-                                                                            </Text>
-                                                                        </View>
-
-                                                                        <View style={styles.recoExpandHint}>
-                                                                            <Text style={styles.recoExpandHintText}>
-                                                                                {isExpanded ? "Hide calculation" : "Calculation breakdown"}
-                                                                            </Text>
-                                                                            <CustomIcon
-                                                                                library="Feather"
-                                                                                name={isExpanded ? "chevron-up" : "chevron-down"}
-                                                                                size={13}
-                                                                                color={Colors.PRIMARY}
-                                                                            />
-                                                                        </View>
-                                                                    </View>
-                                                                </View>
-                                                            </TouchableOpacity>
-
-                                                            {/* Expanded Score Calculation Breakdown Card */}
-                                                            {isExpanded && (
-                                                                <View style={styles.recoBreakdownCard}>
-                                                                    {/* Formula Definition Header */}
-                                                                    <View style={styles.recoBreakdownTop}>
-                                                                        <CustomIcon library="Feather" name="activity" size={14} color={Colors.PRIMARY} />
-                                                                        <Text style={styles.recoBreakdownHeading}>
-                                                                            TARS Hybrid Scoring Formula & Transparency Breakdown
-                                                                        </Text>
-                                                                    </View>
-                                                                    <Text style={styles.recoFormulaCode}>
-                                                                        Score = (alpha * CBF) + ((1 - alpha) * CF)
-                                                                    </Text>
-
-                                                                    {/* Metric & Weight Metadata Strip */}
-                                                                    <View style={styles.recoConfigStrip}>
-                                                                        <View style={styles.recoConfigItem}>
-                                                                            <Text style={styles.recoConfigKey}>CBF Formula:</Text>
-                                                                            <Text style={styles.recoConfigVal}>{getFormulaFullName(cbfCode)}</Text>
-                                                                        </View>
-                                                                        <View style={styles.recoConfigItem}>
-                                                                            <Text style={styles.recoConfigKey}>CF Formula:</Text>
-                                                                            <Text style={styles.recoConfigVal}>{getFormulaFullName(cfCode)}</Text>
-                                                                        </View>
-                                                                        <View style={styles.recoConfigItem}>
-                                                                            <Text style={styles.recoConfigKey}>Alpha Weight:</Text>
-                                                                            <Text style={[styles.recoConfigVal, { color: Colors.PRIMARY, fontWeight: "700" }]}>
-                                                                                {alpha.toFixed(3)} ({Math.round(alpha * 100)}% CBF / {Math.round((1 - alpha) * 100)}% CF)
-                                                                            </Text>
-                                                                        </View>
-                                                                        <View style={styles.recoConfigItem}>
-                                                                            <Text style={styles.recoConfigKey}>Dynamic Alpha Formula:</Text>
-                                                                            <Text style={styles.recoConfigVal}>
-                                                                                1.0 - (0.5 * ({userCount} - 1) / 49) = {alpha.toFixed(3)}
-                                                                            </Text>
-                                                                        </View>
-                                                                    </View>
-
-                                                                    {/* Two-Component Calculation Grid */}
-                                                                    <View style={styles.recoCompGrid}>
-                                                                        {/* CBF Box */}
-                                                                        <View style={styles.recoCompBoxCbf}>
-                                                                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                                                                                <Text style={styles.recoCompTitleCbf}>1. Content-Based (CBF)</Text>
-                                                                                <Text style={styles.recoCompWeightText}>{Math.round(alpha * 100)}% Weight</Text>
+                                                                            <View style={{ flex: 2, flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                                                                <CustomIcon
+                                                                                    library="Feather"
+                                                                                    name={isExpanded ? "chevron-up" : "chevron-down"}
+                                                                                    size={12}
+                                                                                    color={isExpanded ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
+                                                                                />
+                                                                                <Text style={[styles.calcTdBold, isExpanded && { color: Colors.PRIMARY }]}>
+                                                                                    {feat.label}
+                                                                                </Text>
                                                                             </View>
-
-                                                                            {/* Raw Metric Formula Display */}
-                                                                            <View style={styles.recoRawFormulaRow}>
-                                                                                <Text style={styles.recoRawFormulaLabel}>Raw Metric Formula ({cbfCode}):</Text>
-                                                                                <Text style={styles.recoRawFormulaCode}>{getRawCbfFormula(cbfCode)}</Text>
-                                                                            </View>
-
-                                                                            <Text style={styles.recoCompDesc}>
-                                                                                {getRawCbfExplanation(cbfCode)}
+                                                                            <Text style={[styles.calcTd, { flex: 1.5, textAlign: "center", color: Palette.Green700, fontWeight: "600" }]}>
+                                                                                {feat.easyDisplay}
                                                                             </Text>
+                                                                            <Text style={[styles.calcTd, { flex: 1.5, textAlign: "center", color: Palette.Amber700, fontWeight: "600" }]}>
+                                                                                {feat.diffDisplay}
+                                                                            </Text>
+                                                                        </TouchableOpacity>
 
-                                                                            {/* Individual Feature Comparison Table */}
-                                                                            {candidateFeats && targetAnchorFeats ? (
-                                                                                <View style={styles.recoFeatTable}>
-                                                                                    <View style={styles.recoFeatHeaderRow}>
-                                                                                        <Text style={[styles.recoFeatTh, { flex: 2 }]}>Key Feature</Text>
-                                                                                        <Text style={[styles.recoFeatTh, { flex: 1.5, textAlign: "center" }]}>User Anchor</Text>
-                                                                                        <Text style={[styles.recoFeatTh, { flex: 1.5, textAlign: "center" }]}>Trail Vector</Text>
-                                                                                        <Text style={[styles.recoFeatTh, { flex: 1.2, textAlign: "right" }]}>|Diff|</Text>
+                                                                        {/* Expanded Dropdown Breakdown */}
+                                                                        {isExpanded && (
+                                                                            <View style={styles.breakdownCard}>
+                                                                                <View style={styles.breakdownHeader}>
+                                                                                    <View style={styles.breakdownBadge}>
+                                                                                        <Text style={styles.breakdownBadgeText}>{feat.category}</Text>
                                                                                     </View>
-                                                                                    {[
-                                                                                        {
-                                                                                            label: "Length",
-                                                                                            anchor: targetAnchorFeats.length,
-                                                                                            trailVal: candidateFeats.length,
-                                                                                            rawTrail: candidateTrail?.difficulty?.length != null ? `${candidateTrail.difficulty.length} km` : undefined,
-                                                                                        },
-                                                                                        {
-                                                                                            label: "Elevation",
-                                                                                            anchor: targetAnchorFeats.elevation,
-                                                                                            trailVal: candidateFeats.elevation,
-                                                                                            rawTrail: candidateTrail?.difficulty?.elevation != null ? `${candidateTrail.difficulty.elevation} MASL` : undefined,
-                                                                                        },
-                                                                                        {
-                                                                                            label: "Gain",
-                                                                                            anchor: targetAnchorFeats.gain,
-                                                                                            trailVal: candidateFeats.gain,
-                                                                                            rawTrail: candidateTrail?.difficulty?.gain != null ? `+${candidateTrail.difficulty.gain} m` : undefined,
-                                                                                        },
-                                                                                        {
-                                                                                            label: "Slope",
-                                                                                            anchor: targetAnchorFeats.slope,
-                                                                                            trailVal: candidateFeats.slope,
-                                                                                            rawTrail: candidateTrail?.difficulty?.slope != null ? `${candidateTrail.difficulty.slope}%` : undefined,
-                                                                                        },
-                                                                                        {
-                                                                                            label: "Classification",
-                                                                                            anchor: targetAnchorFeats.classification,
-                                                                                            trailVal: candidateFeats.classification,
-                                                                                            rawTrail: candidateFeats.classification === 1 ? "Major" : "Minor",
-                                                                                        },
-                                                                                        {
-                                                                                            label: "Lasco / Easy",
-                                                                                            anchor: targetAnchorFeats.easy,
-                                                                                            trailVal: candidateFeats.easy,
-                                                                                        },
-                                                                                    ].map((fItem, fIdx) => {
-                                                                                        const diff = Math.abs(fItem.anchor - fItem.trailVal);
-                                                                                        const isClose = diff <= 0.08;
-                                                                                        return (
-                                                                                            <View key={fIdx} style={styles.recoFeatRow}>
-                                                                                                <View style={{ flex: 2 }}>
-                                                                                                    <Text style={styles.recoFeatTdName}>{fItem.label}</Text>
-                                                                                                    {fItem.rawTrail && (
-                                                                                                        <Text style={styles.recoFeatTdSub}>{fItem.rawTrail}</Text>
-                                                                                                    )}
-                                                                                                </View>
-                                                                                                <Text style={[styles.recoFeatTdVal, { flex: 1.5, textAlign: "center", color: Palette.Green700 }]}>
-                                                                                                    {fItem.anchor.toFixed(3)}
-                                                                                                </Text>
-                                                                                                <Text style={[styles.recoFeatTdVal, { flex: 1.5, textAlign: "center", color: Palette.Slate700 }]}>
-                                                                                                    {fItem.trailVal.toFixed(3)}
-                                                                                                </Text>
-                                                                                                <View style={{ flex: 1.2, alignItems: "flex-end" }}>
-                                                                                                    <View style={[styles.recoFeatDiffBadge, { backgroundColor: isClose ? Palette.Green50 : Palette.Amber50, borderColor: isClose ? Palette.Green200 : Palette.Amber200 }]}>
-                                                                                                        <Text style={[styles.recoFeatDiffText, { color: isClose ? Palette.Green800 : Palette.Amber800 }]}>
-                                                                                                            {diff.toFixed(3)}
-                                                                                                        </Text>
-                                                                                                    </View>
-                                                                                                </View>
-                                                                                            </View>
-                                                                                        );
-                                                                                    })}
+                                                                                    {hasMed && (feat.category === "Physical Exertion" || feat.category === "Terrain Feature") && (
+                                                                                        <View style={styles.breakdownMedBadge}>
+                                                                                            <Text style={styles.breakdownMedBadgeText}>{medFactorStr}x Medical Downshift</Text>
+                                                                                        </View>
+                                                                                    )}
                                                                                 </View>
-                                                                            ) : null}
 
-                                                                            <View style={styles.recoCompMathRow}>
-                                                                                <Text style={styles.recoCompMathLabel}>Aggregate Across All 28 Features:</Text>
-                                                                                <Text style={styles.recoCompMathVal}>{cbfValue.toFixed(4)}</Text>
-                                                                            </View>
-                                                                            <View style={styles.recoCompMathRow}>
-                                                                                <Text style={styles.recoCompMathLabel}>Weighted Term (alpha * Raw_CBF):</Text>
-                                                                                <Text style={[styles.recoCompMathVal, { color: Palette.Green800, fontWeight: "700" }]}>
-                                                                                    {alpha.toFixed(2)} * {cbfValue.toFixed(4)} = {cbfWeighted.toFixed(4)}
-                                                                                </Text>
-                                                                            </View>
-                                                                        </View>
-
-                                                                        {/* CF Box */}
-                                                                        <View style={styles.recoCompBoxCf}>
-                                                                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                                                                                <Text style={styles.recoCompTitleCf}>2. Collaborative (CF)</Text>
-                                                                                <Text style={styles.recoCompWeightText}>{Math.round((1 - alpha) * 100)}% Weight</Text>
-                                                                            </View>
-
-                                                                            {/* Raw Metric Formula Display */}
-                                                                            <View style={styles.recoRawFormulaRow}>
-                                                                                <Text style={styles.recoRawFormulaLabel}>Raw Metric Formula ({cfCode}):</Text>
-                                                                                <Text style={styles.recoRawFormulaCode}>
-                                                                                    dist = (1 / |Peers|) * sum( dist(User_A, Peer_B) * dist(Peer_B, Trail_T) )
-                                                                                </Text>
-                                                                            </View>
-
-                                                                            <Text style={styles.recoCompDesc}>
-                                                                                Evaluates similarity between this user and each peer hiker B who reviewed or completed trails, multiplied by the peer's affinity for Trail T.
-                                                                            </Text>
-
-                                                                            {cfValue === 0.0 ? (
-                                                                                <View style={styles.recoColdStartNotice}>
-                                                                                    <CustomIcon library="Feather" name="info" size={13} color={Colors.PRIMARY} />
-                                                                                    <Text style={styles.recoColdStartText}>
-                                                                                        Cold-Start Active: 0 completed hike records on file for this user. Collaborative distance defaults to 0.0000, and dynamic alpha = 1.0 assigns 100% decision power to CBF feature matching.
-                                                                                    </Text>
+                                                                                {/* Raw Score Breakdown */}
+                                                                                <View style={styles.breakdownSection}>
+                                                                                    <Text style={styles.breakdownLabel}>Raw Score / Data Source:</Text>
+                                                                                    <Text style={styles.breakdownValue}>{feat.rawScore}</Text>
                                                                                 </View>
-                                                                            ) : (
-                                                                                <View style={styles.recoColdStartNotice}>
-                                                                                    <CustomIcon library="Feather" name="check-circle" size={13} color={Palette.Green700} />
-                                                                                    <Text style={[styles.recoColdStartText, { color: Palette.Green800 }]}>
-                                                                                        Active Peer Collaborative History: Calculated across active peer hikers who reviewed or hiked trails in common.
-                                                                                    </Text>
+
+                                                                                {/* Bounds / Range if applicable */}
+                                                                                {"boundsText" in feat && feat.boundsText ? (
+                                                                                    <View style={styles.breakdownSection}>
+                                                                                        <Text style={styles.breakdownLabel}>Dataset Normalization Range:</Text>
+                                                                                        <Text style={styles.breakdownValue}>{feat.boundsText}</Text>
+                                                                                    </View>
+                                                                                ) : null}
+
+                                                                                {/* Normalized Base Formula */}
+                                                                                <View style={styles.breakdownSection}>
+                                                                                    <Text style={styles.breakdownLabel}>Normalized Base Formula:</Text>
+                                                                                    <Text style={styles.breakdownValue}>{feat.normFormula}</Text>
                                                                                 </View>
-                                                                            )}
 
-                                                                            <View style={styles.recoCompMathRow}>
-                                                                                <Text style={styles.recoCompMathLabel}>Raw CF Distance:</Text>
-                                                                                <Text style={styles.recoCompMathVal}>{cfValue.toFixed(4)}</Text>
+                                                                                {/* Two-Anchor Computation */}
+                                                                                <View style={styles.breakdownTwinGrid}>
+                                                                                    <View style={styles.breakdownAnchorBoxEasy}>
+                                                                                        <Text style={styles.breakdownAnchorTitleEasy}>Easy Anchor Computation</Text>
+                                                                                        <Text style={styles.breakdownFormulaText}>{feat.easyFormula}</Text>
+                                                                                        <Text style={styles.breakdownResultEasy}>Final Vector: {feat.easyDisplay}</Text>
+                                                                                    </View>
+                                                                                    <View style={styles.breakdownAnchorBoxDiff}>
+                                                                                        <Text style={styles.breakdownAnchorTitleDiff}>Difficult Anchor Computation</Text>
+                                                                                        <Text style={styles.breakdownFormulaText}>{feat.diffFormula}</Text>
+                                                                                        <Text style={styles.breakdownResultDiff}>Final Vector: {feat.diffDisplay}</Text>
+                                                                                    </View>
+                                                                                </View>
                                                                             </View>
-                                                                            <View style={styles.recoCompMathRow}>
-                                                                                <Text style={styles.recoCompMathLabel}>Weighted Term ((1 - alpha) * Raw_CF):</Text>
-                                                                                <Text style={[styles.recoCompMathVal, { color: Palette.Amber800, fontWeight: "700" }]}>
-                                                                                    {(1.0 - alpha).toFixed(2)} * {cfValue.toFixed(4)} = {cfWeighted.toFixed(4)}
-                                                                                </Text>
-                                                                            </View>
-                                                                        </View>
-                                                                    </View>
-
-                                                                    {/* Synthesis Summary */}
-                                                                    <View style={styles.recoSynthesisBox}>
-                                                                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-                                                                            <Text style={styles.recoSynthesisLabel}>
-                                                                                Final Blended Recommendation Score (R_tu):
-                                                                            </Text>
-                                                                            <Text style={styles.recoSynthesisFormula}>
-                                                                                {cbfWeighted.toFixed(4)} (CBF) + {cfWeighted.toFixed(4)} (CF) = {trail.score.toFixed(4)}
-                                                                            </Text>
-                                                                        </View>
-                                                                        <Text style={styles.recoSynthesisDesc}>
-                                                                            Calculation: ({alpha.toFixed(2)} * {cbfValue.toFixed(4)}) + ({(1.0 - alpha).toFixed(2)} * {cfValue.toFixed(4)}) = {cbfWeighted.toFixed(4)} + {cfWeighted.toFixed(4)} = {trail.score.toFixed(4)}.
-                                                                            {"\n"}Range is [0.000, 1.000], where 0.000 represents the closest mathematical match to the user's hiking profile.
-                                                                        </Text>
-                                                                    </View>
-                                                                </View>
-                                                            )}
+                                                                        )}
+                                                                    </React.Fragment>
+                                                                );
+                                                            })}
                                                         </View>
                                                     );
-                                                })}
+                                                })()}
+                                            </View>
+                                        )}
+
+                                        {/* 2. USER RECOMMENDATIONS SECTION (Grouped by Easy/Difficult, with Match Scores & Hike Status) */}
+                                        {(modalSectionTab === "both" || modalSectionTab === "recos") && (
+                                            <View style={styles.recoSection}>
+                                                {/* Header Strip */}
+                                                <View style={styles.recoSectionHeader}>
+                                                    <View style={{ flex: 1 }}>
+                                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                                                            <CustomIcon library="Feather" name="compass" size={16} color={Colors.PRIMARY} />
+                                                            <Text style={styles.recoSectionTitle}>Monthly Recommended Trails</Text>
+                                                            <View style={styles.recoMonthBadge}>
+                                                                <Text style={styles.recoMonthBadgeText}>{recoMonth}</Text>
+                                                            </View>
+                                                        </View>
+                                                        <Text style={styles.recoMetaSubText}>
+                                                            {userRecommendations?.engineConfig
+                                                                ? `Engine: CBF (${userRecommendations.engineConfig.cbf}) + CF (${userRecommendations.engineConfig.cf}) • alpha = ${userRecommendations.engineConfig.alpha}`
+                                                                : "Stored in /users/{userId}/recommendations/" + recoMonth}
+                                                        </Text>
+                                                    </View>
+
+                                                    <TouchableOpacity
+                                                        style={styles.recoRefreshBtn}
+                                                        onPress={() => {
+                                                            if (selectedUser?.id) {
+                                                                setIsLoadingRecos(true);
+                                                                setRecoError(null);
+                                                                RecommendationRepo.fetchByMonth(selectedUser.id, recoMonth)
+                                                                    .then((data) => {
+                                                                        setUserRecommendations(data);
+                                                                        setRecoError(null);
+                                                                    })
+                                                                    .catch((err: any) => {
+                                                                        console.error("[UserDataset] Failed to refresh recommendations for user", selectedUser.id, err);
+                                                                        setRecoError(err?.message || "Failed to load user recommendations from Firestore.");
+                                                                        setUserRecommendations(null);
+                                                                    })
+                                                                    .finally(() => setIsLoadingRecos(false));
+                                                            }
+                                                        }}
+                                                        disabled={isLoadingRecos}
+                                                    >
+                                                        <CustomIcon
+                                                            library="Feather"
+                                                            name="rotate-cw"
+                                                            size={12}
+                                                            color={isLoadingRecos ? Colors.GRAY : Colors.PRIMARY}
+                                                        />
+                                                        <Text style={styles.recoRefreshBtnText}>
+                                                            {isLoadingRecos ? "Loading..." : "Refresh"}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                </View>
+
+                                                {/* Category Selector & Search Controls */}
+                                                <View style={styles.recoControlsRow}>
+                                                    <View style={styles.recoCategoryPills}>
+                                                        <TouchableOpacity
+                                                            style={[styles.recoPill, recoCategoryTab === "all" && styles.recoPillActive]}
+                                                            onPress={() => setRecoCategoryTab("all")}
+                                                        >
+                                                            <Text style={[styles.recoPillText, recoCategoryTab === "all" && styles.recoPillTextActive]}>
+                                                                All ({modalEasyTrails.length + modalDifficultTrails.length})
+                                                            </Text>
+                                                        </TouchableOpacity>
+
+                                                        <TouchableOpacity
+                                                            style={[styles.recoPill, recoCategoryTab === "easy" && styles.recoPillActiveEasy]}
+                                                            onPress={() => setRecoCategoryTab("easy")}
+                                                        >
+                                                            <Text style={[styles.recoPillText, recoCategoryTab === "easy" && styles.recoPillTextActiveEasy]}>
+                                                                Easy ({modalEasyTrails.length})
+                                                            </Text>
+                                                        </TouchableOpacity>
+
+                                                        <TouchableOpacity
+                                                            style={[styles.recoPill, recoCategoryTab === "difficult" && styles.recoPillActiveDiff]}
+                                                            onPress={() => setRecoCategoryTab("difficult")}
+                                                        >
+                                                            <Text style={[styles.recoPillText, recoCategoryTab === "difficult" && styles.recoPillTextActiveDiff]}>
+                                                                Difficult ({modalDifficultTrails.length})
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    </View>
+
+                                                    <View style={styles.recoSearchRow}>
+                                                        <CustomIcon library="Feather" name="search" size={13} color={Colors.TEXT_SECONDARY} />
+                                                        <TextInput
+                                                            style={styles.recoSearchInput}
+                                                            placeholder="Filter recommended trails..."
+                                                            placeholderTextColor={Colors.TEXT_SECONDARY}
+                                                            value={recoSearchQuery}
+                                                            onChangeText={setRecoSearchQuery}
+                                                        />
+                                                        {recoSearchQuery.length > 0 && (
+                                                            <TouchableOpacity onPress={() => setRecoSearchQuery("")}>
+                                                                <CustomIcon library="Feather" name="x" size={12} color={Colors.TEXT_SECONDARY} />
+                                                            </TouchableOpacity>
+                                                        )}
+                                                    </View>
+                                                </View>
+
+                                                {/* Recommendations Content State */}
+                                                {isLoadingRecos ? (
+                                                    <View style={styles.recoCenterBox}>
+                                                        <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                                                        <Text style={styles.recoLoadingText}>
+                                                            Loading recommendations for {recoMonth}...
+                                                        </Text>
+                                                    </View>
+                                                ) : recoError ? (
+                                                    <View style={styles.recoErrorBox}>
+                                                        <CustomIcon library="Feather" name="alert-triangle" size={24} color={Palette.Red700} />
+                                                        <Text style={styles.recoErrorTitle}>Firestore Permission / Access Blocked</Text>
+                                                        <Text style={styles.recoErrorDesc}>{recoError}</Text>
+                                                        <Text style={styles.recoErrorHint}>
+                                                            Deploy the updated firestore.rules to Firebase to grant Superadmin read access across all users' recommendation subcollections.
+                                                        </Text>
+                                                    </View>
+                                                ) : !userRecommendations || (modalEasyTrails.length === 0 && modalDifficultTrails.length === 0) ? (
+                                                    <View style={styles.recoEmptyBox}>
+                                                        <CustomIcon library="Feather" name="inbox" size={32} color={Colors.TEXT_SECONDARY} />
+                                                        <Text style={styles.recoEmptyTitle}>
+                                                            No Recommendations for {recoMonth}
+                                                        </Text>
+                                                        <Text style={styles.recoEmptyDesc}>
+                                                            {isSaved
+                                                                ? "This user has a saved profile in Firestore, but recommendations haven't been run yet for this month."
+                                                                : "Save this user's profile to Firestore first, then run the engine to generate recommendations."}
+                                                        </Text>
+                                                        {onRunEnginePress && (
+                                                            <TouchableOpacity
+                                                                style={styles.recoRunNowBtn}
+                                                                onPress={() => {
+                                                                    setSelectedUser(null);
+                                                                    onRunEnginePress();
+                                                                }}
+                                                            >
+                                                                <CustomIcon library="Feather" name="play" size={13} color={Colors.WHITE} />
+                                                                <Text style={styles.recoRunNowText}>Run Engine Now</Text>
+                                                            </TouchableOpacity>
+                                                        )}
+                                                    </View>
+                                                ) : displayedModalTrails.length === 0 ? (
+                                                    <View style={styles.recoEmptyBox}>
+                                                        <CustomIcon library="Feather" name="search" size={24} color={Colors.TEXT_SECONDARY} />
+                                                        <Text style={styles.recoEmptyTitle}>No Trails Match Filter</Text>
+                                                        <Text style={styles.recoEmptyDesc}>
+                                                            Try adjusting your search query or switching categories.
+                                                        </Text>
+                                                    </View>
+                                                ) : (
+                                                    <View style={styles.recoGrid}>
+                                                        {displayedModalTrails.map((trail, idx) => {
+                                                            const badgeColor = getScoreBadgeColor(trail.score);
+                                                            const isEasy = trail.category === "easy";
+                                                            const cardKey = `${trail.category}-${trail.id}-${idx}`;
+                                                            const isExpanded = expandedRecoId === cardKey;
+
+                                                            const alpha = userRecommendations?.engineConfig?.alpha ?? 1.0;
+                                                            const cbfCode = userRecommendations?.engineConfig?.cbf ?? "GD";
+                                                            const cfCode = userRecommendations?.engineConfig?.cf ?? "GD";
+
+                                                            // Use stored cbfScore/cfScore if present, or reconstruct with exact mathematical consistency
+                                                            const cbfValue = trail.cbfScore != null
+                                                                ? trail.cbfScore
+                                                                : (alpha === 1.0 ? trail.score : trail.score / Math.max(alpha, 0.001));
+                                                            const cfValue = trail.cfScore != null
+                                                                ? trail.cfScore
+                                                                : 0.0;
+
+                                                            const cbfWeighted = alpha * cbfValue;
+                                                            const cfWeighted = (1.0 - alpha) * cfValue;
+
+                                                            const candidateTrail = trails.find((t) => t.id === trail.id);
+                                                            const candidateProfile = trailProfilesMap.get(trail.id) || candidateTrail?.profile;
+                                                            const candidateFeats = candidateProfile?.features;
+                                                            const targetAnchorFeats = isEasy ? userModalProfiles.easy.features : userModalProfiles.difficult.features;
+                                                            const userCount = userRecommendations?.engineConfig?.userCount ?? (filteredUsers.filter((u) => !!u.profile).length || 1);
+
+                                                            return (
+                                                                <View key={cardKey} style={[styles.recoCard, isExpanded && styles.recoCardExpanded]}>
+                                                                    <TouchableOpacity
+                                                                        activeOpacity={0.7}
+                                                                        onPress={() => setExpandedRecoId(isExpanded ? null : cardKey)}
+                                                                        style={styles.recoCardClickable}
+                                                                    >
+                                                                        <View style={styles.recoCardTop}>
+                                                                            <View style={styles.recoRankBox}>
+                                                                                <Text style={styles.recoRankNum}>#{idx + 1}</Text>
+                                                                            </View>
+                                                                            <View style={{ flex: 1 }}>
+                                                                                <Text style={styles.recoTrailTitle} numberOfLines={1}>
+                                                                                    {trail.trailName}
+                                                                                </Text>
+                                                                                <Text style={styles.recoTrailIdText}>ID: {trail.id}</Text>
+                                                                            </View>
+                                                                            <View
+                                                                                style={[
+                                                                                    styles.recoCategoryTag,
+                                                                                    isEasy ? styles.tagEasy : styles.tagDiff,
+                                                                                ]}
+                                                                            >
+                                                                                <Text
+                                                                                    style={[
+                                                                                        styles.recoCategoryTagText,
+                                                                                        isEasy ? styles.tagTextEasy : styles.tagTextDiff,
+                                                                                    ]}
+                                                                                >
+                                                                                    {isEasy ? "Easy Set" : "Difficult Set"}
+                                                                                </Text>
+                                                                            </View>
+                                                                        </View>
+
+                                                                        <View style={styles.recoCardBottom}>
+                                                                            <View
+                                                                                style={[
+                                                                                    styles.recoScoreBadge,
+                                                                                    {
+                                                                                        backgroundColor: badgeColor.bg,
+                                                                                        borderColor: badgeColor.border,
+                                                                                    },
+                                                                                ]}
+                                                                            >
+                                                                                <Text
+                                                                                    style={[
+                                                                                        styles.recoScoreText,
+                                                                                        { color: badgeColor.text },
+                                                                                    ]}
+                                                                                >
+                                                                                    Score: {trail.score.toFixed(4)}
+                                                                                </Text>
+                                                                                <View
+                                                                                    style={[
+                                                                                        styles.recoQualityChip,
+                                                                                        { backgroundColor: badgeColor.border },
+                                                                                    ]}
+                                                                                >
+                                                                                    <Text
+                                                                                        style={[
+                                                                                            styles.recoQualityChipText,
+                                                                                            { color: badgeColor.text },
+                                                                                        ]}
+                                                                                    >
+                                                                                        {badgeColor.label}
+                                                                                    </Text>
+                                                                                </View>
+                                                                            </View>
+
+                                                                            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                                                                                <View
+                                                                                    style={[
+                                                                                        styles.recoHikeTag,
+                                                                                        trail.haveHiked ? styles.tagHiked : styles.tagUnhiked,
+                                                                                    ]}
+                                                                                >
+                                                                                    <CustomIcon
+                                                                                        library="Feather"
+                                                                                        name={trail.haveHiked ? "check-circle" : "clock"}
+                                                                                        size={11}
+                                                                                        color={trail.haveHiked ? Palette.Green700 : Palette.Slate600}
+                                                                                    />
+                                                                                    <Text
+                                                                                        style={[
+                                                                                            styles.recoHikeTagText,
+                                                                                            trail.haveHiked ? styles.tagHikedText : styles.tagUnhikedText,
+                                                                                        ]}
+                                                                                    >
+                                                                                        {trail.haveHiked ? "Completed Hike" : "Not Yet Hiked"}
+                                                                                    </Text>
+                                                                                </View>
+
+                                                                                <View style={styles.recoExpandHint}>
+                                                                                    <Text style={styles.recoExpandHintText}>
+                                                                                        {isExpanded ? "Hide calculation" : "Calculation breakdown"}
+                                                                                    </Text>
+                                                                                    <CustomIcon
+                                                                                        library="Feather"
+                                                                                        name={isExpanded ? "chevron-up" : "chevron-down"}
+                                                                                        size={13}
+                                                                                        color={Colors.PRIMARY}
+                                                                                    />
+                                                                                </View>
+                                                                            </View>
+                                                                        </View>
+                                                                    </TouchableOpacity>
+
+                                                                    {/* Expanded Score Calculation Breakdown Card */}
+                                                                    {isExpanded && (
+                                                                        <View style={styles.recoBreakdownCard}>
+                                                                            {/* Formula Definition Header */}
+                                                                            <View style={styles.recoBreakdownTop}>
+                                                                                <CustomIcon library="Feather" name="activity" size={14} color={Colors.PRIMARY} />
+                                                                                <Text style={styles.recoBreakdownHeading}>
+                                                                                    ThAReSys Hybrid Scoring Formula & Transparency Breakdown
+                                                                                </Text>
+                                                                            </View>
+                                                                            <Text style={styles.recoFormulaCode}>
+                                                                                Score = (alpha * CBF) + ((1 - alpha) * CF)
+                                                                            </Text>
+
+                                                                            {/* Metric & Weight Metadata Strip */}
+                                                                            <View style={styles.recoConfigStrip}>
+                                                                                <View style={styles.recoConfigItem}>
+                                                                                    <Text style={styles.recoConfigKey}>CBF Formula:</Text>
+                                                                                    <Text style={styles.recoConfigVal}>{getFormulaFullName(cbfCode)}</Text>
+                                                                                </View>
+                                                                                <View style={styles.recoConfigItem}>
+                                                                                    <Text style={styles.recoConfigKey}>CF Formula:</Text>
+                                                                                    <Text style={styles.recoConfigVal}>{getFormulaFullName(cfCode)}</Text>
+                                                                                </View>
+                                                                                <View style={styles.recoConfigItem}>
+                                                                                    <Text style={styles.recoConfigKey}>Alpha Weight:</Text>
+                                                                                    <Text style={[styles.recoConfigVal, { color: Colors.PRIMARY, fontWeight: "700" }]}>
+                                                                                        {alpha.toFixed(3)} ({Math.round(alpha * 100)}% CBF / {Math.round((1 - alpha) * 100)}% CF)
+                                                                                    </Text>
+                                                                                </View>
+                                                                                <View style={styles.recoConfigItem}>
+                                                                                    <Text style={styles.recoConfigKey}>Dynamic Alpha Formula:</Text>
+                                                                                    <Text style={styles.recoConfigVal}>
+                                                                                        1.0 - (0.5 * ({userCount} - 1) / 49) = {alpha.toFixed(3)}
+                                                                                    </Text>
+                                                                                </View>
+                                                                            </View>
+
+                                                                            {/* Two-Component Calculation Grid */}
+                                                                            <View style={styles.recoCompGrid}>
+                                                                                {/* CBF Box */}
+                                                                                <View style={styles.recoCompBoxCbf}>
+                                                                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                                                                                        <Text style={styles.recoCompTitleCbf}>1. Content-Based (CBF)</Text>
+                                                                                        <Text style={styles.recoCompWeightText}>{Math.round(alpha * 100)}% Weight</Text>
+                                                                                    </View>
+
+                                                                                    {/* Raw Metric Formula Display */}
+                                                                                    <View style={styles.recoRawFormulaRow}>
+                                                                                        <Text style={styles.recoRawFormulaLabel}>Raw Metric Formula ({cbfCode}):</Text>
+                                                                                        <Text style={styles.recoRawFormulaCode}>{getRawCbfFormula(cbfCode)}</Text>
+                                                                                    </View>
+
+                                                                                    <Text style={styles.recoCompDesc}>
+                                                                                        {getRawCbfExplanation(cbfCode)}
+                                                                                    </Text>
+
+                                                                                    {/* Individual Feature Comparison Table */}
+                                                                                    {candidateFeats && targetAnchorFeats ? (
+                                                                                        <View style={styles.recoFeatTable}>
+                                                                                            <View style={styles.recoFeatHeaderRow}>
+                                                                                                <Text style={[styles.recoFeatTh, { flex: 2 }]}>Key Feature</Text>
+                                                                                                <Text style={[styles.recoFeatTh, { flex: 1.5, textAlign: "center" }]}>User Anchor</Text>
+                                                                                                <Text style={[styles.recoFeatTh, { flex: 1.5, textAlign: "center" }]}>Trail Vector</Text>
+                                                                                                <Text style={[styles.recoFeatTh, { flex: 1.2, textAlign: "right" }]}>|Diff|</Text>
+                                                                                            </View>
+                                                                                            {[
+                                                                                                {
+                                                                                                    label: "Length",
+                                                                                                    anchor: targetAnchorFeats.length,
+                                                                                                    trailVal: candidateFeats.length,
+                                                                                                    rawTrail: candidateTrail?.difficulty?.length != null ? `${candidateTrail.difficulty.length} km` : undefined,
+                                                                                                },
+                                                                                                {
+                                                                                                    label: "Elevation",
+                                                                                                    anchor: targetAnchorFeats.elevation,
+                                                                                                    trailVal: candidateFeats.elevation,
+                                                                                                    rawTrail: candidateTrail?.difficulty?.elevation != null ? `${candidateTrail.difficulty.elevation} MASL` : undefined,
+                                                                                                },
+                                                                                                {
+                                                                                                    label: "Gain",
+                                                                                                    anchor: targetAnchorFeats.gain,
+                                                                                                    trailVal: candidateFeats.gain,
+                                                                                                    rawTrail: candidateTrail?.difficulty?.gain != null ? `+${candidateTrail.difficulty.gain} m` : undefined,
+                                                                                                },
+                                                                                                {
+                                                                                                    label: "Slope",
+                                                                                                    anchor: targetAnchorFeats.slope,
+                                                                                                    trailVal: candidateFeats.slope,
+                                                                                                    rawTrail: candidateTrail?.difficulty?.slope != null ? `${candidateTrail.difficulty.slope}%` : undefined,
+                                                                                                },
+                                                                                                {
+                                                                                                    label: "Classification",
+                                                                                                    anchor: targetAnchorFeats.classification,
+                                                                                                    trailVal: candidateFeats.classification,
+                                                                                                    rawTrail: candidateFeats.classification === 1 ? "Major" : "Minor",
+                                                                                                },
+                                                                                                {
+                                                                                                    label: "Lasco / Easy",
+                                                                                                    anchor: targetAnchorFeats.easy,
+                                                                                                    trailVal: candidateFeats.easy,
+                                                                                                },
+                                                                                            ].map((fItem, fIdx) => {
+                                                                                                const diff = Math.abs(fItem.anchor - fItem.trailVal);
+                                                                                                const isClose = diff <= 0.08;
+                                                                                                return (
+                                                                                                    <View key={fIdx} style={styles.recoFeatRow}>
+                                                                                                        <View style={{ flex: 2 }}>
+                                                                                                            <Text style={styles.recoFeatTdName}>{fItem.label}</Text>
+                                                                                                            {fItem.rawTrail && (
+                                                                                                                <Text style={styles.recoFeatTdSub}>{fItem.rawTrail}</Text>
+                                                                                                            )}
+                                                                                                        </View>
+                                                                                                        <Text style={[styles.recoFeatTdVal, { flex: 1.5, textAlign: "center", color: Palette.Green700 }]}>
+                                                                                                            {fItem.anchor.toFixed(3)}
+                                                                                                        </Text>
+                                                                                                        <Text style={[styles.recoFeatTdVal, { flex: 1.5, textAlign: "center", color: Palette.Slate700 }]}>
+                                                                                                            {fItem.trailVal.toFixed(3)}
+                                                                                                        </Text>
+                                                                                                        <View style={{ flex: 1.2, alignItems: "flex-end" }}>
+                                                                                                            <View style={[styles.recoFeatDiffBadge, { backgroundColor: isClose ? Palette.Green50 : Palette.Amber50, borderColor: isClose ? Palette.Green200 : Palette.Amber200 }]}>
+                                                                                                                <Text style={[styles.recoFeatDiffText, { color: isClose ? Palette.Green800 : Palette.Amber800 }]}>
+                                                                                                                    {diff.toFixed(3)}
+                                                                                                                </Text>
+                                                                                                            </View>
+                                                                                                        </View>
+                                                                                                    </View>
+                                                                                                );
+                                                                                            })}
+                                                                                        </View>
+                                                                                    ) : null}
+
+                                                                                    <View style={styles.recoCompMathRow}>
+                                                                                        <Text style={styles.recoCompMathLabel}>Aggregate Across All 28 Features:</Text>
+                                                                                        <Text style={styles.recoCompMathVal}>{cbfValue.toFixed(4)}</Text>
+                                                                                    </View>
+                                                                                    <View style={styles.recoCompMathRow}>
+                                                                                        <Text style={styles.recoCompMathLabel}>Weighted Term (alpha * Raw_CBF):</Text>
+                                                                                        <Text style={[styles.recoCompMathVal, { color: Palette.Green800, fontWeight: "700" }]}>
+                                                                                            {alpha.toFixed(2)} * {cbfValue.toFixed(4)} = {cbfWeighted.toFixed(4)}
+                                                                                        </Text>
+                                                                                    </View>
+                                                                                </View>
+
+                                                                                {/* CF Box */}
+                                                                                <View style={styles.recoCompBoxCf}>
+                                                                                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                                                                                        <Text style={styles.recoCompTitleCf}>2. Collaborative (CF)</Text>
+                                                                                        <Text style={styles.recoCompWeightText}>{Math.round((1 - alpha) * 100)}% Weight</Text>
+                                                                                    </View>
+
+                                                                                    {/* Raw Metric Formula Display */}
+                                                                                    <View style={styles.recoRawFormulaRow}>
+                                                                                        <Text style={styles.recoRawFormulaLabel}>Raw Metric Formula ({cfCode}):</Text>
+                                                                                        <Text style={styles.recoRawFormulaCode}>
+                                                                                            dist = (1 / |Peers|) * sum( dist(User_A, Peer_B) * dist(Peer_B, Trail_T) )
+                                                                                        </Text>
+                                                                                    </View>
+
+                                                                                    <Text style={styles.recoCompDesc}>
+                                                                                        Evaluates similarity between this user and each peer hiker B who reviewed or completed trails, multiplied by the peer's affinity for Trail T.
+                                                                                    </Text>
+
+                                                                                    {cfValue === 0.0 ? (
+                                                                                        <View style={styles.recoColdStartNotice}>
+                                                                                            <CustomIcon library="Feather" name="info" size={13} color={Colors.PRIMARY} />
+                                                                                            <Text style={styles.recoColdStartText}>
+                                                                                                Cold-Start Active: 0 completed hike records on file for this user. Collaborative distance defaults to 0.0000, and dynamic alpha = 1.0 assigns 100% decision power to CBF feature matching.
+                                                                                            </Text>
+                                                                                        </View>
+                                                                                    ) : (
+                                                                                        <View style={styles.recoColdStartNotice}>
+                                                                                            <CustomIcon library="Feather" name="check-circle" size={13} color={Palette.Green700} />
+                                                                                            <Text style={[styles.recoColdStartText, { color: Palette.Green800 }]}>
+                                                                                                Active Peer Collaborative History: Calculated across active peer hikers who reviewed or hiked trails in common.
+                                                                                            </Text>
+                                                                                        </View>
+                                                                                    )}
+
+                                                                                    <View style={styles.recoCompMathRow}>
+                                                                                        <Text style={styles.recoCompMathLabel}>Raw CF Distance:</Text>
+                                                                                        <Text style={styles.recoCompMathVal}>{cfValue.toFixed(4)}</Text>
+                                                                                    </View>
+                                                                                    <View style={styles.recoCompMathRow}>
+                                                                                        <Text style={styles.recoCompMathLabel}>Weighted Term ((1 - alpha) * Raw_CF):</Text>
+                                                                                        <Text style={[styles.recoCompMathVal, { color: Palette.Amber800, fontWeight: "700" }]}>
+                                                                                            {(1.0 - alpha).toFixed(2)} * {cfValue.toFixed(4)} = {cfWeighted.toFixed(4)}
+                                                                                        </Text>
+                                                                                    </View>
+                                                                                </View>
+                                                                            </View>
+
+                                                                            {/* Synthesis Summary */}
+                                                                            <View style={styles.recoSynthesisBox}>
+                                                                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                                                                                    <Text style={styles.recoSynthesisLabel}>
+                                                                                        Final Blended Recommendation Score (R_tu):
+                                                                                    </Text>
+                                                                                    <Text style={styles.recoSynthesisFormula}>
+                                                                                        {cbfWeighted.toFixed(4)} (CBF) + {cfWeighted.toFixed(4)} (CF) = {trail.score.toFixed(4)}
+                                                                                    </Text>
+                                                                                </View>
+                                                                                <Text style={styles.recoSynthesisDesc}>
+                                                                                    Calculation: ({alpha.toFixed(2)} * {cbfValue.toFixed(4)}) + ({(1.0 - alpha).toFixed(2)} * {cfValue.toFixed(4)}) = {cbfWeighted.toFixed(4)} + {cfWeighted.toFixed(4)} = {trail.score.toFixed(4)}.
+                                                                                    {"\n"}Range is [0.000, 1.000], where 0.000 represents the closest mathematical match to the user's hiking profile.
+                                                                                </Text>
+                                                                            </View>
+                                                                        </View>
+                                                                    )}
+                                                                </View>
+                                                            );
+                                                        })}
+                                                    </View>
+                                                )}
                                             </View>
                                         )}
                                     </View>
-                                )}
-                            </View>
-                        );
-                    })()}
-                </ScrollView>
-            </View>
+                                );
+                            })()}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </View>
-    </Modal>
-</View>
-);
+    );
 }
 
 const styles = StyleSheet.create({

@@ -12,7 +12,8 @@
     "lint:fix": "eslint src/ --ext .js,.jsx,.ts,.tsx --fix",
     "fire": "firebase emulators:start --only functions,auth,firestore,storage --import=./emulator_data --export-on-exit=./emulator_data",
     "test": "jest",
-    "build:web": "expo export -p web"
+    "build:web": "expo export -p web",
+    "build:android": "npx eas-cli build -p android --profile preview"
   },
   "dependencies": {
     "@expo-google-fonts/roboto": "^0.4.2",
