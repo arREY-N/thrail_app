@@ -2,7 +2,7 @@
 Profile Vector Serialization and Feature Extraction Utilities
 
 Transforms UserProfiles and Trail Profile dictionaries into standardized,
-fixed-order 1D float arrays compatible with the TARS distance engines.
+fixed-order 1D float arrays compatible with the THARESYS distance engines.
 """
 
 from typing import Dict, Any, List, Tuple, Optional, Union
