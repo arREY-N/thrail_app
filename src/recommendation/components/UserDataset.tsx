@@ -1773,7 +1773,7 @@ export default function UserDataset({
                                                                             <View style={styles.recoBreakdownTop}>
                                                                                 <CustomIcon library="Feather" name="activity" size={14} color={Colors.PRIMARY} />
                                                                                 <Text style={styles.recoBreakdownHeading}>
-                                                                                    ThAReSys Hybrid Scoring Formula & Transparency Breakdown
+                                                                                    THARESYS Hybrid Scoring Formula & Transparency Breakdown
                                                                                 </Text>
                                                                             </View>
                                                                             <Text style={styles.recoFormulaCode}>

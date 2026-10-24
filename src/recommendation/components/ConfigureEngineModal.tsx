@@ -341,7 +341,7 @@ export default function ConfigureEngineModal({
                 onSuccess(result);
             }
         } catch (err: any) {
-            setError(err.message || "Failed to execute TARS batch recommendation.");
+            setError(err.message || "Failed to execute THARESYS batch recommendation.");
         } finally {
             setIsRunning(false);
         }
@@ -363,7 +363,7 @@ export default function ConfigureEngineModal({
                         <View style={{ flex: 1 }}>
                             <View style={styles.titleRow}>
                                 <CustomIcon library="Feather" name="cpu" size={20} color={Colors.PRIMARY} />
-                                <Text style={styles.title}>TARS Recommendation Engine</Text>
+                                <Text style={styles.title}>THARESYS Recommendation Engine</Text>
                             </View>
                             <Text style={styles.subtitle}>
                                 Configure formulas and run monthly batch recommendations
