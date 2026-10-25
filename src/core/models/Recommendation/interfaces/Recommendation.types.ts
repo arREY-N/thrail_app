@@ -59,3 +59,36 @@ export type RecommendationStatus = 'recommended' | 'hiked' | 'liked' | 'disliked
 export interface IRecommendedTrail extends IRecommendedTrailItem {
     status?: RecommendationStatus;
 }
+
+/**
+ * Data contracts for Adaptive Profile Updating (Presentation & API)
+ */
+export interface IHikeUpdateInput {
+    trailId: string;
+    trailFeatures?: number[] | Record<string, any>; // 32-dimensional normalized float vector [0, 1]
+    score: number;                                  // R_tu in [0, 1]
+    isMatch: boolean;                               // true = match, false = mismatch
+    targetAnchor: RecommendationCategory;           // looked up from user's recommendation record
+    featureWeights?: Record<string, number> | number[]; // Distinct factors selected by hiker for this hike
+}
+
+export interface IProfileUpdateBatchRequest {
+    userId: string;
+    currentEasyProfile?: number[] | Record<string, any>;
+    currentDifficultProfile?: number[] | Record<string, any>;
+    hikes: IHikeUpdateInput[];
+    featureWeights?: Record<string, number>;
+    commitToFirestore?: boolean;
+}
+
+export interface IProfileUpdateBatchResult {
+    status: 'success' | 'error';
+    userId: string;
+    easyHikesCount: number;
+    difficultHikesCount: number;
+    profile: IRecommendationProfiles;
+    easyVector: number[];
+    difficultVector: number[];
+    committedToFirestore: boolean;
+    updatedAt: string;
+}
