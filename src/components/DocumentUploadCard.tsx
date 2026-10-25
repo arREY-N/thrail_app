@@ -11,6 +11,7 @@ import {
     ActivityIndicator,
     LayoutAnimation,
     Platform,
+    ScrollView,
     StyleProp,
     StyleSheet,
     TouchableOpacity,
@@ -21,6 +22,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
@@ -87,8 +89,12 @@ interface DocumentUploadCardProps {
     rejectionReason?: string;
     /** Callback fired when an upload is successfully completed with the new file URL */
     onUploadSuccess?: (url: string) => void;
+    /** Callback fired when multiple documents are uploaded together */
+    onBatchUploadSuccess?: (urls: string[]) => void;
     /** Whether multiple documents can be selected and appended */
     allowMultiple?: boolean;
+    /** Maximum number of photos/documents allowed when allowMultiple is true (defaults to 5) */
+    maxFiles?: number;
     /** Callback fired when a document is removed from preview */
     onDelete?: (index: number) => void;
     /** If true, upload and change buttons are hidden, rendering in read-only inspection mode */
@@ -113,7 +119,7 @@ interface DocumentUploadCardProps {
  * DocumentUploadCard Component
  * 
  * Handles document picking, upload state progression, status badges, full-text rejection banners,
- * and thumbnail preview modal across both booking workflows and administrative review dashboards.
+ * and thumbnail preview modal across booking workflows, review creation, and administrative dashboards.
  */
 const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({ 
     docName, 
@@ -123,8 +129,10 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     isRejected = false, 
     rejectionReason,
     onUploadSuccess,
+    onBatchUploadSuccess,
     onUploadPress,
     allowMultiple = false,
+    maxFiles = 5,
     onDelete,
     readOnly = false,
     variant = 'card',
@@ -139,6 +147,7 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     const [isError, setIsError] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+    const [previewIndex, setPreviewIndex] = useState(0);
     
     const { pickDocument } = useFileUpload();
 
@@ -147,10 +156,19 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         : (typeof isUploaded === 'string' && isUploaded.trim().length > 0 ? [isUploaded] : []);
         
     const isComplete = (imagesList.length > 0 || isUploaded === true) && !isRejected;
+    const maxAllowed = allowMultiple ? maxFiles : 1;
+    const remainingSlots = Math.max(0, maxAllowed - imagesList.length);
+    const isLimitReached = imagesList.length >= maxAllowed;
 
     const handleUploadPress = async () => {
         if (onUploadPress) {
             await onUploadPress();
+            return;
+        }
+
+        if (allowMultiple && isLimitReached) {
+            setIsError(true);
+            setErrorMessage(`Maximum limit of ${maxAllowed} photos reached.`);
             return;
         }
 
@@ -164,20 +182,29 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
                     : 'validId'
             );
 
-            let url: string | null = null;
+            const uploadedUrls: string[] = [];
 
-            if (Platform.OS !== 'web') {
-                // Mobile: Request media library permission for photo gallery
-                const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (status !== 'granted') {
-                    throw new Error('Permission to access photo gallery is required.');
+            if (Platform.OS === 'web' && !allowMultiple) {
+                // Web: browser file picker with client validation fallback for single document
+                const url = await pickDocument(safeDocKey);
+                if (url) {
+                    uploadedUrls.push(url);
+                }
+            } else {
+                // Mobile and Web gallery image picker
+                if (Platform.OS !== 'web') {
+                    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                    if (status !== 'granted') {
+                        throw new Error('Permission to access photo gallery is required.');
+                    }
                 }
 
-                // Launch native photo gallery
                 const result = await ImagePicker.launchImageLibraryAsync({
                     mediaTypes: ['images'],
                     allowsEditing: false,
                     quality: 0.85,
+                    allowsMultipleSelection: allowMultiple,
+                    selectionLimit: allowMultiple ? remainingSlots : 1,
                 });
 
                 if (result.canceled || !result.assets || result.assets.length === 0) {
@@ -185,54 +212,67 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
                     return;
                 }
 
-                const asset = result.assets[0];
+                const targetAssets = allowMultiple 
+                    ? result.assets.slice(0, remainingSlots) 
+                    : [result.assets[0]];
 
-                // Client-side format safeguard: extension and mime check
-                const extension = (asset.fileName || asset.uri).split('.').pop()?.toLowerCase();
-                const isImageMime = !asset.mimeType || asset.mimeType.startsWith('image/');
-                const isAllowedExt = extension ? ALLOWED_IMAGE_EXTENSIONS.includes(extension) : false;
+                // Client-side batch validation: MIME and 5MB size limits
+                for (const asset of targetAssets) {
+                    const extension = (asset.fileName || asset.uri).split('.').pop()?.toLowerCase();
+                    const isImageMime = !asset.mimeType || asset.mimeType.startsWith('image/');
+                    const isAllowedExt = extension ? ALLOWED_IMAGE_EXTENSIONS.includes(extension) : false;
 
-                if (!isImageMime || !isAllowedExt) {
-                    throw new Error('Only image files (JPG, PNG, WEBP, HEIC) are accepted.');
-                }
+                    if (!isImageMime || !isAllowedExt) {
+                        throw new Error('Only image files (JPG, PNG, WEBP, HEIC) are accepted.');
+                    }
 
-                // Client-side file size safeguard
-                if (asset.fileSize && asset.fileSize > MAX_DOCUMENT_SIZE_BYTES) {
-                    throw new Error('File size exceeds the 5MB limit.');
-                }
-
-                const selectedFile: SelectedFile = {
-                    uri: asset.uri,
-                    name: asset.fileName || `${safeDocKey}_${Date.now()}.${extension || 'jpg'}`,
-                    mimeType: asset.mimeType || 'image/jpeg',
-                    size: asset.fileSize,
-                };
-
-                try {
-                    url = await FileRepository.uploadDocuments(selectedFile);
-                } catch (uploadErr) {
-                    const errMsg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
-                    if (errMsg.includes('quota-exceeded')) {
-                        url = 'https://drive.google.com/file/d/1CfQd7ed1e3N0eQGREP4F_Y7iTV6zL7V0/view?usp=sharing';
-                    } else {
-                        throw uploadErr;
+                    if (asset.fileSize && asset.fileSize > MAX_DOCUMENT_SIZE_BYTES) {
+                        throw new Error(`File size of "${asset.fileName || 'selected image'}" exceeds the 5MB limit.`);
                     }
                 }
-            } else {
-                // Web: browser file picker with client validation fallback
-                url = await pickDocument(safeDocKey);
+
+                // Batch upload to Firebase Storage
+                for (const asset of targetAssets) {
+                    const extension = (asset.fileName || asset.uri).split('.').pop()?.toLowerCase();
+                    const selectedFile: SelectedFile = {
+                        uri: asset.uri,
+                        name: asset.fileName || `${safeDocKey}_${Date.now()}.${extension || 'jpg'}`,
+                        mimeType: asset.mimeType || 'image/jpeg',
+                        size: asset.fileSize,
+                    };
+
+                    try {
+                        const fileUrl = await FileRepository.uploadDocuments(selectedFile);
+                        if (fileUrl) {
+                            uploadedUrls.push(fileUrl);
+                        }
+                    } catch (uploadErr) {
+                        const errMsg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
+                        if (errMsg.includes('quota-exceeded')) {
+                            uploadedUrls.push('https://drive.google.com/file/d/1CfQd7ed1e3N0eQGREP4F_Y7iTV6zL7V0/view?usp=sharing');
+                        } else {
+                            throw uploadErr;
+                        }
+                    }
+                }
             }
 
-            if (url && onUploadSuccess) {
+            if (uploadedUrls.length > 0) {
                 LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                onUploadSuccess(url); 
+                if (onBatchUploadSuccess) {
+                    onBatchUploadSuccess(uploadedUrls);
+                }
+                if (onUploadSuccess) {
+                    for (const url of uploadedUrls) {
+                        onUploadSuccess(url);
+                    }
+                }
             }
         } catch (error: unknown) {
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             const msg = error instanceof Error ? error.message : 'An error occurred during upload.';
             const isCanceled = msg.toLowerCase().includes('cancel');
             if (isCanceled) {
-                // User intentionally cancelled picker. Gracefully reset to idle.
                 setIsError(false);
                 setErrorMessage('');
             } else {
@@ -250,6 +290,7 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
     const handleViewPress = () => {
         if (imagesList.length > 0) {
+            setPreviewIndex(0);
             setIsPreviewVisible(true);
         }
     };
@@ -292,9 +333,12 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     const viewBtnStyle = isErrorOrRejected ? styles.viewBtnNeutral : styles.viewBtn;
     const viewBtnTextStyle = isErrorOrRejected ? styles.viewBtnTextNeutral : styles.viewBtnText;
 
-    const displayDocName = allowMultiple && imagesList.length > 0 
-        ? `${imagesList.length} ${imagesList.length === 1 ? 'image' : 'images'} added`
-        : docName;
+    const displayDocName = docName;
+    const displaySubtitle = subtitle ?? (
+        allowMultiple 
+            ? `${imagesList.length}/${maxAllowed} photos added • Max 5MB each` 
+            : undefined
+    );
     const isRow = variant === 'row';
     const hasUploadError = Boolean(errorMessage);
     const hasRejectionReason = !hasUploadError && isRejected && Boolean(rejectionReason);
@@ -307,52 +351,126 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
             <View style={[
                 isRow ? styles.uploadRow : styles.uploadCard, 
                 (isError || isRejected) && (isRow ? styles.uploadRowError : styles.uploadCardError),
+                allowMultiple && styles.multiUploadCard,
                 contentStyle,
             ]}>
-                <View style={styles.uploadInfo}>
-                    <View style={[styles.iconWrapper, wrapperStyle]}>
-                        <CustomIcon library="Feather" name={iconName} size={18} color={iconColor} />
-                    </View>
-                    <View style={styles.textContainer}>
-                        <CustomText variant="label" style={styles.docName} numberOfLines={2}>
-                            {displayDocName}
-                        </CustomText>
-                        {subtitle ? (
-                            <CustomText variant="caption" style={styles.docSubtitle} numberOfLines={1}>
-                                {subtitle}
-                            </CustomText>
-                        ) : null}
-                    </View>
-                </View>
-                
-                <View style={styles.actionContainer}>
-                    {imagesList.length > 0 && (
-                        <TouchableOpacity style={viewBtnStyle} onPress={handleViewPress} activeOpacity={0.7}>
-                            <CustomText variant="caption" style={viewBtnTextStyle}>
-                                View
-                            </CustomText>
-                        </TouchableOpacity>
-                    )}
-
-                    {!readOnly && (
-                        <View ref={uploadButtonRef} collapsable={false}>
-                            <TouchableOpacity 
-                                style={btnStyle}
-                                onPress={handleUploadPress} 
-                                activeOpacity={0.7}
-                                disabled={isUploading}
-                            >
-                                {isUploading ? (
-                                    <ActivityIndicator size="small" color={spinnerColor} />
-                                ) : (
-                                    <CustomText variant="caption" style={btnTextStyle}>
-                                        {btnText}
-                                    </CustomText>
-                                )}
-                            </TouchableOpacity>
+                <View style={styles.cardHeaderRow}>
+                    <View style={styles.uploadInfo}>
+                        <View style={[styles.iconWrapper, wrapperStyle]}>
+                            <CustomIcon library="Feather" name={iconName} size={18} color={iconColor} />
                         </View>
-                    )}
+                        <View style={styles.textContainer}>
+                            <CustomText variant="label" style={styles.docName} numberOfLines={2}>
+                                {displayDocName}
+                            </CustomText>
+                            {displaySubtitle ? (
+                                <CustomText variant="caption" style={styles.docSubtitle} numberOfLines={1}>
+                                    {displaySubtitle}
+                                </CustomText>
+                            ) : null}
+                        </View>
+                    </View>
+                    
+                    <View style={styles.actionContainer}>
+                        {imagesList.length > 0 && (
+                            <TouchableOpacity style={viewBtnStyle} onPress={handleViewPress} activeOpacity={0.7}>
+                                <CustomText variant="caption" style={viewBtnTextStyle}>
+                                    {allowMultiple && imagesList.length > 1 ? `View (${imagesList.length})` : 'View'}
+                                </CustomText>
+                            </TouchableOpacity>
+                        )}
+
+                        {!readOnly && (!allowMultiple || !isLimitReached) && (
+                            <View ref={uploadButtonRef} collapsable={false}>
+                                <TouchableOpacity 
+                                    style={btnStyle}
+                                    onPress={handleUploadPress} 
+                                    activeOpacity={0.7}
+                                    disabled={isUploading}
+                                >
+                                    {isUploading ? (
+                                        <ActivityIndicator size="small" color={spinnerColor} />
+                                    ) : (
+                                        <CustomText variant="caption" style={btnTextStyle}>
+                                            {allowMultiple && imagesList.length > 0 ? "+ Add" : btnText}
+                                        </CustomText>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {!readOnly && allowMultiple && isLimitReached && (
+                            <View style={styles.maxLimitBadge}>
+                                <CustomText variant="caption" style={styles.maxLimitBadgeText}>
+                                    {`${maxAllowed}/${maxAllowed} Max`}
+                                </CustomText>
+                            </View>
+                        )}
+                    </View>
                 </View>
+
+                {/* Multi-Photo Thumbnail Gallery Grid */}
+                {allowMultiple && (
+                    <View style={styles.galleryWrapper}>
+                        <ScrollView
+                            horizontal={true}
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.galleryScrollContent}
+                        >
+                            {imagesList.map((imgUrl, index) => (
+                                <View key={`thumb-${index}-${imgUrl}`} style={styles.thumbnailCard}>
+                                    <TouchableOpacity
+                                        activeOpacity={0.8}
+                                        style={styles.thumbnailTouch}
+                                        onPress={() => {
+                                            setPreviewIndex(index);
+                                            setIsPreviewVisible(true);
+                                        }}
+                                        accessibilityLabel={`View photo ${index + 1}`}
+                                    >
+                                        <CustomImage
+                                            source={{ uri: imgUrl }}
+                                            style={styles.thumbnailImage}
+                                            resizeMode="cover"
+                                        />
+                                    </TouchableOpacity>
+
+                                    {!readOnly && onDelete && (
+                                        <TouchableOpacity
+                                            style={styles.deleteThumbnailBadge}
+                                            onPress={() => onDelete(index)}
+                                            activeOpacity={0.7}
+                                            accessibilityLabel={`Remove photo ${index + 1}`}
+                                        >
+                                            <CustomIcon library="Feather" name="x" size={12} color={Colors.WHITE} />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            ))}
+
+                            {!readOnly && !isLimitReached && (
+                                <TouchableOpacity
+                                    style={styles.addPhotoSlot}
+                                    onPress={handleUploadPress}
+                                    activeOpacity={0.7}
+                                    disabled={isUploading}
+                                    accessibilityLabel="Add another photo"
+                                >
+                                    {isUploading ? (
+                                        <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                                    ) : (
+                                        <>
+                                            <CustomIcon library="Feather" name="plus" size={20} color={Colors.PRIMARY} />
+                                            <CustomText variant="caption" style={styles.addPhotoSlotText}>
+                                                Add
+                                            </CustomText>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                            )}
+                        </ScrollView>
+                    </View>
+                )}
             </View>
 
             {/* In Row Variant: Dedicated un-truncated rejection/error callout banner within the row */}
@@ -390,6 +508,7 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
             <ImagePreviewModal 
                 visible={isPreviewVisible} 
                 images={imagesList} 
+                initialIndex={previewIndex}
                 onClose={() => setIsPreviewVisible(false)} 
                 onDelete={onDelete ? (idx: number) => onDelete(idx) : undefined} 
             />
@@ -409,9 +528,6 @@ const styles = StyleSheet.create({
         borderBottomColor: Colors.GRAY_LIGHT,
     },
     uploadCard: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
         backgroundColor: Colors.WHITE, 
         padding: 16, 
         borderRadius: 16, 
@@ -419,14 +535,20 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_LIGHT, 
         ...GlobalStyles.dropShadow(2, 0.05, Colors.SHADOW, { radius: 4 }),
     },
+    multiUploadCard: {
+        paddingBottom: 16,
+    },
+    cardHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
     uploadCardError: {
         borderColor: Colors.ERROR_BORDER,
         backgroundColor: Colors.ERROR_BG, 
     },
     uploadRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         paddingVertical: 14,
         paddingHorizontal: 16,
         backgroundColor: Colors.WHITE,
@@ -438,7 +560,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row', 
         alignItems: 'center', 
         flex: 1,
-        paddingRight: 12
+        paddingRight: 12,
     },
     textContainer: {
         flex: 1,
@@ -450,7 +572,7 @@ const styles = StyleSheet.create({
         borderRadius: 19, 
         justifyContent: 'center', 
         alignItems: 'center', 
-        marginRight: 12 
+        marginRight: 12,
     },
     iconWrapperPending: { backgroundColor: Colors.BACKGROUND },
     iconWrapperSuccess: { backgroundColor: Colors.STATUS_APPROVED_BG },
@@ -464,6 +586,149 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: Colors.TEXT_SECONDARY,
         marginTop: 2,
+    },
+    actionContainer: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        gap: 8,
+        flexShrink: 0,
+    },
+    uploadBtn: { 
+        paddingVertical: 8, 
+        paddingHorizontal: 16, 
+        borderRadius: 20, 
+        minWidth: 80, 
+        alignItems: 'center', 
+        backgroundColor: Colors.PRIMARY, 
+    },
+    uploadBtnText: { 
+        color: Colors.WHITE, 
+        fontWeight: 'bold', 
+    },
+    uploadedBtn: { 
+        backgroundColor: Colors.WHITE, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_MEDIUM, 
+        paddingVertical: 8, 
+        paddingHorizontal: 16, 
+        borderRadius: 20, 
+        minWidth: 80, 
+        alignItems: 'center', 
+    },
+    uploadedBtnText: { 
+        color: Colors.TEXT_SECONDARY, 
+        fontWeight: 'bold', 
+    },
+    errorBtn: { 
+        backgroundColor: Colors.ERROR, 
+        paddingVertical: 8, 
+        paddingHorizontal: 16, 
+        borderRadius: 20, 
+        minWidth: 80, 
+        alignItems: 'center', 
+    },
+    errorBtnText: { 
+        color: Colors.WHITE, 
+        fontWeight: 'bold', 
+    },
+    viewBtn: { 
+        paddingVertical: 8, 
+        paddingHorizontal: 12, 
+        borderRadius: 20, 
+        backgroundColor: Colors.STATUS_APPROVED_BG, 
+        borderWidth: 1, 
+        borderColor: Colors.SUCCESS, 
+    },
+    viewBtnText: { 
+        color: Colors.SUCCESS, 
+        fontWeight: 'bold', 
+    },
+    viewBtnNeutral: { 
+        paddingVertical: 8, 
+        paddingHorizontal: 12, 
+        borderRadius: 20, 
+        backgroundColor: Colors.WHITE, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_MEDIUM, 
+    },
+    viewBtnTextNeutral: { 
+        color: Colors.TEXT_PRIMARY, 
+        fontWeight: 'bold', 
+    },
+    maxLimitBadge: {
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 16,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    maxLimitBadgeText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: Colors.TEXT_SECONDARY,
+    },
+    galleryWrapper: {
+        marginTop: 14,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_ULTRALIGHT,
+    },
+    galleryScrollContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 4,
+    },
+    thumbnailCard: {
+        position: 'relative',
+        width: 72,
+        height: 72,
+    },
+    thumbnailTouch: {
+        width: 72,
+        height: 72,
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+    },
+    thumbnailImage: {
+        width: '100%',
+        height: '100%',
+    },
+    deleteThumbnailBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: Colors.ERROR,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: Colors.WHITE,
+        zIndex: 5,
+        ...GlobalStyles.dropShadow(2, 0.15, Colors.SHADOW),
+    },
+    addPhotoSlot: {
+        width: 72,
+        height: 72,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderStyle: 'dashed',
+        borderColor: Colors.PRIMARY,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 2,
+    },
+    addPhotoSlotText: {
+        color: Colors.PRIMARY,
+        fontSize: 11,
+        fontWeight: '600',
     },
     rowRejectionBox: {
         flexDirection: 'row',
@@ -490,22 +755,6 @@ const styles = StyleSheet.create({
         flex: 1,
         fontWeight: '500',
     },
-    actionContainer: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        gap: 8,
-        flexShrink: 0
-    },
-    uploadBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, minWidth: 80, alignItems: 'center', backgroundColor: Colors.PRIMARY },
-    uploadBtnText: { color: Colors.WHITE, fontWeight: 'bold' },
-    uploadedBtn: { backgroundColor: Colors.WHITE, borderWidth: 1, borderColor: Colors.GRAY_MEDIUM, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, minWidth: 80, alignItems: 'center' },
-    uploadedBtnText: { color: Colors.TEXT_SECONDARY, fontWeight: 'bold' },
-    errorBtn: { backgroundColor: Colors.ERROR, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, minWidth: 80, alignItems: 'center' },
-    errorBtnText: { color: Colors.WHITE, fontWeight: 'bold' },
-    viewBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: Colors.STATUS_APPROVED_BG, borderWidth: 1, borderColor: Colors.SUCCESS },
-    viewBtnText: { color: Colors.SUCCESS, fontWeight: 'bold' },
-    viewBtnNeutral: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: Colors.WHITE, borderWidth: 1, borderColor: Colors.GRAY_MEDIUM },
-    viewBtnTextNeutral: { color: Colors.TEXT_PRIMARY, fontWeight: 'bold' },
     rejectionReasonBox: { 
         flexDirection: 'row',
         alignItems: 'flex-start',
