@@ -17,6 +17,8 @@ export interface HikerLocation {
 export interface TrailMapProps {
     initialLon?: number | string | (number | string)[];
     initialLat?: number | string | (number | string)[];
+    mountainId?: string;
+    trailFileName?: string;
     showControls?: boolean;
     showRecenter?: boolean;
     bottomInset?: number;
