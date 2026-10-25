@@ -23,9 +23,15 @@ export {
     trailMapAssets,
 } from '@/src/features/Map/utils/trailMapAssets';
 
-// STYLES
+// STYLES & OFFLINE LANDMARK DATA
 export { buildOfflineStyle } from '@/src/features/Map/styles/offlineStyle';
 export { onlineStyle } from '@/src/features/Map/styles/onlineStyle';
+export { OSM_MOUNTAIN_LANDMARKS_GEOJSON } from '@/src/features/Map/styles/osmMountainLandmarksData';
+export type {
+    IOsmLandmarkFeature,
+    IOsmLandmarkFeatureCollection,
+    IOsmLandmarkProperties,
+} from '@/src/features/Map/styles/osmMountainLandmarksData';
 
 // HOOKS
 export { useTrailMapEditor } from '@/src/features/Map/hooks/useTrailMapEditor';
