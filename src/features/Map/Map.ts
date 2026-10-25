@@ -50,6 +50,23 @@ export type { MapZoomControlsProps } from '@/src/features/Map/components/MapZoom
 export { default as TrailMap } from '@/src/features/Map/TrailMap';
 export type { TrailMapProps, TrailMapRef } from '@/src/features/Map/TrailMap';
 
+// OFFLINE & FIREBASE TRAIL ROUTES MANAGER
+export {
+    MOUNTAIN_TRAIL_REGISTRY,
+    deleteOfflineMountain,
+    downloadMountainForOffline,
+    getOrDownloadAllMountainsGeoJson,
+    getOrDownloadTrailGeoJson,
+    isMountainDownloadedOffline,
+    readGeoJsonFromUri,
+    resolveMountainId,
+    resolveMountainIdByCoords,
+} from '@/src/features/Map/services/TrailOfflineManager';
+export type {
+    IMountainTrailManifest,
+    SupportedMountainId,
+} from '@/src/features/Map/services/TrailOfflineManager';
+
 // SCREENS
 export { default as TrailMapEditorScreen } from '@/src/features/SuperAdmin/screens/tabs/TrailMapEditorScreen';
 export type { TrailMapEditorScreenProps } from '@/src/features/SuperAdmin/screens/tabs/TrailMapEditorScreen';
