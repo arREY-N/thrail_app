@@ -8,10 +8,10 @@
 import CustomIcon from "@/src/components/CustomIcon";
 import { Colors, Palette } from "@/src/constants/colors";
 import { useSuperadminDomain, useSuperadminNavigation } from "@/src/core/models/Superadmin/Superadmin";
-import { User } from "@/src/core/models/User/User";
 import SuperadminShell from "@/src/features/SuperAdmin/components/SuperadminShell";
+import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import core from "@/src/recommendation/core";
-import React, { useState } from "react";
+import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import {
     ConfigureEngineModal,
@@ -22,6 +22,7 @@ import {
 type DatasetType = "trails" | "users";
 
 export default function RecommendationDatasetScreen() {
+    const { isMobile } = useBreakpoints();
     const {
         trails,
         trailProfiles,
@@ -71,16 +72,16 @@ export default function RecommendationDatasetScreen() {
             rightActions={
                 <View style={styles.rightActionsRow}>
                     <TouchableOpacity
-                        style={styles.runEngineBtn}
+                        style={[styles.runEngineBtn, isMobile && styles.iconOnlyBtn]}
                         onPress={() => setIsConfigModalOpen(true)}
                         accessibilityLabel="Configure and run THARESYS recommendation engine"
                     >
                         <CustomIcon library="Feather" name="cpu" size={15} color={Colors.WHITE} />
-                        <Text style={styles.runEngineBtnText}>Run Engine</Text>
+                        {!isMobile && <Text style={styles.runEngineBtnText}>Run Engine</Text>}
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={styles.refreshButton}
+                        style={[styles.refreshButton, isMobile && styles.iconOnlyBtn]}
                         onPress={() => refresh()}
                         disabled={isLoading}
                         accessibilityLabel="Refresh recommendation datasets"
@@ -91,9 +92,11 @@ export default function RecommendationDatasetScreen() {
                             size={15}
                             color={isLoading ? Colors.GRAY : Colors.PRIMARY}
                         />
-                        <Text style={[styles.refreshText, isLoading && { color: Colors.GRAY }]}>
-                            {isLoading ? "Fetching..." : "Refresh"}
-                        </Text>
+                        {!isMobile && (
+                            <Text style={[styles.refreshText, isLoading && { color: Colors.GRAY }]}>
+                                {isLoading ? "Fetching..." : "Refresh"}
+                            </Text>
+                        )}
                     </TouchableOpacity>
                 </View>
             }
@@ -256,6 +259,15 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: "700",
         color: Colors.WHITE,
+    },
+    iconOnlyBtn: {
+        width: 36,
+        height: 36,
+        paddingHorizontal: 0,
+        paddingVertical: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        gap: 0,
     },
     switcherContainer: {
         flexDirection: "row",

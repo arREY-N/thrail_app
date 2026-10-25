@@ -2,9 +2,9 @@ import { IHikeBase } from "@/src/core/models/Hike/Hike";
 import { IUserSummary } from "@/src/core/models/User/User";
 import { FieldValue, Timestamp } from "firebase/firestore";
 
-export type DifficultyRating = "Easy" | "Just Right" | "Moderate" | "Hard" | "Extreme" | "undefined";
-export type DifficultyFactors = "d1" | "d2" | "d3";
-export type FavoredFactors = "f1" | "f2" | "f3";
+export type DifficultyRating = "Easy" | "Just Right" | "Moderate" | "Hard" | "Difficult" | "Extreme" | "undefined";
+export type DifficultyFactors = "d1" | "d2" | "d3" | string;
+export type FavoredFactors = "f1" | "f2" | "f3" | string;
 
 export interface ReviewInformation<T, TRating> extends IHikeBase<T> {
     overallRating: number;

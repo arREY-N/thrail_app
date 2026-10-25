@@ -9,15 +9,25 @@ import os
 import time
 import uuid
 import logging
-from typing import Dict, Any, List, Optional
+from datetime import datetime
+from typing import Dict, Any, List, Optional, Union
 from fastapi import FastAPI, HTTPException, Request, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from tars import engine, compute_alpha, GD, ED, CS
 from batch_runner import run_batch_recommendations
-from profile_utils import CANONICAL_FEATURES
-from firebase_client import get_current_month_id, initialize_firebase, save_user_recommendations
+from profile_utils import (
+    CANONICAL_FEATURES,
+    extract_user_anchor_profiles,
+    process_dual_anchor_profile_update
+)
+from firebase_client import (
+    get_current_month_id,
+    initialize_firebase,
+    save_user_recommendations,
+    save_user_profile
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -141,6 +151,115 @@ async def get_user_monthly_recommendations(user_id: str, month_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
+        )
+
+
+class HikeFeedbackInput(BaseModel):
+    trail_id: Optional[str] = None
+    trail_features: Optional[Union[Dict[str, Any], List[float]]] = None
+    score: float = Field(default=0.5, description="Recommendation distance R_tu in [0.0, 1.0]")
+    is_match: bool = Field(default=True, description="True for match, False for mismatch")
+    target_anchor: str = Field(default="easy", description="'easy' or 'difficult'")
+    feature_weights: Optional[Union[Dict[str, float], List[float]]] = Field(
+        default=None,
+        description="Optional hike-specific factor weights selected by user for this hike"
+    )
+
+
+class UpdateUserProfileRequest(BaseModel):
+    user_id: str
+    current_easy_profile: Optional[Union[Dict[str, Any], List[float]]] = None
+    current_diff_profile: Optional[Union[Dict[str, Any], List[float]]] = None
+    hikes: List[HikeFeedbackInput]
+    feature_weights: Optional[Dict[str, float]] = None
+    commit_to_firestore: bool = Field(default=True, description="Save updated profile to /users/{userId}")
+
+
+@app.post("/api/user/update-profile")
+async def update_user_profile(payload: UpdateUserProfileRequest):
+    """
+    Updates a user's dual anchor profiles (easy and difficult) based on completed hike feedback.
+    Partitions hikes by their assigned recommendation category, applies error-driven
+    adaptive updates (beta * (Trail - Profile)), enforces monotonicity, and optionally
+    persists the updated profile back to Firestore.
+    """
+    logger.info(f"Updating profile for user {payload.user_id} with {len(payload.hikes)} hike feedback items")
+
+    easy_input = payload.current_easy_profile
+    diff_input = payload.current_diff_profile
+
+    db = initialize_firebase()
+    if (easy_input is None or diff_input is None) and db:
+        try:
+            user_doc_ref = db.collection("users").document(payload.user_id).get()
+            if user_doc_ref.exists:
+                u_data = user_doc_ref.to_dict() or {}
+                _, _, raw_easy, raw_diff = extract_user_anchor_profiles(u_data)
+                if easy_input is None:
+                    easy_input = raw_easy
+                if diff_input is None:
+                    diff_input = raw_diff
+        except Exception as e:
+            logger.warning(f"Could not load user {payload.user_id} from Firestore for fallback profile: {e}")
+
+    if easy_input is None or diff_input is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current easy and difficult profiles must be provided if user does not exist in Firestore"
+        )
+
+    hike_dicts = [h.dict() for h in payload.hikes]
+    if db:
+        for h in hike_dicts:
+            if not h.get("trail_features") and h.get("trail_id"):
+                try:
+                    tdoc = db.collection("trails").document(str(h["trail_id"])).get()
+                    if tdoc.exists:
+                        tdata = tdoc.to_dict() or {}
+                        prof = tdata.get("profile") or {}
+                        h["trail_features"] = prof.get("features", tdata.get("features", {}))
+                except Exception as e:
+                    logger.warning(f"Could not fetch trail {h['trail_id']} features from Firestore: {e}")
+
+    try:
+        result = process_dual_anchor_profile_update(
+            current_easy_profile=easy_input,
+            current_diff_profile=diff_input,
+            hike_records=hike_dicts,
+            weights_map=payload.feature_weights
+        )
+
+        formatted_profiles = {
+            "easy": {
+                "metadata": {"type": "user", "id": payload.user_id, "profile": "easy"},
+                "features": result["updated_easy_features"]
+            },
+            "difficult": {
+                "metadata": {"type": "user", "id": payload.user_id, "profile": "difficult"},
+                "features": result["updated_diff_features"]
+            }
+        }
+
+        committed = False
+        if payload.commit_to_firestore and db:
+            committed = save_user_profile(payload.user_id, formatted_profiles, db=db)
+
+        return {
+            "status": "success",
+            "user_id": payload.user_id,
+            "easy_hikes_count": result["easy_hikes_count"],
+            "difficult_hikes_count": result["difficult_hikes_count"],
+            "profile": formatted_profiles,
+            "easy_vector": result["updated_easy_vector"],
+            "difficult_vector": result["updated_diff_vector"],
+            "committed_to_firestore": committed,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Failed updating profile for user {payload.user_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Profile update calculation failed: {str(e)}"
         )
 
 
