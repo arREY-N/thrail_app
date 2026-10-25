@@ -236,3 +236,54 @@ export async function runTarsEngine(options?: TarsBatchRequest): Promise<TarsBat
 export const runTharesysEngine = runTarsEngine;
 export type TharesysBatchRequest = TarsBatchRequest;
 export type TharesysBatchResponse = TarsBatchResponse;
+
+/**
+ * Triggers adaptive profile update on the server engine from completed hike feedback.
+ */
+export async function updateUserProfileFromHikes(
+    payload: {
+        userId: string;
+        currentEasyProfile?: any;
+        currentDifficultProfile?: any;
+        hikes: Array<{
+            trailId: string;
+            trailFeatures?: any;
+            score: number;
+            isMatch: boolean;
+            targetAnchor: 'easy' | 'difficult';
+            featureWeights?: Record<string, number> | number[];
+        }>;
+        featureWeights?: Record<string, number>;
+        commitToFirestore?: boolean;
+    }
+): Promise<any> {
+    const baseUrl = getTarsApiBaseUrl();
+    const formattedPayload = {
+        user_id: payload.userId,
+        current_easy_profile: payload.currentEasyProfile,
+        current_diff_profile: payload.currentDifficultProfile,
+        hikes: payload.hikes.map((h) => ({
+            trail_id: h.trailId,
+            trail_features: h.trailFeatures,
+            score: h.score,
+            is_match: h.isMatch,
+            target_anchor: h.targetAnchor,
+            feature_weights: h.featureWeights,
+        })),
+        feature_weights: payload.featureWeights,
+        commit_to_firestore: payload.commitToFirestore !== false,
+    };
+
+    const res = await fetch(`${baseUrl}/api/user/update-profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formattedPayload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.detail || `Server error (${res.status}) updating profile.`);
+    }
+
+    return data;
+}
