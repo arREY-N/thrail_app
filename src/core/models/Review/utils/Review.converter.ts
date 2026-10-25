@@ -9,6 +9,7 @@ export function toNumerical(rating: DifficultyRating | string): number {
         case "Moderate":
             return 3;
         case "Hard":
+        case "Difficult":
             return 4;
         case "Extreme":
             return 5;
@@ -26,7 +27,7 @@ export function toTextual(rating: number): DifficultyRating {
         case 3:
             return "Moderate";
         case 4:
-            return "Hard";
+            return "Difficult";
         case 5:
             return "Extreme";
         default:
