@@ -15,6 +15,7 @@ import { Recommendation, RecommendationRepo } from "@/src/core/models/Recommenda
 import { useSuperadminDomain, useSuperadminNavigation } from "@/src/core/models/Superadmin/Superadmin";
 import getRecoID from "@/src/core/utility/recommendation";
 import SuperadminShell from "@/src/features/SuperAdmin/components/SuperadminShell";
+import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { ConfigureEngineModal } from "@/src/recommendation/components";
 import {
     UserHikingRecordsSection,
@@ -45,6 +46,7 @@ import {
 type SectionTab = "profile" | "hikes" | "update" | "recos";
 
 export default function UserRecommendationDetailScreen() {
+    const { isMobile } = useBreakpoints();
     const { userId } = useLocalSearchParams<{ userId: string }>();
     const router = useRouter();
 
@@ -246,16 +248,16 @@ export default function UserRecommendationDetailScreen() {
                         accessibilityLabel="Return to recommendation datasets"
                     >
                         <CustomIcon library="Feather" name="arrow-left" size={14} color={Colors.TEXT_PRIMARY} />
-                        <Text style={styles.backBtnText}>Back to Datasets</Text>
+                        <Text style={styles.backBtnText}>{isMobile ? "Back" : "Back to Datasets"}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={styles.runEngineBtn}
+                        style={[styles.runEngineBtn, isMobile && styles.iconOnlyBtn]}
                         onPress={() => setIsConfigModalOpen(true)}
                         accessibilityLabel="Run THARESYS recommendation engine"
                     >
                         <CustomIcon library="Feather" name="cpu" size={14} color={Colors.WHITE} />
-                        <Text style={styles.runEngineBtnText}>Run Engine</Text>
+                        {!isMobile && <Text style={styles.runEngineBtnText}>Run Engine</Text>}
                     </TouchableOpacity>
                 </View>
             }
@@ -315,8 +317,8 @@ export default function UserRecommendationDetailScreen() {
                                 stagedUpdatedProfile
                                     ? styles.saveUpdatedBtn
                                     : isSaved
-                                    ? styles.savedBtn
-                                    : styles.saveBtn,
+                                        ? styles.savedBtn
+                                        : styles.saveBtn,
                             ]}
                             onPress={() => handleSaveProfile()}
                             disabled={isSavingProfile || isResettingProfile}
@@ -335,8 +337,8 @@ export default function UserRecommendationDetailScreen() {
                                         {stagedUpdatedProfile
                                             ? "Save Updated Profile"
                                             : isSaved
-                                            ? "Update Profile"
-                                            : "Save to DB"}
+                                                ? "Update Profile"
+                                                : "Save to DB"}
                                     </Text>
                                 </>
                             )}
@@ -540,6 +542,15 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: "700",
         color: Colors.WHITE,
+    },
+    iconOnlyBtn: {
+        width: 32,
+        height: 32,
+        paddingHorizontal: 0,
+        paddingVertical: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        gap: 0,
     },
     userHeaderCard: {
         flexDirection: "row",
