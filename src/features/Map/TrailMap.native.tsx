@@ -17,11 +17,15 @@ import LoadingScreen from "@/src/app/loading";
 import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
 import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
 import { resolveOfflineSprites } from "@/src/utils/resolveOfflineSprites";
+import {
+  getOrDownloadAllMountainsGeoJson,
+  getOrDownloadTrailGeoJson,
+  resolveMountainId,
+  resolveMountainIdByCoords,
+} from "./services/TrailOfflineManager";
 import { buildOfflineStyle } from "./styles/offlineStyle";
 import { onlineStyle } from "./styles/onlineStyle";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const rawMapDataAsset = require("../../assets/map_data/trails_3D_final_v2.geojson");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const offlineMapTileAsset = require("../../assets/tiles/thrail-offline-map.pmtiles");
 
@@ -283,6 +287,8 @@ AnimatedHikerMarker.displayName = "AnimatedHikerMarker";
 export interface TrailMapProps {
   initialLon?: number | string | (number | string)[];
   initialLat?: number | string | (number | string)[];
+  mountainId?: string;
+  trailFileName?: string;
   showControls?: boolean;
   showRecenter?: boolean;
   bottomInset?: number;
@@ -305,6 +311,8 @@ export interface TrailMapRef {
 const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   initialLon,
   initialLat,
+  mountainId,
+  trailFileName,
   showControls = true,
   showRecenter = false,
   bottomInset = 280,
@@ -406,9 +414,31 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     let timer: NodeJS.Timeout | null = null;
 
     async function resolveGeoJson() {
-      const [geoAsset] = await Asset.loadAsync(rawMapDataAsset);
-      const uri = geoAsset.localUri || geoAsset.uri;
-      if (uri && isMounted) setGeoJsonUrl(uri);
+      try {
+        const targetMountain =
+          resolveMountainId(mountainId) ||
+          (hasInitialCoords
+            ? resolveMountainIdByCoords(parsedLat, parsedLon)
+            : null);
+
+        if (targetMountain) {
+          const localUri = await getOrDownloadTrailGeoJson(
+            targetMountain,
+            trailFileName,
+          );
+          if (localUri && isMounted) {
+            setGeoJsonUrl(localUri);
+            return;
+          }
+        }
+
+        const combinedUri = await getOrDownloadAllMountainsGeoJson();
+        if (combinedUri && isMounted) {
+          setGeoJsonUrl(combinedUri);
+        }
+      } catch (err) {
+        console.warn("⚠️ Failed to resolve trail GeoJSON from offline cache or Firebase trail_routes/:", err);
+      }
     }
 
     async function resolveOfflineMap() {
@@ -515,7 +545,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
       isMounted = false;
       if (timer) clearTimeout(timer);
     };
-  }, [reloadKey]);
+  }, [reloadKey, mountainId, trailFileName, hasInitialCoords, parsedLat, parsedLon]);
 
   useEffect(() => {
     if (!mapReady || !hasInitialCoords) return;
@@ -606,7 +636,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     );
   }
 
-  if (loadState === "loading" || !geoJsonUrl || (actuallyOffline && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
+  if (loadState === "loading" || (actuallyOffline && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
     return <LoadingScreen />;
   }
 
