@@ -28,6 +28,8 @@ interface ImagePreviewModalProps {
     imageUrl?: string;
     /** Array of image URLs or sources to preview (supports carousel navigation) */
     images?: (string | { uri: string } | ImageSourcePropType)[];
+    /** Optional initial image index to display when opening the modal (defaults to 0) */
+    initialIndex?: number;
     /** Callback fired when the modal is closed */
     onClose: () => void;
     /** Callback fired when the delete button is pressed */
@@ -42,11 +44,12 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     visible, 
     imageUrl, 
     images, 
+    initialIndex = 0,
     onClose, 
     onDelete 
 }) => {
     const insets = useSafeAreaInsets();
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [isImageLoading, setIsImageLoading] = useState(true);
 
     const imageList = images && images.length > 0 ? images : (imageUrl ? [imageUrl] : []);
@@ -55,7 +58,12 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     if (visible !== prevVisible) {
         setPrevVisible(visible);
         if (visible) {
-            setCurrentIndex(0);
+            const safeIndex = (
+                typeof initialIndex === 'number' && initialIndex >= 0 && initialIndex < imageList.length
+                    ? initialIndex
+                    : 0
+            );
+            setCurrentIndex(safeIndex);
             setIsImageLoading(true);
         }
     }

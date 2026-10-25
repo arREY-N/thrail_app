@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ScrollView,
@@ -40,6 +41,7 @@ const DIFFICULTY_CARDS = [
 ];
 
 export interface DraftReview {
+    id?: string;
     overallRating: number;
     perceivedDifficulty?: string;
     trailMaintenance?: string;
@@ -56,6 +58,7 @@ export interface WriteReviewScreenProps {
     error: string | null;
     onUpdatePress: (payload: { section: string; id: string; value: unknown }) => void;
     onSaveReview: () => void;
+    onBackPress?: () => void;
 }
 
 const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
@@ -65,6 +68,9 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     onUpdatePress,
     onSaveReview
 }) => {
+    const isEditMode = Boolean(review?.id);
+    const hasInitialMaintenance = Boolean(review?.trailMaintenance && review.trailMaintenance !== 'undefined');
+
     const [stepIndex, setStepIndex] = useState(0);
     const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
@@ -96,11 +102,34 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
         }
     };
 
+    const handleDiscardPress = () => {
+        if (!isDirty) {
+            if (onBackPress) {
+                onBackPress();
+            } else {
+                router.back();
+            }
+            return;
+        }
+        setShowDiscardConfirmation(true);
+    };
+
+    const handleConfirmDiscard = () => {
+        setShowDiscardConfirmation(false);
+        if (onBackPress) {
+            onBackPress();
+        } else {
+            router.back();
+        }
+    };
+
     const updateReview = (field: string, value: unknown) => {
+        setIsDirty(true);
         onUpdatePress({ section: 'root', id: field, value });
     };
 
     const toggleArrayItem = (field: keyof DraftReview, item: string) => {
+        setIsDirty(true);
         const currentArray = (review[field] as string[]) || [];
         const newArray = currentArray.includes(item)
             ? currentArray.filter(i => i !== item)
@@ -211,7 +240,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                                             : factor.difficultLabel;
 
                                         const isSelected = (review.difficultyFactors || []).includes(displayLabel) ||
-                                                           (review.difficultyFactors || []).includes(factor.legacyLabel);
+                                            (review.difficultyFactors || []).includes(factor.legacyLabel);
 
                                         return (
                                             <SelectionChip
@@ -243,16 +272,25 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
 
                             <View style={{ marginTop: 24 }}>
                                 <CustomText variant="subtitle" style={[styles.question, { fontSize: 16 }]}>
-                                    Add a Photo (Optional)
+                                    Add Photos (Optional)
                                 </CustomText>
                                 <DocumentUploadCard
                                     docName="Trail Photo"
                                     docKey="reviewImage"
+                                    subtitle="Up to 5 photos • Max 5MB each"
                                     isUploaded={review.image || []}
                                     allowMultiple={true}
+                                    maxFiles={5}
                                     onUploadSuccess={(url) => {
                                         const currentImages = review.image || [];
-                                        updateReview('image', [...currentImages, url]);
+                                        if (currentImages.length < 5) {
+                                            updateReview('image', [...currentImages, url]);
+                                        }
+                                    }}
+                                    onBatchUploadSuccess={(urls) => {
+                                        const currentImages = review.image || [];
+                                        const combined = [...currentImages, ...urls].slice(0, 5);
+                                        updateReview('image', combined);
                                     }}
                                     onDelete={(indexToRemove) => {
                                         const currentImages = review.image || [];
@@ -279,6 +317,19 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                 onClose={() => setShowSaveConfirmation(false)}
                 confirmText={isLoading ? "Submitting..." : "Submit"}
                 cancelText="Edit"
+                isLoading={isLoading}
+            />
+
+            <ConfirmationModal
+                visible={showDiscardConfirmation}
+                title="Discard Changes?"
+                message="You have unsaved changes. Are you sure you want to discard your edits?"
+                iconName="alert-triangle"
+                isDestructive={true}
+                onConfirm={handleConfirmDiscard}
+                onClose={() => setShowDiscardConfirmation(false)}
+                confirmText="Discard"
+                cancelText="Keep Editing"
             />
 
             <CustomHeader
@@ -321,6 +372,10 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                                 color={Colors.TEXT_SECONDARY}
                             />
                             <CustomText style={styles.prevText}>Previous</CustomText>
+                        </TouchableOpacity>
+                    ) : isEditMode ? (
+                        <TouchableOpacity onPress={handleDiscardPress} style={styles.discardButton}>
+                            <CustomText style={styles.discardText}>Discard</CustomText>
                         </TouchableOpacity>
                     ) : (
                         <View style={styles.prevButtonPlaceholder} />

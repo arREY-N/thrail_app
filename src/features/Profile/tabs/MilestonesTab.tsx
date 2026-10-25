@@ -1,8 +1,8 @@
-import React from 'react';
 import { DimensionValue, StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import SkeletonEffect from '@/src/components/SkeletonEffect';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 
@@ -34,6 +34,13 @@ const AchievementBadge = ({ title, icon, earned }: AchievementBadgeProps) => (
         >
             {title}
         </CustomText>
+    </View>
+);
+
+const AchievementBadgeSkeleton = () => (
+    <View style={styles.badgeContainer}>
+        <SkeletonEffect style={styles.badgeShieldSkeleton} />
+        <SkeletonEffect style={styles.badgeTitleSkeleton} />
     </View>
 );
 
@@ -69,6 +76,28 @@ const StatBentoBox = ({ title, value, subLabel, subValue, icon, lib = "Ionicons"
     </View>
 );
 
+interface StatBentoBoxSkeletonProps {
+    boxWidth: DimensionValue;
+}
+
+const StatBentoBoxSkeleton = ({ boxWidth }: StatBentoBoxSkeletonProps) => (
+    <View style={[styles.bentoBox, { width: boxWidth }]}>
+        <View style={styles.bentoHeader}>
+            <SkeletonEffect style={styles.bentoIconSkeleton} />
+            <SkeletonEffect style={styles.bentoTitleSkeleton} />
+        </View>
+        
+        <View style={styles.bentoMiddle}>
+            <SkeletonEffect style={styles.bentoValueSkeleton} />
+        </View>
+
+        <View style={styles.bentoBottom}>
+            <SkeletonEffect style={styles.bentoSubLabelSkeleton} />
+            <SkeletonEffect style={styles.bentoSubValueSkeleton} />
+        </View>
+    </View>
+);
+
 export interface MilestonesTabProps {
     stats?: {
         achievements?: {
@@ -93,14 +122,51 @@ export interface MilestonesTabProps {
             lastHike?: string;
         };
     };
+    /** When true, renders animated skeleton placeholders instead of actual data */
+    isLoading?: boolean;
 }
 
-const MilestonesTab = ({ stats }: MilestonesTabProps) => {
+/**
+ * MilestonesTabSkeleton — Shimmering skeleton placeholders mirroring the
+ * exact layout of the Achievements card and Bento stat boxes.
+ */
+export const MilestonesTabSkeleton = () => {
+    const { isMobile } = useBreakpoints();
+    const bentoBoxWidth = isMobile ? '47.5%' : '23.5%';
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.fullWidthCard}>
+                <View style={styles.cardHeader}>
+                    <SkeletonEffect style={styles.cardHeaderIconSkeleton} />
+                    <SkeletonEffect style={styles.cardHeaderTitleSkeleton} />
+                </View>
+                
+                <View style={styles.badgesRow}>
+                    <AchievementBadgeSkeleton />
+                    <AchievementBadgeSkeleton />
+                    <AchievementBadgeSkeleton />
+                </View>
+            </View>
+
+            <View style={styles.bentoGrid}>
+                <StatBentoBoxSkeleton boxWidth={bentoBoxWidth} />
+                <StatBentoBoxSkeleton boxWidth={bentoBoxWidth} />
+                <StatBentoBoxSkeleton boxWidth={bentoBoxWidth} />
+                <StatBentoBoxSkeleton boxWidth={bentoBoxWidth} />
+            </View>
+        </View>
+    );
+};
+
+const MilestonesTab = ({ stats, isLoading }: MilestonesTabProps) => {
     const { isMobile } = useBreakpoints();
     
     const bentoBoxWidth = isMobile ? '47.5%' : '23.5%';
 
-    if (!stats) return null;
+    if (isLoading || !stats) {
+        return <MilestonesTabSkeleton />;
+    }
 
     return (
         <View style={styles.container}>
@@ -277,6 +343,54 @@ const styles = StyleSheet.create({
     bentoSubValue: {
         color: Colors.TEXT_PRIMARY,
         fontWeight: '600',
+    },
+
+    /* Skeleton Loading Styles */
+    cardHeaderIconSkeleton: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+    },
+    cardHeaderTitleSkeleton: {
+        width: 110,
+        height: 16,
+        borderRadius: 4,
+    },
+    badgeShieldSkeleton: {
+        width: 72,
+        height: 72,
+        borderRadius: 22,
+    },
+    badgeTitleSkeleton: {
+        width: 60,
+        height: 12,
+        borderRadius: 4,
+    },
+    bentoIconSkeleton: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+    },
+    bentoTitleSkeleton: {
+        width: '60%',
+        height: 14,
+        borderRadius: 4,
+    },
+    bentoValueSkeleton: {
+        width: '75%',
+        height: 32,
+        borderRadius: 6,
+    },
+    bentoSubLabelSkeleton: {
+        width: '35%',
+        height: 12,
+        borderRadius: 4,
+        marginBottom: 4,
+    },
+    bentoSubValueSkeleton: {
+        width: '60%',
+        height: 14,
+        borderRadius: 4,
     },
 });
 

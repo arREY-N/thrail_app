@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { newLocation } from "@/src/core/models/Location/Location";
+import { sharedGpsKalmanFilter, smoothCompassHeading } from "@/src/core/utility/gpsKalmanFilter";
 import { exportHikeData } from "@/src/core/utility/hikeStorage";
 import { LOCATION_TASK } from "@/src/core/utility/locationTask";
 
@@ -23,16 +24,20 @@ let globalIsBackgroundTrackingRunning = false;
 let globalIsBackgroundStarting = false;
 const onlineListeners = new Set<(online: boolean) => void>();
 
-// Singleton foreground GPS state & listeners to prevent duplicate watchPositionAsync instances
+// Singleton foreground GPS & Compass Heading state & listeners
 let globalLocationSub: Location.LocationSubscription | null = null;
+let globalHeadingSub: Location.LocationSubscription | null = null;
 let globalIsInitializingForeground = false;
 let globalUserLocation: [number, number] | null = null;
+let globalUserHeading: number | null = null;
+let globalLastHeadingEmitMs = 0;
 let globalPermissionGranted = false;
 let globalGpsTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
 let globalIsGpsLost = false;
 const GPS_TIMEOUT_MS = 180000;
 
 const userLocationListeners = new Set<(loc: [number, number] | null) => void>();
+const userHeadingListeners = new Set<(heading: number | null) => void>();
 const permissionListeners = new Set<(granted: boolean) => void>();
 
 /**
@@ -64,19 +69,21 @@ export const TrackHikerGPSFlow = () => {
     const [permissionGranted, setPermissionGranted] = useState(globalPermissionGranted);
     const [isOnline, setIsOnline] = useState(true);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(globalUserLocation);
+    const [userHeading, setUserHeading] = useState<number | null>(globalUserHeading);
 
     const setGpsError = (msg: string | null) => updateHikeStore({ gpsError: msg });
 
     /**
      * MODE 1: FOREGROUND PRE-WARMING (SINGLETON)
-     * Gets GPS lock and updates the blue dot on the map.
-     * Shares single watchPositionAsync across all callers.
+     * Gets GPS lock and updates the blue dot and compass heading on the map.
+     * Shares single watchPositionAsync and watchHeadingAsync across all callers.
      */
     const initForegroundGps = async () => {
         if (Platform.OS === "web") return;
         if (globalLocationSub) {
             setPermissionGranted(true);
             if (globalUserLocation) setUserLocation(globalUserLocation);
+            if (globalUserHeading !== null) setUserHeading(globalUserHeading);
             return;
         }
         if (globalIsInitializingForeground) return;
@@ -128,22 +135,60 @@ export const TrackHikerGPSFlow = () => {
             globalPermissionGranted = true;
             permissionListeners.forEach((fn) => fn(true));
 
+            // Start singleton compass/magnetometer heading watcher for directional user indicator
+            if (!globalHeadingSub) {
+                try {
+                    globalHeadingSub = await Location.watchHeadingAsync((headingData) => {
+                        const rawHeading =
+                            headingData.trueHeading >= 0
+                                ? headingData.trueHeading
+                                : headingData.magHeading;
+                        if (typeof rawHeading !== "number" || isNaN(rawHeading) || rawHeading < 0) {
+                            return;
+                        }
+
+                        const smoothed = smoothCompassHeading(globalUserHeading, rawHeading, 0.28, 1.5);
+                        const nowMs = Date.now();
+                        const angularDiff =
+                            globalUserHeading === null
+                                ? 999
+                                : Math.abs(((smoothed - globalUserHeading + 540) % 360) - 180);
+
+                        if (globalUserHeading === null || (angularDiff >= 1.5 && nowMs - globalLastHeadingEmitMs >= 80)) {
+                            globalUserHeading = smoothed;
+                            globalLastHeadingEmitMs = nowMs;
+                            userHeadingListeners.forEach((fn) => fn(smoothed));
+                        }
+                    });
+                } catch (headingErr) {
+                    console.warn("Compass heading subscription warning:", headingErr);
+                }
+            }
+
             globalLocationSub = await Location.watchPositionAsync(
                 {
-                    accuracy: Location.Accuracy.High,
+                    accuracy: Location.Accuracy.BestForNavigation,
                     distanceInterval: 0,
-                    timeInterval: 2000,
+                    timeInterval: 1500,
                 },
                 (location) => {
-                    const accuracy = location.coords.accuracy;
+                    // Process raw GNSS fix through the 2D Accuracy-Weighted Kalman Filter + Doppler ZUPT Stationary Lock
+                    const filtered = sharedGpsKalmanFilter.process({
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                        altitude: location.coords.altitude,
+                        accuracy: location.coords.accuracy,
+                        speed: location.coords.speed,
+                        heading: location.coords.heading,
+                        timestamp: location.timestamp,
+                    });
 
-                    // Quality gate: strictly reject invalid or inaccurate fixes (> 20m)
-                    if (accuracy == null || accuracy <= 0 || accuracy > 20) return;
+                    if (!filtered) return;
 
-                    const lat = location.coords.latitude;
-                    const lon = location.coords.longitude;
-                    const alt = location.coords.altitude;
-                    const timestamp = new Date(location.timestamp).toISOString();
+                    const lat = filtered.latitude;
+                    const lon = filtered.longitude;
+                    const alt = filtered.altitude;
+                    const timestamp = new Date(filtered.timestamp).toISOString();
 
                     if (globalIsGpsLost) {
                         globalIsGpsLost = false;
@@ -159,6 +204,8 @@ export const TrackHikerGPSFlow = () => {
                                 latitude: lat,
                                 longitude: lon,
                                 altitude: alt ?? undefined,
+                                accuracy: filtered.accuracy,
+                                speed: filtered.speed,
                                 timestamp: new Date(timestamp),
                                 status: 'GPS_SIGNAL_RESTORED',
                             }));
@@ -181,20 +228,31 @@ export const TrackHikerGPSFlow = () => {
                                 latitude: lat,
                                 longitude: lon,
                                 altitude: alt ?? undefined,
+                                accuracy: filtered.accuracy,
+                                speed: filtered.speed,
                                 timestamp: new Date(),
                                 status: 'GPS_SIGNAL_LOST',
                             }));
                         }
                     }, GPS_TIMEOUT_MS);
 
-                    // Always update the Blue Dot position across all listeners
-                    globalUserLocation = [lon, lat];
-                    userLocationListeners.forEach((fn) => fn([lon, lat]));
+                    // Only emit Blue Dot coordinate updates when initial lock is acquired or hiker moves outside stationary lock
+                    const hasCoordChanged =
+                        !globalUserLocation ||
+                        Math.abs(globalUserLocation[0] - lon) > 1e-7 ||
+                        Math.abs(globalUserLocation[1] - lat) > 1e-7;
+
+                    if (hasCoordChanged) {
+                        globalUserLocation = [lon, lat];
+                        userLocationListeners.forEach((fn) => fn([lon, lat]));
+                    }
 
                     const latestCoord = newLocation({
                         latitude: lat,
                         longitude: lon,
                         altitude: alt ?? undefined,
+                        accuracy: filtered.accuracy,
+                        speed: filtered.speed,
                         timestamp: new Date(timestamp),
                         status: 'ACTIVE',
                     });
@@ -281,10 +339,12 @@ export const TrackHikerGPSFlow = () => {
 
         const handleOnlineChange = (online: boolean) => setIsOnline(online);
         const handleLocationChange = (loc: [number, number] | null) => setUserLocation(loc);
+        const handleHeadingChange = (heading: number | null) => setUserHeading(heading);
         const handlePermissionChange = (granted: boolean) => setPermissionGranted(granted);
 
         onlineListeners.add(handleOnlineChange);
         userLocationListeners.add(handleLocationChange);
+        userHeadingListeners.add(handleHeadingChange);
         permissionListeners.add(handlePermissionChange);
 
         globalActiveInstances++;
@@ -324,6 +384,7 @@ export const TrackHikerGPSFlow = () => {
         return () => {
             onlineListeners.delete(handleOnlineChange);
             userLocationListeners.delete(handleLocationChange);
+            userHeadingListeners.delete(handleHeadingChange);
             permissionListeners.delete(handlePermissionChange);
             globalActiveInstances = Math.max(0, globalActiveInstances - 1);
 
@@ -339,6 +400,10 @@ export const TrackHikerGPSFlow = () => {
                 if (globalLocationSub) {
                     globalLocationSub.remove();
                     globalLocationSub = null;
+                }
+                if (globalHeadingSub) {
+                    globalHeadingSub.remove();
+                    globalHeadingSub = null;
                 }
                 if (globalGpsTimeoutTimer) {
                     clearTimeout(globalGpsTimeoutTimer);
@@ -358,6 +423,7 @@ export const TrackHikerGPSFlow = () => {
         permissionGranted,
         isOnline,
         userLocation,
+        userHeading,
         routeCoordinates,
         exportHikeData,
         initForegroundGps,

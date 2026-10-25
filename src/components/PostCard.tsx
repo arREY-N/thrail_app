@@ -109,6 +109,7 @@ const PostCard = <T extends IReview = Review>({
 }: PostCardProps<T>): React.JSX.Element | null => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
     const scrollRef = useRef<ScrollView>(null);
 
     const {
@@ -133,7 +134,8 @@ const PostCard = <T extends IReview = Review>({
 
     const fallbackImage = getHeroImageSource(propTrailData ?? storeTrail);
     const imagesList = (review?.image && review.image.length > 0) ? review.image : [fallbackImage];
-    const displayImage = imagesList[0];
+    const safeActiveIndex = (activeImageIndex >= 0 && activeImageIndex < imagesList.length) ? activeImageIndex : 0;
+    const displayImage = imagesList[safeActiveIndex];
 
     const getImgSource = (img: string | ImageSourcePropType): ImageSourcePropType => {
         return typeof img === 'string' ? { uri: img } : img;
@@ -328,11 +330,46 @@ const PostCard = <T extends IReview = Review>({
 
                     {imagesList.length > 1 && (
                         <View style={styles.imageCountBadge}>
-                            <CustomText variant='label' style={styles.imageCountText}>{`+${imagesList.length}`}</CustomText>
+                            <CustomIcon library="Feather" name="image" size={11} color={Colors.TEXT_INVERSE} style={styles.imageCountIcon} />
+                            <CustomText variant='label' style={styles.imageCountText}>
+                                {`${safeActiveIndex + 1}/${imagesList.length}`}
+                            </CustomText>
                         </View>
                     )}
                 </LinearGradient>
             </TouchableOpacity>
+
+            {imagesList.length > 1 && (
+                <View style={styles.thumbnailStripWrapper}>
+                    <ScrollView
+                        horizontal={true}
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.thumbnailStripContent}
+                    >
+                        {imagesList.map((img, idx) => {
+                            const isSelected = idx === safeActiveIndex;
+                            return (
+                                <TouchableOpacity
+                                    key={`postcard-thumb-${idx}`}
+                                    style={[
+                                        styles.thumbnailItem,
+                                        isSelected && styles.thumbnailItemActive,
+                                    ]}
+                                    activeOpacity={0.7}
+                                    onPress={() => setActiveImageIndex(idx)}
+                                    accessibilityLabel={`Select photo ${idx + 1}`}
+                                >
+                                    <CustomImage
+                                        source={getImgSource(img)}
+                                        style={styles.thumbnailItemImage}
+                                        resizeMode="cover"
+                                    />
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+                </View>
+            )}
 
             <View style={styles.statsContainer}>
                 <StatItem
@@ -631,16 +668,48 @@ const styles = StyleSheet.create({
         textShadowRadius: 4,
     },
     imageCountBadge: {
+        flexDirection: 'row',
         backgroundColor: `${Colors.BLACK}A6`,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 5,
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
     },
+    imageCountIcon: {
+        marginRight: 4,
+    },
     imageCountText: {
         color: Colors.TEXT_INVERSE,
-        marginTop: -2,
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    thumbnailStripWrapper: {
+        marginBottom: 14,
+    },
+    thumbnailStripContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    thumbnailItem: {
+        width: 48,
+        height: 48,
+        borderRadius: 10,
+        overflow: 'hidden',
+        borderWidth: 1.5,
+        borderColor: Colors.GRAY_LIGHT,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        opacity: 0.75,
+    },
+    thumbnailItemActive: {
+        borderColor: Colors.PRIMARY,
+        borderWidth: 2,
+        opacity: 1,
+    },
+    thumbnailItemImage: {
+        width: '100%',
+        height: '100%',
     },
     statsContainer: {
         flexDirection: 'row',

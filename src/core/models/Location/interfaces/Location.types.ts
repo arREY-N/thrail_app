@@ -12,6 +12,8 @@ export interface ILocationBase<T> {
     latitude: number;
     longitude: number;
     altitude: number;
+    accuracy?: number;
+    speed?: number;
     status: LocationStatus;
     timestamp: T;
     hikerName?: string;

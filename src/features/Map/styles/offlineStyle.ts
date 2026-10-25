@@ -1,10 +1,14 @@
 /**
  * @file offlineStyle.ts
- * @description Generates a MapLibre Style JSON for offline map rendering using Protomaps PMTiles.
+ * @description Generates a MapLibre Style JSON for offline map rendering using Protomaps PMTiles
+ * enriched with OpenStreetMap (OSM) mountain landmarks and emergency hospital/clinic layers.
  * Faithfully ports the official Protomaps Light basemap style (v4 specification)
- * with complete road casing hierarchies, subtle pastel landcover, depth-rendered tunnels/bridges,
- * and high-fidelity typography optimized for offline mobile devices.
+ * with OSM Carto outdoor terrain contrast (woodland vs. open grassland/meadow, cliffs, bare rock),
+ * dashed hiking trail paths, complete road casing hierarchies, medical/hospital POIs,
+ * and high-fidelity mountain landmark typography optimized for offline mobile devices.
  */
+
+import { OSM_MOUNTAIN_LANDMARKS_GEOJSON } from "./osmMountainLandmarksData";
 
 /**
  * Builds a MapLibre-compatible style object for offline use.
@@ -44,6 +48,15 @@ export const buildOfflineStyle = (
             url: offlineTileUrl,
             maxzoom: 14,
         },
+        /**
+         * Supplemental offline GeoJSON source containing OSM-verified mountain landmarks
+         * (Camps 1–9, Peaks 1–11, summit elevations, jump-offs, kubo stops, springs, waterfalls)
+         * and nearby emergency hospitals/clinics.
+         */
+        osm_landmarks: {
+            type: "geojson" as const,
+            data: OSM_MOUNTAIN_LANDMARKS_GEOJSON,
+        },
     },
 
     layers: [
@@ -76,13 +89,13 @@ export const buildOfflineStyle = (
                 "fill-color": [
                     "match",
                     ["get", "kind"],
-                    "grassland", "rgba(210, 239, 207, 1)",
+                    "grassland", "rgba(205, 235, 176, 1)",
                     "barren", "rgba(255, 243, 215, 1)",
                     "urban_area", "rgba(230, 230, 230, 1)",
                     "farmland", "rgba(216, 239, 210, 1)",
                     "glacier", "rgba(255, 255, 255, 1)",
-                    "scrub", "rgba(234, 239, 210, 1)",
-                    "rgba(196, 231, 210, 1)",
+                    "scrub", "rgba(200, 215, 171, 1)",
+                    "rgba(173, 209, 158, 1)",
                 ],
                 "fill-opacity": [
                     "interpolate",
@@ -94,7 +107,7 @@ export const buildOfflineStyle = (
             },
         },
 
-        // ─── LANDUSE ─────────────────────────────────────────────────────
+        // ─── LANDUSE (OSM TOPOGRAPHIC CONTRAST) ──────────────────────────
         {
             id: "landuse_park",
             type: "fill" as const,
@@ -105,8 +118,9 @@ export const buildOfflineStyle = (
                 "kind",
                 "national_park", "park", "cemetery", "protected_area",
                 "nature_reserve", "forest", "golf_course", "wood", "scrub",
-                "grassland", "grass", "glacier", "sand", "military",
-                "naval_base", "airfield",
+                "grassland", "grass", "meadow", "recreation_ground", "dog_park",
+                "wetland", "bare_rock", "farmland", "glacier", "sand",
+                "military", "naval_base", "airfield",
             ],
             paint: {
                 "fill-opacity": [
@@ -114,24 +128,36 @@ export const buildOfflineStyle = (
                     ["linear"],
                     ["zoom"],
                     6, 0,
-                    11, 1,
+                    10, 0.92,
                 ],
                 "fill-color": [
                     "case",
+                    // Deep OSM Woodland / Forest green (distinct from open grassland slopes)
                     [
                         "in",
                         ["get", "kind"],
-                        ["literal", ["national_park", "park", "cemetery", "protected_area", "nature_reserve", "forest", "golf_course"]],
+                        ["literal", ["forest", "wood", "national_park", "nature_reserve", "protected_area"]],
                     ],
-                    "#9cd3b4",
-                    ["==", ["get", "kind"], "wood"],
-                    "#a0d9a0",
+                    "#add19e",
+                    // Lighter OSM Grassland / Meadow / Open Mountain Slope green
                     [
                         "in",
                         ["get", "kind"],
-                        ["literal", ["scrub", "grassland", "grass"]],
+                        ["literal", ["grassland", "grass", "meadow", "park", "golf_course", "recreation_ground", "dog_park", "cemetery"]],
                     ],
-                    "#99d2bb",
+                    "#cdebb0",
+                    // OSM Scrub / Heathland warm olive-green
+                    ["==", ["get", "kind"], "scrub"],
+                    "#c8d7ab",
+                    // Farmland soft pastel green-beige
+                    ["==", ["get", "kind"], "farmland"],
+                    "#eef0d5",
+                    // Exposed mountain bare rock / ridge scree
+                    ["==", ["get", "kind"], "bare_rock"],
+                    "#dcd6cb",
+                    // Wetland / marsh
+                    ["==", ["get", "kind"], "wetland"],
+                    "#b8dbd9",
                     ["==", ["get", "kind"], "glacier"],
                     "#e7e7e7",
                     ["==", ["get", "kind"], "sand"],
@@ -325,6 +351,26 @@ export const buildOfflineStyle = (
             filter: ["==", "kind", "pier"],
             paint: {
                 "fill-color": "#e0e0e0",
+            },
+        },
+        {
+            id: "earth_cliff",
+            type: "line" as const,
+            source: "protomaps",
+            "source-layer": "earth",
+            minzoom: 12,
+            filter: ["==", "kind", "cliff"],
+            paint: {
+                "line-color": "#8c7865",
+                "line-opacity": 0.75,
+                "line-width": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    12, 0.8,
+                    16, 2.2,
+                ],
+                "line-dasharray": [3, 1],
             },
         },
 
@@ -734,7 +780,7 @@ export const buildOfflineStyle = (
             },
         },
 
-        // ─── SURFACE ROADS (INNERS) ──────────────────────────────────────
+        // ─── SURFACE ROADS & HIKING TRAILS (INNERS) ──────────────────────
         {
             id: "roads_other",
             type: "line" as const,
@@ -744,7 +790,7 @@ export const buildOfflineStyle = (
                 "all",
                 ["!has", "is_tunnel"],
                 ["!has", "is_bridge"],
-                ["in", "kind", "other", "path"],
+                ["==", "kind", "other"],
                 ["!=", "kind_detail", "pier"],
             ],
             paint: {
@@ -755,6 +801,63 @@ export const buildOfflineStyle = (
                     ["zoom"],
                     14, 0.5,
                     20, 12,
+                ],
+            },
+        },
+        {
+            id: "roads_trail_casing",
+            type: "line" as const,
+            source: "protomaps",
+            "source-layer": "roads",
+            minzoom: 12,
+            filter: [
+                "all",
+                ["!has", "is_tunnel"],
+                ["!has", "is_bridge"],
+                ["==", "kind", "path"],
+                ["!=", "kind_detail", "pier"],
+            ],
+            paint: {
+                "line-color": "rgba(255, 255, 255, 0.7)",
+                "line-width": [
+                    "interpolate",
+                    ["exponential", 1.6],
+                    ["zoom"],
+                    12, 1.8,
+                    15, 3.6,
+                    20, 8,
+                ],
+            },
+        },
+        {
+            id: "roads_trail_path",
+            type: "line" as const,
+            source: "protomaps",
+            "source-layer": "roads",
+            minzoom: 12,
+            filter: [
+                "all",
+                ["!has", "is_tunnel"],
+                ["!has", "is_bridge"],
+                ["==", "kind", "path"],
+                ["!=", "kind_detail", "pier"],
+            ],
+            paint: {
+                // OSM Carto terracotta/red-brown for hiking trails & footways, warm brown for tracks
+                "line-color": [
+                    "match",
+                    ["get", "kind_detail"],
+                    "track", "#9e6b3b",
+                    "#c26148",
+                ],
+                "line-dasharray": [2, 1.5],
+                "line-width": [
+                    "interpolate",
+                    ["exponential", 1.6],
+                    ["zoom"],
+                    12, 0.9,
+                    15, 1.8,
+                    20, 5,
                 ],
             },
         },
@@ -964,7 +1067,7 @@ export const buildOfflineStyle = (
             },
         },
 
-        // ─── BOUNDARIES ──────────────────────────────────────────────────
+        // ─── BOUNDARIES (OSM RIDGE & MUNICIPAL BORDERS) ──────────────────
         {
             id: "boundaries_country",
             type: "line" as const,
@@ -972,14 +1075,32 @@ export const buildOfflineStyle = (
             "source-layer": "boundaries",
             filter: ["<=", "kind_detail", 2],
             paint: {
-                "line-color": "#adadad",
-                "line-width": 0.7,
+                "line-color": "#9e7b9b",
+                "line-width": 1.1,
                 "line-dasharray": [
                     "step",
                     ["zoom"],
                     ["literal", [2, 0]],
                     4,
-                    ["literal", [2, 1]],
+                    ["literal", [3, 1.5]],
+                ],
+            },
+        },
+        {
+            id: "boundaries_casing",
+            type: "line" as const,
+            source: "protomaps",
+            "source-layer": "boundaries",
+            minzoom: 10,
+            filter: [">", "kind_detail", 2],
+            paint: {
+                "line-color": "rgba(232, 224, 232, 0.55)",
+                "line-width": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    10, 1.5,
+                    15, 3.2,
                 ],
             },
         },
@@ -990,14 +1111,21 @@ export const buildOfflineStyle = (
             "source-layer": "boundaries",
             filter: [">", "kind_detail", 2],
             paint: {
-                "line-color": "#adadad",
-                "line-width": 0.4,
+                "line-color": "#9e7b9b",
+                "line-opacity": 0.78,
+                "line-width": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    6, 0.5,
+                    14, 1.1,
+                ],
                 "line-dasharray": [
                     "step",
                     ["zoom"],
                     ["literal", [2, 0]],
                     4,
-                    ["literal", [2, 1]],
+                    ["literal", [4, 2, 1, 2]],
                 ],
             },
         },
@@ -1424,31 +1552,67 @@ export const buildOfflineStyle = (
                 "text-halo-width": 2,
             },
         },
+        // ─── MOUNTAIN PEAKS, CAMPSITES, LANDMARKS & HOSPITALS ────────────
         {
             id: "mountain_peaks",
             type: "symbol" as const,
             source: "protomaps",
             "source-layer": "pois",
-            filter: ["in", "kind", "peak", "volcano"],
+            filter: [
+                "all",
+                ["in", ["get", "kind"], ["literal", ["peak", "volcano"]]],
+                [
+                    "!",
+                    [
+                        "in",
+                        ["get", "name"],
+                        [
+                            "literal",
+                            [
+                                "Mount Batulao",
+                                "Toong",
+                                "Mount Kulis",
+                                "Sambong Peak",
+                                "Tangwa Peak",
+                                "Lubo Peak",
+                                "Mount Daraitan",
+                                "Mount Tagapo",
+                                "Mount Sembrano",
+                            ],
+                        ],
+                    ],
+                ],
+            ],
             minzoom: 8,
             layout: {
                 "icon-image": "peak",
                 "icon-size": 0.85,
                 "icon-allow-overlap": true,
                 "icon-ignore-placement": true,
-                "text-field": ["coalesce", ["get", "name"], ["get", "name:en"], ""],
+                "text-field": [
+                    "case",
+                    ["has", "elevation"],
+                    [
+                        "concat",
+                        ["coalesce", ["get", "name"], ["get", "name:en"], ""],
+                        "\n",
+                        ["get", "elevation"],
+                        " m",
+                    ],
+                    ["coalesce", ["get", "name"], ["get", "name:en"], ""],
+                ],
                 "text-font": ["NotoSansMedium"],
-                "text-size": 12,
+                "text-size": 11.5,
                 "text-offset": [0, 0.8],
                 "text-anchor": "top",
-                "text-allow-overlap": true,
-                "text-ignore-placement": true,
+                "text-allow-overlap": false,
                 "text-optional": true,
             },
             paint: {
-                "text-color": "#1B5E20",
+                // Classic OSM Carto peak auburn-brown
+                "text-color": "#734A08",
                 "text-halo-color": "rgba(255, 255, 255, 0.95)",
-                "text-halo-width": 2.5,
+                "text-halo-width": 2.2,
             },
         },
         {
@@ -1463,10 +1627,13 @@ export const buildOfflineStyle = (
                 [
                     "literal",
                     [
+                        "camp_site", "picnic_site", "viewpoint", "shelter",
+                        "nature_reserve", "information", "resort",
                         "beach", "forest", "marina", "park", "zoo", "garden", "bench",
                         "aerodrome", "station", "bus_stop", "ferry_terminal", "stadium",
                         "university", "library", "school", "animal", "toilets",
                         "drinking_water", "post_office", "building", "townhall",
+                        "fire_station", "police", "rescue_station",
                         "restaurant", "fast_food", "cafe", "bar", "supermarket",
                         "convenience", "books", "beauty", "electronics", "clothes",
                         "attraction", "museum", "theatre", "artwork",
@@ -1478,6 +1645,16 @@ export const buildOfflineStyle = (
                     "match",
                     ["get", "kind"],
                     "station", "train_station",
+                    "camp_site", "peak",
+                    "picnic_site", "park",
+                    "viewpoint", "attraction",
+                    "nature_reserve", "forest",
+                    "shelter", "building",
+                    "information", "post_office",
+                    "resort", "beach",
+                    "fire_station", "townhall",
+                    "police", "townhall",
+                    "rescue_station", "townhall",
                     ["get", "kind"],
                 ],
                 "icon-size": 0.75,
@@ -1485,7 +1662,18 @@ export const buildOfflineStyle = (
                 "icon-optional": true,
                 "text-font": ["NotoSansMedium"],
                 "text-justify": "auto",
-                "text-field": ["coalesce", ["get", "name"], ["get", "name:en"], ""],
+                "text-field": [
+                    "case",
+                    ["has", "elevation"],
+                    [
+                        "concat",
+                        ["coalesce", ["get", "name"], ["get", "name:en"], ""],
+                        "\n",
+                        ["get", "elevation"],
+                        " m",
+                    ],
+                    ["coalesce", ["get", "name"], ["get", "name:en"], ""],
+                ],
                 "text-size": 11,
                 "text-max-width": 8,
                 "text-offset": [0, 0.8],
@@ -1498,7 +1686,13 @@ export const buildOfflineStyle = (
                     [
                         "in",
                         ["get", "kind"],
-                        ["literal", ["beach", "forest", "marina", "park", "zoo", "garden", "bench"]],
+                        ["literal", ["camp_site", "picnic_site"]],
+                    ],
+                    "#0066CC",
+                    [
+                        "in",
+                        ["get", "kind"],
+                        ["literal", ["beach", "forest", "marina", "park", "zoo", "garden", "bench", "nature_reserve", "viewpoint", "resort"]],
                     ],
                     "#20834D",
                     [
@@ -1510,7 +1704,13 @@ export const buildOfflineStyle = (
                     [
                         "in",
                         ["get", "kind"],
-                        ["literal", ["stadium", "university", "library", "school", "animal", "toilets", "drinking_water", "post_office", "building", "townhall"]],
+                        ["literal", ["fire_station", "police", "rescue_station"]],
+                    ],
+                    "#B71C1C",
+                    [
+                        "in",
+                        ["get", "kind"],
+                        ["literal", ["stadium", "university", "library", "school", "animal", "toilets", "drinking_water", "post_office", "building", "townhall", "shelter", "information"]],
                     ],
                     "#6A5B8F",
                     [
@@ -1533,8 +1733,381 @@ export const buildOfflineStyle = (
                     "#EF56BA",
                     "#424242",
                 ],
-                "text-halo-color": "rgba(255, 255, 255, 0.9)",
+                "text-halo-color": "rgba(255, 255, 255, 0.92)",
                 "text-halo-width": 2,
+            },
+        },
+
+        // ─── HOSPITALS & MEDICAL POIS (PROTOMAPS VECTOR TILES) ───────────
+        {
+            id: "pois_medical_badge",
+            type: "circle" as const,
+            source: "protomaps",
+            "source-layer": "pois",
+            minzoom: 11,
+            filter: [
+                "in",
+                ["get", "kind"],
+                ["literal", ["hospital", "clinic", "doctors", "health_post", "pharmacy", "rescue_station"]],
+            ],
+            paint: {
+                "circle-radius": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    11,
+                    [
+                        "match",
+                        ["get", "kind"],
+                        ["hospital", "rescue_station"], 4.5,
+                        3.0,
+                    ],
+                    16,
+                    [
+                        "match",
+                        ["get", "kind"],
+                        ["hospital", "rescue_station"], 7.5,
+                        5.5,
+                    ],
+                ],
+                "circle-color": [
+                    "match",
+                    ["get", "kind"],
+                    "pharmacy", "#E65100",
+                    "#D32F2F",
+                ],
+                "circle-stroke-color": "#FFFFFF",
+                "circle-stroke-width": 1.8,
+            },
+        },
+        {
+            id: "pois_medical_label",
+            type: "symbol" as const,
+            source: "protomaps",
+            "source-layer": "pois",
+            minzoom: 11,
+            filter: [
+                "in",
+                ["get", "kind"],
+                ["literal", ["hospital", "clinic", "doctors", "health_post", "pharmacy", "rescue_station"]],
+            ],
+            layout: {
+                "text-font": ["NotoSansMedium"],
+                "text-field": [
+                    "case",
+                    ["has", "name"],
+                    ["concat", "✚ ", ["coalesce", ["get", "name"], ["get", "name:en"], ""]],
+                    "",
+                ],
+                "text-size": [
+                    "match",
+                    ["get", "kind"],
+                    ["hospital", "rescue_station"], 11.5,
+                    10.5,
+                ],
+                "text-max-width": 9,
+                "text-offset": [0, 0.65],
+                "text-anchor": "top",
+                "text-optional": true,
+            },
+            paint: {
+                "text-color": [
+                    "match",
+                    ["get", "kind"],
+                    "pharmacy", "#BF360C",
+                    "#B71C1C",
+                ],
+                "text-halo-color": "rgba(255, 255, 255, 0.96)",
+                "text-halo-width": 2.2,
+            },
+        },
+
+        // ─── OSM CURATED HOSPITALS & RURAL HEALTH UNITS ──────────────────
+        {
+            id: "osm_hospitals_badge",
+            type: "circle" as const,
+            source: "osm_landmarks",
+            minzoom: 10,
+            filter: [
+                "in",
+                ["get", "category"],
+                ["literal", ["hospital", "clinic"]],
+            ],
+            paint: {
+                "circle-radius": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    10,
+                    ["match", ["get", "category"], "hospital", 5, 3.8],
+                    15,
+                    ["match", ["get", "category"], "hospital", 8, 6],
+                ],
+                "circle-color": [
+                    "match",
+                    ["get", "category"],
+                    "hospital", "#C62828",
+                    "#D84315",
+                ],
+                "circle-stroke-color": "#FFFFFF",
+                "circle-stroke-width": 2,
+            },
+        },
+        {
+            id: "osm_hospitals_label",
+            type: "symbol" as const,
+            source: "osm_landmarks",
+            minzoom: 10,
+            filter: [
+                "in",
+                ["get", "category"],
+                ["literal", ["hospital", "clinic"]],
+            ],
+            layout: {
+                "text-font": ["NotoSansMedium"],
+                "text-field": ["concat", "✚ ", ["get", "name"]],
+                "text-size": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    10, 10.5,
+                    14, 12,
+                ],
+                "text-max-width": 9,
+                "text-offset": [0, 0.75],
+                "text-anchor": "top",
+                "text-allow-overlap": false,
+                "text-optional": true,
+            },
+            paint: {
+                "text-color": "#B71C1C",
+                "text-halo-color": "rgba(255, 255, 255, 0.96)",
+                "text-halo-width": 2.3,
+            },
+        },
+
+        // ─── OSM DETAILED MOUNTAIN LANDMARKS (CAMPS, PEAKS, KUBO, SPRINGS) ───
+        {
+            id: "osm_landmarks_facilities",
+            type: "symbol" as const,
+            source: "osm_landmarks",
+            minzoom: 12,
+            filter: [
+                "in",
+                ["get", "category"],
+                [
+                    "literal",
+                    [
+                        "trailhead",
+                        "kubo",
+                        "viewpoint",
+                        "waterfall",
+                        "water_source",
+                        "landmark",
+                        "toilets",
+                    ],
+                ],
+            ],
+            layout: {
+                "icon-image": [
+                    "match",
+                    ["get", "category"],
+                    "trailhead", "park",
+                    "kubo", "building",
+                    "viewpoint", "attraction",
+                    "waterfall", "drinking_water",
+                    "water_source", "drinking_water",
+                    "toilets", "toilets",
+                    "landmark", "peak",
+                    "park",
+                ],
+                "icon-size": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    12, 0.65,
+                    15, 0.85,
+                ],
+                "icon-allow-overlap": true,
+                "text-font": ["NotoSansMedium"],
+                "text-field": [
+                    "step",
+                    ["zoom"],
+                    ["get", "name"],
+                    14,
+                    [
+                        "case",
+                        ["has", "ele"],
+                        ["concat", ["get", "name"], "\n", ["get", "ele"], " m"],
+                        ["get", "name"],
+                    ],
+                ],
+                "text-size": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    12, 10,
+                    15, 11.5,
+                ],
+                "text-max-width": 8,
+                "text-offset": [0, 0.75],
+                "text-anchor": "top",
+                "text-allow-overlap": false,
+                "text-optional": true,
+            },
+            paint: {
+                "text-color": [
+                    "match",
+                    ["get", "category"],
+                    "trailhead", "#1B5E20",
+                    "viewpoint", "#2E7D32",
+                    "waterfall", "#0277BD",
+                    "water_source", "#0277BD",
+                    "toilets", "#6A5B8F",
+                    "kubo", "#5D4037",
+                    "landmark", "#6D4C41",
+                    "#424242",
+                ],
+                "text-halo-color": "rgba(255, 255, 255, 0.95)",
+                "text-halo-width": 2.2,
+            },
+        },
+        {
+            id: "osm_landmarks_camps_and_subpeaks_badge",
+            type: "circle" as const,
+            source: "osm_landmarks",
+            minzoom: 12,
+            filter: [
+                "in",
+                ["get", "category"],
+                ["literal", ["camp_site", "sub_peak"]],
+            ],
+            paint: {
+                "circle-radius": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    12, 3.2,
+                    15, 5.2,
+                ],
+                // Matches the blue camp/peak triangle markers along Mt. Batulao Old & New Trails in OSM
+                "circle-color": [
+                    "match",
+                    ["get", "category"],
+                    "camp_site", "#0066CC",
+                    "#0288D1",
+                ],
+                "circle-stroke-color": "#FFFFFF",
+                "circle-stroke-width": 1.6,
+            },
+        },
+        {
+            id: "osm_landmarks_camps_and_subpeaks",
+            type: "symbol" as const,
+            source: "osm_landmarks",
+            minzoom: 12,
+            filter: [
+                "in",
+                ["get", "category"],
+                ["literal", ["camp_site", "sub_peak"]],
+            ],
+            layout: {
+                "icon-image": "peak",
+                "icon-size": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    12, 0.65,
+                    15, 0.85,
+                ],
+                "icon-allow-overlap": true,
+                "icon-ignore-placement": true,
+                "text-font": ["NotoSansMedium"],
+                "text-field": [
+                    "step",
+                    ["zoom"],
+                    ["get", "name"],
+                    14.5,
+                    [
+                        "case",
+                        ["has", "ele"],
+                        ["concat", ["get", "name"], "\n", ["get", "ele"], " m"],
+                        ["get", "name"],
+                    ],
+                ],
+                "text-size": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    12, 10,
+                    15, 11.5,
+                ],
+                "text-max-width": 7,
+                "text-offset": [0, 0.75],
+                "text-anchor": "top",
+                "text-allow-overlap": [
+                    "step",
+                    ["zoom"],
+                    false,
+                    13.5,
+                    true,
+                ],
+                "text-optional": true,
+            },
+            paint: {
+                // OSM Carto campsite blue (#0066CC) so Camp 1–9 & Peak 1–11 match the OSM screenshot
+                "text-color": [
+                    "match",
+                    ["get", "category"],
+                    "camp_site", "#0066CC",
+                    "#01579B",
+                ],
+                "text-halo-color": "rgba(255, 255, 255, 0.95)",
+                "text-halo-width": 2.2,
+            },
+        },
+        {
+            id: "osm_landmarks_summits",
+            type: "symbol" as const,
+            source: "osm_landmarks",
+            minzoom: 8,
+            filter: ["==", ["get", "category"], "summit"],
+            layout: {
+                "icon-image": "peak",
+                "icon-size": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    8, 0.8,
+                    14, 1.05,
+                ],
+                "icon-allow-overlap": true,
+                "icon-ignore-placement": true,
+                "text-font": ["NotoSansMedium"],
+                "text-field": [
+                    "case",
+                    ["has", "ele"],
+                    ["concat", ["get", "name"], "\n", ["get", "ele"], " m"],
+                    ["get", "name"],
+                ],
+                "text-size": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    8, 11.5,
+                    14, 13,
+                ],
+                "text-offset": [0, 0.85],
+                "text-anchor": "top",
+                "text-allow-overlap": true,
+                "text-ignore-placement": true,
+                "text-optional": true,
+            },
+            paint: {
+                // Classic OSM Carto summit label color (#734A08) as shown on "Mount Batulao 811 m"
+                "text-color": "#734A08",
+                "text-halo-color": "rgba(255, 255, 255, 0.96)",
+                "text-halo-width": 2.5,
             },
         },
         {
@@ -1546,7 +2119,7 @@ export const buildOfflineStyle = (
             filter: [
                 "in",
                 "kind",
-                "city", "town", "village", "hamlet", "suburb", "locality", "neighbourhood",
+                "city", "town", "village", "hamlet", "suburb", "locality", "neighbourhood", "macrohood",
             ],
             layout: {
                 "icon-image": "townspot",

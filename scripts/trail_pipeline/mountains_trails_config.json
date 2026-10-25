@@ -1,0 +1,167 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "2.1.0",
+  "source_pbf": "src/assets/map_data/philippines-261014.osm.pbf",
+  "output_dir": "src/assets/map_data/trails",
+  "mountains": [
+    {
+      "mountain_id": "batulao",
+      "mountain_name": "Mount Batulao",
+      "province": "Batangas",
+      "peak_node_id": 332020556,
+      "trails": [
+        {
+          "trail_id": "batulao-old",
+          "trail_name": "Mt. Batulao Old Trail",
+          "difficulty": "Moderate",
+          "technical_rating": "Class 2-3",
+          "relation_ids": [],
+          "way_ids": [188934002, 51822692, 188933995, 188933999],
+          "reverse_ways": [51822692],
+          "snap_tolerance_meters": 5.0
+        },
+        {
+          "trail_id": "batulao-new",
+          "trail_name": "Mt. Batulao New Trail",
+          "difficulty": "Moderate",
+          "technical_rating": "Class 2",
+          "relation_ids": [],
+          "way_ids": [188934002, 51822351, 188933993, 188933994],
+          "reverse_ways": [],
+          "snap_tolerance_meters": 5.0
+        }
+      ]
+    },
+    {
+      "mountain_id": "kulis",
+      "mountain_name": "Mount Kulis",
+      "province": "Rizal",
+      "peak_node_id": 8258769217,
+      "trails": [
+        {
+          "trail_id": "kulis-summit",
+          "trail_name": "Mt. Kulis Summit Trail",
+          "difficulty": "Easy",
+          "technical_rating": "Class 1",
+          "relation_ids": [],
+          "way_ids": [1112434840, 1112434845, 1112434844],
+          "reverse_ways": [1112434840, 1112434845, 1112434844],
+          "trim_way_at_node": {
+            "1112434840": { "end_node": 10177709047 }
+          },
+          "snap_tolerance_meters": 5.0
+        },
+        {
+          "trail_id": "kulis-sambong",
+          "trail_name": "Mt. Kulis — Sambong Peak & Noah's Ark Trail",
+          "difficulty": "Easy",
+          "technical_rating": "Class 1",
+          "relation_ids": [],
+          "way_ids": [1112434840, 1112434843, 1112434841],
+          "reverse_ways": [1112434840, 1112434843],
+          "trim_way_at_node": {
+            "1112434840": { "end_node": 10177709035 }
+          },
+          "snap_tolerance_meters": 5.0
+        }
+      ]
+    },
+    {
+      "mountain_id": "daraitan",
+      "mountain_name": "Mount Daraitan",
+      "province": "Rizal",
+      "peak_node_id": 12864070795,
+      "trails": [
+        {
+          "trail_id": "daraitan-summit",
+          "trail_name": "Mt. Daraitan Direct Summit Trail",
+          "difficulty": "Difficult",
+          "technical_rating": "Class 3",
+          "relation_ids": [],
+          "way_ids": [1389728027, 1389728026],
+          "reverse_ways": [1389728027, 1389728026],
+          "snap_tolerance_meters": 5.0
+        },
+        {
+          "trail_id": "daraitan-tinipak",
+          "trail_name": "Mt. Daraitan — Tinipak River Trail",
+          "difficulty": "Easy",
+          "technical_rating": "Class 1-2",
+          "relation_ids": [],
+          "way_ids": [367187493, 516283213, 677448626],
+          "reverse_ways": [],
+          "snap_tolerance_meters": 5.0
+        },
+        {
+          "trail_id": "daraitan-traverse",
+          "trail_name": "Mt. Daraitan Summit-to-Tinipak Traverse",
+          "difficulty": "Difficult",
+          "technical_rating": "Class 3",
+          "relation_ids": [],
+          "way_ids": [1389728021, 677448626],
+          "reverse_ways": [],
+          "trim_way_at_node": {
+            "677448626": { "start_node": 3711359507 }
+          },
+          "snap_tolerance_meters": 5.0
+        }
+      ]
+    },
+    {
+      "mountain_id": "tagapo",
+      "mountain_name": "Mount Tagapo",
+      "province": "Rizal",
+      "peak_node_id": 967699246,
+      "trails": [
+        {
+          "trail_id": "tagapo-janosa",
+          "trail_name": "Mt. Tagapo Main Trail (Brgy. Janosa Jump-off)",
+          "difficulty": "Easy",
+          "technical_rating": "Class 1-2",
+          "relation_ids": [],
+          "way_ids": [1058835394, 216453867],
+          "reverse_ways": [1058835394, 216453867],
+          "snap_tolerance_meters": 5.0
+        },
+        {
+          "trail_id": "tagapo-janosa-west",
+          "trail_name": "Mt. Tagapo West Coastal Trail (Brgy. Janosa Port)",
+          "difficulty": "Easy",
+          "technical_rating": "Class 1-2",
+          "relation_ids": [],
+          "way_ids": [942014933, 216453867],
+          "reverse_ways": [216453867],
+          "snap_tolerance_meters": 5.0
+        }
+      ]
+    },
+    {
+      "mountain_id": "sembrano",
+      "mountain_name": "Mount Sembrano",
+      "province": "Rizal",
+      "peak_node_id": 332018952,
+      "trails": [
+        {
+          "trail_id": "sembrano-malaya",
+          "trail_name": "Mt. Sembrano Summit Trail via Brgy. Malaya",
+          "difficulty": "Moderate",
+          "technical_rating": "Class 2",
+          "relation_ids": [3625700],
+          "way_ids": [671042992, 892206089, 111507676, 111507667, 111507665, 111507675],
+          "reverse_ways": [],
+          "snap_tolerance_meters": 5.0
+        },
+        {
+          "trail_id": "sembrano-manggahan",
+          "trail_name": "Mt. Sembrano — Manggahan Campsite Trail",
+          "difficulty": "Easy",
+          "technical_rating": "Class 1-2",
+          "relation_ids": [],
+          "way_ids": [671042992, 892206089, 111507676, 271602335],
+          "reverse_ways": [],
+          "snap_tolerance_meters": 5.0
+        }
+      ]
+    }
+  ]
+}

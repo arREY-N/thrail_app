@@ -45,5 +45,26 @@ service firebase.storage {
             request.resource.size <= 5 * 1024 * 1024 &&
             request.resource.contentType.matches('image/.*');
         }
+
+        // Mountain images
+        match /trails/{allPaths=**} {
+            allow read: if true;
+            allow write: if request.auth != null &&
+                request.auth.token.role in ['admin', 'owner', 'superadmin'] &&
+                request.resource.size <= 10 * 1024 * 1024 &&
+                request.resource.contentType.matches('image/.*');
+        }
+
+        // 3D Trail GeoJSON files for offline mountain downloads
+        match /trail_routes/{allPaths=**} {
+            allow read: if true;
+            allow write: if request.auth != null &&
+                request.auth.token.role in ['admin', 'owner', 'superadmin'] &&
+                request.resource.size <= 10 * 1024 * 1024 && (
+                    request.resource.contentType == 'application/geo+json' ||
+                    request.resource.contentType == 'application/json' ||
+                    request.resource.contentType == 'application/octet-stream'
+                );
+        }
     }
 }

@@ -9,7 +9,9 @@ import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
+import { BRAND } from '@/src/constants/branding';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useAuthStore } from '@/src/core/models/User/User';
@@ -157,7 +159,11 @@ const Sidebar = ({
             <View style={[styles.brandHeader, effectiveCollapsed && styles.brandHeaderCollapsed]}>
                 <View style={[styles.logoRow, effectiveCollapsed && styles.logoRowCollapsed]}>
                     <View style={styles.logoBadge}>
-                        <CustomIcon library="FontAwesome5" name="mountain" size={14} color={Colors.WHITE} />
+                        <CustomImage
+                            source={BRAND.ASSETS.GLYPH_WHITE}
+                            style={styles.logoImage}
+                            resizeMode="contain"
+                        />
                     </View>
 
                     {!effectiveCollapsed && (
@@ -406,6 +412,10 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.PRIMARY,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    logoImage: {
+        width: 20,
+        height: 20,
     },
     brandTextWrapper: {
         flex: 1,

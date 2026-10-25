@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { newLocation } from "@/src/core/models/Location/Location";
+import { sharedGpsKalmanFilter } from "@/src/core/utility/gpsKalmanFilter";
 import * as TaskManager from "expo-task-manager";
 
 
@@ -13,6 +14,8 @@ interface LocationTaskPayload {
       longitude: number;
       altitude?: number | null;
       accuracy?: number | null;
+      speed?: number | null;
+      heading?: number | null;
     };
     timestamp: number;
   }[];
@@ -47,35 +50,28 @@ if (Platform.OS !== 'web') {
       const sortedLocations = [...rawLocations].sort((a, b) => a.timestamp - b.timestamp);
 
       for (const location of sortedLocations) {
-        const lat = location.coords.latitude;
-        const lon = location.coords.longitude;
-        const alt = location.coords.altitude;
-        const accuracy = location.coords.accuracy;
+        const filtered = sharedGpsKalmanFilter.process({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          altitude: location.coords.altitude,
+          accuracy: location.coords.accuracy,
+          speed: location.coords.speed,
+          heading: location.coords.heading,
+          timestamp: location.timestamp,
+        });
 
-        // Strictly validate coordinates and reject Null Island / corrupted fixes
-        if (
-          typeof lat !== 'number' ||
-          typeof lon !== 'number' ||
-          isNaN(lat) ||
-          isNaN(lon) ||
-          (lat === 0 && lon === 0) ||
-          lat < -90 || lat > 90 ||
-          lon < -180 || lon > 180
-        ) {
+        if (!filtered) {
           continue;
         }
 
-        // Apply quality filter: reject zero, negative, or wild scatter fixes > 25m
-        if (accuracy == null || accuracy <= 0 || accuracy > 25) {
-          continue;
-        }
-
-        const timestamp = new Date(location.timestamp).toISOString();
+        const timestamp = new Date(filtered.timestamp).toISOString();
 
         await addCoordinate(newLocation({
-          latitude: lat,
-          longitude: lon,
-          altitude: alt ?? undefined,
+          latitude: filtered.latitude,
+          longitude: filtered.longitude,
+          altitude: filtered.altitude,
+          accuracy: filtered.accuracy,
+          speed: filtered.speed,
           timestamp: new Date(timestamp),
           status: 'APP_BACKGROUNDED',
         }));

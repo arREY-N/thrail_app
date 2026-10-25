@@ -1,6 +1,10 @@
+import type { Href } from "expo-router";
 import { router, usePathname, useSegments } from "expo-router";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
+import CustomImage from "@/src/components/CustomImage";
+import CustomText from "@/src/components/CustomText";
+import { BRAND } from "@/src/constants/branding";
 import { Colors, Palette } from "@/src/constants/colors";
 
 type TabKey = "home" | "explore" | "community" | "profile";
@@ -8,14 +12,14 @@ type TabKey = "home" | "explore" | "community" | "profile";
 interface NavItem {
   key: TabKey;
   label: string;
-  href: string;
+  href: Href;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "home", label: "Home", href: "/(tabs)" },
-  { key: "explore", label: "Explore", href: "/(tabs)/explore" },
-  { key: "community", label: "Community", href: "/(tabs)/community" },
-  { key: "profile", label: "Profile", href: "/(tabs)/profile" },
+  { key: "home", label: "Home", href: "/(tabs)" as Href },
+  { key: "explore", label: "Explore", href: "/(tabs)/explore" as Href },
+  { key: "community", label: "Community", href: "/(tabs)/community" as Href },
+  { key: "profile", label: "Profile", href: "/(tabs)/profile" as Href },
 ];
 
 const WebTab = () => {
@@ -52,8 +56,17 @@ const WebTab = () => {
 
   return (
     <View style={styles.navBar}>
-      {/* Brand Title */}
-      <Text style={styles.brandTitle}>Thrail</Text>
+      {/* Brand Title Row with Emblem */}
+      <View style={styles.brandLockup}>
+        <CustomImage
+          source={BRAND.ASSETS.GLYPH_GREEN}
+          style={styles.brandLogo}
+          resizeMode="contain"
+        />
+        <CustomText variant="h2" style={styles.brandTitle}>
+          Thrail
+        </CustomText>
+      </View>
 
       {/* Navigation Links */}
       <View style={styles.navLinks}>
@@ -63,7 +76,7 @@ const WebTab = () => {
           return (
             <Pressable
               key={item.key}
-              onPress={() => router.push(item.href as any)}
+              onPress={() => router.push(item.href)}
               style={({ hovered }) => [
                 styles.navItem,
                 active && styles.navItemActive,
@@ -71,7 +84,8 @@ const WebTab = () => {
               ]}
             >
               {({ hovered }) => (
-                <Text
+                <CustomText
+                  variant="body"
                   style={[
                     styles.linkText,
                     active && styles.linkTextActive,
@@ -79,7 +93,7 @@ const WebTab = () => {
                   ]}
                 >
                   {item.label}
-                </Text>
+                </CustomText>
               )}
             </Pressable>
           );
@@ -100,10 +114,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
+  brandLockup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  brandLogo: {
+    width: 26,
+    height: 26,
+  },
   brandTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: Colors.PRIMARY, // Palette.Green700 (#2E7D32)
+    color: Colors.PRIMARY,
   },
   navLinks: {
     flexDirection: "row",
@@ -116,32 +139,21 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "transparent",
-    ...Platform.select({
-      web: {
-        cursor: "pointer",
-        transition: "all 0.2s ease-in-out",
-      } as any,
-    }),
   },
   navItemActive: {
-    backgroundColor: Palette.Green50, // Light green pill background (#E8F5E9)
-    borderColor: Palette.Green200, // Subtle green border (#A5D6A7)
+    backgroundColor: Palette.Green50,
+    borderColor: Palette.Green200,
   },
   navItemHovered: {
-    backgroundColor: Palette.Neutral75, // Light gray on hover
+    backgroundColor: Palette.Neutral75,
   },
   linkText: {
     fontSize: 15,
     fontWeight: "500",
-    color: Colors.TEXT_SECONDARY, // Gray (#686868)
-    ...Platform.select({
-      web: {
-        transition: "color 0.2s ease-in-out",
-      } as any,
-    }),
+    color: Colors.TEXT_SECONDARY,
   },
   linkTextActive: {
-    color: Colors.PRIMARY, // Primary Green (#2E7D32)
+    color: Colors.PRIMARY,
     fontWeight: "700",
   },
   linkTextHovered: {
