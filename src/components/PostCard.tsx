@@ -99,13 +99,13 @@ interface PostCardProps<T extends IReview = Review> {
  * PostCard — A comprehensive card component used to display user reviews,
  * photos, stats, and tags within the community feed or user profile.
  */
-const PostCard = <T extends IReview = Review>({ 
-    review, 
+const PostCard = <T extends IReview = Review>({
+    review,
     trailData: propTrailData,
-    onLike, 
-    isLiked, 
-    onEdit, 
-    variant = 'community' 
+    onLike,
+    isLiked,
+    onEdit,
+    variant = 'community'
 }: PostCardProps<T>): React.JSX.Element | null => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isPreviewVisible, setIsPreviewVisible] = useState(false);
@@ -128,8 +128,8 @@ const PostCard = <T extends IReview = Review>({
     const storeTrail = propTrailData
         ? undefined
         : useTrailStore.getState().data.find(
-              (t) => t.id === (legacyTrailId ?? '')
-          );
+            (t) => t.id === (legacyTrailId ?? '')
+        );
 
     const fallbackImage = getHeroImageSource(propTrailData ?? storeTrail);
     const imagesList = (review?.image && review.image.length > 0) ? review.image : [fallbackImage];
@@ -141,7 +141,7 @@ const PostCard = <T extends IReview = Review>({
 
     const formatStat = (val: unknown, type: string): string => {
         if (val === undefined || val === null || val === '--') return '--';
-        
+
         const numVal = Number(val);
         if (isNaN(numVal)) return '--';
 
@@ -169,6 +169,7 @@ const PostCard = <T extends IReview = Review>({
             case 'Moderate':
                 return { bg: Colors.STATUS_WARNING_BG, border: Colors.STATUS_WARNING_BORDER, text: Colors.STATUS_WARNING_TEXT, icon: 'emoticon-neutral-outline' as const };
             case 'Hard':
+            case 'Difficult':
             case 'Extreme':
                 return { bg: Colors.STATUS_CANCELLED_BG, border: Colors.STATUS_CANCELLED_BORDER, text: Colors.STATUS_CANCELLED_TEXT, icon: 'emoticon-sad-outline' as const };
             default:
@@ -193,9 +194,6 @@ const PostCard = <T extends IReview = Review>({
     if (review?.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') {
         allTags.push({ id: `diff-main`, type: 'difficulty', value: review.perceivedDifficulty, style: getDifficultyStyle(review.perceivedDifficulty) });
     }
-    if (review?.trailMaintenance && review.trailMaintenance !== 'undefined') {
-        allTags.push({ id: `maint-main`, type: 'maintenance', label: getMaintenanceStyle(review.trailMaintenance).label, style: getMaintenanceStyle(review.trailMaintenance) });
-    }
     review?.difficultyFactors?.forEach((f: string) => allTags.push({ id: `factor-diff-${f}`, type: 'factor-diff', value: f }));
     review?.favoredFactors?.forEach((f: string) => allTags.push({ id: `factor-fav-${f}`, type: 'factor-fav', value: f }));
 
@@ -209,9 +207,9 @@ const PostCard = <T extends IReview = Review>({
     const likeCount = Array.isArray(review.likes)
         ? review.likes.length
         : Number(review.likes) || 0;
-    
+
     const reviewText = review?.review || legacy.content || "";
-    const maxLength = 110; 
+    const maxLength = 110;
     const isLong = reviewText.length > maxLength;
     const truncatedText = isLong ? reviewText.substring(0, maxLength).replace(/\s+$/, '') + '...' : reviewText;
     const displayText = isExpanded ? reviewText : truncatedText;
@@ -289,6 +287,24 @@ const PostCard = <T extends IReview = Review>({
                 </View>
             </View>
 
+            {!!reviewText && (
+                <View style={styles.textBody}>
+                    <CustomText variant="body" style={styles.reviewContent}>
+                        {displayText}
+                        {isLong && !isExpanded && (
+                            <CustomText style={styles.showMoreActionInline} onPress={() => setIsExpanded(true)}>
+                                {" "}Show More
+                            </CustomText>
+                        )}
+                        {isExpanded && isLong && (
+                            <CustomText style={styles.showMoreActionInline} onPress={() => setIsExpanded(false)}>
+                                {" "}Show Less
+                            </CustomText>
+                        )}
+                    </CustomText>
+                </View>
+            )}
+
             <TouchableOpacity
                 style={styles.imageWrapper}
                 activeOpacity={0.9}
@@ -343,8 +359,6 @@ const PostCard = <T extends IReview = Review>({
                     style={styles.threeColStat}
                 />
             </View>
-
-            {(hasTags || !!reviewText) && <View style={styles.horizontalDivider} />}
 
             {hasTags && (
                 <View style={[styles.tagsWrapper, !reviewText && { marginBottom: 0 }]}>
@@ -411,25 +425,6 @@ const PostCard = <T extends IReview = Review>({
                     )}
                 </View>
             )}
-
-            {!!reviewText && (
-                <View style={styles.textBody}>
-                    <CustomText variant="body" style={styles.reviewContent}>
-                        {displayText}
-                        {isLong && !isExpanded && (
-                            <CustomText style={styles.showMoreActionInline} onPress={() => setIsExpanded(true)}>
-                                {" "}Show More
-                            </CustomText>
-                        )}
-                        {isExpanded && isLong && (
-                            <CustomText style={styles.showMoreActionInline} onPress={() => setIsExpanded(false)}>
-                                {" "}Show Less
-                            </CustomText>
-                        )}
-                    </CustomText>
-                </View>
-            )}
-
             <ImagePreviewModal visible={isPreviewVisible} images={imagesList as (string | { uri: string })[]} onClose={() => setIsPreviewVisible(false)} />
         </View>
     );
@@ -444,13 +439,13 @@ interface StatItemProps {
     style?: StyleProp<ViewStyle>;
 }
 
-const StatItem = ({ 
-    label, 
-    value, 
-    icon, 
-    lib, 
-    iconColor = Colors.PRIMARY, 
-    style 
+const StatItem = ({
+    label,
+    value,
+    icon,
+    lib,
+    iconColor = Colors.PRIMARY,
+    style
 }: StatItemProps): React.JSX.Element => (
     <View style={[styles.statBox, style]}>
         <View style={styles.statTopRow}>
@@ -650,7 +645,6 @@ const styles = StyleSheet.create({
     statsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingBottom: 16,
     },
     statBox: {
         alignItems: 'center',
@@ -691,7 +685,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     tagsWrapper: {
-        marginBottom: 12,
+        marginTop: 12,
         position: 'relative',
         overflow: 'hidden',
         ...Platform.select({
@@ -783,10 +777,12 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     reviewContent: {
-        fontSize: 12,
+        paddingHorizontal: 4,
+        fontSize: 14,
         lineHeight: 22,
-        color: Colors.TEXT_SECONDARY,
+        color: Colors.TEXT_PRIMARY,
         flexShrink: 1,
+        paddingBottom: 10,
     },
     showMoreActionInline: {
         fontSize: 12,
@@ -800,8 +796,8 @@ export default React.memo(PostCard, (prevProps, nextProps) => {
     const prevLiked = prevProps.isLiked && prevProps.review ? prevProps.isLiked(prevProps.review) : false;
     const nextLiked = nextProps.isLiked && nextProps.review ? nextProps.isLiked(nextProps.review) : false;
 
-    return prevProps.review === nextProps.review && 
-           prevProps.trailData === nextProps.trailData &&
-           prevProps.variant === nextProps.variant &&
-           prevLiked === nextLiked;
+    return prevProps.review === nextProps.review &&
+        prevProps.trailData === nextProps.trailData &&
+        prevProps.variant === nextProps.variant &&
+        prevLiked === nextLiked;
 }) as typeof PostCard;
