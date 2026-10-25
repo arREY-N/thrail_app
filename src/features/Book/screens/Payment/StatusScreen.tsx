@@ -128,21 +128,12 @@ const StatusScreen = ({
                         </CustomText>
                     </View>
 
-                    <View style={styles.detailRow}>
+                    <View style={[styles.detailRow, styles.noMarginBottom]}>
                         <CustomText variant="caption" style={styles.detailLabel}>
                             Method
                         </CustomText>
                         <CustomText variant="body" style={[styles.detailValue, { textTransform: 'capitalize' }]}>
                             {selectedMethod || 'N/A'}
-                        </CustomText>
-                    </View>
-
-                    <View style={styles.detailRow}>
-                        <CustomText variant="caption" style={styles.detailLabel}>
-                            Amount Sent
-                        </CustomText>
-                        <CustomText variant="h3" style={styles.totalValue}>
-                            ₱{Number(amountToPay).toFixed(2)}
                         </CustomText>
                     </View>
                 </View>
@@ -241,6 +232,9 @@ const styles = StyleSheet.create({
     },
     totalValue: { 
         color: Colors.PRIMARY 
+    },
+    noMarginBottom: {
+        marginBottom: 0
     }
 });
 

@@ -19,11 +19,13 @@ import { useAuthStore } from "@/src/core/models/User/User";
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
 import { checkIfMinor } from '@/src/utils/dateFormatter';
 
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
+import { ManualQRMethodScreen } from '@/src/features/Book/screens/Payment/ManualQRMethodScreen';
 import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
 import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
 
 import { app } from '@/src/core/config/Firebase';
-import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
+import { Booking, IPayment, useBookingsStore } from '@/src/core/models/Booking/Booking';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -93,6 +95,8 @@ const PaymentScreen = ({
 
     const [paymentType, setPaymentType] = useState<'full' | 'downpayment'>('full');
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+    const [manualReceiptUrl, setManualReceiptUrl] = useState<string>('');
+    const [manualReferenceCode, setManualReferenceCode] = useState<string>('');
     const [isSignatureValid, setIsSignatureValid] = useState(false);
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
     const { showToast } = useToast();
@@ -106,13 +110,13 @@ const PaymentScreen = ({
         if (p.status === 'captured') return sum + (p.amount || 0);
         return sum;
     }, 0);
-    const remainingBalance = totalPrice - amountPaidAlready;
+    const remainingBalance = bookingData?.remainingBalance !== undefined 
+        ? bookingData.remainingBalance 
+        : Math.max(0, totalPrice - amountPaidAlready);
 
-    const isPayingBalance = amountPaidAlready > 0;
+    const isPayingBalance = amountPaidAlready > 0 || (bookingData?.status === 'downpayment' && remainingBalance > 0);
     const effectivePaymentType = isPayingBalance ? 'full' : paymentType;
-    const amountToPay = isPayingBalance
-        ? remainingBalance
-        : (effectivePaymentType === 'full' ? totalPrice : totalPrice / 2);
+    const amountToPay = isPayingBalance ? remainingBalance : totalPrice;
 
     const rawBirthday = bookingData?.user?.birthday || profile?.birthday;
     const isUserMinor = checkIfMinor(rawBirthday);
@@ -152,6 +156,64 @@ const PaymentScreen = ({
 
         if (currentStep === 1) {
             setPaymentError(null);
+
+            if (PAYMENT_CONFIG.PROVIDER === 'manual_qr') {
+                if (!manualReceiptUrl) {
+                    setHasAttemptedSubmit(true);
+                    showToast.error("Please upload the screenshot of your payment receipt to proceed.", {
+                        onHide: () => setHasAttemptedSubmit(false),
+                    });
+                    return;
+                }
+
+                if (!isSignatureValid) {
+                    setHasAttemptedSubmit(true);
+                    showToast.error(
+                        isUserMinor
+                            ? "Parent / Guardian signature is required to authorize payment."
+                            : "Please type your full name in the signature field to authorize payment.",
+                        {
+                            onHide: () => setHasAttemptedSubmit(false),
+                        }
+                    );
+                    return;
+                }
+
+                try {
+                    isSubmittingRef.current = true;
+                    setIsSubmitting(true);
+
+                    const newPayment: IPayment<Date> = {
+                        gateway: 'manual_qr',
+                        sessionId: `manual_${Date.now()}`,
+                        referenceCode: manualReferenceCode.trim() || `REF-${Date.now()}`,
+                        amount: amountToPay,
+                        status: 'pending',
+                        createdAt: new Date(),
+                        paidAt: new Date(),
+                        receiptUrl: manualReceiptUrl,
+                        classification: effectivePaymentType as 'full' | 'downpayment',
+                    };
+
+                    const updatedBooking: Booking = {
+                        ...bookingData,
+                        payment: [...(bookingData.payment || []), newPayment],
+                        paymentVerificationStatus: 'pending_verification',
+                        updatedAt: new Date(),
+                    };
+                    delete updatedBooking.paymentRejectionReason;
+
+                    await useBookingsStore.getState().create(updatedBooking, false, true);
+                    setCurrentStep(2);
+                } catch (err: unknown) {
+                    console.error('[PaymentScreen] Manual QR submission failed:', err);
+                    setPaymentError(err instanceof Error ? err.message : "Failed to submit receipt. Please try again.");
+                } finally {
+                    isSubmittingRef.current = false;
+                    setIsSubmitting(false);
+                }
+                return;
+            }
 
             if (!selectedMethod) {
                 setHasAttemptedSubmit(true);
@@ -312,6 +374,8 @@ const PaymentScreen = ({
         isSignatureValid,
         isUserMinor,
         showToast,
+        manualReceiptUrl,
+        manualReferenceCode,
     ]);
 
     const handleHeaderBackPress = useCallback(() => {
@@ -348,9 +412,41 @@ const PaymentScreen = ({
             };
         }
         if (currentStep === 1) {
+            if (PAYMENT_CONFIG.PROVIDER === 'manual_qr') {
+                const isReady = Boolean(manualReceiptUrl && isSignatureValid);
+                const isRejected = bookingData?.paymentVerificationStatus === 'rejected';
+                return {
+                    title: isSubmitting
+                        ? "Submitting Receipt..."
+                        : (isRejected ? "Resubmit Payment & Receipt" : "Submit Payment & Receipt"),
+                    onPress: handleNextStep,
+                    disabled: isSubmitting,
+                    isLoading: isSubmitting,
+                    validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                    isIdleDisabled: false,
+                    style: {
+                        backgroundColor: isReady
+                            ? Colors.PRIMARY
+                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_BG : Colors.GRAY_ULTRALIGHT),
+                        borderColor: isReady
+                            ? Colors.PRIMARY
+                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.GRAY_LIGHT),
+                        borderWidth: 1.5,
+                    },
+                    textStyle: {
+                        color: isReady
+                            ? Colors.WHITE
+                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.TEXT_SECONDARY),
+                    },
+                };
+            }
+
             const isReady = Boolean(selectedMethod && isSignatureValid);
+            const isRejected = bookingData?.paymentVerificationStatus === 'rejected';
             return {
-                title: isSubmitting ? "Opening Gateway..." : "Continue to Payment",
+                title: isSubmitting
+                    ? "Opening Gateway..."
+                    : (isRejected ? "Resubmit Payment" : "Continue to Payment"),
                 onPress: handleNextStep,
                 disabled: isSubmitting || isWaitingForVerification,
                 isLoading: isSubmitting,
@@ -388,7 +484,18 @@ const PaymentScreen = ({
             disabled: false,
             isLoading: false,
         };
-    }, [isWaitingForVerification, currentStep, selectedMethod, isSignatureValid, isSubmitting, hasAttemptedSubmit, handleNextStep, handleCancelVerification]);
+    }, [
+        isWaitingForVerification,
+        currentStep,
+        selectedMethod,
+        isSignatureValid,
+        isSubmitting,
+        hasAttemptedSubmit,
+        handleNextStep,
+        handleCancelVerification,
+        manualReceiptUrl,
+        bookingData?.paymentVerificationStatus,
+    ]);
 
     const lineFillPercentage = ((currentStep - 1) / 1) * 100;
 
@@ -446,28 +553,47 @@ const PaymentScreen = ({
 
             <View style={styles.contentArea}>
                 {currentStep === 1 && (
-                    <MethodScreen
-                        amountToPay={amountToPay}
-                        paymentType={effectivePaymentType}
-                        setPaymentType={setPaymentType}
-                        selectedMethod={selectedMethod}
-                        setSelectedMethod={setSelectedMethod}
-                        profileFullName={expectedSignatureName}
-                        setIsSignatureValid={setIsSignatureValid}
-                        paymentError={paymentError}
-                        isPayingBalance={isPayingBalance}
-                        isMinor={isUserMinor}
-                        minorName={hikerFullName}
-                        activeTutorialStep={tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined}
-                        isTutorialVisible={tutorial.isVisible}
-                    />
+                    PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? (
+                        <ManualQRMethodScreen
+                            bookingData={bookingData}
+                            amountToPay={amountToPay}
+                            paymentType={effectivePaymentType}
+                            setPaymentType={setPaymentType}
+                            receiptUrl={manualReceiptUrl}
+                            setReceiptUrl={setManualReceiptUrl}
+                            referenceCode={manualReferenceCode}
+                            setReferenceCode={setManualReferenceCode}
+                            profileFullName={expectedSignatureName}
+                            setIsSignatureValid={setIsSignatureValid}
+                            paymentError={paymentError}
+                            isPayingBalance={isPayingBalance}
+                            isMinor={isUserMinor}
+                            minorName={hikerFullName}
+                        />
+                    ) : (
+                        <MethodScreen
+                            amountToPay={amountToPay}
+                            paymentType={effectivePaymentType}
+                            setPaymentType={setPaymentType}
+                            selectedMethod={selectedMethod}
+                            setSelectedMethod={setSelectedMethod}
+                            profileFullName={expectedSignatureName}
+                            setIsSignatureValid={setIsSignatureValid}
+                            paymentError={paymentError}
+                            isPayingBalance={isPayingBalance}
+                            isMinor={isUserMinor}
+                            minorName={hikerFullName}
+                            activeTutorialStep={tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined}
+                            isTutorialVisible={tutorial.isVisible}
+                        />
+                    )
                 )}
                 {currentStep === 2 && (
                     <StatusScreen
-                        selectedMethod={latestPayment?.gateway || selectedMethod}
+                        selectedMethod={PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? 'Manual QR' : (latestPayment?.gateway || selectedMethod)}
                         amountToPay={latestPayment?.amount || amountToPay}
                         bookingId={bookingData?.id}
-                        referenceCode={latestPayment?.referenceCode || latestPayment?.sessionId}
+                        referenceCode={manualReferenceCode || latestPayment?.referenceCode || latestPayment?.sessionId}
                         activeTutorialStep={tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined}
                         isTutorialVisible={tutorial.isVisible}
                     />

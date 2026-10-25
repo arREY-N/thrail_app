@@ -153,6 +153,18 @@ const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
 // ── Admin (Business Admin) Navigation Sections ──
 const ADMIN_NAV_SECTIONS: NavSection[] = [
   {
+    title: "ADMIN MAIN",
+    items: [
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        icon: "grid",
+        library: "Feather",
+        route: "/(app)/(main)/admin",
+      },
+    ],
+  },
+  {
     title: "MANAGEMENT",
     items: [
       {
@@ -172,7 +184,7 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
       {
         id: "personnel",
         label: "Personnel",
-        icon: "map",
+        icon: "users",
         library: "Feather",
         route: "/(app)/(main)/admin/personnel/list",
       },

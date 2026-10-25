@@ -265,7 +265,7 @@ In an unweighted 32-dimensional feature space, every feature dimension contribut
 2. **Profile Update Distortion:** In the post-hike feedback loop (updating user profiles after completing hikes), if categorical amenities carry equal weight, a user who hikes a popular, commercialized minor trail with abundant amenities would see their entire vector inflated with high amenity weights. Subsequent recommendations would then prioritize commercialized, developed trails over raw wilderness trails, even if the user has developed the stamina for tougher wilderness routes.
 
 ### 10.2 Calibrated 5 Pillar Category Model
-To resolve feature imbalance and provide a streamlined administrative workflow, the TARS engine structures all 32 dimensions into **5 Pillar Categories**. Physical trail characteristics (Difficulty, Terrain, Route Type) are all prioritized over geographic administrative boundaries (Location / Province), while Scenery & Amenities is configured as the smallest category overall:
+To resolve feature imbalance and provide a streamlined administrative workflow, the THARESYS engine structures all 32 dimensions into **5 Pillar Categories**. Physical trail characteristics (Difficulty, Terrain, Route Type) are all prioritized over geographic administrative boundaries (Location / Province), while Scenery & Amenities is configured as the smallest category overall:
 
 | Category Group | Features Included | Total Category Weight | Relative Influence & Domain Role |
 | :--- | :--- | :---: | :--- |

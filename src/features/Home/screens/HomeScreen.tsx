@@ -418,7 +418,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
         <TrailOfTheMonthCard
           recommendation={recommendation}
           trails={discoverTrails}
-          isLoading={isLoading || isRecommendationsLoading}
+          isLoading={isRecommendationsLoading}
           error={recommendationsError}
           isNewAccount={isNewAccount}
           onPress={onTrailOfTheMonthPress}

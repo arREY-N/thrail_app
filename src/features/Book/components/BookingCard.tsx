@@ -9,8 +9,9 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getStatusConfig } from '@/src/constants/statusConfig';
 import { DateInput, formatBookingDate, safeParseDateString } from '@/src/utils/dateFormatter';
 
-import { Booking } from '@/src/core/models/Booking/Booking';
+import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 
 const getFormattedUpdateStatus = (
     updatedAt: DateInput,
@@ -85,12 +86,35 @@ const BookingCard: React.FC<BookingCardProps> = ({
     let displayStatus = booking?.status;
 
     const payments = booking?.payment || [];
-    const hasRefund = payments.some(p => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+    const isPayMongo = payments.some(p => p.gateway === 'paymongo');
+    const hasRefundedPayment = payments.some(p => p.status === 'refunded' || (p.refundedAmount || 0) > 0);
+    const isAllRefunded = payments.length > 0 && payments.every(p => p.status === 'refunded');
+    const hasRefundReceipt = Boolean(cancellation?.adminRefundReceiptUrl);
+
+    const isRefundComplete =
+        booking?.status === 'refunded' ||
+        hasRefundReceipt ||
+        cancellation?.handshakeStep === 'completed' ||
+        isAllRefunded ||
+        (isPayMongo && hasRefundedPayment);
 
     if (cancellation?.status === 'pending') {
         displayStatus = 'for-cancellation';
     } else if (cancellation?.status === 'approved') {
-        displayStatus = (hasRefund || booking?.status === 'refunded') ? 'refunded' : (payments.length > 0 ? 'refund' : 'cancelled');
+        const hasCapturedPayments = payments.some(p => p.status === 'captured');
+        const isManualRefundPending =
+            !isPayMongo &&
+            ((cancellation.handshakeStep && cancellation.handshakeStep !== 'completed') ||
+             payments.some(p => p.gateway === 'manual_qr') ||
+             PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
+        if (isRefundComplete) {
+            displayStatus = 'refunded';
+        } else if (isManualRefundPending && (hasCapturedPayments || cancellation.refundAmount)) {
+            displayStatus = 'refund';
+        } else {
+            displayStatus = 'cancelled';
+        }
     } else if (
         cancellation?.status === 'rejected' &&
         booking?.status !== 'cancelled' &&
@@ -101,14 +125,13 @@ const BookingCard: React.FC<BookingCardProps> = ({
     }
 
     if (displayStatus === 'cancelled' || displayStatus === 'for-cancellation' || displayStatus === 'refund') {
-        if (hasRefund || booking?.status === 'refunded') {
+        if (isRefundComplete) {
             displayStatus = 'refunded';
         }
     }
 
     const isDead = [
         'cancelled',
-        'refund', 
         'refunded', 
         'cancellation-rejected', 
         'reschedule-rejected',
@@ -127,14 +150,43 @@ const BookingCard: React.FC<BookingCardProps> = ({
     const configRole = (role === 'admin' || role === 'superadmin') ? 'admin' : 'user';
     const statusConfig = getStatusConfig(displayStatus, configRole);
 
+    const isPaymentVerifying = booking?.paymentVerificationStatus === 'pending_verification' ||
+        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+
+    const isPaymentRejected = booking?.paymentVerificationStatus === 'rejected' ||
+        (displayStatus === 'for-payment' && Boolean(booking?.payment?.length && booking.payment[booking.payment.length - 1].status === 'rejected'));
+
     let actionLabel = "View Details";
     let actionColor: string = Colors.PRIMARY;
     let actionIcon = "chevron-right";
 
     if (!isPast && !isDead) {
-        if (['for-payment', 'approved-docs'].includes(displayStatus || '')) {
-            actionLabel = "Pay Now";
-            actionColor = Colors.SUCCESS; 
+        if (displayStatus === 'refund') {
+            const isAwaitingDecision = cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || (!cancellation?.refundAmount && cancellation?.refundDecision !== 'no_refund');
+            if (isAwaitingDecision) {
+                actionLabel = "Awaiting Decision";
+                actionColor = Colors.STATUS_PENDING_TEXT;
+            } else if (!isPayMongo && !cancellation?.userWallet?.accountNumber) {
+                actionLabel = "Submit Wallet";
+                actionColor = Colors.WARNING;
+            } else if (!isPayMongo) {
+                actionLabel = "Awaiting Payout";
+                actionColor = Colors.PRIMARY;
+            } else {
+                actionLabel = "View Details";
+                actionColor = Colors.PRIMARY;
+            }
+        } else if (['for-payment', 'approved-docs'].includes(displayStatus || '')) {
+            if (isPaymentRejected) {
+                actionLabel = "Resubmit Payment";
+                actionColor = Colors.ERROR;
+            } else if (isPaymentVerifying) {
+                actionLabel = "View Details";
+                actionColor = Colors.PRIMARY;
+            } else {
+                actionLabel = "Pay Now";
+                actionColor = Colors.SUCCESS; 
+            }
         } else if (displayStatus === 'reservation-rejected') {
             actionLabel = "Update Docs";
             actionColor = Colors.ERROR;
@@ -144,14 +196,15 @@ const BookingCard: React.FC<BookingCardProps> = ({
         }
     }
 
-    const isRejection = ['reservation-rejected', 'cancellation-rejected', 'reschedule-rejected'].includes(displayStatus || '');
-    const isPaymentNeeded = ['for-payment', 'approved-docs'].includes(displayStatus || '');
+    const isRejection = ['reservation-rejected', 'cancellation-rejected', 'reschedule-rejected'].includes(displayStatus || '') || isPaymentRejected;
+    const isPaymentNeeded = ['for-payment', 'approved-docs'].includes(displayStatus || '') && !isPaymentVerifying;
+    const isWalletNeeded = displayStatus === 'refund' && !isPayMongo && !cancellation?.userWallet?.accountNumber;
     const isDownpayment = displayStatus === 'downpayment';
 
     const borderHighlightStyle = !isPast && !isDead
         ? isRejection
             ? styles.rejectionBorder
-            : isPaymentNeeded
+            : (isPaymentNeeded || isWalletNeeded)
               ? styles.paymentBorder
               : isDownpayment
                 ? styles.downpaymentBorder
@@ -177,6 +230,11 @@ const BookingCard: React.FC<BookingCardProps> = ({
     const businessName = booking?.business?.name || 'Independent Guide';
     const formattedDate = formatBookingDate(booking?.offer?.date, undefined, true);
     const price = booking?.offer?.price || 0;
+    const capturedAmount = booking?.payment?.reduce((sum: number, p: IPayment<Date>) => p.status === 'captured' ? sum + (p.amount || 0) : sum, 0) || 0;
+    const remainingBalance = booking?.remainingBalance !== undefined 
+        ? booking.remainingBalance 
+        : Math.max(0, price - capturedAmount);
+    const amountPaid = capturedAmount > 0 ? capturedAmount : Math.max(0, price - remainingBalance);
 
     return (
         <TouchableOpacity 
@@ -196,22 +254,32 @@ const BookingCard: React.FC<BookingCardProps> = ({
                 <View 
                     style={[
                         styles.statusPill, 
-                        { backgroundColor: statusConfig.bgColor }
+                        {
+                            backgroundColor: isPaymentRejected
+                                ? Colors.ERROR_BG
+                                : (isPaymentVerifying ? Colors.STATUS_PENDING_BG : statusConfig.bgColor)
+                        }
                     ]}
                 >
                     <CustomIcon 
                         library="Feather" 
-                        name={statusConfig.icon} 
+                        name={isPaymentRejected ? "alert-triangle" : (isPaymentVerifying ? "clock" : statusConfig.icon)} 
                         size={12} 
-                        color={statusConfig.textColor} 
+                        color={isPaymentRejected ? Colors.ERROR : (isPaymentVerifying ? Colors.PRIMARY : statusConfig.textColor)} 
                     />
                     <CustomText 
                         style={[
                             styles.statusPillText, 
-                            { color: statusConfig.textColor }
+                            {
+                                color: isPaymentRejected
+                                    ? Colors.ERROR
+                                    : (isPaymentVerifying ? Colors.PRIMARY : statusConfig.textColor)
+                            }
                         ]}
                     >
-                        {statusConfig.label}
+                        {isPaymentRejected
+                            ? "PAYMENT REJECTED"
+                            : (isPaymentVerifying ? "VERIFYING PAYMENT" : statusConfig.label)}
                     </CustomText>
                 </View>
             </View>
@@ -246,6 +314,26 @@ const BookingCard: React.FC<BookingCardProps> = ({
                 </View>
             </View>
 
+            {isPaymentRejected && (
+                <View style={styles.rejectionReasonBanner}>
+                    <CustomIcon library="Feather" name="alert-circle" size={13} color={Colors.ERROR} />
+                    <CustomText style={styles.rejectionReasonText} numberOfLines={2}>
+                        {booking?.paymentRejectionReason
+                            ? `Payment Rejected: "${booking.paymentRejectionReason}"`
+                            : "Payment receipt rejected. Please tap to resubmit."}
+                    </CustomText>
+                </View>
+            )}
+
+            {isPaymentVerifying && (
+                <View style={styles.verifyingBanner}>
+                    <CustomIcon library="Feather" name="clock" size={13} color={Colors.PRIMARY} />
+                    <CustomText style={styles.verifyingText} numberOfLines={1}>
+                        Payment receipt submitted. Organizer verification in progress.
+                    </CustomText>
+                </View>
+            )}
+
             <View style={styles.dottedDivider} />
 
             <View style={styles.bottomRow}>
@@ -253,7 +341,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
                     <View style={styles.priceColumnContainer}>
                         <View style={styles.flexCol}>
                             <CustomText variant="caption" style={styles.dataLabel}>
-                                Paid (50%)
+                                Deposit Paid
                             </CustomText>
                             <CustomText 
                                 variant="h2" 
@@ -262,7 +350,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
                                     { color: Colors.SUCCESS }
                                 ]}
                             >
-                                ₱{(price / 2).toFixed(2)}
+                                ₱{amountPaid.toFixed(2)}
                             </CustomText>
                         </View>
                         <View style={styles.flexCol}>
@@ -276,7 +364,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
                                     { color: Colors.WARNING }
                                 ]}
                             >
-                                ₱{(price / 2).toFixed(2)}
+                                ₱{remainingBalance.toFixed(2)}
                             </CustomText>
                         </View>
                     </View>
@@ -428,7 +516,44 @@ const styles = StyleSheet.create({
     viewDetailsText: { 
         fontWeight: 'bold', 
         fontSize: 14 
-    }
+    },
+    rejectionReasonBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: Colors.ERROR_BG,
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+    },
+    rejectionReasonText: {
+        flex: 1,
+        fontSize: 12,
+        color: Colors.ERROR,
+        lineHeight: 16,
+    },
+    verifyingBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: Colors.STATUS_PENDING_BG,
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: Colors.PRIMARY,
+    },
+    verifyingText: {
+        flex: 1,
+        fontSize: 12,
+        color: Colors.PRIMARY,
+        fontWeight: '600',
+        lineHeight: 16,
+    },
 });
 
 export default BookingCard;

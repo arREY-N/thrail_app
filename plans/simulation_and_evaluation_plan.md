@@ -1,16 +1,16 @@
-# TARS Engine Simulation & Evaluation Plan: 4-Pillar Quality Benchmark
+# THARESYS Engine Simulation & Evaluation Plan: 4-Pillar Quality Benchmark
 
-This document outlines the simulation, evaluation methodology, and comparison metrics used to test and benchmark the 9 formula configurations of the **Thrail App Recommendation System (TARS)**.
+This document outlines the simulation, evaluation methodology, and comparison metrics used to test and benchmark the 9 formula configurations of the **Thrail App Recommendation System (THARESYS)**.
 
 ---
 
 ## 1. Objective
 
-To determine which of the 9 TARS engine configurations produces the highest quality, most personalized, and logically sound hiking recommendations when tested across diverse user cohorts.
+To determine which of the 9 THARESYS engine configurations produces the highest quality, most personalized, and logically sound hiking recommendations when tested across diverse user cohorts.
 
 ---
 
-## 2. The 9 TARS Engine Configurations
+## 2. The 9 THARESYS Engine Configurations
 
 The hybrid recommendation score is computed as:
 `R_tu = (alpha * CBF_score) + ((1 - alpha) * CF_score)`

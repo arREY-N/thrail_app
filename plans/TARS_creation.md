@@ -1,8 +1,8 @@
-# Thrail App Recommendation System (TARS) - Complete Creation & Architecture Log
+# Thrail App Recommendation System (THARESYS) - Complete Creation & Architecture Log
 
 ## 1. Executive Summary & Architectural Overview
 
-The **Thrail App Recommendation System (TARS)** is an intelligent, hybrid machine-learning recommendation engine engineered specifically for outdoor mountaineering and trail discovery. It bridges algorithmic feature similarity, collaborative peer behavior, and AI mountaineering coaching into a cohesive mobile and web experience.
+The **Thrail App Recommendation System (THARESYS)** is an intelligent, hybrid machine-learning recommendation engine engineered specifically for outdoor mountaineering and trail discovery. It bridges algorithmic feature similarity, collaborative peer behavior, and AI mountaineering coaching into a cohesive mobile and web experience.
 
 ### Core Objectives
 1. **Personalized Safety & Physical Match:** Protect hikers by prioritizing physiological capability alignment (elevation gain, slope gradient, trail length) over aesthetic preferences.
@@ -46,12 +46,12 @@ The **Thrail App Recommendation System (TARS)** is an intelligent, hybrid machin
 
 ## 2. Mathematical Foundations & Distance Engines
 
-All distance functions in TARS produce scores strictly bounded in the range `[0.000, 1.000]`:
+All distance functions in THARESYS produce scores strictly bounded in the range `[0.000, 1.000]`:
 - **`0.000`** = Perfect Alignment / Minimum Distance (Maximum Recommendation Affinity).
 - **`1.000`** = Complete Dissimilarity / Maximum Distance.
 
 ### 2.1. Formula 1: Gower's Distance (GD)
-Gower's Distance is the default metric for TARS because it gracefully handles mixed data types (continuous physical measurements, categorical provinces, and binary amenity presence flags):
+Gower's Distance is the default metric for THARESYS because it gracefully handles mixed data types (continuous physical measurements, categorical provinces, and binary amenity presence flags):
 
 $$\text{dist}_{\text{GD}} = \frac{1}{N} \sum_{i=1}^{N} w_i \cdot |V_{A}[i] - V_{B}[i]|$$
 
@@ -97,10 +97,13 @@ Where:
 - $\text{CBF} = \text{distance}_{\text{CBF}}(\text{User\_Anchor}, \text{Trail\_Vector})$
 - $\text{CF} = \frac{1}{|\text{Peers}|} \sum_{P \in \text{Peers}} \left( \text{distance}_{\text{CF}}(\text{User}, P) \times \text{distance}_{\text{CF}}(P, \text{Trail}) \right)$
 
-#### Dual-Anchor Execution:
-1. **Easy Set:** Uses the user's calibrated `Easy_Anchor_Vector` to identify optimal recovery or entry-level trails.
-2. **Difficult Set:** Uses the user's `Difficult_Anchor_Vector` to identify aspiration-aligned, challenging trails.
-3. **Peer Pool Isolation:** The active user is strictly excluded from `Peers` ($P \neq \text{User}$) to prevent self-distance ($0.0$) from artificially deflating collaborative averages.
+#### Dual-Anchor Execution & Disjoint Partitioning:
+1. **Distance Comparison:** Candidate trails are scored against both `Easy_Anchor_Vector` ($score_{easy}$) and `Difficult_Anchor_Vector` ($score_{diff}$).
+2. **Disjoint Allocation:** The trail is assigned exclusively to the closer profile (lower distance):
+   - $score_{easy} \le score_{diff} \rightarrow$ Assigned to **Easy**.
+   - $score_{diff} < score_{easy} \rightarrow$ Assigned to **Difficult**.
+3. **Safety-First & Challenge of the Month Fallback:** If all available trails exceed the user's comfortable capability ($score_{diff} < score_{easy}$ for all trails), the Easy list remains empty (`[]`) as is. The system will never force a difficult trail into the easy bucket. Instead, the spotlight card on the Home Screen dynamically transforms into **"Your Challenge of the Month"**, selecting the **nearest difficult trail to the user's easy anchor**, while `view.tsx` displays an explicit **Challenge Spotlight Notice** detailing physical demands and urging guided preparation.
+4. **Peer Pool Isolation:** The active user is strictly excluded from `Peers` ($P \neq \text{User}$) to prevent self-distance ($0.0$) from artificially deflating collaborative averages.
 
 ---
 

@@ -110,6 +110,7 @@ export const Palette = {
 export const Colors = {
     // Brand & Backgrounds
     PRIMARY:          Palette.Green700, 
+    PRIMARY_LIGHT:    Palette.Green50,
     SECONDARY:        Palette.Green400,
     BACKGROUND:       Palette.OffWhite,
     BACKGROUND_FADE:  Palette.OffWhiteAlpha75,
@@ -129,6 +130,7 @@ export const Colors = {
     // Typography
     TEXT_PRIMARY:     Palette.Neutral950, 
     TEXT_SECONDARY:   Palette.Neutral500, 
+    TEXT_MUTED:       Palette.Neutral500,
     TEXT_INVERSE:     Palette.White, 
     TEXT_PLACEHOLDER: Palette.Neutral400,
     

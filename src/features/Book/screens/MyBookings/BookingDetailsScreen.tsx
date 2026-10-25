@@ -29,6 +29,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { Booking, BookingStatus, Requirements } from "@/src/core/models/Booking/Booking";
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { IOffer } from "@/src/core/models/Offer/Offer";
 import { IEmergencyContact, User } from '@/src/core/models/User/User';
 import { logger } from '@/src/core/utility/errorFormatter';
@@ -192,7 +193,9 @@ const BookingDetailsScreen = ({
     const totalAmount = booking?.offer?.price || 0;
     const payments = booking?.payment || [];
     const amountPaid = payments.reduce((sum, p) => {
-        if (p.status === 'captured') return sum + (p.amount || 0);
+        if (p.status === 'captured' || p.status === 'refunded' || ((p.refundedAmount || 0) > 0)) {
+            return sum + (p.amount || 0);
+        }
         return sum;
     }, 0) || 0;
 
@@ -200,14 +203,37 @@ const BookingDetailsScreen = ({
         cancellation?.cancelledBy === 'admin' ||
         (localStatus === 'cancelled' && booking?.cancelledBy === 'admin');
 
-    const hasRefund = payments.some(p => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+    const isPayMongo = payments.some(p => p.gateway === 'paymongo');
+    const hasRefundedPayment = payments.some(p => p.status === 'refunded' || (p.refundedAmount || 0) > 0);
+    const isAllRefunded = payments.length > 0 && payments.every(p => p.status === 'refunded');
+    const hasRefundReceipt = Boolean(cancellation?.adminRefundReceiptUrl);
+
+    const isRefundComplete =
+        localStatus === 'refunded' ||
+        hasRefundReceipt ||
+        cancellation?.handshakeStep === 'completed' ||
+        isAllRefunded ||
+        (isPayMongo && hasRefundedPayment);
 
     let displayStatus: BookingStatus | undefined = localStatus;
 
     if (cancellation?.status === 'pending') {
         displayStatus = 'for-cancellation';
     } else if (cancellation?.status === 'approved') {
-        displayStatus = (hasRefund || localStatus === 'refunded') ? 'refunded' : (amountPaid > 0 ? 'refund' : 'cancelled');
+        const hasCapturedPayments = payments.some(p => p.status === 'captured');
+        const isManualRefundPending =
+            !isPayMongo &&
+            ((cancellation.handshakeStep && cancellation.handshakeStep !== 'completed') ||
+             payments.some(p => p.gateway === 'manual_qr') ||
+             PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
+        if (isRefundComplete) {
+            displayStatus = 'refunded';
+        } else if (isManualRefundPending && (hasCapturedPayments || cancellation?.refundAmount)) {
+            displayStatus = 'refund';
+        } else {
+            displayStatus = 'cancelled';
+        }
     } else if (
         cancellation?.status === 'rejected' &&
         localStatus !== 'cancelled' &&
@@ -218,7 +244,7 @@ const BookingDetailsScreen = ({
     }
 
     if (displayStatus === 'cancelled' || displayStatus === 'for-cancellation' || displayStatus === 'refund') {
-        if (hasRefund || localStatus === 'refunded') {
+        if (isRefundComplete) {
             displayStatus = 'refunded';
         }
     }
@@ -226,6 +252,12 @@ const BookingDetailsScreen = ({
     // Ensure cancelled or refunded bookings do not display a false remaining balance
     const isInactiveBooking = displayStatus === 'cancelled' || displayStatus === 'refunded' || localStatus === 'cancelled' || localStatus === 'refunded';
     const remainingBalance = isInactiveBooking ? 0 : Math.max(0, totalAmount - amountPaid);
+
+    const isPaymentVerifying = booking?.paymentVerificationStatus === 'pending_verification' ||
+        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+
+    const isPaymentRejected = booking?.paymentVerificationStatus === 'rejected' ||
+        (displayStatus === 'for-payment' && Boolean(booking?.payment?.length && booking.payment[booking.payment.length - 1].status === 'rejected'));
 
     const user = booking?.user;
 
@@ -587,7 +619,62 @@ const BookingDetailsScreen = ({
                     <BookingStatusComponent
                         status={displayStatus}
                         isPaid={hasHistoricalPayments}
+                        isPaymentRejected={isPaymentRejected}
+                        isPaymentVerifying={isPaymentVerifying}
                     />
+
+                    {isPaymentVerifying && (
+                        <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
+                            <View style={styles.paymentPendingBanner}>
+                                <View style={styles.paymentPendingHeader}>
+                                    <View style={styles.paymentPendingIconCircle}>
+                                        <CustomIcon library="Feather" name="clock" size={18} color={Colors.PRIMARY} />
+                                    </View>
+                                    <View style={styles.paymentPendingTitleContainer}>
+                                        <CustomText style={styles.paymentPendingTitle}>
+                                            Payment Verification in Progress
+                                        </CustomText>
+                                        <CustomText variant="caption" style={styles.paymentPendingSubtitle}>
+                                            Your payment receipt has been submitted and is currently being verified by the organizer. You will be notified once it is approved.
+                                        </CustomText>
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+
+                    {isPaymentRejected && (
+                        <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
+                            <View style={styles.paymentRejectionBanner}>
+                                <View style={styles.paymentRejectionHeader}>
+                                    <View style={styles.paymentRejectionIconCircle}>
+                                        <CustomIcon library="Feather" name="alert-triangle" size={18} color={Colors.ERROR} />
+                                    </View>
+                                    <View style={styles.paymentRejectionTitleContainer}>
+                                        <CustomText style={styles.paymentRejectionTitle}>
+                                            Payment Verification Rejected
+                                        </CustomText>
+                                        <CustomText variant="caption" style={styles.paymentRejectionSubtitle}>
+                                            Your payment receipt could not be verified by the organizer.
+                                        </CustomText>
+                                    </View>
+                                </View>
+                                {booking?.paymentRejectionReason ? (
+                                    <View style={styles.paymentRejectionReasonBox}>
+                                        <CustomText variant="caption" style={styles.paymentRejectionReasonLabel}>
+                                            Organizer Feedback:
+                                        </CustomText>
+                                        <CustomText style={styles.paymentRejectionReasonText}>
+                                            {`"${booking.paymentRejectionReason}"`}
+                                        </CustomText>
+                                    </View>
+                                ) : null}
+                                <CustomText variant="caption" style={styles.paymentRejectionHintText}>
+                                    Please review the feedback above and resubmit your payment and valid receipt to confirm your reservation.
+                                </CustomText>
+                            </View>
+                        </View>
+                    )}
 
                     {wasAdminCancellationLifted && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
@@ -783,6 +870,7 @@ const BookingDetailsScreen = ({
                         amountPaid={amountPaid}
                         remainingBalance={remainingBalance}
                         payments={booking?.payment || []}
+                        refundedAmount={booking?.refundedAmount || cancellation?.refundAmount}
                     />
 
                 </View>
@@ -1051,6 +1139,105 @@ const styles = StyleSheet.create({
     bulletText: {
         flex: 1,
         lineHeight: 22
+    },
+    paymentRejectionBanner: {
+        backgroundColor: Colors.ERROR_BG,
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 1.5,
+        borderColor: Colors.ERROR_BORDER,
+        gap: 12,
+    },
+    paymentRejectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    paymentRejectionIconCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: Colors.WHITE,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+    },
+    paymentRejectionTitleContainer: {
+        flex: 1,
+        gap: 2,
+    },
+    paymentRejectionTitle: {
+        fontWeight: 'bold',
+        fontSize: 15,
+        color: Colors.ERROR,
+    },
+    paymentRejectionSubtitle: {
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 18,
+    },
+    paymentRejectionReasonBox: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 8,
+        padding: 12,
+        borderLeftWidth: 3,
+        borderLeftColor: Colors.ERROR,
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+        gap: 4,
+    },
+    paymentRejectionReasonLabel: {
+        fontWeight: '600',
+        color: Colors.ERROR,
+        textTransform: 'uppercase',
+        fontSize: 11,
+        letterSpacing: 0.5,
+    },
+    paymentRejectionReasonText: {
+        color: Colors.TEXT_PRIMARY,
+        fontSize: 13,
+        lineHeight: 18,
+        fontStyle: 'italic',
+    },
+    paymentRejectionHintText: {
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 18,
+    },
+    paymentPendingBanner: {
+        backgroundColor: Colors.STATUS_PENDING_BG,
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 1.5,
+        borderColor: Colors.PRIMARY,
+        gap: 12,
+    },
+    paymentPendingHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    paymentPendingIconCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: Colors.WHITE,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: Colors.PRIMARY,
+    },
+    paymentPendingTitleContainer: {
+        flex: 1,
+        gap: 2,
+    },
+    paymentPendingTitle: {
+        fontWeight: 'bold',
+        fontSize: 15,
+        color: Colors.PRIMARY,
+    },
+    paymentPendingSubtitle: {
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 18,
     },
 });
 

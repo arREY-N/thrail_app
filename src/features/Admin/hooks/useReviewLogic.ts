@@ -1,3 +1,4 @@
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { getStatusConfig } from '@/src/constants/statusConfig';
 import {
     calculateVerificationValidity,
@@ -59,7 +60,7 @@ export default function useReviewLogic(
             : (booking?.status || 'for-reservation'));
             
     const displayCancellationReason = hasRefundedPayment 
-        ? 'Refund processed securely via PayMongo.' 
+        ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? 'Refund processed.' : 'Refund processed securely via PayMongo.') 
         : (cancellationRequest?.reason || booking?.cancellationReason);
 
     const isCancellationPending = (cancellationRequest?.status === 'pending') || currentStatus === 'for-cancellation';

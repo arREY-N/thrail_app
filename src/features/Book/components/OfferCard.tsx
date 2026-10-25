@@ -139,7 +139,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                         </CustomText>
                     </View>
 
-                    {offer.duration && (
+                    {Boolean(offer.duration) && (
                         <View style={styles.durationRow}>
                             <CustomIcon 
                                 library="Feather" 
@@ -203,7 +203,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                         / Per Person
                     </CustomText>
                     
-                    {(offer.minPax || offer.maxPax) && (
+                    {Boolean(offer.minPax || offer.maxPax) && (
                         <CustomText variant="caption" style={styles.paxText}>
                             {offer.minPax}-{offer.maxPax} Pax required
                         </CustomText>
@@ -214,7 +214,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
             {isSelected && (
                 <View style={styles.expandedContent}>
                     
-                    {offer.description && (
+                    {Boolean(offer.description) && (
                         <View style={styles.detailBlock}>
                             <CustomText 
                                 variant="label" 
@@ -231,7 +231,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                         </View>
                     )}
 
-                     {offer.schedule && offer.schedule.length > 0 && (
+                     {Boolean(offer.schedule && offer.schedule.length > 0) && (
                         <View style={styles.detailBlock}>
                             <View style={styles.itineraryHeaderRow}>
                                 <CustomText 
@@ -361,7 +361,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                         </View>
                     )}
 
-                    {offer.inclusions && offer.inclusions.length > 0 && (
+                    {Boolean(offer.inclusions && offer.inclusions.length > 0) && (
                         <View style={styles.detailBlock}>
                             <CustomText 
                                 variant="label" 
@@ -391,7 +391,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                         </View>
                     )}
 
-                    {offer.thingsToBring && offer.thingsToBring.length > 0 && (
+                    {Boolean(offer.thingsToBring && offer.thingsToBring.length > 0) && (
                         <View style={styles.detailBlock}>
                             <CustomText 
                                 variant="label" 
@@ -418,7 +418,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
                         </View>
                     )}
 
-                    {offer.reminders && offer.reminders.length > 0 && (
+                    {Boolean(offer.reminders && offer.reminders.length > 0) && (
                         <View style={styles.simpleWarningBox}>
                             
                             <View style={styles.warningHeader}>

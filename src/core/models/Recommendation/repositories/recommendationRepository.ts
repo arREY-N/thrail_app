@@ -1,8 +1,17 @@
 import { db } from '@/src/core/config/Firebase';
 import { IAITrailReasoning, Recommendation } from '@/src/core/models/Recommendation/interfaces/Recommendation.types';
+import { SAMPLE_CHALLENGE_RECOMMENDATION } from '@/src/core/models/Recommendation/mocks/sampleRecommendation';
 import { recommendationConverter } from '@/src/core/models/Recommendation/utils/RecommendationFactory';
 import getRecoID from '@/src/core/utility/recommendation';
 import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
+
+/**
+ * Temporary UI Testing Flag:
+ * Feeds the sample Challenge of the Month recommendation document to the current user
+ * (with empty easy list and Mt. Daraitan as the nearest challenge) to test the UI flow.
+ * Set to false to resume reading from Firestore.
+ */
+export const USE_SAMPLE_CHALLENGE_MOCK = false;
 
 const createRecommendationsCollection = (db: any, uid: string) => {
     return collection(db, 'users', uid, 'recommendations').withConverter(recommendationConverter);
@@ -14,6 +23,10 @@ export const RecommendationRepository = (db: any) => ({
      * @param uid The user ID.
      */
     async fetchAll(uid: string): Promise<Recommendation[]> {
+        if (USE_SAMPLE_CHALLENGE_MOCK) {
+            return [SAMPLE_CHALLENGE_RECOMMENDATION];
+        }
+
         try {
             if (!uid) throw new Error('UID or Recommendation ID missing.');
             const ref = createRecommendationsCollection(db, uid);
@@ -35,6 +48,10 @@ export const RecommendationRepository = (db: any) => ({
      * @param uid The user ID.
      */
     async fetchCurrent(uid: string): Promise<Recommendation | null> {
+        if (USE_SAMPLE_CHALLENGE_MOCK) {
+            return SAMPLE_CHALLENGE_RECOMMENDATION;
+        }
+
         if (!uid) return null;
         const recoID = getRecoID();
 
@@ -44,8 +61,8 @@ export const RecommendationRepository = (db: any) => ({
             if (
                 currentMonthReco &&
                 ((currentMonthReco.easy && currentMonthReco.easy.length > 0) ||
-                 (currentMonthReco.trails && currentMonthReco.trails.length > 0) ||
-                 (currentMonthReco.difficult && currentMonthReco.difficult.length > 0))
+                    (currentMonthReco.trails && currentMonthReco.trails.length > 0) ||
+                    (currentMonthReco.difficult && currentMonthReco.difficult.length > 0))
             ) {
                 return currentMonthReco;
             }
@@ -91,6 +108,10 @@ export const RecommendationRepository = (db: any) => ({
      * @param monthId Month string in YYYY-MM format.
      */
     async fetchByMonth(uid: string, monthId: string): Promise<Recommendation | null> {
+        if (USE_SAMPLE_CHALLENGE_MOCK) {
+            return SAMPLE_CHALLENGE_RECOMMENDATION;
+        }
+
         try {
             if (!uid || !monthId) throw new Error('UID or Month ID missing.');
 
@@ -131,4 +152,4 @@ export const RecommendationRepository = (db: any) => ({
     },
 });
 
-export const RecommendationRepo = RecommendationRepository(db);
+export const RecommendationRepo = RecommendationRepository(db);

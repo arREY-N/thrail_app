@@ -2,7 +2,7 @@
  * @file index.tsx
  * @description Orchestrator screen for the Superadmin Recommendation Datasets.
  * Coordinates dataset hooks, switches between domain dataset components (Trails, Users),
- * provides TARS recommendation engine configuration & batch execution modal, and user recommendation inspect viewer.
+ * provides THARESYS recommendation engine configuration & batch execution modal, and user recommendation inspect viewer.
  */
 
 import CustomIcon from "@/src/components/CustomIcon";
@@ -48,7 +48,7 @@ export default function RecommendationDatasetScreen() {
     const [activeDataset, setActiveDataset] = useState<DatasetType>("trails");
     const [hasVisitedUsers, setHasVisitedUsers] = useState<boolean>(false);
 
-    // TARS Engine Modal state
+    // THARESYS Engine Modal state
     const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
 
     const handleSwitchTab = (tab: DatasetType) => {
@@ -73,7 +73,7 @@ export default function RecommendationDatasetScreen() {
                     <TouchableOpacity
                         style={styles.runEngineBtn}
                         onPress={() => setIsConfigModalOpen(true)}
-                        accessibilityLabel="Configure and run TARS recommendation engine"
+                        accessibilityLabel="Configure and run THARESYS recommendation engine"
                     >
                         <CustomIcon library="Feather" name="cpu" size={15} color={Colors.WHITE} />
                         <Text style={styles.runEngineBtnText}>Run Engine</Text>
@@ -214,7 +214,7 @@ export default function RecommendationDatasetScreen() {
                 )}
             </View>
 
-            {/* Modal: TARS Engine Configuration & Execution */}
+            {/* Modal: THARESYS Engine Configuration & Execution */}
             <ConfigureEngineModal
                 visible={isConfigModalOpen}
                 onClose={() => setIsConfigModalOpen(false)}

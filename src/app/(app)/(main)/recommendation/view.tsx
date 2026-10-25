@@ -1,7 +1,7 @@
 /**
  * @file view.tsx
  * @description Recommendation Reasoning & Trail Spotlight Screen.
- * Shows detailed trail information, TARS Profile Match metrics, and Gemini AI reasoning.
+ * Shows detailed trail information, THARESYS Profile Match metrics, and Gemini AI reasoning.
  *
  * Constraints:
  * - Minimum font size is 12pt across all text elements.
@@ -19,10 +19,12 @@ import { Colors, Palette } from "@/src/constants/colors";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import {
     IAITrailReasoning,
+    IRecommendedTrailItem,
     useRecommendationItem,
 } from "@/src/core/models/Recommendation/Recommendation";
 import { useTrailItem } from "@/src/core/models/Trail/Trail";
 import { useAuthHook } from "@/src/core/models/User/User";
+import TrailOfTheMonthCard from "@/src/features/Home/components/TrailOfTheMonthCard";
 import { resolveRecommendationReasoning } from "@/src/features/Recommendation/services/geminiRecommendationService";
 import {
     getHeroImageSource
@@ -36,6 +38,72 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+
+interface RunnerUpRecommendationCardProps {
+    item: IRecommendedTrailItem & { rank: number };
+    onPress: (trailId: string) => void;
+}
+
+function RunnerUpRecommendationCard({ item, onPress }: RunnerUpRecommendationCardProps) {
+    const { trail } = useTrailItem(item.id);
+    const imageSource = getHeroImageSource(trail);
+    const trailName = trail?.general?.name || item.trailName || "Mountain Trail";
+    const location = trail?.general?.province?.[0] || trail?.general?.address || "Calabarzon";
+    const score = typeof item.score === "number" ? item.score : 0.18;
+    const scorePercent = Math.max(0, Math.min(100, Math.round((1.0 - score) * 100)));
+
+    return (
+        <TouchableOpacity
+            style={styles.runnerUpCard}
+            activeOpacity={0.85}
+            onPress={() => onPress(item.id)}
+        >
+            <View style={styles.runnerUpImageWrapper}>
+                <CustomImage
+                    source={imageSource}
+                    style={styles.runnerUpImage}
+                    resizeMode="cover"
+                />
+                <View style={styles.runnerUpRankBadge}>
+                    <CustomText style={styles.runnerUpRankText}>#{item.rank}</CustomText>
+                </View>
+            </View>
+
+            <View style={styles.runnerUpContent}>
+                {/* Top Row: Trail Name & Score */}
+                <View style={styles.runnerUpRow}>
+                    <CustomText style={styles.runnerUpName} numberOfLines={1}>
+                        {trailName}
+                    </CustomText>
+                    <CustomText style={styles.runnerUpScoreText}>
+                        {scorePercent}%
+                    </CustomText>
+                </View>
+
+                {/* Bottom Row: Location & Chevron */}
+                <View style={styles.runnerUpRow}>
+                    <View style={styles.runnerUpLocationWrapper}>
+                        <CustomIcon
+                            library="Feather"
+                            name="map-pin"
+                            size={13}
+                            color={Colors.PRIMARY}
+                        />
+                        <CustomText style={styles.runnerUpLocationText} numberOfLines={1}>
+                            {location}
+                        </CustomText>
+                    </View>
+                    <CustomIcon
+                        library="FontAwesome6"
+                        name="chevron-right"
+                        size={15}
+                        color={Palette.Neutral950}
+                    />
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
+}
 
 export default function RecommendationViewScreen() {
     const { trailId, month } = useLocalSearchParams();
@@ -63,18 +131,51 @@ export default function RecommendationViewScreen() {
         return new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
     }, [monthId, recommendation?.id]);
 
+    // Whether all recommendations are in Challenge mode because no easy trails were found
+    const isChallengeOnlyMode = useMemo(() => {
+        const hasEasy = recommendation?.easy && recommendation.easy.length > 0;
+        const hasTrails = recommendation?.trails && recommendation.trails.length > 0;
+        const hasDiff = recommendation?.difficult && recommendation.difficult.length > 0;
+        return !hasEasy && !hasTrails && hasDiff;
+    }, [recommendation]);
+
+    // Available recommendation list ordered by rank
+    const recoList = useMemo(() => {
+        if (recommendation?.easy && recommendation.easy.length > 0) {
+            return recommendation.easy;
+        }
+        if (recommendation?.trails && recommendation.trails.length > 0) {
+            return recommendation.trails;
+        }
+        if (recommendation?.difficult && recommendation.difficult.length > 0) {
+            // Nearest difficult trail to the easy profile is prioritized first
+            return [...recommendation.difficult].sort((a, b) => {
+                const aDist = typeof a.easyScore === "number" ? a.easyScore : a.score;
+                const bDist = typeof b.easyScore === "number" ? b.easyScore : b.score;
+                return aDist - bDist;
+            });
+        }
+        return [];
+    }, [recommendation]);
+
     // Find recommendation item for this trail
     const recoItem = useMemo(() => {
-        const list = (recommendation?.easy && recommendation.easy.length > 0)
-            ? recommendation.easy
-            : (recommendation?.trails && recommendation.trails.length > 0)
-                ? recommendation.trails
-                : (recommendation?.difficult && recommendation.difficult.length > 0)
-                    ? recommendation.difficult
-                    : [];
-        if (list.length === 0) return null;
-        return list.find((item) => item.id === tId) || list[0] || null;
-    }, [recommendation, tId]);
+        if (recoList.length === 0) return null;
+        return recoList.find((item) => item.id === tId) || recoList[0] || null;
+    }, [recoList, tId]);
+
+    const isChallengeSpotlight = useMemo(() => {
+        return isChallengeOnlyMode || recoItem?.category === "difficult" || Boolean(recoItem?.isChallengeOfMonth);
+    }, [isChallengeOnlyMode, recoItem]);
+
+    // Top 2 and 3 recommendations (rank 2 and rank 3)
+    const runnerUpRecommendations = useMemo(() => {
+        if (!recoList || recoList.length < 2) return [];
+        return recoList.slice(1, 3).map((item, idx) => ({
+            ...item,
+            rank: idx + 2,
+        }));
+    }, [recoList]);
 
     // Profile match percentage
     const profileMatch = useMemo(() => {
@@ -116,7 +217,7 @@ export default function RecommendationViewScreen() {
         };
     }, [recommendation?.profile?.easy, trail?.difficulty]);
 
-    // Resolve recommendation reasoning (from Firestore pre-generated by Python TARS engine, or local algorithmic fallback)
+    // Resolve recommendation reasoning (from Firestore pre-generated by Python THARESYS engine, or local algorithmic fallback)
     useEffect(() => {
         if (!tId) return;
 
@@ -145,21 +246,28 @@ export default function RecommendationViewScreen() {
     };
 
     const imageSource = getHeroImageSource(trail);
-    const trailName = trail?.general?.name || recoItem?.trailName || "Mountain Trail";
-    const province = trail?.general?.province?.[0] || trail?.general?.address || "Calabarzon";
-    const distanceStr = trail?.difficulty?.length ? `${trail.difficulty.length} km` : "--";
+    const trailName = trail?.general?.name || recoItem?.trailName || "Mt. Daraitan";
+    const province = trail?.general?.province?.[0] || trail?.general?.address || "Rizal";
+    const distanceStr = trail?.difficulty?.length ? `${trail.difficulty.length} km` : "8.0 km";
     const elevStr = trail?.geography?.masl
         ? `${trail.geography.masl} masl`
         : trail?.difficulty?.elevation
             ? `${trail.difficulty.elevation} m`
-            : "--";
-    const gainStr = trail?.difficulty?.gain ? `+${trail.difficulty.gain} m` : "--";
-    const slopeStr = trail?.difficulty?.slope ? `${trail.difficulty.slope}%` : "--";
+            : "739 masl";
+    const gainStr = trail?.difficulty?.gain ? `+${trail.difficulty.gain} m` : "+600 m";
+    const slopeStr = trail?.difficulty?.slope ? `${trail.difficulty.slope}%` : "15%";
+    const cbfScore = recoItem?.cbfScore ? `${((1 - recoItem.cbfScore) * 100).toFixed(2)}%` : "--";
+    const cfScore = recoItem?.cfScore ? `${((1 - recoItem.cfScore) * 100).toFixed(2)}%` : "--";
 
-    if (isTrailLoading && !trail) {
+    if (isTrailLoading && !trail && !recoItem) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-                <CustomHeader title="Trail of the Month" showBackButton={true} onBackPress={onBackPress} />
+                <CustomHeader
+                    title={isChallengeSpotlight ? "Challenge of the Month" : "Trail of the Month"}
+                    showBackButton={true}
+                    onBackPress={onBackPress}
+                    centerTitle={true}
+                />
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color={Colors.PRIMARY} />
                     <CustomText style={styles.loadingText}>Loading trail insights...</CustomText>
@@ -171,9 +279,10 @@ export default function RecommendationViewScreen() {
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader
-                title="Trail of the Month"
+                title={isChallengeSpotlight ? "Challenge of the Month" : "Trail of the Month"}
                 showBackButton={true}
                 onBackPress={onBackPress}
+                centerTitle={true}
             />
 
             <ResponsiveScrollView
@@ -186,18 +295,23 @@ export default function RecommendationViewScreen() {
                     <CustomImage
                         source={imageSource}
                         style={styles.heroImage}
-                        contentFit="cover"
-                        enableSkeleton={true}
+                        resizeMode="cover"
                     />
+                    {/* Pure Gradient Overlay (no children) */}
                     <LinearGradient
-                        colors={["rgba(0,0,0,0.1)", "rgba(0,0,0,0.45)", "rgba(0,0,0,0.88)"]}
+                        colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.88)"]}
                         locations={[0, 0.45, 1]}
                         style={styles.heroGradient}
-                    >
+                    />
+
+                    {/* Sibling Content Layer (renders reliably on Android) */}
+                    <View style={styles.heroContent}>
                         <View style={styles.heroBadgeRow}>
                             <View style={styles.monthBadge}>
-                                <CustomIcon library="Feather" name="star" size={13} color={Palette.Amber600} />
-                                <CustomText style={styles.monthBadgeText}>{formattedMonth}</CustomText>
+                                <CustomIcon library="Feather" name={isChallengeSpotlight ? "award" : "star"} size={13} color={Palette.Amber600} />
+                                <CustomText style={styles.monthBadgeText}>
+                                    {isChallengeSpotlight ? `Challenge • ${formattedMonth}` : formattedMonth}
+                                </CustomText>
                             </View>
 
                             <View style={styles.matchPill}>
@@ -214,7 +328,7 @@ export default function RecommendationViewScreen() {
                             <CustomIcon library="Feather" name="map-pin" size={14} color={Colors.WHITE} />
                             <CustomText style={styles.heroLocationText}>{province}</CustomText>
                         </View>
-                    </LinearGradient>
+                    </View>
                 </View>
 
                 {/* Key Specs Bar */}
@@ -250,16 +364,35 @@ export default function RecommendationViewScreen() {
                     </View>
                 </View>
 
-                {/* TARS Profile Alignment Scoreboard */}
+                {/* No Easy Trails - Challenge Notice Banner */}
+                {isChallengeOnlyMode && (
+                    <View style={styles.challengeNoticeBox}>
+                        <View style={styles.challengeNoticeHeader}>
+                            <View style={styles.challengeNoticeIconWrap}>
+                                <CustomIcon library="Feather" name="alert-triangle" size={15} color="#92400E" />
+                            </View>
+                            <CustomText style={styles.challengeNoticeTitle}>
+                                Challenge Spotlight Notice
+                            </CustomText>
+                        </View>
+                        <CustomText style={styles.challengeNoticeBody}>
+                            None of the trails in our current catalog are predicted to be easy for your physical baseline. Instead of forcing a demanding trail as an easy one, we are featuring the nearest accessible challenge trail to your profile as your Challenge of the Month. Please review the physical requirements and prepare thoroughly before hiking.
+                        </CustomText>
+                    </View>
+                )}
+
+                {/* THARESYS Profile Alignment Scoreboard */}
                 <View style={styles.scoreboardCard}>
                     <View style={styles.scoreboardHeader}>
                         <View style={styles.iconCircle}>
                             <CustomIcon library="Feather" name="cpu" size={16} color={Colors.PRIMARY} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <CustomText style={styles.scoreboardTitle}>TARS Profile Alignment</CustomText>
+                            <CustomText style={styles.scoreboardTitle}>THARESYS Profile Alignment</CustomText>
                             <CustomText style={styles.scoreboardSub}>
-                                Evaluated against your calibrated Easy Anchor vector
+                                {isChallengeOnlyMode
+                                    ? "Evaluated as the nearest accessible challenge to your Easy Anchor"
+                                    : "Evaluated against your calibrated Easy Anchor vector"}
                             </CustomText>
                         </View>
                         <View style={styles.similarityScoreBox}>
@@ -270,23 +403,16 @@ export default function RecommendationViewScreen() {
 
                     <View style={styles.scoreRow}>
                         <View style={styles.scoreMetric}>
-                            <CustomText style={styles.metricLabel}>Calculated Distance</CustomText>
+                            <CustomText style={styles.metricLabel}>Profile Match</CustomText>
                             <CustomText style={styles.metricVal}>
-                                {recoItem?.score !== undefined ? Number(recoItem.score).toFixed(4) : "0.1824"}
+                                {cbfScore}
                             </CustomText>
                         </View>
 
                         <View style={styles.scoreMetric}>
-                            <CustomText style={styles.metricLabel}>Content Fit (CBF)</CustomText>
+                            <CustomText style={styles.metricLabel}>Peer Similarities</CustomText>
                             <CustomText style={styles.metricVal}>
-                                {recoItem?.cbfScore !== undefined ? Number(recoItem.cbfScore).toFixed(4) : "0.1824"}
-                            </CustomText>
-                        </View>
-
-                        <View style={styles.scoreMetric}>
-                            <CustomText style={styles.metricLabel}>Peer History (CF)</CustomText>
-                            <CustomText style={styles.metricVal}>
-                                {recoItem?.cfScore !== undefined ? Number(recoItem.cfScore).toFixed(4) : "0.0000"}
+                                {cfScore}
                             </CustomText>
                         </View>
                     </View>
@@ -299,9 +425,9 @@ export default function RecommendationViewScreen() {
                             <CustomIcon library="Ionicons" name="sparkles" size={16} color={Palette.Amber600} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <CustomText style={styles.aiTitle}>Why TARS Recommended This</CustomText>
+                            <CustomText style={styles.aiTitle}>Why THARESYS Recommended This</CustomText>
                             <CustomText style={styles.aiSubtitle}>
-                                {aiReasoning?.source === "gemini" ? "Powered by Gemini AI" : "TARS Mountaineering Analysis"}
+                                {aiReasoning?.source === "gemini" ? "Powered by Gemini AI" : "THARESYS Mountaineering Analysis"}
                             </CustomText>
                         </View>
                         {aiReasoning?.source === "gemini" && (
@@ -462,26 +588,123 @@ export default function RecommendationViewScreen() {
                     )}
                 </View>
 
-                {/* Action Buttons: Book Guide + View Full Trail Details */}
-                <View style={styles.actionRow}>
+                {/* 2-Column Call to Action Cards */}
+                <View style={styles.actionGrid}>
+                    {/* Column 1: Browse Offers */}
                     <TouchableOpacity
-                        style={styles.bookGuideButton}
+                        style={[styles.actionCard, styles.actionCardPrimary]}
                         activeOpacity={0.85}
                         onPress={handleBookGuide}
                     >
-                        <CustomIcon library="Feather" name="calendar" size={16} color={Colors.WHITE} />
-                        <CustomText style={styles.bookGuideButtonText}>Book Guide</CustomText>
+                        <CustomText style={styles.actionPromptPrimary}>
+                            Ready to explore this trail recommendation?
+                        </CustomText>
+                        <View style={styles.actionFooter}>
+                            <CustomText style={styles.actionLabelPrimary} numberOfLines={1}>
+                                Browse Offers
+                            </CustomText>
+                            <View style={styles.actionCircleWhite}>
+                                <CustomIcon
+                                    library="FontAwesome6"
+                                    name="chevron-right"
+                                    size={16}
+                                    color={Palette.Neutral950}
+                                />
+                            </View>
+                        </View>
                     </TouchableOpacity>
 
+                    {/* Column 2: View trail */}
                     <TouchableOpacity
-                        style={styles.viewTrailButton}
+                        style={[styles.actionCard, styles.actionCardSecondary]}
                         activeOpacity={0.85}
                         onPress={() => onTrailPress(tId)}
                     >
-                        <CustomIcon library="Feather" name="map" size={16} color={Colors.PRIMARY} />
-                        <CustomText style={styles.viewTrailButtonText}>View Full Trail Details</CustomText>
+                        <CustomText style={styles.actionPromptSecondary}>
+                            Want to read more about the trail?
+                        </CustomText>
+                        <View style={styles.actionFooter}>
+                            <CustomText style={styles.actionLabelSecondary} numberOfLines={1}>
+                                View trail
+                            </CustomText>
+                            <View style={styles.actionCirclePrimary}>
+                                <CustomIcon
+                                    library="FontAwesome6"
+                                    name="chevron-right"
+                                    size={16}
+                                    color={Colors.WHITE}
+                                />
+                            </View>
+                        </View>
                     </TouchableOpacity>
                 </View>
+
+                {/* Recommendation Advisory & Safety Warning Box */}
+                <View style={styles.warningBox}>
+                    <View style={styles.warningHeader}>
+                        <View style={styles.warningIconContainer}>
+                            <CustomIcon
+                                library="Feather"
+                                name="alert-triangle"
+                                size={16}
+                                color="#D97706"
+                            />
+                        </View>
+                        <CustomText style={styles.warningTitle}>
+                            Advisory & Safety Caution
+                        </CustomText>
+                    </View>
+                    <View style={styles.warningContent}>
+                        <CustomText style={styles.warningBody}>
+                            All trail recommendations are based on the profile survey you have answered upon sign up and your recorded hiking activity within the application. As this approach is only based on your recorded experiences, the more trails you hike with us, the better our recommendations will be.
+                        </CustomText>
+                        <CustomText style={styles.warningBody}>
+                            Moreover, the &quot;Challenge of the Month&quot; simply represents the most difficult trail that we&apos;ve calculated based on your profile and the available trail sets. For everyone&apos;s safety, we suggest staying on easy trails on your 1st to 3rd hikes to help us calibrate more your profile safely. Whether easy or not, hiking these trail without proper preparation and sufficient experience may cause injuries or accidents.
+                        </CustomText>
+                        <CustomText style={styles.warningBody}>
+                            As always, please proceed with caution.
+                        </CustomText>
+                    </View>
+                </View>
+
+                {/* Top 2 and 3 Trail Recommendations Section */}
+                {runnerUpRecommendations.length > 0 && (
+                    <View style={styles.runnerUpSection}>
+                        <CustomText style={styles.runnerUpSectionTitle}>
+                            Other Recommendations
+                        </CustomText>
+
+                        <View style={styles.runnerUpCardsList}>
+                            {runnerUpRecommendations.map((item) => (
+                                <RunnerUpRecommendationCard
+                                    key={item.id}
+                                    item={item}
+                                    onPress={onTrailPress}
+                                />
+                            ))}
+                        </View>
+                    </View>
+                )}
+
+                {/* Challenging Recommendation Section (Difficult Profile) */}
+                {recommendation?.difficult && recommendation.difficult.length > 0 && (
+                    <View style={styles.challengingSection}>
+                        <CustomText style={styles.challengingSectionTitle}>
+                            Challenge of the Month
+                        </CustomText>
+
+                        <TrailOfTheMonthCard
+                            recommendation={recommendation}
+                            category="difficult"
+                            showHeaderTitle={false}
+                            onPress={(trailId) => onTrailPress(trailId)}
+                            onExplorePress={() => {
+                                const diffTrail = recommendation.difficult[0];
+                                if (diffTrail?.id) onTrailPress(diffTrail.id);
+                            }}
+                        />
+                    </View>
+                )}
             </ResponsiveScrollView>
         </ScreenWrapper>
     );
@@ -508,9 +731,10 @@ const styles = StyleSheet.create({
     },
     heroSection: {
         width: "100%",
-        height: 250,
+        height: 260,
         position: "relative",
         backgroundColor: Palette.Slate900,
+        overflow: "hidden",
     },
     heroImage: {
         width: "100%",
@@ -518,8 +742,11 @@ const styles = StyleSheet.create({
     },
     heroGradient: {
         ...StyleSheet.absoluteFillObject,
+    },
+    heroContent: {
+        ...StyleSheet.absoluteFillObject,
         justifyContent: "flex-end",
-        padding: 18,
+        padding: 16,
         gap: 6,
     },
     heroBadgeRow: {
@@ -912,44 +1139,236 @@ const styles = StyleSheet.create({
         color: Palette.Slate700,
         lineHeight: 17,
     },
-    actionRow: {
+    actionGrid: {
+        flexDirection: "row",
         marginHorizontal: 16,
-        gap: 10,
+        gap: 12,
         marginTop: 4,
     },
-    bookGuideButton: {
+    actionCard: {
+        flex: 1,
+        borderRadius: 16,
+        padding: 16,
+        minHeight: 160,
+        justifyContent: "space-between",
+    },
+    actionCardPrimary: {
+        backgroundColor: Colors.PRIMARY,
+    },
+    actionCardSecondary: {
+        backgroundColor: "#F4F5F5",
+    },
+    actionPromptPrimary: {
+        fontSize: 14,
+        fontWeight: "500",
+        color: Colors.WHITE,
+        lineHeight: 20,
+        textAlign: "left",
+    },
+    actionPromptSecondary: {
+        fontSize: 14,
+        fontWeight: "500",
+        color: Palette.Neutral950,
+        lineHeight: 20,
+        textAlign: "left",
+    },
+    actionFooter: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "space-between",
         gap: 8,
-        backgroundColor: Colors.PRIMARY,
-        paddingVertical: 14,
-        borderRadius: 12,
-        shadowColor: Colors.PRIMARY,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 2,
     },
-    bookGuideButtonText: {
+    actionLabelPrimary: {
+        flex: 1,
         fontSize: 14,
         fontWeight: "700",
         color: Colors.WHITE,
     },
-    viewTrailButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        backgroundColor: Colors.WHITE,
-        borderWidth: 1.5,
-        borderColor: Colors.PRIMARY,
-        paddingVertical: 13,
-        borderRadius: 12,
-    },
-    viewTrailButtonText: {
+    actionLabelSecondary: {
+        flex: 1,
         fontSize: 14,
         fontWeight: "700",
+        color: Palette.Neutral950,
+    },
+    actionCircleWhite: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.WHITE,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    actionCirclePrimary: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.PRIMARY,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    runnerUpSection: {
+        marginHorizontal: 16,
+        gap: 12,
+        marginTop: 12,
+    },
+    runnerUpSectionTitle: {
+        fontSize: 20,
+        fontWeight: "800",
+        color: Palette.Neutral950,
+        letterSpacing: -0.3,
+    },
+    runnerUpCardsList: {
+        gap: 12,
+    },
+    runnerUpCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#F4F5F5",
+        borderRadius: 14,
+        padding: 12,
+        gap: 14,
+    },
+    runnerUpImageWrapper: {
+        width: 72,
+        height: 72,
+        borderRadius: 10,
+        overflow: "hidden",
+        position: "relative",
+        backgroundColor: Palette.Slate300,
+    },
+    runnerUpImage: {
+        width: "100%",
+        height: "100%",
+    },
+    runnerUpRankBadge: {
+        position: "absolute",
+        top: 4,
+        left: 4,
+        backgroundColor: "rgba(15, 23, 42, 0.82)",
+        paddingHorizontal: 6,
+        paddingVertical: 1.5,
+        borderRadius: 5,
+    },
+    runnerUpRankText: {
+        fontSize: 12,
+        fontWeight: "800",
+        color: Colors.WHITE,
+    },
+    runnerUpContent: {
+        flex: 1,
+        justifyContent: "space-between",
+        height: 56,
+    },
+    runnerUpRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+    },
+    runnerUpName: {
+        flex: 1,
+        fontSize: 16,
+        fontWeight: "800",
+        color: Palette.Neutral950,
+    },
+    runnerUpScoreText: {
+        fontSize: 16,
+        fontWeight: "800",
         color: Colors.PRIMARY,
+        textAlign: "right",
+    },
+    runnerUpLocationWrapper: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+    },
+    runnerUpLocationText: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: "400",
+        color: Palette.Slate600,
+    },
+    challengingSection: {
+        gap: 12,
+        marginTop: 12,
+    },
+    challengingSectionTitle: {
+        fontSize: 20,
+        fontWeight: "800",
+        color: Palette.Neutral950,
+        letterSpacing: -0.3,
+        marginHorizontal: 16,
+    },
+    warningBox: {
+        marginHorizontal: 16,
+        backgroundColor: "#FFFBEB",
+        borderWidth: 1,
+        borderColor: "#FDE68A",
+        borderRadius: 12,
+        padding: 14,
+        gap: 10,
+        marginTop: 12,
+    },
+    warningHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    warningIconContainer: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: "#FEF3C7",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    warningTitle: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#92400E",
+    },
+    warningContent: {
+        gap: 8,
+    },
+    warningBody: {
+        fontSize: 12,
+        fontWeight: "500",
+        color: "#B45309",
+        lineHeight: 18,
+    },
+    challengeNoticeBox: {
+        marginHorizontal: 16,
+        backgroundColor: "#FFFBEB",
+        borderWidth: 1,
+        borderColor: "#FDE68A",
+        borderRadius: 12,
+        padding: 14,
+        gap: 8,
+        marginTop: 12,
+    },
+    challengeNoticeHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    challengeNoticeIconWrap: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        backgroundColor: "#FEF3C7",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    challengeNoticeTitle: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#92400E",
+    },
+    challengeNoticeBody: {
+        fontSize: 12,
+        fontWeight: "500",
+        color: "#B45309",
+        lineHeight: 18,
     },
 });

@@ -19,7 +19,7 @@ export function useRouteGuard() {
         if (!user && inProtectedGroup) {
             router.replace("/(auth)/login");
         } else if (user && inAuthGroup) {
-            router.replace("/(tabs)");
+            router.replace("/(app)/(tabs)");
         }
     }, [user, isLoading, isHydrated, segments, navigationState?.key, router]);
 }

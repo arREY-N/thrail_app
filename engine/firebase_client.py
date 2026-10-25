@@ -1,5 +1,5 @@
 """
-Firebase Admin Client for TARS Recommendation Engine
+Firebase Admin Client for THARESYS Recommendation Engine
 
 Initializes Firestore connection and provides data fetching and batch write methods.
 """
@@ -11,7 +11,7 @@ from typing import Dict, Any, List, Optional
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-logger = logging.getLogger("tars_engine")
+logger = logging.getLogger("tharesys_engine")
 
 _DB_CLIENT = None
 

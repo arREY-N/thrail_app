@@ -1,8 +1,8 @@
-# Thrail App Recommendation System (TARS) - Comprehensive Documentation
+# Thrail App Recommendation System (THARESYS) - Comprehensive Documentation
 
 ## 1. Executive Summary & System Architecture
 
-The **Thrail App Recommendation System (TARS)** is a hybrid machine-learning-driven recommendation engine tailored for outdoor hiking trails. It synthesizes two primary paradigms:
+The **Thrail App Recommendation System (THARESYS)** is a hybrid machine-learning-driven recommendation engine tailored for outdoor hiking trails. It synthesizes two primary paradigms:
 1. **Content-Based Filtering (CBF):** Measures mathematical distance between candidate trail feature vectors and the user's calibrated physical/environmental anchor profiles (**Easy Anchor** and **Difficult Anchor**).
 2. **Collaborative Filtering (CF):** Multiplies similarity across peer hikers who reviewed or completed trails, capturing community behavior.
 
@@ -36,7 +36,7 @@ These two components are blended through a **Dynamic Alpha Weight** that smoothl
           | 3. Batch Runner computes R_tu scores & writes results
           |
 +-----------------------------+
-|    TARS Batch Runner Engine |
+|    THARESYS Batch Runner Engine |
 |  (engine/batch_runner.py)   |
 +-----------------------------+
 ```
@@ -45,7 +45,7 @@ These two components are blended through a **Dynamic Alpha Weight** that smoothl
 
 ## 2. Mathematical Formulations & Distance Engines
 
-All formulas in TARS output values strictly bounded in the range `[0.000, 1.000]`.
+All formulas in THARESYS output values strictly bounded in the range `[0.000, 1.000]`.
 - `0.000` = Exact Match / Minimum Distance (Maximum Recommendation Affinity).
 - `1.000` = Complete Dissimilarity / Maximum Distance.
 
@@ -102,9 +102,15 @@ CBF = distance_CBF(User_Anchor_Vector, Trail_Vector)
 CF  = (1 / |Peers|) * sum( distance_CF(User_A_Vector, Peer_B_Vector) * distance_CF(Peer_B_Vector, Trail_Vector) )
 ```
 
-- **Dual-Anchor Generation:** The calculation is executed twice per trail:
-  1. **Easy Set:** Uses `User_Anchor = Easy_Anchor_Vector`.
-  2. **Difficult Set:** Uses `User_Anchor = Difficult_Anchor_Vector`.
+- **Dual-Anchor Generation & Disjoint Partitioning:** 
+  1. The candidate trail is scored against both `Easy_Anchor_Vector` ($score_{easy}$) and `Difficult_Anchor_Vector` ($score_{diff}$).
+  2. **Zero Overlap Allocation:** The trail is assigned exclusively to whichever profile it is closer to:
+     - If $score_{easy} \le score_{diff}$: Assigned exclusively to the **Easy** recommendation list.
+     - If $score_{diff} < score_{easy}$: Assigned exclusively to the **Difficult** recommendation list.
+  3. **No Artificial Forcing & Challenge of the Month Fallback:** 
+     - If no trails are closer to the Easy anchor (e.g. for a user whose current fitness capability is exceeded by available trails), the Easy list remains empty (`[]`) as is. The engine will never force a difficult trail into the easy bucket just to populate it.
+     - In this scenario, the Home Screen spotlight card dynamically transforms into **"Your Challenge of the Month"**, selecting the **nearest difficult trail to the user's easy anchor** (the difficult trail with the lowest $score_{easy}$).
+     - The Recommendation Details screen (`view.tsx`) displays an explicit **Challenge Spotlight Notice** clarifying that no trails were predicted as easy, explaining the physical demands, and emphasizing guided preparation.
 - **Peer Pool Isolation:** When computing CF, the current user is strictly excluded from `Peers` (`Peer_B.id != User_A.id`) so self-distance ($dist = 0$) does not distort collaborative averages.
 
 ### 3.3. Configurable Formula Combinations
@@ -291,6 +297,15 @@ match /users/{userId}/recommendations/{recoId} {
 }
 ```
 
+### 5.3. Pre-Generated AI Reasoning Specifications (`engine/gemini_reasoning.py`)
+To prevent client-side latency and avoid leaking API keys, AI reasoning for the spotlight recommendation is pre-computed during the monthly batch run and stored under `aiReasonings.{trailId}`.
+
+**Prompting & Output Governance Rules:**
+1. **Non-Interactive & Straight to the Point:** Explanations must be direct, concise, and objective. Conversational greetings ("Hey hiker!"), rhetorical questions, motivational cheerleading, and first-person coach banter are strictly prohibited.
+2. **System Naming Constraint:** Explanations must reference the recommendation engine exclusively as **"THARESYS"**. The full expanded name ("Thrail App Recommendation System") is never used in user-facing explanations.
+3. **Medical & Technical Terminology:** The term "compatibility" is strictly forbidden; explanations exclusively use **"profile match"** or **"profile similarity"** to reflect vector distance calculations.
+4. **Concrete Quantitative Comparisons:** Must explicitly contrast trail specs (length, elevation gain, gradient) against the user's calibrated numerical baselines.
+
 ---
 
 ## 6. Client-Side Data Models & Services
@@ -348,6 +363,9 @@ export const RecommendationRepo = {
 Handles network routing between the Expo app (Android loopback `10.0.2.2:8000`, Web/iOS `localhost:8000`, or production Cloud Run URL):
 ```typescript
 export const getTarsApiBaseUrl = (): string => {
+    if (process.env.EXPO_PUBLIC_THARESYS_API_URL) {
+        return process.env.EXPO_PUBLIC_THARESYS_API_URL.replace(/\/+$/, '');
+    }
     if (process.env.EXPO_PUBLIC_TARS_API_URL) {
         return process.env.EXPO_PUBLIC_TARS_API_URL.replace(/\/+$/, '');
     }
@@ -525,9 +543,10 @@ Service URL: https://tars-engine-xxxxxxxx-as.a.run.app
 #### Step 4: Update Frontend Environment Variables
 1. In `c:\Users\LENOVO\Documents\dev\thrail_app\.env.production`:
 ```bash
-EXPO_PUBLIC_TARS_API_URL=https://tars-engine-xxxxxxxx-as.a.run.app
+EXPO_PUBLIC_THARESYS_API_URL=https://tharesys-engine-xxxxxxxx-as.a.run.app
+EXPO_PUBLIC_TARS_API_URL=https://tharesys-engine-xxxxxxxx-as.a.run.app
 ```
-2. In EAS build configurations (`eas.json`), ensure `EXPO_PUBLIC_TARS_API_URL` is set as an environment variable or secret.
+2. In EAS build configurations (`eas.json`), ensure `EXPO_PUBLIC_THARESYS_API_URL` (or legacy `EXPO_PUBLIC_TARS_API_URL`) is set as an environment variable or secret.
 
 #### Step 5: Security Hardening (Production)
 - **CORS:** Update `allow_origins` in `engine/app.py` from `["*"]` to your specific web production domain.

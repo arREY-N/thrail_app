@@ -1,7 +1,7 @@
 """
 gemini_reasoning.py
 
-Superadmin AI Recommendation Reasoning Generator for THRAIL (TARS Engine).
+Superadmin AI Recommendation Reasoning Generator for THRAIL (THARESYS Engine).
 Connects to Google Gemini AI (gemini-3.8-flash) during monthly batch runs
 to pre-synthesize expert mountaineering explanations for each user's
 #1 spotlight Trail of the Month.
@@ -18,7 +18,7 @@ import urllib.error
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-logger = logging.getLogger("tars_gemini")
+logger = logging.getLogger("tharesys_gemini")
 
 CANDIDATE_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"]
 
@@ -92,7 +92,8 @@ def build_algorithmic_reasoning(
     user_profile: Optional[Dict[str, Any]] = None,
     raw_length: float = 0.0,
     raw_gain: float = 0.0,
-    raw_slope: float = 0.0
+    raw_slope: float = 0.0,
+    is_challenge: bool = False
 ) -> Dict[str, Any]:
     """Generates high-fidelity fallback reasoning with concrete numerical comparisons."""
     user_feats = (user_profile or {}).get("features") or {}
@@ -114,7 +115,7 @@ def build_algorithmic_reasoning(
 
     gain_delta = round(raw_gain - user_base_gain)
     if raw_gain > 0:
-        gain_comp = f"{abs(gain_delta)} m lower ascent demand" if gain_delta <= 0 else f"+{gain_delta} m well-paced gain"
+        gain_comp = f"{abs(gain_delta)} m lower ascent demand" if gain_delta <= 0 else f"+{gain_delta} m elevated ascent demand"
     else:
         gain_comp = f"matched against your +{user_base_gain} m ceiling"
 
@@ -124,12 +125,19 @@ def build_algorithmic_reasoning(
         else ""
     )
 
-    summary = (
-        f"{trail_name} was evaluated as your #1 spotlight match for {month_label} with a {profile_match}% profile similarity. "
-        f"Based on your calibrated average length of {user_base_km} km, this {distance_str} route is an ideal fit ({len_comp}). "
-        f"Paired with an ascent of {gain_str} ({gain_comp} of +{user_base_gain} m), "
-        f"TARS identified this summit as the ideal balance of cardiovascular pacing and rewarding viewpoints.{medical_context}"
-    )
+    if is_challenge:
+        summary = (
+            f"No trails in the database are currently predicted easy for your baseline. "
+            f"THARESYS selected {trail_name} ({profile_match}% profile match) as your Challenge of the Month because "
+            f"it is the nearest accessible difficult trail to your capabilities. At {distance_str} and {gain_str} elevation gain, "
+            f"it exceeds your baseline ({len_comp}, {gain_comp}) and requires adequate preparation and safety caution."
+        )
+    else:
+        summary = (
+            f"THARESYS evaluated {trail_name} as your #1 spotlight match for {month_label} with a {profile_match}% profile similarity. "
+            f"At {distance_str} with {gain_str} elevation gain, this route directly aligns with your calibrated baselines of "
+            f"{user_base_km} km ({len_comp}) and +{user_base_gain} m ({gain_comp}).{medical_context}"
+        )
 
     physical_fit = (
         f"Based on your calibrated average length of {user_base_km} km, the trail's {distance_str} route provides a comfortable cushion against premature fatigue. "
@@ -172,7 +180,8 @@ def generate_gemini_reasoning(
     user_profile: Optional[Dict[str, Any]] = None,
     month_label: str = "this month",
     api_key: Optional[str] = None,
-    timeout_seconds: int = 6
+    timeout_seconds: int = 6,
+    is_challenge: bool = False
 ) -> Dict[str, Any]:
     """
     Generates natural language recommendation reasoning using Google Gemini AI (gemini-3.8-flash)
@@ -247,21 +256,45 @@ def generate_gemini_reasoning(
         return build_algorithmic_reasoning(
             trail_name, reco_item, profile_match, month_label, circuit_str,
             province, distance_str, gain_str, elev_str, slope_str, classification, has_med_cond,
-            user_profile, raw_length, raw_gain, raw_slope
+            user_profile, raw_length, raw_gain, raw_slope, is_challenge=is_challenge
         )
 
-    prompt = f"""You are an expert mountaineering coach and outdoor safety advisor for THRAIL, a hiking platform in the Philippines.
-The Trail Affinity Recommendation System (TARS) has mathematically analyzed this hiker and crowned this trail as their #1 'Trail of the Month' based on their calibrated Easy Anchor profile.
-Explain the technical reasoning behind this recommendation in supportive, motivating, and safety-conscious language.
+    if is_challenge:
+        spotlight_context = (
+            f"CONTEXT: None of the available trails in the database are currently predicted to be easy for this hiker's baseline. "
+            f"THARESYS has selected {trail_name} as their 'Challenge of the Month' because it is the nearest, most accessible "
+            f"difficult trail relative to their profile. State directly that it exceeds their comfortable baseline, "
+            f"serves as their closest aspirational challenge, and requires proper training and safety precautions."
+        )
+    else:
+        spotlight_context = (
+            f"THARESYS has mathematically evaluated this hiker and identified {trail_name} as their "
+            f"#1 'Trail of the Month' based on their calibrated Easy Anchor profile. "
+            f"Provide a straight-to-the-point explanation of why this trail was selected based on their metrics."
+        )
 
-CRITICAL INSTRUCTION ON TERMINOLOGY:
-NEVER use the word "compatibility". Always use "profile match" or "profile similarity", because TARS computes mathematical vector distance against calibrated anchor baselines, not clinical or medical compatibility.
+    prompt = f"""You are a technical mountaineering analyst for THRAIL.
+{spotlight_context}
 
-CRITICAL INSTRUCTION ON NUMERICAL COMPARISONS:
-You MUST include concrete numerical comparisons between the hiker's calibrated baseline metrics and the trail's actual specs in the "summary" and "physicalFit" sections:
-- Explicitly compare the trail length ({distance_str}) against their calibrated baseline average length of {user_base_km} km (e.g., "Based on your calibrated average length of {user_base_km} km, this {distance_str} route is an ideal fit...").
-- Compare the elevation gain ({gain_str}) against their target gain ceiling (+{user_base_gain} m).
-- Compare the route gradient ({slope_str}) against their baseline comfortable slope (~{user_base_slope}%).
+CRITICAL RULES:
+1. TONE AND STYLE:
+   - Be strictly straight to the point, direct, concise, and objective.
+   - Do NOT be conversational, interactive, or chatty.
+   - Do NOT use greetings, rhetorical questions, motivational cheerleading, or coach banter (e.g., no "Hey hiker!", "Welcome", "Are you ready?", "As your coach", or "Let's conquer this!").
+   - Deliver a clear, factual explanation focusing on the direct alignment between the hiker's metrics and the trail specifications.
+
+2. SYSTEM NAME:
+   - NEVER use the full name "Thrail App Recommendation System", "Thrail Recommendation System", or any expanded variation.
+   - Use "THARESYS" only when referring to the recommendation system.
+
+3. TERMINOLOGY:
+   - NEVER use the word "compatibility". Always use "profile match" or "profile similarity".
+
+4. NUMERICAL COMPARISONS:
+   - You MUST include direct numerical comparisons between the hiker's calibrated baseline metrics and the trail's actual specs in the "summary" and "physicalFit" sections:
+     * Compare trail length ({distance_str}) directly against calibrated average length of {user_base_km} km.
+     * Compare elevation gain ({gain_str}) directly against target gain ceiling (+{user_base_gain} m).
+     * Compare route gradient ({slope_str}) directly against baseline comfortable slope (~{user_base_slope}%).
 
 Hiker Calibrated Easy Anchor Profile (Target Baselines):
 - Calibrated Comfort Distance Baseline: {user_base_km} km
@@ -282,16 +315,16 @@ Trail Attributes:
 - Classification: {classification}
 - Province: {province}
 
-TARS Mathematical Scoring:
+THARESYS Mathematical Scoring:
 - Overall Hybrid Score R_tu: {raw_score:.4f} ({profile_match}% profile match)
 
 Generate a JSON response strictly adhering to this schema (do NOT wrap in markdown backticks, output raw valid JSON):
 {{
-  "summary": "2-3 sentences providing an executive summary of why this trail is the #1 spotlight easy match for {month_label}.",
-  "physicalFit": "1-2 sentences on how the trail length, elevation gain, peak MASL, and slope gradient match the hiker's cardiovascular stamina threshold.",
-  "terrainFit": "1-2 sentences explaining how the {circuit_str} route layout and trail terrain provide comfortable navigation.",
-  "provinceFit": "1 sentence on the geographic proximity and province match for accessible travel.",
-  "safetyTips": "1-2 actionable, safety-first trail tips (hydration, footwear, weather pacing, medical mindfulness) tailored specifically for {trail_name}."
+  "summary": "1-2 direct, factual sentences summarizing why THARESYS selected this trail for {month_label}.",
+  "physicalFit": "1-2 direct sentences stating how length, elevation gain, peak MASL, and slope compare to the hiker's baseline.",
+  "terrainFit": "1 direct sentence on route layout ({circuit_str}) and terrain footing.",
+  "provinceFit": "1 direct sentence on regional location match in {province}.",
+  "safetyTips": "1-2 concise, actionable safety points tailored specifically for {trail_name}."
 }}"""
 
     for model_name in CANDIDATE_MODELS:
@@ -304,8 +337,8 @@ Generate a JSON response strictly adhering to this schema (do NOT wrap in markdo
                 }
             ],
             "generationConfig": {
-                "temperature": 0.3,
-                "maxOutputTokens": 700,
+                "temperature": 0.2,
+                "maxOutputTokens": 600,
                 "responseMimeType": "application/json"
             }
         }
