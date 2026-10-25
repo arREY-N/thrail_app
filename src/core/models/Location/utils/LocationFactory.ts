@@ -8,6 +8,8 @@ export const newLocation = (init?: Partial<Location>): Location => {
         latitude: init?.latitude ?? 0,
         longitude: init?.longitude ?? 0,
         altitude: init?.altitude ?? 0,
+        accuracy: init?.accuracy,
+        speed: init?.speed,
         status: init?.status ?? 'ACTIVE',
         timestamp: init?.timestamp ? toDate(init.timestamp) : new Date(),
         hikerName: init?.hikerName,
