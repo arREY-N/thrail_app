@@ -1,16 +1,13 @@
 import useLandingNavigation from "@/src/core/hook/navigation/useLandingNavigation";
 import { useAuthHook } from "@/src/core/models/User/User";
 
-import { useNotifyPermission } from "@/src/core/hook/useNotifyPermission";
 import LandingScreen from "@/src/features/Auth/screens/LandingScreen";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
-import { Redirect, router, useLocalSearchParams } from "expo-router";
+import { Href, Redirect, router, useLocalSearchParams } from "expo-router";
 import React from "react";
-import LoadingScreen from "./loading";
+import SplashScreenView from "@/src/components/SplashScreenView";
 
 export default function Index() {
-	useNotifyPermission();
-
 	const { isLargeScreen } = useBreakpoints();
 	const { mode } = useLocalSearchParams<{ mode?: 'login' | 'signup' | 'forgot' }>();
 	const { user, profile } = useAuthHook();
@@ -23,7 +20,7 @@ export default function Index() {
 	} = useLandingNavigation();
 
 	if (user) {
-		if (!profile) return <LoadingScreen />;
+		if (!profile) return <SplashScreenView />;
 
 		if (profile && profile.onBoardingComplete)
 			return <Redirect href="/(app)/(tabs)" />;
@@ -46,6 +43,9 @@ export default function Index() {
 			initialMode={mode}
 			onModeChange={(newMode) => {
 				router.setParams({ mode: newMode });
+			}}
+			onBrandingLabPress={() => {
+				router.push('/branding-preview' as Href);
 			}}
 		/>
 	);

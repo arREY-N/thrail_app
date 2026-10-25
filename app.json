@@ -1,21 +1,25 @@
 {
   "expo": {
     "owner": "thrail",
-    "name": "thrail_app",
+    "name": "Thrail App",
     "slug": "thrail_app",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "thrailapp",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#2E7D32",
     "assetBundlePatterns": [
       "**/*"
     ],
+    "icon": "./src/assets/logos/Logo Idea 2/Squere Logo.png",
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "backgroundColor": "#2E7D32",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE"
+        "foregroundImage": "./src/assets/logos/Logo Idea 2/Adaptive Foreground.png",
+        "backgroundColor": "#2E7D32"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.thesis.thrail",
@@ -34,6 +38,7 @@
       ]
     },
     "web": {
+      "favicon": "./public/favicon.png",
       "output": "static"
     },
     "updates": {
@@ -78,7 +83,15 @@
         }
       ],
       "expo-sharing",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./src/assets/logos/Logo Idea 2/Splash Glyph Native.png",
+          "imageWidth": 140,
+          "resizeMode": "contain",
+          "backgroundColor": "#2E7D32"
+        }
+      ],
       "expo-image",
       [
         "@sentry/react-native/expo",

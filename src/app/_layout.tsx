@@ -1,4 +1,4 @@
-import LoadingScreen from "@/src/app/loading";
+import SplashScreenView from "@/src/components/SplashScreenView";
 import { MaintenanceScreen } from "@/src/app/maintenance";
 import { GlobalErrorFallback } from "@/src/components/GlobalErrorFallback";
 import { ToastProvider } from "@/src/components/Toast/Toast";
@@ -78,20 +78,18 @@ function RootLayout() {
 		};
 	}, [initialize]);
 
+	const isAppReady = (fontsLoaded || fontError) && checked && hasInitialAuthResolved;
+
 	useEffect(() => {
-		if (fontsLoaded || fontError) {
-			SplashScreen.hideAsync();
+		if (isAppReady) {
+			SplashScreen.hideAsync().catch(() => {});
 		}
-	}, [fontsLoaded, fontError]);
+	}, [isAppReady]);
 
-	if (!fontsLoaded && !fontError) {
-		return null;
-	}
-
-	if (!checked || !hasInitialAuthResolved) {
+	if (!isAppReady) {
 		return (
 			<GestureHandlerRootView style={{ flex: 1 }}>
-				<LoadingScreen />
+				<SplashScreenView />
 			</GestureHandlerRootView>
 		);
 	}

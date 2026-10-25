@@ -23,18 +23,28 @@ const CustomImage: React.FC<CustomImageProps> = ({
     containerStyle, 
     onLoadStart, 
     onLoadEnd, 
-    source,
+    source, 
     ...props 
 }) => {
-    const sourceUri = typeof source === 'object' && source !== null && 'uri' in source 
-        ? (source as any).uri 
+    const isLocalAsset = typeof source === 'number';
+
+    const getSourceUri = (src: unknown): string | undefined => {
+        if (typeof src === 'object' && src !== null && 'uri' in src) {
+            const potentialUri = (src as { uri?: unknown }).uri;
+            return typeof potentialUri === 'string' ? potentialUri : undefined;
+        }
+        return undefined;
+    };
+
+    const sourceUri = typeof source === 'object' && source !== null && 'uri' in source
+        ? getSourceUri(source)
         : source;
 
     const [prevSourceUri, setPrevSourceUri] = useState(sourceUri);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(isLocalAsset);
     const [hasError, setHasError] = useState(() => {
         if (typeof source === 'object' && source !== null && 'uri' in source) {
-            const uriVal = (source as any).uri;
+            const uriVal = (source as { uri?: unknown }).uri;
             return !uriVal || (typeof uriVal === 'string' && !uriVal.trim());
         }
         return !source;
@@ -42,9 +52,9 @@ const CustomImage: React.FC<CustomImageProps> = ({
 
     if (sourceUri !== prevSourceUri) {
         setPrevSourceUri(sourceUri);
-        setIsLoaded(false);
+        setIsLoaded(isLocalAsset);
         if (typeof source === 'object' && source !== null && 'uri' in source) {
-            const uriVal = (source as any).uri;
+            const uriVal = (source as { uri?: unknown }).uri;
             setHasError(!uriVal || (typeof uriVal === 'string' && !uriVal.trim()));
         } else {
             setHasError(!source);
@@ -56,7 +66,7 @@ const CustomImage: React.FC<CustomImageProps> = ({
 
     return (
         <View style={[styles.container, layoutStyle as StyleProp<ViewStyle>, containerStyle]}>
-            {!isLoaded && !hasError && (
+            {!isLoaded && !hasError && !isLocalAsset && (
                 <View 
                     style={[
                         StyleSheet.absoluteFill, 
@@ -76,7 +86,7 @@ const CustomImage: React.FC<CustomImageProps> = ({
                 style={[
                     layoutStyle, 
                     { 
-                        opacity: (isLoaded && !hasError) ? 1 : 0,
+                        opacity: (isLoaded && !hasError) || isLocalAsset ? 1 : 0,
                         width: '100%', 
                         height: '100%',
                         margin: 0,
@@ -88,16 +98,14 @@ const CustomImage: React.FC<CustomImageProps> = ({
                         marginRight: 0,
                     }
                 ]}
-                onLoadStart={() => {
-                    if (onLoadStart) (onLoadStart as any)();
-                }}
+                onLoadStart={onLoadStart}
                 onLoad={(e) => {
                     setIsLoaded(true);
                     if (props.onLoad) props.onLoad(e);
                 }}
                 onLoadEnd={() => {
                     setIsLoaded(true);
-                    if (onLoadEnd) (onLoadEnd as any)();
+                    if (onLoadEnd) onLoadEnd();
                 }}
                 onError={(e) => {
                     setHasError(true);
