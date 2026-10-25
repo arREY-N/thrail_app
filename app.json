@@ -8,9 +8,7 @@
     "scheme": "thrailapp",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#2E7D32",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "icon": "./src/assets/logos/Logo Idea 2/Squere Logo.png",
     "ios": {
       "supportsTablet": true
@@ -48,11 +46,7 @@
       [
         "expo-asset",
         {
-          "assets": [
-            "src/assets/tiles",
-            "src/assets/fonts",
-            "src/assets/map_data"
-          ]
+          "assets": ["src/assets/tiles", "src/assets/fonts"]
         }
       ],
       "expo-router",
