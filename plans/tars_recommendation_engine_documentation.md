@@ -23,22 +23,24 @@ These two components are blended through a **Dynamic Alpha Weight** that smoothl
 |     (engine/app.py)         |                                   |
 +-----------------------------+                                   |
           |                                                       |
-          | 2. Fetch Profiles & Hikes                             |
+          | 2. Fetch Profiles, Reviews & Hikes                    |
           v                                                       |
 +---------------------------------------------------------------------------------+
 |                            Google Cloud Firestore                               |
 |   /users/{userId}             --> User anchors & preferences                   |
 |   /users/{userId}/hikes       --> Completed hike history                        |
-|   /trails/{trailId}           --> Normalized 28-feature vectors                |
+|   /users/{userId}/reviews     --> Perceived difficulty & factor feedback        |
+|   /trails/{trailId}           --> Normalized 32-feature vectors                |
 |   /users/{userId}/recommendations/{YYYY-MM} --> Monthly recommendation outputs  |
 +---------------------------------------------------------------------------------+
           ^
-          | 3. Batch Runner computes R_tu scores & writes results
+          | 3a. Batch Profile Update: Updates /users/{userId} profile anchors using reviews
+          | 3b. Batch Recommendations: Computes R_tu scores & writes to /recommendations
           |
-+-----------------------------+
-|    THARESYS Batch Runner Engine |
-|  (engine/batch_runner.py)   |
-+-----------------------------+
++---------------------------------------------------------------------------------+
+|                       THARESYS Batch Runner Engine                              |
+|                       (engine/batch_runner.py)                                  |
++---------------------------------------------------------------------------------+
 ```
 
 ---

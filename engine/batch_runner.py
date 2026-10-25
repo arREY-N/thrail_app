@@ -22,18 +22,29 @@ Architecture & Partitioning Logic:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Union, Callable
+import numpy as np
 
 from tars import engine, engine_details, compute_alpha, GD, ED, CS
-from profile_utils import flatten_profile_features, extract_user_anchor_profiles, build_feature_weight_vector
+from profile_utils import (
+    flatten_profile_features,
+    extract_user_anchor_profiles,
+    build_feature_weight_vector,
+    process_dual_anchor_profile_update,
+    resolve_review_factor_weights,
+)
 from firebase_client import (
     initialize_firebase,
     fetch_trails,
     fetch_users,
     fetch_completed_trail_ids,
     save_user_recommendations,
-    get_current_month_id
+    save_user_profile,
+    fetch_user_reviews,
+    fetch_user_monthly_recommendation,
+    get_current_month_id,
+    get_previous_month_id,
 )
 from gemini_reasoning import generate_gemini_reasoning
 
@@ -47,9 +58,12 @@ def run_batch_recommendations(
     candidate_trails: Optional[List[Dict[str, Any]]] = None,
     users: Optional[List[Dict[str, Any]]] = None,
     user_hikes_map: Optional[Dict[str, set]] = None,
+    user_reviews_map: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+    prev_recommendations_map: Optional[Dict[str, Dict[str, Any]]] = None,
     commit_to_firestore: bool = True,
     feature_weights: Optional[Dict[str, float]] = None,
-    generate_ai_reasoning: bool = True
+    generate_ai_reasoning: bool = True,
+    update_profiles_from_reviews: bool = True
 ) -> Dict[str, Any]:
     """
     Executes a full recommendation batch run.
@@ -92,16 +106,20 @@ def run_batch_recommendations(
             "processed_users": 0
         }
 
-    # Filter users strictly to those with a saved 'profile' object (excludes dummy accounts)
+    # Filter users strictly to those with a saved 'profile' object (excludes accounts without a profile property)
     user_list = []
     for u in (raw_user_list or []):
+        uid = str(u.get("id") or "")
         prof = u.get("profile")
         if not prof or not isinstance(prof, dict):
+            logger.info(f"Skipping user {uid}: no profile property found.")
             continue
         has_easy = bool(prof.get("easy") and isinstance(prof.get("easy"), dict) and prof.get("easy", {}).get("features"))
         has_diff = bool(prof.get("difficult") and isinstance(prof.get("difficult"), dict) and prof.get("difficult", {}).get("features"))
         if has_easy or has_diff:
             user_list.append(u)
+        else:
+            logger.info(f"Skipping user {uid}: profile property exists but has no easy or difficult features.")
 
     if not user_list:
         logger.warning("No profiled users available for recommendation batch run.")
@@ -158,6 +176,116 @@ def run_batch_recommendations(
 
         # Extract user anchors (already verified to have profile)
         easy_vec, diff_vec, raw_easy, raw_diff = extract_user_anchor_profiles(user)
+
+        # 4a. Batch Profile Update: Collect and process user's past hike reviews from previous cycle
+        if update_profiles_from_reviews and (db or user_reviews_map is not None):
+            prev_month = get_previous_month_id(active_month)
+            if prev_recommendations_map is not None:
+                prev_reco = prev_recommendations_map.get(uid)
+            elif db:
+                prev_reco = fetch_user_monthly_recommendation(uid, prev_month, db=db)
+            else:
+                prev_reco = None
+
+            if not prev_reco:
+                logger.info(f"User {uid} has no previous recommendation list from {prev_month}; proceeding with baseline profile anchors.")
+
+            if user_reviews_map is not None:
+                user_reviews = user_reviews_map.get(uid, [])
+            elif db:
+                user_reviews = fetch_user_reviews(uid, db=db)
+            else:
+                user_reviews = []
+
+            hike_feedbacks = []
+            for r in user_reviews:
+                tid = str(r.get("trail", {}).get("id") or r.get("trailId") or "")
+                if not tid or tid in ("diy", "diy_session"):
+                    continue
+
+                r_dt = r.get("createdAt") or r.get("hikeDate")
+                r_month = None
+                if hasattr(r_dt, "strftime"):
+                    r_month = r_dt.strftime("%Y-%m")
+                elif isinstance(r_dt, str) and len(r_dt) >= 7:
+                    r_month = r_dt[:7]
+                elif isinstance(r_dt, (int, float)):
+                    ts = r_dt / 1000.0 if r_dt > 1e11 else float(r_dt)
+                    r_month = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m")
+
+                # Ensure review belongs to the previous month
+                if r_month and r_month != prev_month:
+                    continue
+
+                matched_trail = trail_by_id.get(tid, {})
+                trail_feats = matched_trail.get("profile", {}).get("features", matched_trail.get("features", {}))
+
+                predicted_cat = None
+                rtu_score = None
+                if prev_reco:
+                    in_diff = next((it for it in prev_reco.get("difficult", []) if str(it.get("id")) == tid), None)
+                    in_easy = next((it for it in prev_reco.get("easy", []) if str(it.get("id")) == tid), None)
+                    if in_diff:
+                        predicted_cat = "difficult"
+                        rtu_score = float(in_diff.get("score") or in_diff.get("cbfScore") or 0.35)
+                    elif in_easy:
+                        predicted_cat = "easy"
+                        rtu_score = float(in_easy.get("score") or in_easy.get("cbfScore") or 0.35)
+
+                # Fallback to computing Euclidean distance against current anchors if unrecommended or no prev_reco
+                if predicted_cat is None:
+                    tvec = matched_trail.get("vector") if "vector" in matched_trail else flatten_profile_features(trail_feats)
+                    d_easy = float(np.linalg.norm(tvec - easy_vec))
+                    d_diff = float(np.linalg.norm(tvec - diff_vec))
+                    if d_diff < d_easy:
+                        predicted_cat = "difficult"
+                        rtu_score = round(min(1.0, d_diff / np.sqrt(32)), 4)
+                    else:
+                        predicted_cat = "easy"
+                        rtu_score = round(min(1.0, d_easy / np.sqrt(32)), 4)
+
+                raw_choice = r.get("perceivedDifficulty")
+                if isinstance(raw_choice, (int, float)):
+                    # 1: Easy, 2: Just Right, 3: Moderate, 4: Difficult/Hard, 5: Extreme
+                    is_user_easy = (raw_choice <= 2)
+                else:
+                    choice_str = str(raw_choice or "easy").strip().lower()
+                    is_user_easy = choice_str in ("easy", "just right", "1", "2")
+
+                is_match = is_user_easy if (predicted_cat == "easy") else (not is_user_easy)
+
+                hike_factors = r.get("difficultyFactors") or []
+                hike_weights = resolve_review_factor_weights(hike_factors, trail_features=trail_feats)
+
+                hike_feedbacks.append({
+                    "trail_id": tid,
+                    "trail_features": trail_feats,
+                    "score": rtu_score,
+                    "is_match": is_match,
+                    "target_anchor": predicted_cat,
+                    "feature_weights": hike_weights
+                })
+
+            if hike_feedbacks:
+                logger.info(f"Applying batched monthly profile update for user {uid} using {len(hike_feedbacks)} reviews")
+                update_res = process_dual_anchor_profile_update(
+                    current_easy_profile=raw_easy,
+                    current_diff_profile=raw_diff,
+                    hike_records=hike_feedbacks,
+                    weights_map=feature_weights
+                )
+                if commit_to_firestore and db:
+                    formatted_profiles = {
+                        "easy": {"metadata": {"type": "user", "id": uid, "profile": "easy"}, "features": update_res["updated_easy_features"]},
+                        "difficult": {"metadata": {"type": "user", "id": uid, "profile": "difficult"}, "features": update_res["updated_diff_features"]}
+                    }
+                    save_user_profile(uid, formatted_profiles, db=db)
+
+                # Use the updated anchor profiles to calculate the new recommendations
+                easy_vec = np.array(update_res["updated_easy_vector"], dtype=np.float32)
+                diff_vec = np.array(update_res["updated_diff_vector"], dtype=np.float32)
+                raw_easy = {"features": update_res["updated_easy_features"]}
+                raw_diff = {"features": update_res["updated_diff_features"]}
 
         # Check hiked history from user subcollection /users/{uid}/hikes (or test override)
         hiked_ids = set()
@@ -268,8 +396,8 @@ def run_batch_recommendations(
         # Construct monthly recommendation document matching required schema
         doc_data = {
             "id": active_month,
-            "createdAt": datetime.utcnow().isoformat(),
-            "updatedAt": datetime.utcnow().isoformat(),
+            "createdAt": datetime.now(timezone.utc).isoformat(),
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
             "engineConfig": {
                 "cbf": str(cbf_engine),
                 "cf": str(cf_engine),

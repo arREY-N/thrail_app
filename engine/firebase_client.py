@@ -184,3 +184,77 @@ def save_user_recommendations(user_id: str, month_id: str, doc_data: Dict[str, A
     except Exception as e:
         logger.error(f"Failed writing recommendations for user {user_id}: {e}")
         return False
+
+
+def save_user_profile(user_id: str, profile_data: Dict[str, Any], db=None) -> bool:
+    """
+    Saves updated easy and difficult user profiles to /users/{user_id}.
+    """
+    client = db or _DB_CLIENT or initialize_firebase()
+    if not client:
+        logger.error("Cannot save profile: Firestore client is unavailable.")
+        return False
+
+    try:
+        ref = client.collection("users").document(user_id)
+        ref.set({"profile": profile_data, "updatedAt": firestore.SERVER_TIMESTAMP}, merge=True)
+        return True
+    except Exception as e:
+        logger.error(f"Failed writing profile for user {user_id}: {e}")
+        return False
+
+
+def fetch_user_reviews(user_id: str, db=None) -> List[Dict[str, Any]]:
+    """
+    Fetches all reviews authored by a user from the root /reviews collection.
+    """
+    client = db or _DB_CLIENT or initialize_firebase()
+    if not client:
+        return []
+
+    reviews = []
+    try:
+        docs = client.collection("reviews").where("user.id", "==", user_id).stream()
+        for d in docs:
+            data = d.to_dict()
+            data["id"] = d.id
+            reviews.append(data)
+    except Exception as e:
+        logger.warning(f"Failed querying reviews for user {user_id}: {e}")
+    return reviews
+
+
+def get_previous_month_id(month_id: Optional[str] = None) -> str:
+    """
+    Returns previous month ID in YYYY-MM format given a month ID (or current month).
+    """
+    if not month_id:
+        month_id = get_current_month_id()
+    try:
+        parts = month_id.split("-")
+        year = int(parts[0])
+        month = int(parts[1])
+        if month == 1:
+            return f"{year - 1:04d}-12"
+        else:
+            return f"{year:04d}-{month - 1:02d}"
+    except Exception:
+        return month_id
+
+
+def fetch_user_monthly_recommendation(user_id: str, month_id: str, db=None) -> Optional[Dict[str, Any]]:
+    """
+    Fetches user's recommendation record for a specific month from /users/{user_id}/recommendations/{month_id}.
+    """
+    client = db or _DB_CLIENT or initialize_firebase()
+    if not client:
+        return None
+    try:
+        doc = client.collection("users").document(user_id).collection("recommendations").document(month_id).get()
+        if doc.exists:
+            return doc.to_dict()
+    except Exception as e:
+        logger.warning(f"Could not fetch recommendation for user {user_id} month {month_id}: {e}")
+    return None
+
+
