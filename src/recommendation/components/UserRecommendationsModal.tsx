@@ -246,7 +246,7 @@ export default function UserRecommendationsModal({
                             {filteredTrails.length === 0 ? (
                                 <View style={styles.emptySearchContainer}>
                                     <Text style={styles.emptySearchText}>
-                                        No trails matching "{searchQuery}"
+                                        No trails matching &quot;{searchQuery}&quot;
                                     </Text>
                                 </View>
                             ) : (
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     backdrop: {
-        ...StyleSheet.absoluteFillObject,
+        ...(StyleSheet.absoluteFill as any),
     },
     modalCard: {
         width: "100%",
