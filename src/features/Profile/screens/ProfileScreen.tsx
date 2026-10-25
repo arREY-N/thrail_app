@@ -294,7 +294,10 @@ const ProfileScreen = ({
 
                 <View style={[styles.tabContentContainer, responsiveAlignStyle]}>
                     <View style={activeTab !== 'Milestones' ? styles.hidden : undefined}>
-                        <MilestonesTab stats={stats} />
+                        <MilestonesTab 
+                            stats={stats} 
+                            isLoading={Boolean(isLoading || isRefreshing)} 
+                        />
                     </View>
                     <View style={activeTab !== 'Hike Log' ? styles.hidden : undefined}>
                         <HikeLogTab
