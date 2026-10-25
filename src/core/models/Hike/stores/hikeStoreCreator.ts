@@ -4,6 +4,7 @@ import { newHike } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location, newLocation } from "@/src/core/models/Location/Location";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { logger } from "@/src/core/utility/errorFormatter";
+import { computeTurnCosine } from "@/src/core/utility/gpsKalmanFilter";
 import { saveLocalTrackPoint } from "@/src/core/utility/hikeStorage";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
@@ -230,9 +231,18 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                         if (lastCoord && typeof lastCoord.latitude === 'number' && typeof lastCoord.longitude === 'number') {
                             const distMeters = calculateDistance(lastCoord.latitude, lastCoord.longitude, coordinate.latitude, coordinate.longitude);
 
-                            // 1. Stationary deadband filter (suppresses resting jitter < 3.5m from last committed anchor)
-                            if (distMeters < 3.5) {
-                                return; // Hiker is stationary; ignore noise to prevent ghost distance & spiderweb scribbles
+                            // 1. Dynamic Accuracy + Doppler ZUPT Stationary Deadband
+                            // Scales deadband with GPS uncertainty so shade/indoor multipath (accuracy 10-30m) cannot accumulate phantom distance
+                            const reportedAccuracy = typeof coordinate.accuracy === 'number' && coordinate.accuracy > 0 ? coordinate.accuracy : 5.0;
+                            const reportedSpeed = typeof coordinate.speed === 'number' && coordinate.speed >= 0 ? coordinate.speed : undefined;
+                            const isDopplerStationary = reportedSpeed !== undefined && reportedSpeed < 0.45;
+
+                            const minCommitDist = isDopplerStationary
+                                ? Math.max(5.0, reportedAccuracy * 0.85)
+                                : Math.max(3.5, Math.min(10.5, 3.5 + Math.max(0, reportedAccuracy - 5) * 0.5));
+
+                            if (distMeters < minCommitDist) {
+                                return; // Hiker is stationary or within uncertainty envelope; ignore noise
                             }
 
                             // 2. Speed plausibility filter (suppresses impossible jumps > 7.5 m/s or ~27 km/h)
@@ -249,16 +259,36 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                                 return;
                             }
 
-                            // 3. Commit valid displacement
+                            // 3. 3-Point Hairpin Multipath Spike Rejection
+                            // Under dense canopy or indoors, a reflected satellite signal can bounce sideways and snap back on the next fix,
+                            // forming an acute hairpin angle (< 35 deg, cosTheta < -0.82) within a short window (< 12s).
+                            if (state.coordinates.length >= 2 && currentSegment.length >= 2 && timeDeltaSec < 12) {
+                                const prevCoord = state.coordinates[state.coordinates.length - 2];
+                                if (prevCoord && typeof prevCoord.latitude === 'number' && typeof prevCoord.longitude === 'number') {
+                                    const turnCos = computeTurnCosine(
+                                        prevCoord.latitude,
+                                        prevCoord.longitude,
+                                        lastCoord.latitude,
+                                        lastCoord.longitude,
+                                        coordinate.latitude,
+                                        coordinate.longitude
+                                    );
+                                    if (turnCos < -0.82 && (reportedAccuracy > 8 || speedMps > 2.2)) {
+                                        return; // Suppress canopy multipath hairpin spike
+                                    }
+                                }
+                            }
+
+                            // 4. Commit valid displacement
                             state.totalDistance += distMeters;
 
-                            // 4. Elevation gain filter (ignore minor vertical noise < 2.5m and sensor glitches > 35m)
+                            // 5. Elevation gain filter (ignore minor vertical noise < 2.5m and sensor glitches > 35m)
                             const altDiff = (coordinate.altitude || 0) - (lastCoord.altitude || 0);
                             if (altDiff > 2.5 && altDiff < 35) {
                                 state.totalElevationGain += altDiff;
                             }
 
-                            // 5. Append to session telemetry & active segment
+                            // 6. Append to session telemetry & active segment
                             state.coordinates.push(coordinate);
                             currentSegment.push([coordinate.longitude, coordinate.latitude]);
                             isCommitted = true;
