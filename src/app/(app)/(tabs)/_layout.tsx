@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 
 import CustomNavBar from "@/src/components/CustomNavBar";
 import { useAppSubscriptions } from "@/src/core/hook/useAppSubscriptions";
+import { useNotifyPermission } from "@/src/core/hook/useNotifyPermission";
 import { useRouteGuard } from "@/src/core/models/User/User";
 
 export const unstable_settings = {
@@ -13,7 +14,7 @@ export const unstable_settings = {
  */
 export default function HomeLayout() {
     useAppSubscriptions();
-
+    useNotifyPermission();
     useRouteGuard();
 
     return (
