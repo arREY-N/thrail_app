@@ -5,6 +5,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { router } from 'expo-router';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
@@ -46,6 +47,7 @@ const FAVORED_FACTORS = [
 ];
 
 export interface DraftReview {
+    id?: string;
     overallRating: number;
     perceivedDifficulty?: string;
     trailMaintenance?: string;
@@ -62,6 +64,7 @@ export interface WriteReviewScreenProps {
     error: string | null;
     onUpdatePress: (payload: { section: string; id: string; value: unknown }) => void;
     onSaveReview: () => void;
+    onBackPress?: () => void;
 }
 
 const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({ 
@@ -69,11 +72,23 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     isLoading, 
     error, 
     onUpdatePress, 
-    onSaveReview
+    onSaveReview,
+    onBackPress,
 }) => {
+    const isEditMode = Boolean(review?.id);
+    const hasInitialMaintenance = Boolean(review?.trailMaintenance && review.trailMaintenance !== 'undefined');
+
     const [stepIndex, setStepIndex] = useState(0);
     const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
-    const [touchedMaintenance, setTouchedMaintenance] = useState(false); 
+    const [showDiscardConfirmation, setShowDiscardConfirmation] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
+    const [touchedMaintenance, setTouchedMaintenance] = useState(false);
+
+    const isMaintenanceSelected = 
+        touchedMaintenance || 
+        isEditMode || 
+        hasInitialMaintenance || 
+        Boolean(review?.trailMaintenance && review.trailMaintenance !== 'undefined');
 
     const STEPS = ['ratings', 'factors', 'details'];
     const currentStep = STEPS[stepIndex];
@@ -85,7 +100,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
             review.overallRating > 0 && 
             (!!review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') &&
             (!!review.trailMaintenance && review.trailMaintenance !== 'undefined') &&
-            touchedMaintenance; 
+            isMaintenanceSelected; 
     } else if (currentStep === 'factors') {
         hasAnswer = true;
     } else if (currentStep === 'details') {
@@ -107,11 +122,34 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
         }
     };
 
+    const handleDiscardPress = () => {
+        if (!isDirty) {
+            if (onBackPress) {
+                onBackPress();
+            } else {
+                router.back();
+            }
+            return;
+        }
+        setShowDiscardConfirmation(true);
+    };
+
+    const handleConfirmDiscard = () => {
+        setShowDiscardConfirmation(false);
+        if (onBackPress) {
+            onBackPress();
+        } else {
+            router.back();
+        }
+    };
+
     const updateReview = (field: string, value: unknown) => {
+        setIsDirty(true);
         onUpdatePress({ section: 'root', id: field, value });
     };
 
     const toggleArrayItem = (field: keyof DraftReview, item: string) => {
+        setIsDirty(true);
         const currentArray = (review[field] as string[]) || [];
         const newArray = currentArray.includes(item) 
             ? currentArray.filter(i => i !== item)
@@ -192,7 +230,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                                         <SelectionOption 
                                             key={opt.value}
                                             label={opt.label}
-                                            selected={touchedMaintenance && review.trailMaintenance === opt.value}
+                                            selected={isMaintenanceSelected && review.trailMaintenance === opt.value}
                                             onPress={() => {
                                                 setTouchedMaintenance(true);
                                                 updateReview('trailMaintenance', opt.value);
@@ -261,16 +299,25 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                             
                             <View style={{ marginTop: 24 }}>
                                 <CustomText variant="subtitle" style={[styles.question, { fontSize: 16 }]}>
-                                    Add a Photo (Optional)
+                                    Add Photos (Optional)
                                 </CustomText>
                                 <DocumentUploadCard 
-                                    docName="Trail Photo"
+                                    docName="Trail Photos"
                                     docKey="reviewImage"
+                                    subtitle="Up to 5 photos • Max 5MB each"
                                     isUploaded={review.image || []}
                                     allowMultiple={true}
+                                    maxFiles={5}
                                     onUploadSuccess={(url) => {
                                         const currentImages = review.image || [];
-                                        updateReview('image', [...currentImages, url]);
+                                        if (currentImages.length < 5) {
+                                            updateReview('image', [...currentImages, url]);
+                                        }
+                                    }}
+                                    onBatchUploadSuccess={(urls) => {
+                                        const currentImages = review.image || [];
+                                        const combined = [...currentImages, ...urls].slice(0, 5);
+                                        updateReview('image', combined);
                                     }}
                                     onDelete={(indexToRemove) => {
                                         const currentImages = review.image || [];
@@ -297,6 +344,19 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                 onClose={() => setShowSaveConfirmation(false)}
                 confirmText={isLoading ? "Submitting..." : "Submit"}
                 cancelText="Edit"
+                isLoading={isLoading}
+            />
+
+            <ConfirmationModal
+                visible={showDiscardConfirmation}
+                title="Discard Changes?"
+                message="You have unsaved changes. Are you sure you want to discard your edits?"
+                iconName="alert-triangle"
+                isDestructive={true}
+                onConfirm={handleConfirmDiscard}
+                onClose={() => setShowDiscardConfirmation(false)}
+                confirmText="Discard"
+                cancelText="Keep Editing"
             />
             
             <CustomHeader 
@@ -339,6 +399,10 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                                 color={Colors.TEXT_SECONDARY} 
                             />
                             <CustomText style={styles.prevText}>Previous</CustomText>
+                        </TouchableOpacity>
+                    ) : isEditMode ? (
+                        <TouchableOpacity onPress={handleDiscardPress} style={styles.discardButton}>
+                            <CustomText style={styles.discardText}>Discard</CustomText>
                         </TouchableOpacity>
                     ) : (
                         <View style={styles.prevButtonPlaceholder} />
@@ -512,6 +576,15 @@ const styles = StyleSheet.create({
     },
     prevButtonPlaceholder: {
         width: 100,
+    },
+    discardButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+    },
+    discardText: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
+        fontSize: 16,
     },
     prevText: { 
         color: Colors.TEXT_SECONDARY, 
