@@ -4,9 +4,14 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'engine/**'
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - 'engine/**'
+  workflow_dispatch:
 
 jobs:
   build_and_deploy:
@@ -38,6 +43,8 @@ jobs:
           EXPO_PUBLIC_FIREBASE_APPID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APPID }}
           EXPO_PUBLIC_FIREBASE_MEASUREMENTID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MEASUREMENTID }}
           EXPO_PUBLIC_MAPTILER_KEY: ${{ secrets.EXPO_PUBLIC_MAPTILER_KEY }}
+          EXPO_PUBLIC_TARS_API_URL: ${{ secrets.EXPO_PUBLIC_TARS_API_URL }}
+          EXPO_PUBLIC_THARESYS_API_KEY: ${{ secrets.EXPO_PUBLIC_THARESYS_API_KEY }}
         run: npm run build:web
 
       # Deploy Preview Channel on Pull Request
