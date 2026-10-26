@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
-import CustomStickyFooter from '@/src/components/CustomStickyFooter';
+// import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -260,12 +260,15 @@ const ReceiptScreen = ({
                 />
             )}
 
+            {/* Disabled displaying Close Receipt per user request */}
+            {/*
             <CustomStickyFooter
                 primaryButton={{
                     title: "Close Receipt",
                     onPress: onFinish
                 }}
             />
+            */}
         </ScreenWrapper>
     );
 };
