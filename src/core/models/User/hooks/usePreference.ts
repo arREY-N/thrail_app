@@ -1,6 +1,7 @@
 import { finishOnboarding } from "@/src/core/FirebaseAuthUtil";
 import { useAuthHook } from "@/src/core/models/User/hooks/useAuthHook";
 import { catchError } from "@/src/core/utility/errorFormatter";
+import { generateInitialUserRecommendations } from "@/src/features/SuperAdmin/services/tarsApiService";
 import { router } from "expo-router";
 import { useState } from "react";
 
@@ -155,9 +156,15 @@ export function usePreference() {
 
             if (!uid) throw new Error("Missing UID. User might not be fully logged in yet.");
 
-            console.log('Trying to save preference and medical profile');
+            console.log('Trying to save preference, medical profile, and initial profile');
             await finishOnboarding(uid, finalData as unknown as Parameters<typeof finishOnboarding>[1]);
-            router.replace('/(tabs)');
+
+            // Trigger THARESYS initial recommendation generation in background for this new user
+            generateInitialUserRecommendations(uid).catch((err) => {
+                console.warn('[usePreference] Initial recommendation generation background note:', err?.message || err);
+            });
+
+            router.replace('/(app)/(tabs)');
         } catch (err) {
             catchError((err as Error), 'error', 'usePreference');
             setError((err as Error).message)
