@@ -4,7 +4,7 @@ import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timesta
 
 export const newCancellation = (
     required: Pick<Cancellation, "userId" | "bookingId" | "businessId" | "reason" | "offerId" | "cancelledBy">,
-    optional: Partial<Pick<Cancellation, "id" | "status" | "createdAt" | "updatedAt" | "adminNote" | "refundAmount" | "refundedAt" | "handshakeStep" | "userWallet" | "refundDecision" | "adminRefundReceiptUrl" | "adminRefundReceiptUploadedAt">> = {}
+    optional: Partial<Pick<Cancellation, "id" | "status" | "createdAt" | "updatedAt" | "adminNote" | "refundAmount" | "refundedAt" | "handshakeStep" | "userWallet" | "refundDecision" | "adminRefundReceiptUrl" | "adminRefundReceiptUploadedAt" | "disputeCount" | "disputeReason" | "disputedAt" | "userConfirmedReceivedAt">> = {}
 ): Cancellation => {
     const currentDate = new Date();
 
@@ -99,6 +99,22 @@ const cancellationFromFirestore = (id: string, data: ICancellationDB): Cancellat
         request.adminRefundReceiptUploadedAt = toDate(data.adminRefundReceiptUploadedAt);
     }
 
+    if (data.disputeCount !== undefined) {
+        request.disputeCount = data.disputeCount;
+    }
+
+    if (data.disputeReason) {
+        request.disputeReason = data.disputeReason;
+    }
+
+    if (data.disputedAt) {
+        request.disputedAt = toDate(data.disputedAt);
+    }
+
+    if (data.userConfirmedReceivedAt) {
+        request.userConfirmedReceivedAt = toDate(data.userConfirmedReceivedAt);
+    }
+
     return request;
 };
 
@@ -154,6 +170,26 @@ const cancellationToFirestore = (cancellation: Cancellation): ICancellationDB =>
     if (cancellation.adminRefundReceiptUploadedAt) {
         request.adminRefundReceiptUploadedAt = cancellation.adminRefundReceiptUploadedAt instanceof Date
             ? Timestamp.fromDate(cancellation.adminRefundReceiptUploadedAt)
+            : serverTimestamp();
+    }
+
+    if (cancellation.disputeCount !== undefined) {
+        request.disputeCount = cancellation.disputeCount;
+    }
+
+    if (cancellation.disputeReason) {
+        request.disputeReason = cancellation.disputeReason;
+    }
+
+    if (cancellation.disputedAt) {
+        request.disputedAt = cancellation.disputedAt instanceof Date
+            ? Timestamp.fromDate(cancellation.disputedAt)
+            : serverTimestamp();
+    }
+
+    if (cancellation.userConfirmedReceivedAt) {
+        request.userConfirmedReceivedAt = cancellation.userConfirmedReceivedAt instanceof Date
+            ? Timestamp.fromDate(cancellation.userConfirmedReceivedAt)
             : serverTimestamp();
     }
 
