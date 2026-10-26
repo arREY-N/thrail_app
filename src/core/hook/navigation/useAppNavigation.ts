@@ -49,6 +49,13 @@ export function useAppNavigation() {
         })
     }
 
+    const onTrailOfTheMonthPress = (trailId: string, monthId?: string) => {
+        router.push({
+            pathname: '/(app)/(main)/recommendation/view',
+            params: { trailId, month: monthId },
+        });
+    }
+
     const onSeeMoreDiscoverPress = () => {
         router.replace({
             pathname: '/explore',
@@ -120,6 +127,7 @@ export function useAppNavigation() {
         onNotificationPress,
         onWeatherPress,
         onSeeMoreRecommendationsPress,
+        onTrailOfTheMonthPress,
         onSeeMoreDiscoverPress,
         onSeeMoreOffersPress,
         onGroupPress,

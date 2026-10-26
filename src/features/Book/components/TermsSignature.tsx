@@ -9,7 +9,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
-import CustomToast from '@/src/components/CustomToast';
+import { useToast } from '@/src/components/Toast/Toast';
 import LegalTermsModal, { LegalTabType } from '@/src/components/LegalTermsModal';
 import { Colors } from '@/src/constants/colors';
 
@@ -26,6 +26,8 @@ export interface TermsSignatureProps {
     onBookingTermsPress?: () => void;
     /** Callback to display toast message on parent screen */
     onShowToast?: (message: string) => void;
+    /** Optional callback when signature input receives focus */
+    onSignatureFocus?: () => void;
 }
 
 /**
@@ -43,12 +45,13 @@ const TermsSignature = ({
     onPrivacyPress,
     onBookingTermsPress,
     onShowToast,
+    onSignatureFocus,
 }: TermsSignatureProps): React.JSX.Element => {
+    const { showToast } = useToast();
     const [signature, setSignature] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalTab, setModalTab] = useState<LegalTabType>('terms');
     const [hasReadPolicies, setHasReadPolicies] = useState(!requireReadToAgree);
-    const [localToastMessage, setLocalToastMessage] = useState<string | null>(null);
 
     const isPoliciesAcknowledged = !requireReadToAgree || hasReadPolicies;
 
@@ -75,12 +78,21 @@ const TermsSignature = ({
 
     const handleModalDismissWithStatus = (status: { readCount: number; hasReadAll: boolean }) => {
         if (isPoliciesAcknowledged) return;
+
+        let msg: string | null = null;
         if (status.hasReadAll) {
-            const msg = "All policies reviewed! Tap 'I Understand & Agree' at the bottom to unlock signature.";
+            msg = "All policies reviewed! Tap 'I Understand & Agree' at the bottom to unlock signature.";
+        } else if (status.readCount === 2) {
+            msg = "2/3 policies read. Please review the final policy to unlock digital signature.";
+        } else if (status.readCount === 1) {
+            msg = "1/3 policies read. Please review the remaining 2 policies to unlock digital signature.";
+        }
+
+        if (msg) {
             if (onShowToast) {
                 onShowToast(msg);
             } else {
-                setLocalToastMessage(msg);
+                showToast.info(msg);
             }
         }
     };
@@ -130,9 +142,15 @@ const TermsSignature = ({
                 <CustomText style={styles.description}>.</CustomText>
             </CustomText>
 
-            {/* In default unacknowledged state, render concise reminder box above input */}
+            {/* In default unacknowledged state, render interactive reminder box above input */}
             {!isPoliciesAcknowledged && (
-                <View style={styles.instructionBox}>
+                <TouchableOpacity
+                    style={styles.instructionBox}
+                    onPress={handleLockedInputPress}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel="Please read and agree to all 3 legal policies above to unlock digital signature"
+                >
                     <View style={styles.iconContainer}>
                         <CustomIcon 
                             library="Feather" 
@@ -146,7 +164,7 @@ const TermsSignature = ({
                             Please read and agree to all 3 legal policies above to unlock digital signature.
                         </CustomText>
                     </View>
-                </View>
+                </TouchableOpacity>
             )}
 
             {/* If acknowledged, render verified name instruction card above input */}
@@ -195,6 +213,7 @@ const TermsSignature = ({
                     iconColor={!isInputEditable ? Colors.TEXT_SECONDARY : (isSignatureMatched ? Colors.SUCCESS : undefined)}
                     style={styles.inputSpacing}
                     pointerEvents={isInputEditable ? "auto" : "none"}
+                    onFocus={onSignatureFocus}
                 />
             </TouchableOpacity>
 
@@ -208,16 +227,6 @@ const TermsSignature = ({
                 onAcknowledgeAll={() => {
                     setHasReadPolicies(true);
                 }}
-            />
-
-            {/* Fallback Local Toast when onShowToast is not supplied */}
-            <CustomToast
-                visible={!!localToastMessage}
-                message={localToastMessage || ''}
-                onHide={() => setLocalToastMessage(null)}
-                type="info"
-                mode="dismissible"
-                position="floating"
             />
         </View>
     );

@@ -82,6 +82,8 @@ export const getBookingFooterConfig = ({
                 title: buttonTitle,
                 variant: "primary" as const,
                 disabled: isSubmittingDocs,
+                validationState: canResubmitAll ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                isIdleDisabled: false,
                 style: {
                     borderRadius: 12,
                     backgroundColor: canResubmitAll
@@ -103,12 +105,41 @@ export const getBookingFooterConfig = ({
         };
     }
 
-    if (displayStatus === 'for-payment' || displayStatus === 'approved-docs') {
+    const isPaymentVerifying = booking?.paymentVerificationStatus === 'pending_verification' ||
+        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+
+    if (isPaymentVerifying) {
         return {
             primaryButton: {
-                title: "Complete Payment",
+                title: "Payment Under Review",
                 variant: "primary" as const,
-                style: { borderRadius: 12, backgroundColor: Colors.PRIMARY },
+                disabled: true,
+                style: {
+                    borderRadius: 12,
+                    backgroundColor: Colors.STATUS_PENDING_BG,
+                    borderColor: Colors.PRIMARY,
+                    borderWidth: 1.5,
+                },
+                textStyle: {
+                    color: Colors.PRIMARY,
+                    fontWeight: 'bold' as const,
+                },
+                onPress: () => {},
+            }
+        };
+    }
+
+    if (displayStatus === 'for-payment' || displayStatus === 'approved-docs') {
+        const isPaymentRejected = booking?.paymentVerificationStatus === 'rejected' ||
+            Boolean(booking?.payment?.length && booking.payment[booking.payment.length - 1].status === 'rejected');
+        return {
+            primaryButton: {
+                title: isPaymentRejected ? "Resubmit Payment" : "Complete Payment",
+                variant: "primary" as const,
+                style: {
+                    borderRadius: 12,
+                    backgroundColor: isPaymentRejected ? Colors.ERROR : Colors.PRIMARY,
+                },
                 onPress: () => onProceedToPayment(booking)
             }
         };

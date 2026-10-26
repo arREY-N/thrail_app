@@ -79,6 +79,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const [isDevBypassModalVisible, setDevBypassModalVisible] = useState(false);
     const [isUpcomingModalVisible, setUpcomingModalVisible] = useState(false);
     const [activeBooking, setActiveBooking] = useState<Booking | null>(upcomingBookings[0] || null);
+    const [controlsHeight, setControlsHeight] = useState(250);
 
     const activeHikeSession = useHikeStore((s) => (s.active && s.currentHike && (s.currentHike.status === 'started' || s.currentHike.status === 'paused') ? s.currentHike : null));
     const activeHikeElapsed = useHikeStore((s) => s.elapsedTime);
@@ -153,7 +154,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 ref={mapRef}
                     initialLon={selectedTrail?.geography?.startLong} 
                     initialLat={selectedTrail?.geography?.startLat}
-                    bottomInset={275} 
+                    bottomInset={controlsHeight + 20} 
                 />
 
                 <View style={[styles.floatingSearchWrapper, { top: searchTopPadding }, responsiveStyle]}>
@@ -168,7 +169,91 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                         onTabSelect={undefined}
                     />
 
-                    {activeHikeSession && !showDropdown && (
+                    {showDropdown && (
+                        <View style={styles.dropdownContainer}>
+                            <FlatList
+                                data={filteredTrails}
+                                keyExtractor={(item) => item.id}
+                                keyboardShouldPersistTaps="handled"
+                                style={styles.dropdownList}
+                                renderItem={({ item, index }) => {
+                                    const { dist, elev, route } = getDisplayData(item);
+                                    const locationName = getLocation(item);
+                                    
+                                    return (
+                                        <TouchableOpacity 
+                                            style={[styles.dropdownItem, index === filteredTrails.length - 1 && { borderBottomWidth: 0 }]} 
+                                            onPress={() => onTrailSelect(item)}
+                                        >
+                                            <View style={styles.dropdownIconBox}>
+                                                <CustomIcon library="FontAwesome6" name="mountain" size={16} color={Colors.PRIMARY} />
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <View style={styles.dropdownHeaderRow}>
+                                                    <CustomText style={styles.dropdownItemText} numberOfLines={1}>{item.general?.name}</CustomText>
+                                                    <CustomText variant="caption" style={styles.dropdownLocation}>{locationName}</CustomText>
+                                                </View>
+                                                <CustomText variant="caption" style={styles.dropdownSubText}>{dist} • {elev} • {route}</CustomText>
+                                            </View>
+                                            <CustomIcon library="Feather" name="arrow-up-left" size={16} color={Colors.GRAY_MEDIUM} />
+                                        </TouchableOpacity>
+                                    );
+                                }}
+                            />
+                        </View>
+                    )}
+                </View>
+
+                <View style={[styles.mapControlsColumn, { bottom: controlsHeight + 36 }]}>
+                    <TouchableOpacity 
+                        style={[styles.floatingIconBtn, { backgroundColor: Colors.YELLOW }]} 
+                        onPress={() => {
+                            // Pass a real trailId so the map loads, but pass the fake DEV_TEST booking ID
+                            router.push({
+                                pathname: '/(app)/(main)/hike/view',
+                                params: { 
+                                    hikeId: "new_diy_session",
+                                }
+                            });
+                        }} 
+                        activeOpacity={0.8}
+                    >
+                        <CustomIcon library="Feather" name="tool" size={20} color={Colors.WHITE} />
+                    </TouchableOpacity>
+
+                    {upcomingBookings.length > 0 && (
+                        <TouchableOpacity 
+                            style={styles.floatingIconBtn} 
+                            onPress={() => setUpcomingModalVisible(true)} 
+                            activeOpacity={0.8}
+                        >
+                            <CustomIcon library="Ionicons" name="ticket-outline" size={20} color={Colors.PRIMARY} />
+                        </TouchableOpacity>
+                    )}
+
+                    <TouchableOpacity style={styles.floatingIconBtn} onPress={onGroupPress} activeOpacity={0.8}>
+                        <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.floatingIconBtn} onPress={handleToggleOffline} activeOpacity={0.8}>
+                        <CustomIcon library="Feather" name={isOfflineMode ? "map" : "layers"} size={20} color={isOfflineMode ? Colors.TEXT_SECONDARY : Colors.PRIMARY} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.floatingIconBtn} onPress={() => mapRef.current?.centerOnUser()} activeOpacity={0.8}>
+                        <CustomIcon library="Ionicons" name="locate" size={22} color={Colors.TEXT_PRIMARY} />
+                    </TouchableOpacity>
+                </View>
+
+                <View 
+                    style={[styles.floatingControlsContainer, responsiveStyle]}
+                    onLayout={(e) => {
+                        const h = Math.round(e.nativeEvent.layout.height);
+                        if (h > 0 && Math.abs(h - controlsHeight) > 2) {
+                            setControlsHeight(h);
+                        }
+                    }}
+                >
+                    {activeHikeSession && (
                         <TouchableOpacity
                             style={styles.resumeBannerContainer}
                             activeOpacity={0.88}
@@ -207,83 +292,6 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                             </View>
                         </TouchableOpacity>
                     )}
-
-                    {showDropdown && (
-                        <View style={styles.dropdownContainer}>
-                            <FlatList
-                                data={filteredTrails}
-                                keyExtractor={(item) => item.id}
-                                keyboardShouldPersistTaps="handled"
-                                style={styles.dropdownList}
-                                renderItem={({ item, index }) => {
-                                    const { dist, elev, route } = getDisplayData(item);
-                                    const locationName = getLocation(item);
-                                    
-                                    return (
-                                        <TouchableOpacity 
-                                            style={[styles.dropdownItem, index === filteredTrails.length - 1 && { borderBottomWidth: 0 }]} 
-                                            onPress={() => onTrailSelect(item)}
-                                        >
-                                            <View style={styles.dropdownIconBox}>
-                                                <CustomIcon library="FontAwesome6" name="mountain" size={16} color={Colors.PRIMARY} />
-                                            </View>
-                                            <View style={{ flex: 1 }}>
-                                                <View style={styles.dropdownHeaderRow}>
-                                                    <CustomText style={styles.dropdownItemText} numberOfLines={1}>{item.general?.name}</CustomText>
-                                                    <CustomText variant="caption" style={styles.dropdownLocation}>{locationName}</CustomText>
-                                                </View>
-                                                <CustomText variant="caption" style={styles.dropdownSubText}>{dist} • {elev} • {route}</CustomText>
-                                            </View>
-                                            <CustomIcon library="Feather" name="arrow-up-left" size={16} color={Colors.GRAY_MEDIUM} />
-                                        </TouchableOpacity>
-                                    );
-                                }}
-                            />
-                        </View>
-                    )}
-                </View>
-
-                {upcomingBookings.length > 0 && (
-                    <TouchableOpacity 
-                        style={[styles.floatingIconBtn, { bottom: 460 }]} 
-                        onPress={() => setUpcomingModalVisible(true)} 
-                        activeOpacity={0.8}
-                    >
-                        <CustomIcon library="Ionicons" name="ticket-outline" size={20} color={Colors.PRIMARY} />
-                    </TouchableOpacity>
-                )}
-
-                <TouchableOpacity 
-                style={[styles.floatingIconBtn, { bottom: 520, backgroundColor: Colors.YELLOW }]} 
-                onPress={() => {
-                    // Pass a real trailId so the map loads, but pass the fake DEV_TEST booking ID
-                    router.push({
-                        pathname: '/(app)/(main)/hike/view',
-                        params: { 
-                            hikeId: "new_diy_session",
-                            // trailId: filteredTrails[0]?.id || "mock_batulao", // Uses first available trail
-                            // bookingId: "DEV_TEST" 
-                        }
-                    });
-                }} 
-                activeOpacity={0.8}
-            >
-                <CustomIcon library="Feather" name="tool" size={20} color={Colors.WHITE} />
-            </TouchableOpacity>
-
-                <TouchableOpacity style={[styles.floatingIconBtn, { bottom: 400 }]} onPress={onGroupPress} activeOpacity={0.8}>
-                    <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={[styles.floatingIconBtn, { bottom: 340 }]} onPress={handleToggleOffline} activeOpacity={0.8}>
-                    <CustomIcon library="Feather" name={isOfflineMode ? "map" : "layers"} size={20} color={isOfflineMode ? Colors.TEXT_SECONDARY : Colors.PRIMARY} />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={[styles.floatingIconBtn, { bottom: 280 }]} onPress={() => mapRef.current?.centerOnUser()} activeOpacity={0.8}>
-                    <CustomIcon library="Ionicons" name="locate" size={22} color={Colors.TEXT_PRIMARY} />
-                </TouchableOpacity>
-
-                <View style={[styles.floatingControlsContainer, responsiveStyle]}>
                     {isLoading ? (
                         <View style={styles.loaderCard}>
                             <ActivityIndicator size="small" color={Colors.PRIMARY} />
@@ -396,8 +404,8 @@ const styles = StyleSheet.create({
     
     floatingSearchWrapper: { position: "absolute", zIndex: 50 }, 
     floatingControlsContainer: { position: "absolute", bottom: 24, zIndex: 40, paddingHorizontal: 16 },
-
-    floatingIconBtn: { position: "absolute", right: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: "center", justifyContent: "center", zIndex: 45, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
+    mapControlsColumn: { position: 'absolute', right: 16, gap: 12, zIndex: 45 },
+    floatingIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: "center", justifyContent: "center", ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
 
     dropdownContainer: { marginHorizontal: 16, marginTop: 4, backgroundColor: Colors.WHITE, borderRadius: 16, maxHeight: 220, overflow: "hidden", ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     dropdownList: { paddingVertical: 4 },
@@ -432,8 +440,8 @@ const styles = StyleSheet.create({
     disabledLaunchText: { color: Colors.TEXT_SECONDARY, fontWeight: "700", fontSize: 16 },
 
     resumeBannerContainer: {
-        marginHorizontal: 16,
-        marginTop: 8,
+        width: '100%',
+        marginBottom: 10,
         backgroundColor: Colors.WHITE,
         borderRadius: 16,
         borderWidth: 1.5,

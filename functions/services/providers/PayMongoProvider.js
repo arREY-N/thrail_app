@@ -99,12 +99,9 @@ class PayMongoProvider {
      */
     async createCheckout(amount, type, redirectUrl, metadata, customerInfo = null) {
         console.log(`[PayMongoProvider] Creating checkout session for amount: ${amount}, method: ${type}`);
-        const supportedMethods = ['gcash', 'paymaya'];
-        const primaryMethod = type === 'maya' ? 'paymaya' : type;
-        const paymentMethodTypes = [
-            primaryMethod,
-            ...supportedMethods.filter((m) => m !== primaryMethod)
-        ];
+        const primaryMethod = (type === 'maya' || type === 'paymaya') ? 'paymaya' : 'gcash';
+        // Auto-choose: only provide the user's selected method to bypass channel re-selection on PayMongo page
+        const paymentMethodTypes = [primaryMethod];
 
         const sessionAttributes = {
             send_email_receipt: false,
@@ -123,6 +120,10 @@ class PayMongoProvider {
             cancel_url: redirectUrl,
             reference_number: metadata.bookingId // Link session to booking
         };
+
+        if (metadata && typeof metadata === 'object') {
+            sessionAttributes.metadata = metadata;
+        }
 
         if (customerInfo && (customerInfo.name || customerInfo.email || customerInfo.phone)) {
             const billing = {};

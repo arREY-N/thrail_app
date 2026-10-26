@@ -1,6 +1,6 @@
-import { Booking, IBookingDB } from "@/src/core/models/Booking/interfaces/Booking.types";
+import { Booking, IBookingDB, IPayment } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { toDate, toDateOrNull } from "@/src/core/utility/date";
-import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
+import { FieldValue, FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 
 export const newBooking = (init?: Partial<Booking>): Booking => {
     return {
@@ -66,6 +66,10 @@ const bookingFromFirestore = (id: string, data: IBookingDB): Booking => {
             ...p,
             refundableUntil: toDate(p.refundableUntil),
             createdAt: toDate(p.createdAt),
+            capturedAt: p.capturedAt ? toDate(p.capturedAt) : undefined,
+            paidAt: p.paidAt ? toDate(p.paidAt) : undefined,
+            refundedAt: p.refundedAt ? toDate(p.refundedAt) : undefined,
+            verifiedAt: p.verifiedAt ? toDate(p.verifiedAt) : undefined,
         })),
         emergencyContact: data.emergencyContact ? {
             ...data.emergencyContact,
@@ -76,8 +80,39 @@ const bookingFromFirestore = (id: string, data: IBookingDB): Booking => {
             phoneVerifiedAt: null,
         },
         documents: data.documents || [],
+        remainingBalance: data.remainingBalance,
+        paymentVerificationStatus: data.paymentVerificationStatus,
+        paymentRejectionReason: data.paymentRejectionReason,
     };
 };
+
+function sanitizeFirestoreData<T>(val: T): T {
+    if (val === null || val === undefined) {
+        return val;
+    }
+    if (
+        val instanceof Timestamp ||
+        val instanceof Date ||
+        (typeof val === 'object' && '_methodName' in (val as Record<string, unknown>))
+    ) {
+        return val;
+    }
+    if (Array.isArray(val)) {
+        return val
+            .filter((item) => item !== undefined)
+            .map((item) => sanitizeFirestoreData(item)) as unknown as T;
+    }
+    if (typeof val === 'object') {
+        const cleaned: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+            if (v !== undefined) {
+                cleaned[k] = sanitizeFirestoreData(v);
+            }
+        }
+        return cleaned as T;
+    }
+    return val;
+}
 
 const bookingToFirestore = (booking: Booking): IBookingDB => {
     const isNew = booking.id === '';
@@ -105,11 +140,44 @@ const bookingToFirestore = (booking: Booking): IBookingDB => {
         },
         business: booking.business,
         trail: booking.trail,
-        payment: (booking.payment || []).map(p => ({
-            ...p,
-            refundableUntil: p.refundableUntil instanceof Date && !isNaN(p.refundableUntil.getTime()) ? Timestamp.fromDate(p.refundableUntil) : Timestamp.now(),
-            createdAt: p.createdAt instanceof Date && !isNaN(p.createdAt.getTime()) ? Timestamp.fromDate(p.createdAt) : Timestamp.now(),
-        })),
+        payment: (booking.payment || []).map(p => {
+            const paymentItem: IPayment<Timestamp | FieldValue> = {
+                gateway: p.gateway || '',
+                sessionId: p.sessionId || '',
+                status: p.status || 'pending',
+                amount: typeof p.amount === 'number' ? p.amount : 0,
+                createdAt: p.createdAt instanceof Date && !isNaN(p.createdAt.getTime()) ? Timestamp.fromDate(p.createdAt) : Timestamp.now(),
+            };
+
+            if (p.refundableUntil instanceof Date && !isNaN(p.refundableUntil.getTime())) {
+                paymentItem.refundableUntil = Timestamp.fromDate(p.refundableUntil);
+            }
+
+            if (p.referenceCode !== undefined && p.referenceCode !== null) paymentItem.referenceCode = p.referenceCode;
+            if (p.gatewayId !== undefined && p.gatewayId !== null) paymentItem.gatewayId = p.gatewayId;
+            if (p.method !== undefined && p.method !== null) paymentItem.method = p.method;
+            if (typeof p.refundedAmount === 'number') paymentItem.refundedAmount = p.refundedAmount;
+            if (p.refundReason !== undefined && p.refundReason !== null) paymentItem.refundReason = p.refundReason;
+            if (p.receiptUrl !== undefined && p.receiptUrl !== null) paymentItem.receiptUrl = p.receiptUrl;
+            if (p.classification !== undefined && p.classification !== null) paymentItem.classification = p.classification;
+            if (p.adminNote !== undefined && p.adminNote !== null) paymentItem.adminNote = p.adminNote;
+            if (p.verifiedBy !== undefined && p.verifiedBy !== null) paymentItem.verifiedBy = p.verifiedBy;
+
+            if (p.capturedAt instanceof Date && !isNaN(p.capturedAt.getTime())) {
+                paymentItem.capturedAt = Timestamp.fromDate(p.capturedAt);
+            }
+            if (p.paidAt instanceof Date && !isNaN(p.paidAt.getTime())) {
+                paymentItem.paidAt = Timestamp.fromDate(p.paidAt);
+            }
+            if (p.refundedAt instanceof Date && !isNaN(p.refundedAt.getTime())) {
+                paymentItem.refundedAt = Timestamp.fromDate(p.refundedAt);
+            }
+            if (p.verifiedAt instanceof Date && !isNaN(p.verifiedAt.getTime())) {
+                paymentItem.verifiedAt = Timestamp.fromDate(p.verifiedAt);
+            }
+
+            return paymentItem;
+        }),
         emergencyContact: booking.emergencyContact ? {
             ...booking.emergencyContact,
             phoneVerifiedAt: booking.emergencyContact.phoneVerifiedAt instanceof Date && !isNaN(booking.emergencyContact.phoneVerifiedAt.getTime())
@@ -128,7 +196,17 @@ const bookingToFirestore = (booking: Booking): IBookingDB => {
         data.cancelledBy = booking.cancelledBy;
     }
 
-    return data;
+    if (booking.remainingBalance !== undefined && booking.remainingBalance !== null) {
+        data.remainingBalance = booking.remainingBalance;
+    }
+    if (booking.paymentVerificationStatus !== undefined && booking.paymentVerificationStatus !== null) {
+        data.paymentVerificationStatus = booking.paymentVerificationStatus;
+    }
+    if (booking.paymentRejectionReason !== undefined && booking.paymentRejectionReason !== null && booking.paymentRejectionReason !== '') {
+        data.paymentRejectionReason = booking.paymentRejectionReason;
+    }
+
+    return sanitizeFirestoreData(data);
 };
 
 export const bookingConverter: FirestoreDataConverter<Booking> = {

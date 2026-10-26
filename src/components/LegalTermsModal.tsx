@@ -5,7 +5,7 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -17,18 +17,30 @@ import {
     Platform,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomToast from '@/src/components/CustomToast';
+import { CustomToast } from '@/src/components/Toast/Toast';
+import {
+    CustomTutorialModal,
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { BOOKING_TERMS_TEXT, PRIVACY_TEXT as PRIVACY_POLICY_TEXT, TERMS_TEXT as TERMS_OF_SERVICE_TEXT } from '@/src/constants/legal';
+import {
+    BOOKING_TERMS_TEXT,
+    PRIVACY_TEXT as PRIVACY_POLICY_TEXT,
+    TERMS_TEXT as TERMS_OF_SERVICE_TEXT,
+} from '@/src/constants/legal';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -77,6 +89,56 @@ const LegalTermsModal = ({
     const [activeTab, setActiveTab] = useState<LegalTabType>(initialTab);
     const [isAtBottom, setIsAtBottom] = useState<boolean>(false);
     const [animValue] = useState(() => new Animated.Value(visible ? 1 : 0));
+
+    const tabsContainerRef = useRef<View>(null);
+    const actionButtonWrapperRef = useRef<View>(null);
+
+    const tutorial = useTutorialGuide('legal_terms', visible && renderModal);
+
+    const measureLegalTabsNow = useCallback(() => {
+        tabsContainerRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('legal_tabs', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureActionButtonNow = useCallback(() => {
+        actionButtonWrapperRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('legal_scroll_bottom', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const unregTabs = registerMeasureCallback('legal_tabs', measureLegalTabsNow);
+        const unregBtn = registerMeasureCallback('legal_scroll_bottom', measureActionButtonNow);
+        return () => {
+            unregTabs();
+            unregBtn();
+        };
+    }, [measureLegalTabsNow, measureActionButtonNow]);
+
+    const handleTabsLayout = useCallback(() => {
+        if (!isTutorialMeasurementActive()) return;
+        measureLegalTabsNow();
+    }, [measureLegalTabsNow]);
+
+    const handleActionButtonLayout = useCallback(() => {
+        if (!isTutorialMeasurementActive()) return;
+        measureActionButtonNow();
+    }, [measureActionButtonNow]);
+
+    useEffect(() => {
+        if (visible && renderModal && tutorial.isVisible) {
+            const timer = setTimeout(() => {
+                measureLegalTabsNow();
+                measureActionButtonNow();
+            }, 260);
+            return () => clearTimeout(timer);
+        }
+    }, [visible, renderModal, tutorial.isVisible, tutorial.currentStepIndex, measureLegalTabsNow, measureActionButtonNow]);
 
     // Per-tab scroll completion tracking
     const [hasReadTerms, setHasReadTerms] = useState<boolean>(!requireReadToAgree || isAlreadyAcknowledged);
@@ -131,6 +193,29 @@ const LegalTermsModal = ({
         }
     }, [visible, animValue, renderModal]);
 
+    const handleDismiss = useCallback(() => {
+        if (!isAlreadyAcknowledged && onDismissWithStatus) {
+            onDismissWithStatus({ readCount, hasReadAll });
+        }
+        onClose();
+    }, [isAlreadyAcknowledged, onDismissWithStatus, readCount, hasReadAll, onClose]);
+
+    // Physical Escape key dismissal on Web
+    useEffect(() => {
+        if (Platform.OS !== 'web' || !visible) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                handleDismiss();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [visible, handleDismiss]);
+
+    // Toast offset calculation: guarantee clean 12px floating headroom above CTA button
+    const footerPadding = isWideScreen ? 24 : Math.max(insets.bottom + 16, 20);
+    const toastBottomOffset = footerPadding + 52 + 12;
+
     const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
         const paddingToBottom = 20;
@@ -152,13 +237,6 @@ const LegalTermsModal = ({
         setToastMessage(null);
     };
 
-    const handleDismiss = () => {
-        if (!isAlreadyAcknowledged && onDismissWithStatus) {
-            onDismissWithStatus({ readCount, hasReadAll });
-        }
-        onClose();
-    };
-
     const handleAcknowledgePress = () => {
         if (canAcknowledge) {
             if (onAcknowledgeAll) onAcknowledgeAll();
@@ -168,6 +246,96 @@ const LegalTermsModal = ({
             setToastMessage(`Please scroll to the bottom of all 3 policies to acknowledge (${readCount}/3 read).`);
         }
     };
+
+    const getTabDisplayName = (tab: LegalTabType): string => {
+        switch (tab) {
+            case 'privacy':
+                return 'Privacy Policy';
+            case 'booking':
+                return 'Booking Policies';
+            case 'terms':
+            default:
+                return 'Terms & Conditions';
+        }
+    };
+
+    const getNextUnreadTab = (
+        current: LegalTabType,
+        termsRead: boolean,
+        privacyRead: boolean,
+        bookingRead: boolean
+    ): LegalTabType | null => {
+        if (current === 'terms') {
+            if (!privacyRead) return 'privacy';
+            if (!bookingRead) return 'booking';
+            return null;
+        }
+        if (current === 'privacy') {
+            if (!bookingRead) return 'booking';
+            if (!termsRead) return 'terms';
+            return null;
+        }
+        if (current === 'booking') {
+            if (!termsRead) return 'terms';
+            if (!privacyRead) return 'privacy';
+            return null;
+        }
+        return null;
+    };
+
+    const isCurrentTabRead =
+        (activeTab === 'terms' && hasReadTerms) ||
+        (activeTab === 'privacy' && hasReadPrivacy) ||
+        (activeTab === 'booking' && hasReadBooking);
+
+    const nextUnreadTab = getNextUnreadTab(activeTab, hasReadTerms, hasReadPrivacy, hasReadBooking);
+
+    let buttonTitle = '';
+    let buttonVariant: 'primary' | 'outline' = 'outline';
+    let buttonIcon: string | undefined = undefined;
+    let buttonIconPosition: 'left' | 'right' = 'right';
+    let buttonValidationState: 'valid' | 'idle' | 'error' = 'idle';
+    let handleButtonPress = () => {};
+
+    if (isAlreadyAcknowledged) {
+        buttonTitle = 'Done';
+        buttonVariant = 'primary';
+        buttonIcon = 'check';
+        buttonIconPosition = 'left';
+        buttonValidationState = 'valid';
+        handleButtonPress = onClose;
+    } else if (canAcknowledge) {
+        buttonTitle = 'I Understand & Agree';
+        buttonVariant = 'primary';
+        buttonIcon = 'check';
+        buttonIconPosition = 'left';
+        buttonValidationState = 'valid';
+        handleButtonPress = handleAcknowledgePress;
+    } else if (isCurrentTabRead) {
+        if (nextUnreadTab) {
+            buttonTitle = `Continue to ${getTabDisplayName(nextUnreadTab)}`;
+            buttonVariant = 'primary';
+            buttonIcon = 'arrow-right';
+            buttonIconPosition = 'right';
+            buttonValidationState = 'valid';
+            handleButtonPress = () => handleTabChange(nextUnreadTab);
+        } else {
+            buttonTitle = 'I Understand & Agree';
+            buttonVariant = 'primary';
+            buttonIcon = 'check';
+            buttonIconPosition = 'left';
+            buttonValidationState = 'valid';
+            handleButtonPress = handleAcknowledgePress;
+        }
+    } else {
+        buttonTitle = `Read to Continue (${readCount}/3)`;
+        buttonVariant = 'outline';
+        buttonValidationState = hasAttemptedAcknowledge ? 'error' : 'idle';
+        handleButtonPress = () => {
+            setHasAttemptedAcknowledge(true);
+            setToastMessage(`Please scroll to the bottom of ${getTabDisplayName(activeTab)} to continue.`);
+        };
+    }
 
     const getTabContent = () => {
         switch (activeTab) {
@@ -217,7 +385,7 @@ const LegalTermsModal = ({
             animationType="none"
             onRequestClose={handleDismiss}
         >
-            <KeyboardAvoidingView 
+            <KeyboardAvoidingView
                 style={styles.modalContainer}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
@@ -241,12 +409,12 @@ const LegalTermsModal = ({
                                 {
                                     translateY: animValue.interpolate({
                                         inputRange: [0, 1],
-                                        outputRange: isWideScreen ? [50, 0] : [SCREEN_HEIGHT, 0]
-                                    })
-                                }
+                                        outputRange: isWideScreen ? [50, 0] : [SCREEN_HEIGHT, 0],
+                                    }),
+                                },
                             ],
                             opacity: isWideScreen ? animValue : 1,
-                        }
+                        },
                     ]}
                 >
                     {/* Header */}
@@ -254,27 +422,42 @@ const LegalTermsModal = ({
                         <CustomText variant="h2" style={styles.headerTitle}>
                             Terms & Conditions
                         </CustomText>
-                        <TouchableOpacity
-                            onPress={handleDismiss}
-                            style={styles.closeBtn}
-                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        >
-                            <CustomIcon
-                                library="Feather"
-                                name="x"
-                                size={20}
-                                color={Colors.TEXT_SECONDARY}
-                            />
-                        </TouchableOpacity>
+                        <View style={styles.headerActions}>
+                            <TutorialHelpButton onPress={tutorial.onReplayTour} />
+                            <TouchableOpacity
+                                onPress={handleDismiss}
+                                style={styles.closeBtn}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                                <CustomIcon
+                                    library="Feather"
+                                    name="x"
+                                    size={20}
+                                    color={Colors.TEXT_SECONDARY}
+                                />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
-                    {/* Adaptive 3-Tab Selector Bar with Single-Icon Replacement */}
-                    <View style={styles.tabContainer}>
+                    {/* Segmented 3-Tab Selector Bar with Highlighted Selected Pill and Full Labels */}
+                    <View
+                        ref={tabsContainerRef}
+                        onLayout={handleTabsLayout}
+                        style={styles.tabContainer}
+                    >
                         {tabs.map((tab) => {
                             const isActive = activeTab === tab.key;
-                            const showLabel = isDesktop || isActive;
-                            // When read, icon replaces category icon with check
-                            const iconName = tab.isRead ? 'check' : tab.icon;
+                            const isRead = tab.isRead;
+                            const iconName = isRead ? 'check' : tab.icon;
+
+                            let iconColor = Colors.TEXT_SECONDARY;
+                            if (isActive && isRead) {
+                                iconColor = Colors.WHITE;
+                            } else if (isActive) {
+                                iconColor = Colors.PRIMARY;
+                            } else if (isRead) {
+                                iconColor = Colors.SUCCESS;
+                            }
 
                             return (
                                 <TouchableOpacity
@@ -282,35 +465,32 @@ const LegalTermsModal = ({
                                     style={[
                                         styles.tabButton,
                                         isActive && styles.activeTab,
-                                        !isDesktop && isActive && styles.activeTabExpanded,
-                                        !isDesktop && !isActive && styles.inactiveTabCollapsed,
+                                        isActive && isRead && styles.activeTabRead,
                                     ]}
                                     onPress={() => handleTabChange(tab.key)}
                                     activeOpacity={0.7}
+                                    accessibilityRole="tab"
+                                    accessibilityState={{ selected: isActive }}
+                                    accessibilityLabel={tab.label}
                                 >
                                     <View style={styles.tabInnerRow}>
                                         <CustomIcon
                                             library="Feather"
                                             name={iconName}
-                                            size={14}
-                                            color={
-                                                tab.isRead
-                                                    ? (isActive ? Colors.PRIMARY : Colors.SUCCESS)
-                                                    : (isActive ? Colors.PRIMARY : Colors.TEXT_SECONDARY)
-                                            }
+                                            size={13}
+                                            color={iconColor}
                                         />
-                                        {showLabel && (
-                                            <CustomText 
-                                                numberOfLines={1}
-                                                style={[
-                                                    styles.tabText,
-                                                    isActive && styles.activeTabText,
-                                                    tab.isRead && !isActive && styles.readTabText,
-                                                ]}
-                                            >
-                                                {tab.label}
-                                            </CustomText>
-                                        )}
+                                        <CustomText
+                                            numberOfLines={1}
+                                            style={[
+                                                styles.tabText,
+                                                isActive && styles.activeTabText,
+                                                isActive && isRead && styles.activeTabTextRead,
+                                                !isActive && isRead && styles.readTabText,
+                                            ]}
+                                        >
+                                            {tab.label}
+                                        </CustomText>
                                     </View>
                                 </TouchableOpacity>
                             );
@@ -342,35 +522,25 @@ const LegalTermsModal = ({
                         )}
                     </View>
 
-                    {/* Interactive Action Button with Error / Incomplete Feedback */}
-                    <CustomButton
-                        title={
-                            isAlreadyAcknowledged
-                                ? "Done"
-                                : (canAcknowledge
-                                    ? "I Understand & Agree"
-                                    : `Read All 3 Policies (${readCount}/3)`)
-                        }
-                        onPress={isAlreadyAcknowledged ? onClose : handleAcknowledgePress}
-                        variant={isAlreadyAcknowledged || canAcknowledge ? "primary" : "outline"}
-                        icon={isAlreadyAcknowledged ? "check" : undefined}
-                        iconLibrary={isAlreadyAcknowledged ? "Feather" : undefined}
-                        style={[
-                            styles.closeBtnWrapper,
-                            !isAlreadyAcknowledged && !canAcknowledge && (
-                                hasAttemptedAcknowledge 
-                                    ? styles.closeBtnError 
-                                    : styles.closeBtnIncomplete
-                            ),
-                        ]}
-                        textStyle={
-                            !isAlreadyAcknowledged && !canAcknowledge
-                                ? (hasAttemptedAcknowledge ? styles.closeBtnTextError : styles.closeBtnTextIncomplete)
-                                : undefined
-                        }
-                    />
+                    {/* Interactive Action Button with Encapsulated Validation State & Sequential Guidance */}
+                    <View
+                        ref={actionButtonWrapperRef}
+                        onLayout={handleActionButtonLayout}
+                        style={styles.actionButtonWrapper}
+                    >
+                        <CustomButton
+                            title={buttonTitle}
+                            onPress={handleButtonPress}
+                            variant={buttonVariant}
+                            validationState={buttonValidationState}
+                            isIdleDisabled={false}
+                            icon={buttonIcon}
+                            iconPosition={buttonIconPosition}
+                            iconLibrary="Feather"
+                        />
+                    </View>
 
-                    {/* Floating Toast Alert inside Modal */}
+                    {/* Floating Toast Alert inside Modal with Responsive Docking */}
                     <CustomToast
                         visible={!!toastMessage}
                         message={toastMessage || ''}
@@ -381,9 +551,22 @@ const LegalTermsModal = ({
                         type="warning"
                         mode="simple"
                         position="floating"
-                        bottomOffset={82}
+                        bottomOffset={toastBottomOffset}
                     />
                 </Animated.View>
+
+                {/* In-app walkthrough overlay for LegalTermsModal */}
+                <CustomTutorialModal
+                    visible={tutorial.isVisible}
+                    tourConfig={tutorial.tourConfig}
+                    currentStep={tutorial.currentStep}
+                    currentStepIndex={tutorial.currentStepIndex}
+                    totalSteps={tutorial.totalSteps}
+                    useModal={Platform.OS === 'web'}
+                    onNext={tutorial.onNextStep}
+                    onPrev={tutorial.onPrevStep}
+                    onSkip={tutorial.onSkipTour}
+                />
             </KeyboardAvoidingView>
         </Modal>
     );
@@ -393,6 +576,12 @@ const styles = StyleSheet.create({
     modalContainer: {
         flex: 1,
         justifyContent: 'flex-end',
+        position: 'relative',
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     backdrop: {
         ...StyleSheet.absoluteFill,
@@ -420,7 +609,8 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         marginBottom: 'auto',
         marginTop: 'auto',
-        width: 520,
+        width: '92%',
+        maxWidth: 520,
         height: 620,
         maxHeight: '85%',
         borderRadius: 24,
@@ -430,7 +620,8 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         marginBottom: 'auto',
         marginTop: 'auto',
-        width: 640,
+        width: '92%',
+        maxWidth: 640,
         height: 660,
         maxHeight: '85%',
         borderRadius: 24,
@@ -466,21 +657,19 @@ const styles = StyleSheet.create({
     },
     tabButton: {
         flex: 1,
-        paddingVertical: 8,
-        paddingHorizontal: 8,
+        paddingVertical: 9,
+        paddingHorizontal: 4,
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
+        position: 'relative',
     },
     activeTab: {
         backgroundColor: Colors.WHITE,
         ...GlobalStyles.dropShadow(2),
     },
-    activeTabExpanded: {
-        flex: 1.8,
-    },
-    inactiveTabCollapsed: {
-        flex: 1,
+    activeTabRead: {
+        backgroundColor: Colors.PRIMARY,
     },
     tabInnerRow: {
         flexDirection: 'row',
@@ -495,7 +684,11 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     activeTabText: {
-        color: Colors.PRIMARY,
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: 'bold',
+    },
+    activeTabTextRead: {
+        color: Colors.WHITE,
         fontWeight: 'bold',
     },
     readTabText: {
@@ -533,23 +726,9 @@ const styles = StyleSheet.create({
         marginTop: 14,
         borderRadius: 16,
     },
-    closeBtnIncomplete: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        borderColor: Colors.GRAY_LIGHT,
-        borderWidth: 1.5,
-    },
-    closeBtnTextIncomplete: {
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: 'bold',
-    },
-    closeBtnError: {
-        backgroundColor: Colors.STATUS_CANCELLED_BG,
-        borderColor: Colors.STATUS_CANCELLED_TEXT,
-        borderWidth: 1.5,
-    },
-    closeBtnTextError: {
-        color: Colors.STATUS_CANCELLED_TEXT,
-        fontWeight: 'bold',
+    actionButtonWrapper: {
+        marginTop: 14,
+        borderRadius: 16,
     },
 });
 

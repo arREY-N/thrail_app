@@ -46,6 +46,9 @@ export default function AdminViewBooking() {
         onConfirmPayment,
         onRejectBooking,
         onRescheduleBooking,
+        onVerifyManualPayment,
+        onRejectManualPayment,
+        onSettleRemainingBalance,
         error: bookingError,
         isLoading: isBookingLoading,
     } = useBookingAdmin();
@@ -56,6 +59,8 @@ export default function AdminViewBooking() {
         processCancellationRequest,
         cancelUserBooking,
         revertCancellationRequest,
+        approveWithManualRefund,
+        uploadRefundProof,
         isWriting: isCancellationWriting,
         writingError: cancellationWritingError,
     } = useCancellationAdmin(bookingId);
@@ -98,19 +103,50 @@ export default function AdminViewBooking() {
                 error={combinedError}
                 hikerProfile={hikerProfile}
                 cancellationRequest={cancellationRequest}
-                onApproveCancellation={(request, booking, refundType, customAmount) => processCancellationRequest({
-                    request,
-                    approved: true,
-                    refundType,
-                    customAmount,
-                })}
-                onDeclineCancellation={(declineNote, request, currentBooking) => processCancellationRequest({
-                    adminNote: declineNote,
-                    request,
-                    approved: false,
-                })}
+                onApproveCancellation={async (request, booking, refundType, customAmount, adminNote) => {
+                    await processCancellationRequest({
+                        request,
+                        booking,
+                        approved: true,
+                        refundType,
+                        customAmount,
+                        adminNote,
+                    });
+                }}
+                onDeclineCancellation={async (declineNote, request, currentBooking) => {
+                    await processCancellationRequest({
+                        adminNote: declineNote,
+                        request,
+                        booking: currentBooking,
+                        approved: false,
+                    });
+                }}
                 onRevertCancellation={revertCancellationRequest}
                 onAdminCancelBooking={cancelUserBooking}
+                onVerifyManualPayment={async (classification, note, b, verifiedAmount) => {
+                    const targetBooking = b || booking;
+                    if (targetBooking) {
+                        await onVerifyManualPayment(targetBooking, classification, note, verifiedAmount);
+                    }
+                }}
+                onRejectManualPayment={async (reason, b) => {
+                    const targetBooking = b || booking;
+                    if (targetBooking) {
+                        await onRejectManualPayment(targetBooking, reason);
+                    }
+                }}
+                onSettleRemainingBalance={async (b) => {
+                    const targetBooking = b || booking;
+                    if (targetBooking) {
+                        await onSettleRemainingBalance(targetBooking);
+                    }
+                }}
+                onUploadRefundProof={async (file, req, b) => {
+                    await uploadRefundProof(file, req || cancellationRequest, b || booking);
+                }}
+                onApproveWithManualRefund={async (amount, req, b) => {
+                    await approveWithManualRefund(amount, req || cancellationRequest, b || booking);
+                }}
             />
         </>
     );

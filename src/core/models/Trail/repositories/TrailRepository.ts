@@ -1,7 +1,8 @@
 import { db } from "@/src/core/config/Firebase";
 import { Trail } from "@/src/core/models/Trail/interfaces/Trail.types";
 import { trailConverter } from "@/src/core/models/Trail/utils/TrailFactory";
-import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, setDoc } from "firebase/firestore";
+import { Profile } from "@/src/recommendation/interfaces/Profile";
+import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 
 const createTrailsCollection = (db: Firestore) => {
     return collection(db, 'trails').withConverter(trailConverter);
@@ -46,6 +47,20 @@ export const TrailRepository = (db: Firestore) => ({
         }
     },
 
+    async fetchByName(trailName: string): Promise<Trail | null> {
+        try {
+            const trailsCollection = createTrailsCollection(db);
+            const q = query(trailsCollection, where('general.name', '==', trailName))
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) return null;
+            return snapshot.docs[0].data();
+        } catch (err) {
+            console.error(`Error fetching trail by name (${trailName}) from Firestore:`, err);
+            if (err instanceof Error) throw err;
+            throw new Error('An error occurred');
+        }
+    },
+
     /**
      * Writes a trail to Firestore. If the trail has an empty ID, it creates a new document; otherwise, it merges/updates the existing document.
      * @param data - The trail object to write.
@@ -72,6 +87,57 @@ export const TrailRepository = (db: Firestore) => ({
             console.error("Error writing trail to Firestore:", err);
             if (err instanceof Error) throw err;
             throw new Error('An error occurred');
+        }
+    },
+
+    /**
+     * Updates only the profile field of a single trail in Firestore.
+     * @param id - The ID of the trail.
+     * @param profile - The normalized Profile object.
+     */
+    async updateProfile(id: string, profile: Profile): Promise<void> {
+        try {
+            if (!id) throw new Error("Trail ID is required to update profile");
+            const docRef = doc(db, 'trails', id);
+            await updateDoc(docRef, {
+                profile,
+                updatedAt: serverTimestamp(),
+            });
+        } catch (err) {
+            console.error(`Error updating trail profile (${id}) in Firestore:`, err);
+            if (err instanceof Error) throw err;
+            throw new Error('An error occurred while updating trail profile');
+        }
+    },
+
+    /**
+     * Batch updates profile fields across multiple trails in chunks of 400.
+     * @param updates - Array of trail ID and normalized Profile pairs.
+     */
+    async updateBatchProfiles(updates: { id: string; profile: Profile }[]): Promise<void> {
+        if (!updates || updates.length === 0) return;
+
+        try {
+            const CHUNK_SIZE = 400;
+            for (let i = 0; i < updates.length; i += CHUNK_SIZE) {
+                const chunk = updates.slice(i, i + CHUNK_SIZE);
+                const batch = writeBatch(db);
+
+                for (const item of chunk) {
+                    if (!item.id) continue;
+                    const docRef = doc(db, 'trails', item.id);
+                    batch.update(docRef, {
+                        profile: item.profile,
+                        updatedAt: serverTimestamp(),
+                    });
+                }
+
+                await batch.commit();
+            }
+        } catch (err) {
+            console.error("Error batch updating trail profiles in Firestore:", err);
+            if (err instanceof Error) throw err;
+            throw new Error('An error occurred while batch updating trail profiles');
         }
     },
 

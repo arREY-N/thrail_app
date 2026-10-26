@@ -22,9 +22,10 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { toDateOrNull } from '@/src/core/utility/date';
 
-export type RefundType = 'full' | 'partial' | 'custom';
+export type RefundType = 'full' | 'partial' | 'custom' | 'none';
 
 /**
  * Props for AdminRefundModal component.
@@ -38,14 +39,16 @@ export type RefundType = 'full' | 'partial' | 'custom';
 export interface AdminRefundModalProps {
     visible: boolean;
     onClose: () => void;
-    onSelect: (refundType: RefundType, customAmount?: number) => void;
+    onSelect: (refundType: RefundType, customAmount?: number, adminNote?: string) => void;
     amountPaid?: number;
     isLoading?: boolean;
     paymentCapturedAt?: Date | string | null;
+    initialType?: RefundType;
+    isCancellationFlow?: boolean;
 }
 
 /**
- * AdminRefundModal — An adaptive modal to select full, standard partial, or custom refund.
+ * AdminRefundModal — An adaptive modal to select full, standard partial, custom refund, or policy forfeiture.
  */
 const AdminRefundModal: React.FC<AdminRefundModalProps> = ({ 
     visible, 
@@ -53,7 +56,9 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
     onSelect, 
     amountPaid = 0,
     isLoading = false,
-    paymentCapturedAt = null
+    paymentCapturedAt = null,
+    initialType = 'full',
+    isCancellationFlow = false,
 }) => {
     const fullRefundAmount = amountPaid;
     const partialRefundAmount = Math.round(amountPaid * 0.10 * 100) / 100;
@@ -64,9 +69,12 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
 
     const [selectedType, setSelectedType] = useState<RefundType>('full');
     const [customAmountText, setCustomAmountText] = useState<string>('');
+    const [adminNoteText, setAdminNoteText] = useState<string>('');
     const [inputError, setInputError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const isSubmittingRef = useRef<boolean>(false);
+
+    const isManualProvider = PAYMENT_CONFIG.PROVIDER === 'manual_qr';
 
     // Check if the payment was captured on the same calendar day
     const isCapturedToday = useMemo(() => {
@@ -81,13 +89,18 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
         );
     }, [paymentCapturedAt]);
 
+    // PayMongo gateways restrict same-day partial refunds until overnight settlement.
+    // Manual QR payments do not have gateway settlement restrictions.
+    const isPayMongoSameDay = !isManualProvider && isCapturedToday;
+
     // Reset internal state when modal opens by tracking previous visible state (React pattern: adjusting state during render)
     const [prevVisible, setPrevVisible] = useState<boolean>(visible);
     if (visible !== prevVisible) {
         setPrevVisible(visible);
         if (visible) {
-            setSelectedType('full');
+            setSelectedType(initialType || 'full');
             setCustomAmountText('');
+            setAdminNoteText('');
             setInputError(null);
             setIsSubmitting(false);
         }
@@ -109,7 +122,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
             setInputError('Minimum refund amount is ₱1.00');
         } else if (val > amountPaid) {
             setInputError(`Amount cannot exceed total paid (₱${amountPaid.toFixed(2)})`);
-        } else if (isCapturedToday && val < amountPaid) {
+        } else if (isPayMongoSameDay && val < amountPaid) {
             setInputError(`PayMongo Policy: Same-day payments cannot be partially refunded. You can issue a 100% full refund today (₱${amountPaid.toFixed(2)}) or wait until tomorrow.`);
         } else {
             setInputError(null);
@@ -119,7 +132,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
     const handlePresetChip = (percentage: number) => {
         const val = Math.round((amountPaid * (percentage / 100)) * 100) / 100;
         setCustomAmountText(val.toFixed(2));
-        if (isCapturedToday && val < amountPaid) {
+        if (isPayMongoSameDay && val < amountPaid) {
             setInputError(`PayMongo Policy: Same-day payments cannot be partially refunded. You can issue a 100% full refund today (₱${amountPaid.toFixed(2)}) or wait until tomorrow.`);
         } else {
             setInputError(null);
@@ -134,7 +147,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
     const handleConfirm = (type: RefundType) => {
         if (isSubmittingRef.current || isSubmitting || isLoading) return;
 
-        if (type === 'partial' && isCapturedToday) {
+        if (type === 'partial' && isPayMongoSameDay) {
             setInputError('PayMongo Policy: Partial refunds cannot be processed on the same calendar day the payment was captured. Please issue a 100% full refund today, or wait until tomorrow after daily settlement.');
             return;
         }
@@ -148,13 +161,24 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                 setInputError(`Amount cannot exceed total paid (₱${amountPaid.toFixed(2)})`);
                 return;
             }
-            if (isCapturedToday && parsedCustomAmount < amountPaid) {
+            if (isPayMongoSameDay && parsedCustomAmount < amountPaid) {
                 setInputError(`PayMongo Policy: Same-day payments cannot be partially refunded. Please enter ₱${amountPaid.toFixed(2)} for a full refund or wait until tomorrow.`);
                 return;
             }
             isSubmittingRef.current = true;
             setIsSubmitting(true);
             onSelect('custom', parsedCustomAmount);
+            setTimeout(() => {
+                isSubmittingRef.current = false;
+            }, 300);
+        } else if (type === 'none') {
+            if (!adminNoteText.trim()) {
+                setInputError('Please provide a note or policy basis explaining the 0% refund / forfeiture.');
+                return;
+            }
+            isSubmittingRef.current = true;
+            setIsSubmitting(true);
+            onSelect('none', 0, adminNoteText.trim());
             setTimeout(() => {
                 isSubmittingRef.current = false;
             }, 300);
@@ -172,7 +196,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
         ? Math.min(100, Math.round((parsedCustomAmount / amountPaid) * 100))
         : 0;
 
-    const isCustomDisabled = isSubmitting || isLoading || !!inputError || parsedCustomAmount < 1.00 || parsedCustomAmount > amountPaid || (isCapturedToday && parsedCustomAmount < amountPaid);
+    const isCustomDisabled = isSubmitting || isLoading || !!inputError || parsedCustomAmount < 1.00 || parsedCustomAmount > amountPaid || (isPayMongoSameDay && parsedCustomAmount < amountPaid);
 
     return (
         <Modal 
@@ -264,7 +288,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                     ]} 
                                     onPress={() => {
                                         setSelectedType('partial');
-                                        if (isCapturedToday) {
+                                        if (isPayMongoSameDay) {
                                             setInputError('PayMongo Policy: Partial refunds (< 100%) cannot be processed on the same calendar day. You may issue a 100% full refund today, or wait until tomorrow after daily settlement.');
                                         } else {
                                             handleConfirm('partial');
@@ -282,7 +306,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                             <CustomText variant="body" style={styles.optionLabel}>
                                                 Partial Refund (10%)
                                             </CustomText>
-                                            {isCapturedToday && (
+                                            {isPayMongoSameDay && (
                                                 <View style={styles.sameDayBadge}>
                                                     <CustomIcon library="Feather" name="clock" size={11} color="#B45309" />
                                                     <CustomText style={styles.sameDayBadgeText}>Available Tomorrow</CustomText>
@@ -299,8 +323,8 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                     </CustomText>
                                 </TouchableOpacity>
 
-                                {/* Same-Day Warning Box for Partial Refund */}
-                                {selectedType === 'partial' && isCapturedToday && (
+                                {/* Same-Day Warning Box for Partial Refund (PayMongo only) */}
+                                {selectedType === 'partial' && isPayMongoSameDay && (
                                     <View style={styles.sameDayWarningBox}>
                                         <CustomIcon library="Feather" name="alert-triangle" size={16} color="#B45309" />
                                         <CustomText style={styles.sameDayWarningText}>
@@ -411,16 +435,25 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                             </CustomText>
                                         ) : null}
 
-                                        {/* PayMongo Gateway Warning Box */}
-                                        <View style={styles.warningBox}>
-                                            <CustomIcon library="Feather" name="info" size={16} color="#B45309" />
-                                            <CustomText style={styles.warningText}>
-                                                {isCapturedToday
-                                                    ? "Note: This payment was captured today. PayMongo requires payments to settle overnight before partial refunds can be processed. Only 100% Full Refunds are available today."
-                                                    : "Note: PayMongo gateway does not allow partial refunds on the same calendar day the payment was captured."
-                                                }
-                                            </CustomText>
-                                        </View>
+                                        {/* Warning / Info Box */}
+                                        {isManualProvider ? (
+                                            <View style={[styles.warningBox, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
+                                                <CustomIcon library="Feather" name="info" size={16} color={Colors.PRIMARY} />
+                                                <CustomText style={[styles.warningText, { color: '#166534' }]}>
+                                                    Manual E-Wallet Refund: You can issue any refund amount on the same day. After approval, the hiker will submit their GCash or Maya details for direct transfer.
+                                                </CustomText>
+                                            </View>
+                                        ) : (
+                                            <View style={styles.warningBox}>
+                                                <CustomIcon library="Feather" name="info" size={16} color="#B45309" />
+                                                <CustomText style={styles.warningText}>
+                                                    {isCapturedToday
+                                                        ? "Note: This payment was captured today. PayMongo requires payments to settle overnight before partial refunds can be processed. Only 100% Full Refunds are available today."
+                                                        : "Note: PayMongo gateway does not allow partial refunds on the same calendar day the payment was captured."
+                                                    }
+                                                </CustomText>
+                                            </View>
+                                        )}
 
                                         {/* Custom Confirm Button */}
                                         <TouchableOpacity
@@ -441,6 +474,109 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                             )}
                                         </TouchableOpacity>
                                     </View>
+                                )}
+
+                                {/* Option 4: No Refund / Policy Forfeiture (₱0.00) - Only available during cancellation flows */}
+                                {(isCancellationFlow || initialType === 'none') && (
+                                    <>
+                                        <TouchableOpacity 
+                                    style={[
+                                        styles.optionCard,
+                                        selectedType === 'none' && styles.optionCardSelected,
+                                        { marginBottom: selectedType === 'none' ? 8 : 12 }
+                                    ]} 
+                                    onPress={() => {
+                                        setSelectedType('none');
+                                        setInputError(null);
+                                        setTimeout(() => {
+                                            scrollViewRef.current?.scrollToEnd({ animated: true });
+                                        }, 150);
+                                    }}
+                                    disabled={isSubmitting || isLoading}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={[styles.iconWrapper, { backgroundColor: '#FEE2E2' }]}>
+                                        <CustomIcon library="Feather" name="slash" size={20} color={Colors.ERROR} />
+                                    </View>
+
+                                    <View style={styles.optionContent}>
+                                        <View style={styles.optionTitleRow}>
+                                            <CustomText variant="body" style={styles.optionLabel}>
+                                                No Refund / Forfeiture (₱0.00)
+                                            </CustomText>
+                                            <View style={styles.forfeitureBadge}>
+                                                <CustomText style={styles.forfeitureBadgeText}>POLICY BASIS</CustomText>
+                                            </View>
+                                        </View>
+                                        <CustomText variant="caption" style={styles.optionSubLabel}>
+                                            Release slot without returning funds to hiker.
+                                        </CustomText>
+                                    </View>
+
+                                    <CustomText variant="h3" style={[styles.amountText, { color: Colors.TEXT_SECONDARY }]}>
+                                        ₱0.00
+                                    </CustomText>
+                                </TouchableOpacity>
+
+                                {/* Option 4 Expanded Container for Mandatory Admin Note */}
+                                {selectedType === 'none' && (
+                                    <View style={styles.customContainer}>
+                                        <CustomText style={styles.adminNoteLabel}>
+                                            Policy Basis / Admin Note *
+                                        </CustomText>
+                                        <TextInput
+                                            style={styles.adminNoteInput}
+                                            value={adminNoteText}
+                                            onChangeText={(text) => {
+                                                setAdminNoteText(text);
+                                                if (inputError) setInputError(null);
+                                            }}
+                                            placeholder="Reason for 0% refund (e.g. Cancelled on hike day / Offline voucher issued / Deposit forfeited due to non-payment)"
+                                            placeholderTextColor={Colors.TEXT_SECONDARY}
+                                            multiline={true}
+                                            numberOfLines={3}
+                                            editable={!isSubmitting && !isLoading}
+                                            onFocus={() => {
+                                                setTimeout(() => {
+                                                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                                                }, Platform.OS === 'android' ? 200 : 100);
+                                            }}
+                                        />
+
+                                        {inputError ? (
+                                            <CustomText style={styles.errorText}>
+                                                {inputError}
+                                            </CustomText>
+                                        ) : null}
+
+                                        <View style={[styles.warningBox, { backgroundColor: '#FEE2E2', borderColor: '#FECACA' }]}>
+                                            <CustomIcon library="Feather" name="alert-triangle" size={16} color={Colors.ERROR} />
+                                            <CustomText style={[styles.warningText, { color: '#991B1B' }]}>
+                                                Notice: The reserved slot will be released back to the tour inventory, but no refund will be transferred.
+                                            </CustomText>
+                                        </View>
+
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.confirmBtn,
+                                                styles.confirmNoneBtn,
+                                                (!adminNoteText.trim() || isSubmitting || isLoading) && styles.confirmBtnDisabled
+                                            ]}
+                                            onPress={() => handleConfirm('none')}
+                                            disabled={!adminNoteText.trim() || isSubmitting || isLoading}
+                                            activeOpacity={0.8}
+                                        >
+                                            {isSubmitting || isLoading ? (
+                                                <ActivityIndicator size="small" color={Colors.WHITE} />
+                                            ) : (
+                                                <CustomText style={styles.confirmBtnText}>
+                                                    Approve & Release Slot (₱0.00)
+                                                </CustomText>
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                                    </>
                                 )}
                             </ScrollView>
                         </KeyboardAvoidingView>
@@ -695,6 +831,38 @@ const styles = StyleSheet.create({
         color: Colors.WHITE,
         fontSize: 15,
         fontWeight: '700',
+    },
+    forfeitureBadge: {
+        backgroundColor: '#FEE2E2',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    forfeitureBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: Colors.ERROR,
+    },
+    adminNoteLabel: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+        marginBottom: 8,
+    },
+    adminNoteInput: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: Colors.GRAY_LIGHT,
+        padding: 12,
+        fontSize: 13,
+        color: Colors.TEXT_PRIMARY,
+        minHeight: 70,
+        textAlignVertical: 'top',
+    },
+    confirmNoneBtn: {
+        backgroundColor: Colors.ERROR,
+        marginTop: 12,
     },
 });
 

@@ -4,12 +4,13 @@
  */
 
 import React from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { useToast } from '@/src/components/Toast/Toast';
 import DocumentReviewCard from '@/src/features/Admin/screens/Booking/components/DocumentReviewCard';
 
 import { Booking } from '@/src/core/models/Booking/Booking';
@@ -66,6 +67,7 @@ export interface DocumentTabProps {
     suggestions?: string[];
     onAttachmentRequired?: () => void;
     onInteraction?: () => void;
+    firstCardRef?: React.RefObject<View | null>;
 }
 
 /**
@@ -87,8 +89,10 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
     onViewFile,
     suggestions,
     onAttachmentRequired,
-    onInteraction
+    onInteraction,
+    firstCardRef,
 }) => {
+    const { showToast } = useToast();
 
     const toggleDocDecision = (index: number, statusString: DocValidState) => {
         if (isReviewComplete || isCancellationPending) return; 
@@ -98,10 +102,8 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
                 onAttachmentRequired();
                 return;
             }
-            return Alert.alert(
-                "Review Required", 
-                "Please open the attachment first."
-            );
+            showToast.error("Please open the attachment before recording a decision.");
+            return;
         }
         
         onInteraction?.();
@@ -122,17 +124,22 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
                 </View>
             ) : (
                 docStates.map((doc, index) => (
-                    <DocumentReviewCard 
-                        key={index} 
-                        doc={doc} 
-                        index={index} 
-                        needsReview={!viewedDocs[index] && doc.valid === 'pending'}
-                        isViewed={!!viewedDocs[index]}
-                        isReviewComplete={isReviewComplete || isCancellationPending}
-                        isCancelledStatus={isCancelledStatus}
-                        onViewFile={onViewFile} 
-                        onToggleDecision={toggleDocDecision}
-                    />
+                    <View
+                        key={index}
+                        ref={index === 0 ? firstCardRef : undefined}
+                        collapsable={false}
+                    >
+                        <DocumentReviewCard 
+                            doc={doc} 
+                            index={index} 
+                            needsReview={!viewedDocs[index] && doc.valid === 'pending'}
+                            isViewed={!!viewedDocs[index]}
+                            isReviewComplete={isReviewComplete || isCancellationPending}
+                            isCancelledStatus={isCancelledStatus}
+                            onViewFile={onViewFile} 
+                            onToggleDecision={toggleDocDecision}
+                        />
+                    </View>
                 ))
             )}
 

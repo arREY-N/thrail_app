@@ -8,13 +8,13 @@ import {
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomToast from '@/src/components/CustomToast';
+import { useToast } from '@/src/components/Toast/Toast';
 import EmergencyModal from '@/src/components/EmergencyModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { EmergencyContactFlow } from '@/src/core/flows/EmergencyContactFlow';
-import { useAuthStore } from '@/src/core/models/User/User';
+import { User, useAuthStore, useUserStore } from '@/src/core/models/User/User';
 
 /**
  * EmergencyNotification — A component that displays a notification banner if the user
@@ -23,11 +23,10 @@ import { useAuthStore } from '@/src/core/models/User/User';
 const EmergencyNotification: React.FC = () => {
     const profile = useAuthStore(s => s.profile);
     const { findUser, setEmergencyContact } = EmergencyContactFlow();
+    const { showToast } = useToast();
 
     const [showNotifBanner, setShowNotifBanner] = useState(false);
     const [showEmergencyModal, setShowEmergencyModal] = useState(false);
-    const [toastVisible, setToastVisible] = useState(false);
-    const [toastMessage, setToastMessage] = useState('');
     const [slideAnim] = useState(() => new Animated.Value(-150));
 
     useEffect(() => {
@@ -67,8 +66,7 @@ const EmergencyNotification: React.FC = () => {
         const nextTime = Date.now() + (24 * 60 * 60 * 1000); 
         await AsyncStorage.setItem('skipEmergencyModal', nextTime.toString());
         */
-        setToastMessage("Setup skipped. We will remind you later.");
-        setToastVisible(true);
+        showToast.info("Setup skipped. We will remind you later.");
         hideBanner();
         setShowEmergencyModal(false);
     };
@@ -81,8 +79,7 @@ const EmergencyNotification: React.FC = () => {
     const handleCloseEmergencyModal = () => {
         setShowEmergencyModal(false);
         if (!profile?.emergencyContact?.name) {
-            setToastMessage("Setup skipped. We will remind you later.");
-            setToastVisible(true);
+            showToast.info("Setup skipped. We will remind you later.");
         }
     };
 
@@ -147,15 +144,24 @@ const EmergencyNotification: React.FC = () => {
                 mode="emergency_only"
                 currentUserProfile={profile}
                 onSearchUser={findUser}
-                onSaveEmergencyContact={setEmergencyContact}
-            />
-
-            <CustomToast
-                visible={toastVisible}
-                message={toastMessage}
-                onHide={() => setToastVisible(false)}
-                type="info"
-                position="tabbar"
+                onSaveEmergencyContact={async (contact, linkedUser) => {
+                    if (linkedUser && 'id' in linkedUser && linkedUser.id) {
+                        const res = await setEmergencyContact(linkedUser as User);
+                        return res !== false;
+                    }
+                    if (profile) {
+                        const setContact = useUserStore.getState().setEmergencyContact;
+                        await setContact(profile, contact);
+                        useAuthStore.setState({
+                            profile: {
+                                ...profile,
+                                emergencyContact: contact,
+                            } as User,
+                        });
+                        return true;
+                    }
+                    return false;
+                }}
             />
         </>
     );

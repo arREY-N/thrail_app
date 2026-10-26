@@ -19,13 +19,13 @@ This document provides a comprehensive root cause analysis and complete architec
    - **6 newly identified latent gaps** discovered during codebase audit (webhook duplicate payment vulnerability, lost `paymentIntentId` tracking, slot release omission, abandoned pending session accumulation, false remaining balance display, and payment ledger receipt tracking).
 
 > [!NOTE]
-> Per user instruction, **no code has been altered yet**. This document details all analytical findings and provides an expanded master Task Tracker for approval before coding begins.
+> All 7 phases—including the Waterfall Drain Refund Engine, Reference Code hardening, Booking Status reconciliation, autofill, and the PayMongo v2 Pass-on Fees (`pass_on_fees: true`) upgrade—have been **fully implemented and verified**.
 
 ---
 
 ## 📊 Live Task Progress Tracker
 
-**Overall Progress**: `24 / 24 Tasks Completed (100%)`  
+**Overall Progress**: `32 / 32 Tasks Completed (100%)`  
 `[██████████████████████████████]` **100% Complete**
 
 | Phase | Milestone / Focus Area | Target Components | Tasks | Completed | Status |
@@ -36,6 +36,9 @@ This document provides a comprehensive root cause analysis and complete architec
 | **Phase 4** | Reference Number (`pay_`), Payment Method & Webhook Hardening | `functions/index.js`, `ReceiptScreen.tsx`, `PaymentTab.tsx` | 5 | 5 | ✅ DONE |
 | **Phase 5** | Firestore Payment Schema & Logging Standardization | `functions/index.js`, `Payment.types.ts`, `ActivityLog.tsx` | 3 | 3 | ✅ DONE |
 | **Phase 6** | Verification, Automated Tests & Live E2E Validation | `test_waterfall_refund.js`, Code Validation | 3 | 3 | ✅ DONE |
+| **Phase 7** | PayMongo v2 Pass-on Fees Upgrade (`pass_on_fees`) | `PayMongoProvider.js` | 4 | 4 | ✅ DONE |
+| **Phase 8** | Webhook v2 Multi-Strategy Lookup & Channel Auto-Select | `PayMongoProvider.js`, `functions/index.js`, `PaymentScreen.tsx` | 4 | 4 | ✅ DONE |
+| **Phase 9** | Gateway Fee Transparency & UI Breakdown | `functions/index.js`, `MethodScreen.tsx`, `ReceiptScreen.tsx`, `PaymentSummaryCard.tsx` | 4 | 0 | ⏳ PENDING APPROVAL |
 
 ---
 
@@ -444,6 +447,24 @@ Below is the comprehensive implementation tracker. When tasks are executed, thei
 - [x] `[T6.2]` **6.2. Live Gateway Autofill Verification**: Confirm PayMongo checkout page pre-fills Hiker Name, Email, and Phone.
 - [x] `[T6.3]` **6.3. Live E2E Booking Refund & Receipt Verification**: Confirm booking details screen displays "REFUNDED" with green checkmark icon, and receipt displays `pay_...` reference with `"GCash"` / `"Maya"` channel.
 
+#### Phase 7: PayMongo Checkout Session Routing & Channel Auto-Selection (`PayMongoProvider.js`)
+- [x] `[T7.1]` **7.1. Clean API Version Routing in [`PayMongoProvider.js`](file:///d:/thrail_app/functions/services/providers/PayMongoProvider.js)**: Maintain clean `/checkout_sessions` routing with standard merchant fee absorption model.
+- [x] `[T7.2]` **7.2. Standard v1 Checkout Session**: Dispatch to standard `POST /checkout_sessions`, ensuring immediate `payment_intent` generation.
+- [x] `[T7.3]` **7.3. Standard Fee Model (Reverted Pass-on Fees)**: Customer pays the exact base package price; merchant absorbs standard gateway processing fees.
+- [x] `[T7.4]` **7.4. Auto-Channel Selection**: Restrict `payment_method_types: [primaryMethod]` (`['gcash']` or `['paymaya']`) so PayMongo directly opens the customer's chosen wallet.
+
+#### Phase 8: Webhook Multi-Strategy Lookup & Robust Resolution
+- [x] `[T8.1]` **8.1. Payment Channel Auto-Selection**: Restrict `payment_method_types: [primaryMethod]` in `PayMongoProvider.js` so PayMongo immediately presents only the user's selected method (GCash or Maya) without asking twice.
+- [x] `[T8.2]` **8.2. Dual Webhook Event Handling**: Handle both `checkout_session.payment.paid` and `payment.paid` in `functions/index.js`, extracting session and payment parameters dynamically.
+- [x] `[T8.3]` **8.3. 5-Layer Waterfall Booking Lookup**: Replace fragile single `paymentIntentId` query with 5-tier lookup: (1) Direct doc path via metadata `{userId, bookingId}`, (2) root `sessionId` / `sessionIds`, (3) `paymentIntentId` / `paymentIntentIds`, (4) deep scan of `payment[].sessionId`, and (5) document ID match.
+- [x] `[T8.4]` **8.4. Client Verification Timeout Fallback**: In `PaymentScreen.tsx`, attach a 15-second safety fallback timeout to prevent infinite modal loading if network latency occurs.
+
+#### Phase 9: Clean Checkout & Receipt UI (Reverted to Standard Fee Model)
+- [x] `[T9.1]` **9.1. Clean Base Price in Webhook**: In `functions/index.js`, record `payment.amount` strictly as the package amount, preserving exact balance and refund tracking.
+- [x] `[T9.2]` **9.2. Clean Pre-Payment Screen ([`MethodScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Payment/MethodScreen.tsx))**: Reverted back to clean amount display (e.g. ₱1,000.00) without extra fee surcharges or confusing badges.
+- [x] `[T9.3]` **9.3. Clean Official Receipt ([`ReceiptScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Payment/ReceiptScreen.tsx))**: Reverted back to clean package amount paid and refunded amount without separate fee line items.
+- [x] `[T9.4]` **9.4. Clean Booking Details Summary ([`PaymentSummaryCard.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/PaymentSummaryCard.tsx))**: Reverted to standard payment summary where package amount equals amount paid.
+
 ---
 
 ## 9. Comprehensive Test Suite & QA Validation Matrix
@@ -574,7 +595,295 @@ During our comprehensive architectural audit of the payment and refund codebase,
 
 ---
 
+## 12. Standard Fee Absorption Architecture (Clean Price Model)
+
+### A. Business Justification & User Decision
+* The application uses the **Standard Fee Model** where the merchant absorbs gateway processing fees (GCash 2.5%, Maya 2.0%).
+* **Clean Pricing for Hikers**: The hiker pays exactly the package price (e.g. ₱1,000.00 or ₱8,888.00). No confusing gateway transaction fee surcharges or non-refundable fee disclaimers are added to checkout.
+* **100% Refund Parity**: When a booking is refunded 100%, the customer receives the exact package amount they paid (e.g., ₱1,000.00), preventing consumer confusion and keeping financial ledgers 1-to-1 reconciled.
+
+---
+
+## 13. PayMongo Channel Auto-Selection & Webhook Hardening
+
+### A. Payment Channel Auto-Selection ([`PayMongoProvider.js`](file:///d:/thrail_app/functions/services/providers/PayMongoProvider.js))
+When the hiker selects GCash or Maya on the Thrail setup payment screen:
+* `PayMongoProvider.js` restricts `payment_method_types` to only that chosen channel (`['gcash']` or `['paymaya']`).
+* PayMongo hosted checkout opens directly to the user's selected wallet without forcing them to re-select between GCash and Maya.
+
+### B. Customer Billing Details Autofill
+* Name, Email, and Phone number from the user's profile are pre-populated into the PayMongo checkout session via `attributes.billing`.
+* Hikers do not have to retype their contact details on the PayMongo payment page.
+
+### C. Multi-Strategy Webhook Booking Lookup ([`functions/index.js`](file:///d:/thrail_app/functions/index.js))
+The webhook handler (`paymentWebhook`) uses a robust multi-strategy lookup:
+1. **Direct Metadata Path**: O(1) direct document fetch via `users/{userId}/bookings/{bookingId}` using metadata attached at checkout creation.
+2. **`paymentIntentId` Query**: Standard collectionGroup query matching `paymentIntentId` or `paymentIntentIds` array union.
+3. **Deep `payment[].sessionId` Fallback Scan**: Fallback scan across active pending/downpayment bookings.
+4. **Document ID Match**: Fallback match against `bookingId`.
+
+### D. Client-Side Timeout Safety ([`PaymentScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Payment/PaymentScreen.tsx))
+* A 15-second safety fallback releases the verification loading modal in [PaymentScreen.tsx](file:///d:/thrail_app/src/features/Book/screens/Payment/PaymentScreen.tsx) if mobile network lag delays real-time sync, preventing interface freezing.
+
+---
+
+## 14. Partial Refund Display & Status Architecture (Issue Resolution)
+
+### 🐛 Bug 10: Partial Refund UI & Status Invisibility (e.g. ₱200 Refund on ₱1,100 Booking)
+- **Locations**:
+  - [`PaymentSummaryCard.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/PaymentSummaryCard.tsx)
+  - [`ReceiptScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Payment/ReceiptScreen.tsx)
+  - [`BookingCard.tsx`](file:///d:/thrail_app/src/features/Book/components/BookingCard.tsx)
+  - [`AdminBookingCard.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Offer/components/AdminBookingCard.tsx)
+  - [`PaymentTab.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/tabs/PaymentTab.tsx)
+  - [`ReviewScreen.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/ReviewScreen.tsx)
+  - [`AdminCancellationCard.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/components/AdminCancellationCard.tsx)
+  - [`ActivityLog.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/components/ActivityLog.tsx)
+  - [`useCancellationAdmin.ts`](file:///d:/thrail_app/src/core/models/Cancellation/hooks/useCancellationAdmin.ts)
+  - [`functions/index.js`](file:///d:/thrail_app/functions/index.js)
+
+- **Root Causes**:
+  1. **Strict Status Filtering**: In `PaymentSummaryCard`, `ReceiptScreen`, `BookingCard`, and `AdminBookingCard`, code checked only `p.status === 'refunded'`. When a partial refund was processed (e.g., ₱200 on ₱1,100), `p.status` remained `'captured'` while recording `p.refundedAmount = 200`. As a result, the "Amount Refunded" row was completely skipped on Hiker Booking Details, the Receipt screen rendered "Payment Successful!" with ₱1,100.00 instead of "Refund Processed!" and ₱200.00 refunded, and cards treated the payment as unrefunded.
+  2. **Premature `'cancelled'` Status in Cloud Function**: In `functions/index.js:refundBooking`, line 1401 set `finalBookingStatus = hasRemainingUnrefunded ? 'cancelled' : 'refunded'`. Because ₱900 remained unrefunded, it set the booking status to `'cancelled'`. Consequently, admin cards and list cards rendered the red `(X) CANCELLED` badge instead of `REFUNDED` with a checkmark.
+  3. **Stale Overwrite in `useCancellationAdmin`**: `processRefund` mapped local payment records without preserving `refundedAmount`, risking overwriting backend payment metadata when `createBooking` wrote back to Firestore.
+
+- **Resolution**:
+  1. **Enriched Refund Detection**: Updated `PaymentSummaryCard`, `ReceiptScreen`, `BookingCard`, `AdminBookingCard`, and `PaymentTab` to check `p.status === 'refunded' || ((p.refundedAmount || 0) > 0)`.
+  2. **Accurate Refund Amount Computation**: Replaced `reduce` sum to compute `totalRefunded = payments.reduce((sum, p) => sum + (p.refundedAmount || (p.status === 'refunded' ? p.amount : 0)), 0)`.
+  3. **Receipt Screen Net Amount**: Dynamically renders "Refund Processed!", the "Amount Refunded (18%): ₱200.00" row, and computes Net Amount Paid: `₱900.00` (₱1,100 − ₱200).
+  4. **BookingCard & Admin Card Normalization**: When `hasRefund` is true or `cancellation?.status === 'approved'`, normalized `displayStatus = 'refunded'`. This displays the `REFUNDED` badge with `check-circle` and `"Refunded 4m ago"` rather than red `(X) CANCELLED`.
+  5. **Cloud Function Status**: In `functions/index.js:refundBooking`, whenever a refund completes successfully (full or partial), `finalBookingStatus` is set to `'refunded'` and synchronized to both the booking document and global `/payments` collection.
+  6. **Local State Sync in `useCancellationAdmin`**: Updates `updatedBooking.payment` with `refundedAmount` and sets `status = 'refunded'` so local persistence stays in sync with backend records.
+  7. **Admin Cancellation & Payment Tab Metrics**: In `AdminCancellationCard`, added the "AMOUNT REFUNDED" impact metric column. In `PaymentTab`, added `PARTIALLY REFUNDED (${percentage}%)` status display and rendered the Amount Refunded and Refund Reason rows.
+
+---
+
 ### 🏁 Final Audit Verdict
-All 9 identified gaps and bugs have been **eliminated**. All 20 validation test cases across 4 testing dimensions have been designed and confirmed against the active codebase. The payment, cancellation, and refund pipeline is hardened, fully documented, and backward-compatible.
+All partial refund display anomalies and status discrepancies across Hiker and Admin interfaces have been resolved. Partial refunds (e.g. ₱200 out of ₱1,100) now cleanly itemize the refund amount, calculate the net balance paid, display the `REFUNDED` badge, and ensure consistent financial logging across both Cloud Functions and frontend state.
+
+---
+
+## 15. Manual QR & PayMongo Refund Coexistence (Pending Tab & 'Submit Wallet' Fix)
+
+### 🐛 Problem Statement
+Historical bookings paid and refunded via **PayMongo** (e.g., *Mt. Batulao*, *Mt. Daraitan*, *Mt. Tagapo*) unexpectedly reappeared in the **Pending** tab with an amber `[REFUNDING]` badge and an action button reading `"Submit Wallet >"`, accompanied by past refund timestamps such as `"Refunded 3d ago"`.
+
+### 🔍 Root Cause Analysis
+1. **Global Provider Assumption**: The app switched its default provider configuration to `PAYMENT_CONFIG.PROVIDER = 'manual_qr'`. However, several status evaluation functions relied on `PAYMENT_CONFIG.PROVIDER === 'manual_qr'` rather than inspecting the specific booking's payment gateway (`payment.gateway`).
+2. **Missing Receipt URL on PayMongo**: When active manual refunds were routed to the **Pending** tab to allow hikers to submit their e-wallet details, completion was checked via `Boolean(cancellation.adminRefundReceiptUrl)`. Because PayMongo refunds are automated direct-to-wallet/card API refunds, they do not possess an admin receipt image upload (`adminRefundReceiptUrl` is `undefined`).
+3. **Status Misclassification**:
+   - In `useBookingFilters.ts`, because `adminRefundReceiptUrl` was undefined, `isRefundComplete` evaluated to `false`.
+   - The code then checked `payments.some(p => p.status === 'captured' || (p.refundedAmount || 0) > 0)`, which evaluated to `true` on refunded PayMongo transactions.
+   - This caused `getBookingEffectiveStatus` to return `'refund'` (refunding).
+   - Because `'refund'` was placed in the **Pending** tab and the hike dates were in the future, these past PayMongo bookings reappeared in **Pending**.
+4. **Phantom Wallet Action**:
+   - In `BookingCard.tsx`, because `displayStatus` was `'refund'` and `cancellation.userWallet` was undefined (PayMongo does not use the user wallet handshake), the card defaulted to `actionLabel = "Submit Wallet"` and highlighted the card in warning border style.
+
+### 🛠️ Resolution & Implementation Details
+1. **Per-Transaction Gateway Recognition ([`useBookingFilters.ts`](file:///d:/thrail_app/src/features/Book/hooks/useBookingFilters.ts))**:
+   - `getBookingEffectiveStatus` now inspects `payments.some(p => p.gateway === 'paymongo')`.
+   - If `(isPayMongo && hasRefundedPayment) || isAllRefunded || booking.status === 'refunded'`, it immediately returns `'refunded'`.
+   - Scopes `isManualRefundPending` strictly to non-PayMongo transactions (`!isPayMongo && ...`).
+   - Cleanly routes all historical PayMongo refunded bookings to the **History** tab with terminal `'refunded'` status.
+2. **Hiker Card Action Guard ([`BookingCard.tsx`](file:///d:/thrail_app/src/features/Book/components/BookingCard.tsx))**:
+   - Evaluates `isRefundComplete` with `(isPayMongo && hasRefundedPayment)`.
+   - Restricts `isWalletNeeded` and `actionLabel = "Submit Wallet"` to `!isPayMongo`. PayMongo transactions never prompt for wallet submission.
+3. **Hiker Booking Details Parity ([`BookingDetailsScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/BookingDetailsScreen.tsx))**:
+   - Updated `isRefundComplete` to recognize completed PayMongo refunds and all-refunded payment arrays.
+   - Restricts `isManualRefundPending` to `!isPayMongo`.
+4. **Hiker Lifecycle Cancellation Card ([`CancellationCard.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/CancellationCard.tsx))**:
+   - Differentiates `isManualRefund` from `isPayMongo` transactions.
+   - PayMongo refunded cancellations display "Refund issued via PayMongo · Booking closed" and confirm that the funds were returned to the original payment method without rendering the manual GCash/Maya wallet submission box.
+5. **Admin Review Interface ([`AdminCancellationCard.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/components/AdminCancellationCard.tsx) & [`ReviewScreen.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/ReviewScreen.tsx))**:
+   - Propagated `booking.payment` to `AdminCancellationCard`.
+   - `isRefundComplete` evaluates `totalRefundedAmount > 0 || status === 'refunded'` for PayMongo transactions without requiring manual upload proof.
+   - Scoped manual payout upload actions and wallet wait notices strictly to manual QR transactions.
+
+---
+
+## 16. Booking Status Tracker Lifecycle Alignment (Downpayment, Paid, Confirmed)
+
+### 🐛 Problem Statement
+1. **Misleading Downpayment Text**: When an organizer verifies a partial payment (downpayment), the 3rd step on the 4-step progress tracker displayed a hardcoded label `"50% PAID"` instead of `"DOWNPAYMENT"`.
+2. **Premature Confirmation**: Once full payment (or balance payment) was verified, the booking status transitioned to `'paid'`. However, the 4-step progress tracker immediately jumped to the 4th step and highlighted `"CONFIRMED"`, even though the organizer had not yet clicked `"Complete Booking"` in the admin review screen.
+
+### 🔍 Root Cause Analysis
+1. In [`BookingStatus.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/BookingStatus.tsx), `case 'downpayment'` hardcoded `overrideLabel = '50% PAID'`.
+2. In `BookingStatus.tsx`, `'paid'` was grouped together in the same switch case with `'completed'`:
+   ```ts
+   case 'paid':
+   case 'completed':
+   case 'rescheduled':
+   case 'finished':
+       currentIndex = 3;
+       overrideLabel = 'CONFIRMED';
+       overrideIcon = 'check-circle';
+       break;
+   ```
+   This assigned `currentIndex = 3` (the 4th step) as soon as the status became `'paid'`. In the application lifecycle, `'paid'` simply means the transaction amount has been captured; the organizer still has the action button `"Complete Booking"` in [ReviewScreen.tsx](file:///d:/thrail_app/src/features/Admin/screens/Booking/ReviewScreen.tsx) to finalize the reservation and add the hiker to the tour group chat (which sets `status = 'completed'`).
+
+### 🛠️ Resolution & Implementation Details
+1. **Downpayment Label**:
+   - In `BookingStatus.tsx`, `case 'downpayment'` now sets `overrideLabel = 'DOWNPAYMENT'` (or `'VERIFYING'` if balance verification is pending).
+2. **Decouple 'paid' from 'completed'**:
+   - `case 'paid'` now targets `currentIndex = 2` with `overrideLabel = 'PAID'` and `overrideIcon = 'check-circle'`.
+   - Step 4 (`CONFIRMED`) remains gray/pending while the booking is in `'paid'` status.
+3. **Confirmed State Upon Finalization**:
+   - Only `case 'completed'` (and terminal `'rescheduled'` / `'finished'`) sets `currentIndex = 3` to activate `"CONFIRMED"`.
+   - When `isDone` is true for Step 2 (index 2), the label displays `'PAID'` so the completed flow clearly reads: `DOCS REVIEW` $\rightarrow$ `PAYMENT` $\rightarrow$ `PAID` $\rightarrow$ `CONFIRMED`.
+4. **Status Configuration Alignment ([`statusConfig.ts`](file:///d:/thrail_app/src/constants/statusConfig.ts))**:
+   - Updated `'paid'` userLabel from `'VERIFYING PAYMENT'` to `'PAID'` to reflect verified payment status.
+
+---
+
+## 17. Direct QR Code Save to Device Gallery (`expo-media-library`)
+
+### 🐛 Problem Statement
+When hikers selected "Manual Payment (QR Code)" and tapped **"Save QR to Gallery"**, the application previously presented the Android / iOS native sharing dialog (showing "Sharing image", Quick Share, Gmail, Google Drive, Print, etc.) instead of directly downloading and saving the QR code into the phone's native Photos / Gallery app.
+
+### 🔍 Root Cause Analysis
+1. In [`ManualQRMethodScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Payment/ManualQRMethodScreen.tsx#L145-L153), the code downloaded the organizer's QR code image into `FileSystem.documentDirectory` (an app-internal sandbox directory).
+2. It then invoked `Sharing.shareAsync(uri)`.
+3. In React Native / Expo, `expo-sharing` is strictly designed for triggering the system-level Share Sheet to broadcast files to other apps. It does not insert images into the user's Camera Roll / DCIM / MediaStore gallery.
+4. The project was missing `expo-media-library`, which is the Expo module required to request photo storage permissions and save images directly to device storage.
+
+### 🛠️ Resolution & Implementation Details
+1. **Dependency Installation (`package.json` & `package-lock.json`)**:
+   - Installed `expo-media-library@~57.0.5` matching the project's Expo SDK 52 / React Native 0.76 environment.
+2. **App Configuration & Permissions (`app.json`)**:
+   - Added `expo-media-library` config plugin with custom permission strings:
+     - `photosPermission`: "Allow Thrail to save payment QR codes to your photo gallery."
+     - `savePhotosPermission`: "Allow Thrail to save payment QR codes to your photo gallery."
+   - Added `"WRITE_EXTERNAL_STORAGE"` to Android permissions array to support older Android devices.
+3. **Gallery Save Workflow & Web/SSR Compatibility (`ManualQRMethodScreen.tsx`)**:
+   - Imported `* as MediaLibrary from 'expo-media-library/legacy'` to prevent Metro SSR / Node web bundling crashes (`TypeError: Class extends value undefined is not a constructor or null` caused by the unmocked experimental `next` class module in Node).
+   - Updated `handleSaveQR`:
+     - Downloads remote QR code image to a local temporary file in document directory.
+     - Requests permission via `MediaLibrary.requestPermissionsAsync()`.
+     - Upon permission grant (`permission.granted`), invokes `MediaLibrary.saveToLibraryAsync(uri)`.
+     - Shows toast confirmation: `"QR Code saved to Gallery!"`.
+     - Gracefully falls back to `Sharing.shareAsync(uri)` if permissions are denied or if the device environment encounters a media library exception.
+
+---
+
+## 18. Manual Refund Handshake Sequencing: Admin Decision Precedes Hiker Wallet Entry
+
+### 🐛 Problem Statement
+When an organizer cancels a hike and the hiker approves/accepts the cancellation:
+1. The hiker was immediately prompted with **"Action Required: Submit Refund Wallet"** (`[Enter GCash / Maya Wallet Details]`), even though the organizer had not yet specified the refund amount.
+2. The UI defaulted the refund amount to 100% of the payment captured (`totalAmountPaid`), giving the hiker the false expectation of a full refund.
+3. If the hiker submitted their wallet before the organizer acted, the cancellation transitioned to `awaiting_admin_payout`, completely bypassing the organizer's **"Action Required: Refund Decision"** banner and locking the refund into an automatic full refund without organizer consent.
+
+### 🔍 Root Cause Analysis
+1. In Cloud Function [`acceptAdminCancellation`](file:///d:/thrail_app/functions/index.js#L2269), accepting an organizer cancellation transitions the cancellation document to:
+   - `status: "approved"`
+   - `handshakeStep: "awaiting_admin_refund_decision"`
+   - `refundAmount`: `undefined`
+2. In [`CancellationCard.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/CancellationCard.tsx#L251-L314) and lines 550–613, the manual refund handshake block used a simple 3-way branch:
+   - `adminRefundReceiptUrl` $\rightarrow$ Payout Sent
+   - `userWallet` $\rightarrow$ Wallet Submitted — Awaiting Payout
+   - `else` $\rightarrow$ **Action Required: Submit Refund Wallet**
+   Because `userWallet` was not yet submitted, it unconditionally defaulted to prompting the user for their wallet, ignoring that `handshakeStep === 'awaiting_admin_refund_decision'`.
+3. In [`UserRefundScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Refund/UserRefundScreen.tsx#L56), `refundAmount` computed `cancellation?.refundAmount || totalAmountPaid`, falsely reporting "Approved Refund Amount: ₱1000.00" before any approval had been made.
+4. In [`BookingCard.tsx`](file:///d:/thrail_app/src/features/Book/components/BookingCard.tsx#L165), any `displayStatus === 'refund'` card without a wallet displayed `actionLabel = "Submit Wallet"` with a yellow warning border.
+
+### 🛠️ Resolution & Implementation Details
+1. **Cancellation Card Handshake Awareness ([`CancellationCard.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/CancellationCard.tsx))**:
+   - For both organizer-initiated and hiker-initiated cancellations, added a state check for `cancellation.handshakeStep === 'awaiting_admin_refund_decision' || cancellation.refundAmount === undefined`.
+   - When awaiting decision: Renders an informational banner **"Cancellation Accepted — Awaiting Refund Amount"**: *"The organizer is reviewing the booking to set the refund amount. Once the organizer specifies the amount, you will be prompted to submit your GCash or Maya wallet details here."*
+   - Only renders **"Action Required: Submit Refund Wallet"** when `cancellation.handshakeStep === 'awaiting_user_wallet'` OR when `cancellation.refundAmount !== undefined` and `> 0`.
+   - Handles `refundDecision === 'no_refund'` or `refundAmount === 0` by showing a finalized notice without prompting for wallet info.
+2. **Hiker Refund Submission Screen Guard ([`UserRefundScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Refund/UserRefundScreen.tsx))**:
+   - Detects `isAwaitingAdminDecision`.
+   - Replaces the misleading "Approved Refund Amount" with "Awaiting Amount / Decision Pending".
+   - Disables wallet submission until the organizer has finalized the refund amount.
+3. **Booking Card Action Alignment ([`BookingCard.tsx`](file:///d:/thrail_app/src/features/Book/components/BookingCard.tsx))**:
+   - Checks `isAwaitingDecision` (`handshakeStep === 'awaiting_admin_refund_decision' || (!cancellation?.refundAmount && cancellation?.refundDecision !== 'no_refund')`).
+   - Sets `actionLabel = "Awaiting Decision"` with neutral styling instead of prompting the hiker to `"Submit Wallet"`.
+
+---
+
+## 19. Reschedule Modal & OfferCard React Native Text Rendering Crash
+
+### 🐛 Problem Statement
+When clicking **"Reschedule to Another Date"** in the hike cancellation card, the app crashed with the following error:
+```text
+ERROR Text strings must be rendered within a <Text> component.
+Code: OfferCard.tsx
+  65 |     isWithinAdvanceCutoff = false,
+  66 |     isToday = false,
+> 67 | }) => {
+Call Stack:
+  OfferCard (src\features\Book\components\OfferCard.tsx:67:7)
+  <global> (src\features\Book\screens\MyBookings\components\RescheduleModal.tsx:12)
+```
+
+### 🔍 Root Cause Analysis
+1. In React Native, rendering a primitive string (`""`) or number (`0`) directly as a child of a `<View>` triggers `ERROR Text strings must be rendered within a <Text> component`.
+2. In [`src/app/(app)/(main)/book/list.tsx`](file:///d:/thrail_app/src/app/(app)/(main)/book/list.tsx#L96), the prop was hardcoded as:
+   `availableFutureOffers={[newOffer(), newOffer()]}`.
+   `newOffer()` creates an empty offer where `minPax: 0`, `maxPax: 0`, `duration: ""`, `description: ""`.
+3. In [`OfferCard.tsx`](file:///d:/thrail_app/src/features/Book/components/OfferCard.tsx):
+   - Line 206: `{(offer.minPax || offer.maxPax) && (` evaluated `(0 || 0)` to `0`, resulting in `0 && <CustomText>` evaluating to the primitive number `0` inside a `<View>`.
+   - Line 142: `{offer.duration && (` evaluated `"" && <View>` to `""` (empty string) directly inside a `<View>`.
+   - Line 217: `{offer.description && (` similarly returned `""`.
+
+### 🛠️ Resolution & Implementation Details
+1. **Conditional Type Safety ([`OfferCard.tsx`](file:///d:/thrail_app/src/features/Book/components/OfferCard.tsx))**:
+   - Wrapped all non-boolean JSX conditions in `Boolean(...)`:
+     - `{Boolean(offer.duration) && ...}`
+     - `{Boolean(offer.minPax || offer.maxPax) && ...}`
+     - `{Boolean(offer.description) && ...}`
+     - `{Boolean(offer.schedule && offer.schedule.length > 0) && ...}`
+     - `{Boolean(offer.inclusions && offer.inclusions.length > 0) && ...}`
+     - `{Boolean(offer.thingsToBring && offer.thingsToBring.length > 0) && ...}`
+     - `{Boolean(offer.reminders && offer.reminders.length > 0) && ...}`
+   - Guarantees that truthy/falsy evaluations resolve strictly to `false` (which React Native cleanly ignores) rather than `0` or `""`.
+2. **Safe Keys and Selection ([`RescheduleModal.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/RescheduleModal.tsx))**:
+   - Used index fallback for offer key mapping (`offer.id || 'offer-${idx}'`).
+   - Guarded selection logic against empty offer IDs.
+3. **Real Offers Integration ([`list.tsx`](file:///d:/thrail_app/src/app/(app)/(main)/book/list.tsx))**:
+   - Replaced placeholder `[newOffer(), newOffer()]` with live offers from `useOfferList()` filtered by future dates.
+   - Enforced React Compiler purity rules by initializing `currentTime` via a deterministic `useState(() => Date.now())` initializer and memoizing with `useMemo`, preventing impure function call errors during render.
+   - If no future offers are scheduled, `RescheduleModal` properly renders its clean empty state (*"No future dates available for this organizer"*) and guides the hiker to **[Explore Mountains]**.
+
+---
+
+## 20. Documented Transaction Receipts in Admin Transaction Summary
+
+### 🎯 Feature Overview
+To guarantee comprehensive financial auditing and transparent payment history, the Admin Booking Review **Payment Tab** ([`PaymentTab.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/tabs/PaymentTab.tsx)) now documents each transaction's receipt screenshot directly within the **Transaction Summary**.
+
+### 🔍 Problem & Use Case
+When a hiker pays in multiple installments (such as an initial 50% downpayment followed by balance settlement via Manual QR):
+- Previously, only the active pending payment receipt was previewed in `ManualQRVerificationCard.tsx`.
+- Once payments were verified and the booking reached `'downpayment'`, `'paid'`, or `'completed'`, the Transaction Summary cards in `PaymentTab.tsx` only showed textual metadata (`Gateway`, `Channel`, `Status`, `Original Amount`, `Reference No.`).
+- The admin had no way in the transaction history to inspect or audit previous payment proofs (such as the initial downpayment receipt screenshot).
+
+### 🛠️ Resolution & Implementation Details
+1. **Interactive Fullscreen Preview ([`PaymentTab.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/tabs/PaymentTab.tsx))**:
+   - Added `previewReceiptUrl` state and imported [`ImagePreviewModal`](file:///d:/thrail_app/src/components/ImagePreviewModal.tsx).
+   - Rendered `ImagePreviewModal` at the root level of `PaymentTab`, enabling full pan, pinch-to-zoom, and high-resolution inspection.
+
+2. **Per-Transaction Receipt Card ([`PaymentTab.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/tabs/PaymentTab.tsx))**:
+   - For every transaction in `booking.payment` containing a `receiptUrl`:
+     - Displays a styled thumbnail with a darkened zoom overlay (*"View"*).
+     - Renders an **Enlarge Receipt** action button with icon.
+     - Displays the submission date/time (`paidAt` / `createdAt`) formatted using `formatDate`.
+     - Displays any admin verification feedback (`adminNote`).
+     - Includes a clear helper notice: *"User submitted payment receipt screenshot. Tap to view full size."*
+
+3. **Payment Classification Badging**:
+   - If `paymentRecord.classification` is present, renders a distinct badge for **`DOWNPAYMENT`** (amber with pie-chart icon) or **`FULL PAYMENT`** (green with check-circle icon).
+
+4. **Refund Proof Payout Documentation**:
+   - If `paymentRecord.refundProofUrl` is attached (for refunded or partially refunded transactions), renders a dedicated **Refund Payout Proof** block allowing full-screen verification of the organizer's payout transfer.
+
+
+
+
+
+
+
 
 

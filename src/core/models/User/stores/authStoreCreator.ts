@@ -71,7 +71,7 @@ const init = {
     remember: true,
     isChecking: false,
     role: null,
-    isHydrated: false,
+    isHydrated: Platform.OS === 'web',
 };
 
 export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]]> = (set, get) => ({
@@ -92,6 +92,9 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
     setHydrated: (hydrated) => set({ isHydrated: hydrated }),
 
     initialize: () => {
+        let lastCheckedUid: string | null = null;
+        let hasForceRefreshedToken = false;
+
         try {
             const unsubscribeAuth = onIdTokenChanged(auth, async (firebaseUser) => {
                 set({ error: null });
@@ -110,15 +113,19 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                 logger("authStoreCreator", 'line 90')
 
                 if (firebaseUser) {
+                    if (lastCheckedUid !== firebaseUser.uid) {
+                        lastCheckedUid = firebaseUser.uid;
+                        hasForceRefreshedToken = false;
+                    }
 
                     try {
                         logger("authStoreCreator", "with user");
 
-                        const idTokenResult = await firebaseUser.getIdTokenResult(false);
+                        let idTokenResult = await firebaseUser.getIdTokenResult(false);
 
                         logger("authStoreCreator", 'worked');
 
-                        const businessId =
+                        const initialBusinessId =
                             (idTokenResult.claims as CustomClaims).businessId ||
                             (idTokenResult.claims as CustomClaims).owner ||
                             null;
@@ -136,14 +143,41 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
 
                         const unsubProfile = onSnapshot(
                             ref,
-                            (snap) => {
+                            async (snap) => {
                                 if (snap.exists()) {
+                                    const profileData = snap.data();
+                                    let activeBusinessId =
+                                        (idTokenResult.claims as CustomClaims).businessId ||
+                                        (idTokenResult.claims as CustomClaims).owner ||
+                                        profileData.businessId ||
+                                        initialBusinessId ||
+                                        null;
+
+                                    // If user has admin/superadmin role but the cached token lacks businessId claims,
+                                    // force refresh the token once to obtain fresh claims set by Cloud Functions without looping.
+                                    if (!hasForceRefreshedToken &&
+                                        (profileData.role === 'admin' || profileData.role === 'superadmin') &&
+                                        !(idTokenResult.claims as CustomClaims).businessId &&
+                                        !(idTokenResult.claims as CustomClaims).owner) {
+                                        try {
+                                            hasForceRefreshedToken = true;
+                                            idTokenResult = await firebaseUser.getIdTokenResult(true);
+                                            activeBusinessId =
+                                                (idTokenResult.claims as CustomClaims).businessId ||
+                                                (idTokenResult.claims as CustomClaims).owner ||
+                                                profileData.businessId ||
+                                                null;
+                                        } catch (refreshErr) {
+                                            logger("authStoreCreator", "Error force-refreshing idToken:", refreshErr);
+                                        }
+                                    }
+
                                     set({
                                         user: cleanedUser,
-                                        role: snap.data().role,
-                                        profile: snap.data(),
+                                        role: profileData.role,
+                                        profile: profileData,
                                         isLoading: false, // Disables loading layout once cached profile loads
-                                        businessId,
+                                        businessId: activeBusinessId,
                                     });
                                 } else {
                                     if (!snap.metadata.fromCache) {
@@ -174,6 +208,8 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                         return;
                     }
                 } else {
+                    lastCheckedUid = null;
+                    hasForceRefreshedToken = false;
                     logger("authStoreCreator", "no user");
                     const currentUnsub = get()._unsubscribe;
 

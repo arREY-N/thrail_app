@@ -4,8 +4,10 @@
  */
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { BRAND } from '@/src/constants/branding';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
@@ -49,10 +51,13 @@ const AboutScreen = ({
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader title="About Thrail" centerTitle onBackPress={onBackPress} />
             <ScrollView contentContainerStyle={[styles.content, !isMobile && styles.desktopContent]} showsVerticalScrollIndicator={false}>
-                
                 <View style={styles.header}>
-                    <View style={styles.logoPlaceholder}>
-                        <CustomIcon library="Feather" name="map" size={40} color={Colors.WHITE} />
+                    <View style={styles.logoBadgeContainer}>
+                        <CustomImage
+                            source={BRAND.ASSETS.CIRCLE_LOGO}
+                            style={styles.brandLogo}
+                            resizeMode="contain"
+                        />
                     </View>
                     <CustomText variant="h2" style={styles.appName}>Thrail</CustomText>
                     <CustomText variant="caption" style={styles.version}>Version 1.0.0</CustomText>
@@ -146,14 +151,16 @@ const styles = StyleSheet.create({
         gap: 8,
         marginTop: 0,
     },
-    logoPlaceholder: {
-        width: 80,
-        height: 80,
-        borderRadius: 24,
-        backgroundColor: Colors.PRIMARY,
+    logoBadgeContainer: {
+        width: 88,
+        height: 88,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 8,
+    },
+    brandLogo: {
+        width: 88,
+        height: 88,
     },
     appName: {
         fontWeight: 'bold',

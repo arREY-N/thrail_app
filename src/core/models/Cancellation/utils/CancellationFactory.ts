@@ -4,7 +4,7 @@ import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timesta
 
 export const newCancellation = (
     required: Pick<Cancellation, "userId" | "bookingId" | "businessId" | "reason" | "offerId" | "cancelledBy">,
-    optional: Partial<Pick<Cancellation, "id" | "status" | "createdAt" | "updatedAt" | "adminNote">> = {}
+    optional: Partial<Pick<Cancellation, "id" | "status" | "createdAt" | "updatedAt" | "adminNote" | "refundAmount" | "refundedAt" | "handshakeStep" | "userWallet" | "refundDecision" | "adminRefundReceiptUrl" | "adminRefundReceiptUploadedAt">> = {}
 ): Cancellation => {
     const currentDate = new Date();
 
@@ -66,6 +66,39 @@ const cancellationFromFirestore = (id: string, data: ICancellationDB): Cancellat
         request.adminNote = data.adminNote;
     }
 
+    if (data.refundAmount !== undefined) {
+        request.refundAmount = data.refundAmount;
+    }
+
+    if (data.refundedAt) {
+        request.refundedAt = toDate(data.refundedAt);
+    }
+
+    if (data.handshakeStep) {
+        request.handshakeStep = data.handshakeStep;
+    }
+
+    if (data.refundDecision) {
+        request.refundDecision = data.refundDecision;
+    }
+
+    if (data.userWallet) {
+        request.userWallet = {
+            walletType: data.userWallet.walletType,
+            accountNumber: data.userWallet.accountNumber,
+            accountName: data.userWallet.accountName,
+            submittedAt: toDate(data.userWallet.submittedAt),
+        };
+    }
+
+    if (data.adminRefundReceiptUrl) {
+        request.adminRefundReceiptUrl = data.adminRefundReceiptUrl;
+    }
+
+    if (data.adminRefundReceiptUploadedAt) {
+        request.adminRefundReceiptUploadedAt = toDate(data.adminRefundReceiptUploadedAt);
+    }
+
     return request;
 };
 
@@ -85,6 +118,43 @@ const cancellationToFirestore = (cancellation: Cancellation): ICancellationDB =>
 
     if (cancellation.adminNote) {
         request.adminNote = cancellation.adminNote;
+    }
+
+    if (cancellation.refundAmount !== undefined) {
+        request.refundAmount = cancellation.refundAmount;
+    }
+
+    if (cancellation.refundedAt) {
+        request.refundedAt = Timestamp.fromDate(toDate(cancellation.refundedAt));
+    }
+
+    if (cancellation.handshakeStep) {
+        request.handshakeStep = cancellation.handshakeStep;
+    }
+
+    if (cancellation.refundDecision) {
+        request.refundDecision = cancellation.refundDecision;
+    }
+
+    if (cancellation.userWallet) {
+        request.userWallet = {
+            walletType: cancellation.userWallet.walletType,
+            accountNumber: cancellation.userWallet.accountNumber,
+            accountName: cancellation.userWallet.accountName,
+            submittedAt: cancellation.userWallet.submittedAt instanceof Date
+                ? Timestamp.fromDate(cancellation.userWallet.submittedAt)
+                : serverTimestamp(),
+        };
+    }
+
+    if (cancellation.adminRefundReceiptUrl) {
+        request.adminRefundReceiptUrl = cancellation.adminRefundReceiptUrl;
+    }
+
+    if (cancellation.adminRefundReceiptUploadedAt) {
+        request.adminRefundReceiptUploadedAt = cancellation.adminRefundReceiptUploadedAt instanceof Date
+            ? Timestamp.fromDate(cancellation.adminRefundReceiptUploadedAt)
+            : serverTimestamp();
     }
 
     return request;

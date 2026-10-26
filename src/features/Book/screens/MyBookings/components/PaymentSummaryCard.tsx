@@ -15,6 +15,8 @@ export interface PaymentSummaryCardProps {
     remainingBalance: number;
     /** Array of payment history */
     payments?: IPayment<Date>[];
+    /** Explicit refunded amount from booking or cancellation record */
+    refundedAmount?: number;
 }
 
 /**
@@ -22,16 +24,26 @@ export interface PaymentSummaryCardProps {
  * 
  * @param {PaymentSummaryCardProps} props - Component props
  */
-const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance, payments = [] }: PaymentSummaryCardProps) => {
-    const refundedPayments = payments.filter(p => p.status === 'refunded');
-    const totalRefunded = refundedPayments.reduce((sum, p) => sum + (p.refundedAmount || 0), 0);
+const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance, payments = [], refundedAmount }: PaymentSummaryCardProps) => {
+    const refundedPayments = payments.filter(p => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+    const calculatedRefunded = payments.reduce((sum, p) => {
+        if (typeof p.refundedAmount === 'number' && p.refundedAmount > 0) {
+            return sum + p.refundedAmount;
+        }
+        return sum + (p.status === 'refunded' ? (p.amount || 0) : 0);
+    }, 0);
+
+    const totalRefunded = (typeof refundedAmount === 'number' && refundedAmount > 0)
+        ? refundedAmount
+        : calculatedRefunded;
+
     const hasUnrecordedRefund = refundedPayments.some(p => {
         return p.refundedAmount === undefined || p.refundedAmount === null;
-    });
+    }) && (typeof refundedAmount !== 'number' || refundedAmount <= 0);
 
-    const totalOriginalAmountForRefunded = refundedPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalOriginalAmountForRefunded = refundedPayments.reduce((sum, p) => sum + (p.amount || 0), 0) || totalAmount;
     const refundPercentageLabel = (totalRefunded > 0 && totalOriginalAmountForRefunded > 0)
-        ? ` (${Math.round((totalRefunded / totalOriginalAmountForRefunded) * 100)}%)`
+        ? ` (${Math.min(100, Math.round((totalRefunded / totalOriginalAmountForRefunded) * 100))}%)`
         : '';
 
     return (
@@ -58,7 +70,7 @@ const PaymentSummaryCard = ({ totalAmount, amountPaid, remainingBalance, payment
                 </CustomText>
             </View>
 
-            {refundedPayments.length > 0 && (
+            {(totalRefunded > 0 || refundedPayments.length > 0) && (
                 <View style={styles.row}>
                     <CustomText variant="caption" style={[styles.label, { color: Colors.ERROR }]}>
                         Amount Refunded{refundPercentageLabel}

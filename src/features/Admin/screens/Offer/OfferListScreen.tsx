@@ -3,7 +3,7 @@
  * @description Admin screen displaying a list of created offers and basic booking stats, including search, filter, and sorting features.
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
@@ -19,6 +19,15 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import {
+    CustomTutorialModal,
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    requestTargetMeasurement,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
@@ -56,6 +65,31 @@ export interface OfferListScreenProps {
     onBackPress: () => void;
 }
 
+const EMPTY_BOOKINGS: Booking[] = [];
+
+const STATUS_DETAILS = {
+    cancelled: { 
+        label: 'Cancelled', 
+        color: Colors.ERROR, 
+        bg: Colors.ERROR_BG 
+    },
+    rescheduled: { 
+        label: 'Rescheduled', 
+        color: Colors.WARNING, 
+        bg: Colors.STATUS_WARNING_BG 
+    },
+    expired: { 
+        label: 'Expired', 
+        color: Colors.TEXT_SECONDARY, 
+        bg: Colors.GRAY_ULTRALIGHT 
+    },
+    active: { 
+        label: 'Active', 
+        color: Colors.SUCCESS, 
+        bg: Colors.STATUS_APPROVED_BG 
+    }
+} as const;
+
 /**
  * OfferListScreen — Admin screen displaying a list of created offers and basic booking stats.
  */
@@ -83,6 +117,8 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         uniqueTrailNames,
         filteredAndSortedOffers 
     } = useOfferFilters(offers);
+
+    const tutorial = useTutorialGuide('admin_offer_list', !isLoading);
     
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedEditId, setSelectedEditId] = useState<string | null>(null);
@@ -100,6 +136,53 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
 
     const cardWidth = (containerWidth - gap * (numColumns - 1)) / numColumns;
     const scrollViewRef = useRef<ScrollView>(null);
+    const addBtnRef = useRef<View>(null);
+    const searchFiltersRef = useRef<View>(null);
+    const firstOfferRef = useRef<View>(null);
+
+    const measureAddBtnNow = useCallback(() => {
+        addBtnRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_offer_add_btn', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    const measureFiltersNow = useCallback(() => {
+        searchFiltersRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_offer_filters', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    const measureFirstOfferNow = useCallback(() => {
+        firstOfferRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_offer_card', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const u1 = registerMeasureCallback('admin_offer_add_btn', measureAddBtnNow);
+        const u2 = registerMeasureCallback('admin_offer_filters', measureFiltersNow);
+        const u3 = registerMeasureCallback('admin_offer_card', measureFirstOfferNow);
+        return () => {
+            u1();
+            u2();
+            u3();
+        };
+    }, [measureAddBtnNow, measureFiltersNow, measureFirstOfferNow]);
+
+    useEffect(() => {
+        if (!tutorial.isVisible) return;
+        const stepTarget = tutorial.currentStep?.targetSpotlight;
+        if (stepTarget) {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            requestTargetMeasurement(stepTarget);
+        }
+    }, [tutorial.isVisible, tutorial.currentStep?.targetSpotlight]);
 
     const handleTabSelect = (tab: string) => {
         setActiveFilter(tab);
@@ -107,10 +190,10 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         scrollViewRef.current?.scrollTo({ y: 0, animated: false });
     };
 
-    const handleEditPress = (offerId: string) => {
+    const handleEditPress = useCallback((offerId: string) => {
         setSelectedEditId(offerId);
         setShowEditModal(true);
-    };
+    }, []);
 
     const confirmEdit = () => {
         setShowEditModal(false);
@@ -121,6 +204,10 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
 
     const HeaderAddAction = (
         <TouchableOpacity 
+            ref={addBtnRef}
+            onLayout={() => {
+                if (isTutorialMeasurementActive()) measureAddBtnNow();
+            }}
             style={styles.headerAddButton}
             onPress={onAddOffer}
             activeOpacity={0.7}
@@ -137,7 +224,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         </TouchableOpacity>
     );
 
-    const getOfferStatusDetails = (offer: Offer) => {
+    const getOfferStatusDetails = useCallback((offer: Offer) => {
         const status = (offer.status || '').toString().toLowerCase();
         const offerDate = safeParseDateString((offer.date || offer.hikeDate) as DateInput);
         offerDate.setHours(0, 0, 0, 0);
@@ -145,79 +232,72 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        if (status === 'cancelled') {
-            return { 
-                label: 'Cancelled', 
-                color: Colors.ERROR, 
-                bg: Colors.ERROR_BG 
-            };
-        }
-        if (status === 'rescheduled') {
-            return { 
-                label: 'Rescheduled', 
-                color: Colors.WARNING, 
-                bg: Colors.STATUS_WARNING_BG 
-            };
-        }
-        if (offerDate < today) {
-            return { 
-                label: 'Expired', 
-                color: Colors.TEXT_SECONDARY, 
-                bg: Colors.GRAY_ULTRALIGHT 
-            };
-        }
-        return { 
-            label: 'Active', 
-            color: Colors.SUCCESS, 
-            bg: Colors.STATUS_APPROVED_BG 
-        };
-    };
+        if (status === 'cancelled') return STATUS_DETAILS.cancelled;
+        if (status === 'rescheduled') return STATUS_DETAILS.rescheduled;
+        if (offerDate < today) return STATUS_DETAILS.expired;
+        return STATUS_DETAILS.active;
+    }, []);
 
-    const getActionableBookingsCount = (offerId: string) => {
-        const list = (bookingByOffer && Object.prototype.hasOwnProperty.call(bookingByOffer, offerId))
-            ? bookingByOffer[offerId] || []
-            : [];
+    const actionableCountsByOffer = useMemo(() => {
+        const counts: Record<string, number> = {};
 
-        // Build a lookup of relevant cancellations for this offer
-        const offerCancellations = (cancellations || []).filter(c => c.offerId === offerId);
-        const cancellationByBooking = new Map<string, Cancellation>();
-        offerCancellations.forEach(c => {
-            cancellationByBooking.set(c.bookingId, c);
+        // 1. Group cancellations by offerId
+        const cancellationsByOffer = new Map<string, Cancellation[]>();
+        (cancellations || []).forEach(c => {
+            if (!cancellationsByOffer.has(c.offerId)) {
+                cancellationsByOffer.set(c.offerId, []);
+            }
+            cancellationsByOffer.get(c.offerId)!.push(c);
         });
 
-        const actionableBookingIds = new Set<string>();
-        list.forEach(b => {
-            const cancellation = cancellationByBooking.get(b.id);
-            // If cancellation is approved or booking is cancelled, it is resolved and not actionable for admin
-            if (cancellation?.status === 'approved' || b.status === 'cancelled') {
-                return;
-            }
-            // If cancellation was initiated by admin, admin is waiting on hiker action
-            if (cancellation && cancellation.cancelledBy === 'admin') {
-                return;
-            }
+        // 2. Compute actionable count for each offer in a single pass
+        (offers || []).forEach(offer => {
+            const list = (bookingByOffer && Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id))
+                ? bookingByOffer[offer.id] || []
+                : [];
+            const offerCancellations = cancellationsByOffer.get(offer.id) || [];
 
-            const status = (b.status as string) || '';
-            if (
-                status === 'for-reservation' || 
-                status === 'paid' || 
-                status === 'downpayment' ||
-                status === 'for-cancellation' ||
-                status === 'for-reschedule'
-            ) {
-                actionableBookingIds.add(b.id);
-            }
+            const cancellationByBooking = new Map<string, Cancellation>();
+            offerCancellations.forEach(c => {
+                cancellationByBooking.set(c.bookingId, c);
+            });
+
+            const actionableBookingIds = new Set<string>();
+            list.forEach(b => {
+                const cancellation = cancellationByBooking.get(b.id);
+                // If cancellation is approved or booking is cancelled, it is resolved and not actionable for admin
+                if (cancellation?.status === 'approved' || b.status === 'cancelled') {
+                    return;
+                }
+                // If cancellation was initiated by admin, admin is waiting on hiker action
+                if (cancellation && cancellation.cancelledBy === 'admin') {
+                    return;
+                }
+
+                const status = (b.status as string) || '';
+                if (
+                    status === 'for-reservation' || 
+                    status === 'paid' || 
+                    status === 'downpayment' ||
+                    status === 'for-cancellation' ||
+                    status === 'for-reschedule'
+                ) {
+                    actionableBookingIds.add(b.id);
+                }
+            });
+
+            // Also count pending cancellation requests submitted by hikers
+            offerCancellations.forEach(c => {
+                if (c.status === 'pending' && c.cancelledBy !== 'admin') {
+                    actionableBookingIds.add(c.bookingId);
+                }
+            });
+
+            counts[offer.id] = actionableBookingIds.size;
         });
 
-        // Also count pending cancellation requests submitted by hikers
-        offerCancellations.forEach(c => {
-            if (c.status === 'pending' && c.cancelledBy !== 'admin') {
-                actionableBookingIds.add(c.bookingId);
-            }
-        });
-
-        return actionableBookingIds.size;
-    };
+        return counts;
+    }, [offers, bookingByOffer, cancellations]);
 
     const filterSections = [
         {
@@ -248,12 +328,20 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <View style={styles.container}>
-                <View style={styles.headerWrapper}>
+                <View
+                    style={styles.headerWrapper}
+                >
                     <CustomHeader 
+                        searchContainerRef={searchFiltersRef}
                         title="Manage Offers" 
                         centerTitle={true} 
                         onBackPress={onBackPress}
-                        rightActions={HeaderAddAction} 
+                        rightActions={
+                            <View style={styles.headerRightActions}>
+                                <TutorialHelpButton onPress={tutorial.onReplayTour} />
+                                {HeaderAddAction}
+                            </View>
+                        } 
                         hasSearch={true}
                         searchProps={{
                             searchPlaceholder: "Search by trail name...",
@@ -277,7 +365,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                     <View style={styles.constrainer}>
                         <ErrorMessage error={error} />
 
-                        {isLoading && (
+                        {isLoading && (!offers || offers.length === 0) && (
                             <View style={styles.centerContent}>
                                 <ActivityIndicator 
                                     size="large" 
@@ -286,8 +374,15 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                             </View>
                         )}
 
-                        {!isLoading && offers?.length === 0 && (
-                            <View style={styles.emptyState}>
+                        {!isLoading && (!offers || offers.length === 0) && (
+                            <View
+                                ref={firstOfferRef}
+                                collapsable={false}
+                                onLayout={() => {
+                                    if (isTutorialMeasurementActive()) measureFirstOfferNow();
+                                }}
+                                style={styles.emptyState}
+                            >
                                 <CustomIcon 
                                     library="Feather" 
                                     name="inbox" 
@@ -303,8 +398,15 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                             </View>
                         )}
 
-                        {!isLoading && offers?.length > 0 && filteredAndSortedOffers.length === 0 && (
-                            <View style={styles.emptyState}>
+                        {offers?.length > 0 && filteredAndSortedOffers.length === 0 && (
+                            <View
+                                ref={firstOfferRef}
+                                collapsable={false}
+                                onLayout={() => {
+                                    if (isTutorialMeasurementActive()) measureFirstOfferNow();
+                                }}
+                                style={styles.emptyState}
+                            >
                                 <CustomIcon 
                                     library="Feather" 
                                     name="search" 
@@ -320,20 +422,29 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                             </View>
                         )}
 
-                        {!isLoading && filteredAndSortedOffers.length > 0 && (
+                        {filteredAndSortedOffers.length > 0 && (
                             <>
                                 <View style={styles.listContainer}>
-                                    {filteredAndSortedOffers.map((offer: Offer) => (
-                                        <OfferCard 
+                                    {filteredAndSortedOffers.map((offer: Offer, index: number) => (
+                                        <View
                                             key={offer.id}
-                                            offer={offer}
-                                            bookings={Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id) ? bookingByOffer[offer.id] : []}
-                                            statusDetails={getOfferStatusDetails(offer)}
-                                            actionableCount={getActionableBookingsCount(offer.id)}
-                                            onViewBookings={onViewOfferBookings}
-                                            onEditPress={handleEditPress}
+                                            ref={index === 0 ? firstOfferRef : undefined}
+                                            collapsable={false}
+                                            onLayout={index === 0 ? () => {
+                                                if (isTutorialMeasurementActive()) measureFirstOfferNow();
+                                            } : undefined}
                                             style={{ width: cardWidth }}
-                                        />
+                                        >
+                                            <OfferCard 
+                                                offer={offer}
+                                                bookings={(bookingByOffer && Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id)) ? bookingByOffer[offer.id] : EMPTY_BOOKINGS}
+                                                statusDetails={getOfferStatusDetails(offer)}
+                                                actionableCount={actionableCountsByOffer[offer.id] ?? 0}
+                                                onViewBookings={onViewOfferBookings}
+                                                onEditPress={handleEditPress}
+                                                style={{ width: '100%' }}
+                                            />
+                                        </View>
                                     ))}
                                 </View>
                                 <View style={styles.footerContainer}>
@@ -366,6 +477,17 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                 initialValues={{ sortBy, filterTrailNames }}
                 defaultValues={{ sortBy: 'date-asc', filterTrailNames: [] }}
                 onApply={handleApplyFilters}
+            />
+
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
             />
         </ScreenWrapper>
     );
@@ -449,7 +571,12 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PLACEHOLDER,
         fontStyle: 'italic',
         fontSize: 14,
-    }
+    },
+    headerRightActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
 });
 
 export default OfferListScreen;

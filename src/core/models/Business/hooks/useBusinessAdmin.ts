@@ -12,8 +12,8 @@ import { useCallback, useEffect, useMemo } from "react";
  * @returns 
  */
 export function useBusinessAdmin() {
-    const { profile, businessId, role } = useAuthHook();
-    const { isLoading, isFetching } = useBusinessState();
+    const { profile, businessId, role, isLoading: isAuthLoading } = useAuthHook();
+    const { isLoading, isFetching, error } = useBusinessState();
 
     const businessAccount = useBusinessesStore(s => s.current);
 
@@ -25,20 +25,25 @@ export function useBusinessAdmin() {
         const fetch = async () => {
             if (!profile?.id || !businessId) return;
 
-            await useBusinessesStore.getState().load(businessId)
-        }
+            await useBusinessesStore.getState().load(businessId);
+        };
 
         fetch();
-    }, [profile?.id, businessId])
+    }, [profile?.id, businessId]);
 
     const onRefresh = useCallback(async () => {
         if (!profile?.id || !businessId) return;
 
-        await useBusinessesStore.getState().load(businessId)
-    }, [profile?.id, businessId])
+        await useBusinessesStore.getState().load(businessId);
+    }, [profile?.id, businessId]);
+
+    const updatePaymentConfig = useBusinessesStore(s => s.updatePaymentConfig);
+
+    const isBusinessLoading = isAuthLoading || isLoading || isFetching || (!businessAccount && Boolean(businessId) && !error);
 
     return useMemo(() => ({
         onRefresh,
+        updatePaymentConfig,
         businessAccount,
         businessAdmins,
         businessOffers,
@@ -46,7 +51,9 @@ export function useBusinessAdmin() {
         profile,
         role,
         businessId,
-        isLoading,
+        isLoading: isBusinessLoading,
         isFetching,
-    }), [onRefresh, businessAccount, businessAdmins, businessOffers, businessBookings, profile, role, businessId, isLoading, isFetching])
+        isAuthLoading,
+        error,
+    }), [onRefresh, updatePaymentConfig, businessAccount, businessAdmins, businessOffers, businessBookings, profile, role, businessId, isBusinessLoading, isFetching, isAuthLoading, error]);
 }

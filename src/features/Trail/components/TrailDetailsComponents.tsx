@@ -114,31 +114,29 @@ export interface StyledListItemProps {
 }
 
 export const StyledListItem: React.FC<StyledListItemProps> = ({ text, index, type }) => {
-    let bgStyle, borderStyle, bulletBg, bulletText;
+    let bulletBg, bulletText;
 
     if (type === 'safety') {
-        bgStyle = { backgroundColor: Colors.TRAIL_SAFETY_BG };
-        borderStyle = { borderColor: Colors.TRAIL_SAFETY_BORDER };
         bulletBg = { backgroundColor: Colors.TRAIL_SAFETY_BULLET_BG };
         bulletText = { color: Colors.TRAIL_SAFETY_BULLET_TEXT };
     } else if (type === 'lgu') {
-        bgStyle = { backgroundColor: Colors.TRAIL_LGU_BG };
-        borderStyle = { borderColor: Colors.TRAIL_LGU_BORDER };
         bulletBg = { backgroundColor: Colors.TRAIL_LGU_BULLET_BG };
         bulletText = { color: Colors.TRAIL_LGU_BULLET_TEXT };
     } else { // guide
-        bgStyle = { backgroundColor: Colors.TRAIL_RULES_BG };
-        borderStyle = { borderColor: Colors.TRAIL_RULES_BORDER };
         bulletBg = { backgroundColor: Colors.TRAIL_RULES_BULLET_BG };
         bulletText = { color: Colors.TRAIL_RULES_BULLET_TEXT };
     }
 
     return (
-        <View style={[styles.listItemContainer, bgStyle, borderStyle]}>
+        <View style={styles.listItemContainer}>
             <View style={[styles.listBullet, bulletBg]}>
-                <CustomText style={[styles.listBulletText, bulletText]}>{index + 1}</CustomText>
+                <CustomText style={[styles.listBulletText, bulletText]}>
+                    {index + 1}
+                </CustomText>
             </View>
-            <CustomText style={styles.listText}>{text}</CustomText>
+            <CustomText style={styles.listText}>
+                {text}
+            </CustomText>
         </View>
     );
 };
@@ -171,8 +169,35 @@ const styles = StyleSheet.create({
     tagText: { color: Colors.TRAIL_TAG_TEXT, fontSize: 13, fontWeight: '600' },
 
     // Lists
-    listItemContainer: { flexDirection: 'row', padding: 16, borderRadius: 16, borderWidth: 1, alignItems: 'flex-start' },
-    listBullet: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginRight: 14, marginTop: 0 },
-    listBulletText: { fontSize: 12, fontWeight: '900' },
-    listText: { flex: 1, color: Colors.TEXT_PRIMARY, fontSize: 14, lineHeight: 22, opacity: 0.85 },
+    listItemContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        width: '100%',
+        paddingVertical: 4,
+    },
+    listBullet: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+        marginTop: 1,
+        flexShrink: 0,
+    },
+    listBulletText: {
+        fontSize: 12,
+        fontWeight: '900',
+        marginBottom: 1,
+    },
+    listText: {
+        flex: 1,
+        flexShrink: 1,
+        flexWrap: 'wrap',
+        color: Colors.TEXT_PRIMARY,
+        fontSize: 14,
+        lineHeight: 22,
+        textAlign: 'left',
+        marginTop: 2,
+    },
 });

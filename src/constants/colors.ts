@@ -14,30 +14,43 @@ export const Palette = {
     OffWhite:   '#FAFCFA',
 
     // Greens
+    Green900:   '#14532D',
+    Green800:   '#1B5E20',
     Green700:   '#2E7D32',
     Green600:   '#4CAF50',
     Green400:   '#7DBC81',
+    Green300:   '#86EFAC',
     Green200:   '#A5D6A7',
     Green100:   '#C8E6C9',
     Green50:    '#E8F5E9',
     
     // Reds
     Red900:     '#B71C1C',
+    Red800:     '#C62828',
     Red700:     '#D32F2F',
     Red650:     '#C62828',
     Red600:     '#E53935',
     Red500:     '#F44336',
     Red400:     '#E57373',
+    Red200:     '#FFCDD2',
     Red100:     '#FFCDD2',
     Red50:      '#FFEBEE',
     Red25:      '#FFF5F5',
     
     // Blues
+    Blue800:    '#1E40AF',
     Blue600:    '#1976D2',
     Blue400:    '#42A5F5',
     Blue100:    '#BBDEFB',
     Blue50:     '#E3F2FD',
     Indigo400:  '#5C6BC0',
+    Slate900:   '#0F172A',
+    Slate800:   '#1E293B',
+    Slate700:   '#334155',
+    Slate600:   '#475569',
+    Slate500:   '#64748B',
+    Slate400:   '#94A3B8',
+    Slate300:   '#CBD5E1',
     Slate200:   '#E2E8F0',
     Slate150:   '#E9ECEF',
     Slate100:   '#F1F5F9',
@@ -50,8 +63,15 @@ export const Palette = {
     Yellow100:  '#FFF9C4',
     Yellow50:   '#FFFDE7',
     Yellow25:   '#FFFDF5',
+    Amber900:   '#78350F',
+    Amber800:   '#92400E',
+    Amber700:   '#D97706',
+    Amber600:   '#D97706',
     Amber500:   '#F59E0B',
+    Amber300:   '#FCD34D',
+    Amber200:   '#FDE68A',
     Amber100:   '#FFECB3',
+    Amber50:    '#FFFBEB',
     Orange800:  '#E65100',
     Orange50:   '#FFF3E0',
 
@@ -83,11 +103,34 @@ export const Palette = {
     GrayAlpha25:  '#C4C4C440',
     OffWhiteAlpha75: 'rgba(250, 252, 250, 0.75)',
     OffWhiteAlpha0:  'rgba(250, 252, 250, 0)',
+
+    // Additional Map Pin Colors & Accents
+    Teal600:    '#0D9488',
+    Purple600:  '#7C3AED',
+    Pink600:    '#E11D48',
+    Cyan600:    '#06B6D4',
+    Lime600:    '#4D7C0F',
+    Emerald600: '#059669',
+    Indigo600:  '#4F46E5',
+    Orange700:  '#EA580C',
+    Amber700:   '#D97706',
+    Slate700:   '#334155',
+
+    // Dark Map Modal Overlays & Translucencies (Neutral Black & Dark Zinc)
+    DarkBackdrop94:  'rgba(0, 0, 0, 0.92)',
+    DarkBackdrop80:  'rgba(0, 0, 0, 0.80)',
+    DarkCardOverlay: 'rgba(24, 24, 27, 0.94)',
+    DarkCardBorder:  'rgba(255, 255, 255, 0.15)',
+
+    // Translucent Dark Button & Overlay Backgrounds
+    BlackAlpha45:    'rgba(0, 0, 0, 0.45)',
+    BlackAlpha65:    'rgba(0, 0, 0, 0.65)',
 };
 
 export const Colors = {
     // Brand & Backgrounds
     PRIMARY:          Palette.Green700, 
+    PRIMARY_LIGHT:    Palette.Green50,
     SECONDARY:        Palette.Green400,
     BACKGROUND:       Palette.OffWhite,
     BACKGROUND_FADE:  Palette.OffWhiteAlpha75,
@@ -107,6 +150,7 @@ export const Colors = {
     // Typography
     TEXT_PRIMARY:     Palette.Neutral950, 
     TEXT_SECONDARY:   Palette.Neutral500, 
+    TEXT_MUTED:       Palette.Neutral500,
     TEXT_INVERSE:     Palette.White, 
     TEXT_PLACEHOLDER: Palette.Neutral400,
     
@@ -373,138 +417,33 @@ export const Colors = {
     LEADERBOARD_BRONZE_ACCENT: Palette.Bronze700,
     LEADERBOARD_PEAK_BASE:     Palette.Green700,
 
+    // Map Modal & Translucent Overlays
+    MAP_MODAL_BACKDROP:        Palette.DarkBackdrop94,
+    MAP_CARD_BACKDROP:         Palette.DarkCardOverlay,
+    MAP_CARD_BORDER:           Palette.DarkCardBorder,
+
     // Map Pin & Waypoint Semantic Tokens
-    PIN_SUMMIT:                Palette.Red700,
-    PIN_CHECKPOINT:            Palette.Orange800,
-    PIN_VIEWPOINT:             Palette.Green700,
+    PIN_SUMMIT:                Palette.Green700,
+    PIN_CHECKPOINT:            Palette.Orange700,
+    PIN_VIEWPOINT:             Palette.Emerald600,
     PIN_WATER:                 Palette.Blue600,
-    PIN_SHELTER:               Palette.Brown600,
-    PIN_HAZARD:                Palette.Red900,
+    PIN_SHELTER:               Palette.Indigo600,
+    PIN_HAZARD:                Palette.Red700,
     PIN_BADGE_BG:              Palette.Green50,
     PIN_BADGE_BORDER:          Palette.Green100,
     PIN_BADGE_TEXT:            Palette.Green700,
+
+    // Curated Pin Palette Swatches for Custom / Other
+    PIN_TEAL:                  Palette.Teal600,
+    PIN_PURPLE:                Palette.Purple600,
+    PIN_PINK:                  Palette.Pink600,
+    PIN_CYAN:                  Palette.Cyan600,
+    PIN_LIME:                  Palette.Lime600,
+    PIN_AMBER:                 Palette.Amber700,
+    PIN_SLATE:                 Palette.Slate700,
+
+    // Floating Media & Hero Header Buttons
+    HEADER_BUTTON_BG:          Palette.BlackAlpha45,
+    IMAGE_PREVIEW_BUTTON_BG:   Palette.BlackAlpha45,
+    IMAGE_PREVIEW_COUNTER_BG:  Palette.BlackAlpha65,
 };
-
-// Color Samples
-// Prototype
-// export const Colors = {
-//     BLACK:          '#111827',
-//     WHITE:          '#FFFFFF',
-//     GRAY:           '#686868',
-//     GRAY_MEDIUM:    '#A2A2A2', 
-//     GRAY_LIGHT:     '#D9D9D9',
-//     GRAY_ULTRALIGHT:'#F5F5F5',
-    
-//     PRIMARY:        '#A2A2A2', 
-//     SECONDARY:      '#D9D9D9', 
-//     BACKGROUND:     '#FAFAFA',
-    
-//     TEXT_PRIMARY:   '#040906', 
-//     TEXT_SECONDARY: '#686868', 
-//     TEXT_INVERSE:   '#FFFFFF', 
-//     TEXT_PLACEHOLDER:'#A2A2A2',
-
-//     YELLOW:         '#FBC02D',
-//     SHADOW:         '#000000',
-//     MODAL_OVERLAY:  'rgba(0, 0, 0, 0.5)',
-
-//     ERROR:          '#D32F2F',
-//     ERROR_BG:       '#FFEBEE',
-//     ERROR_BORDER:   '#FFCDD2',
-//     SUCCESS:        '#388E3C',
-//     WARNING:        '#D32F2F',   
-
-//     SEARCH_BAR_BG:  '#C4C4C440',
-//     CHIP_INACTIVE:  '#C4C4C440', 
-//     CHIP_ACTIVE:    '#A0A0A0',
-// };
-
-    // BLACK:          '#111827',
-    // WHITE:          '#FFFFFF',
-    // GRAY:           '#686868',
-    // GRAY_MEDIUM:    '#A2A2A2', 
-    // GRAY_LIGHT:     '#D9D9D9',
-    // GRAY_ULTRALIGHT:'#F5F5F5',
-
-    // PRIMARY:        '#E2F0BD',
-    // SECONDARY:      '#8DB654',
-    // BACKGROUND:     '#FAFAFA',
-
-    // TEXT_PRIMARY:   '#040906',
-    // TEXT_SECONDARY: '#686868',
-    // TEXT_INVERSE:   '#FFFFFF',
-    // TEXT_PLACEHOLDER:'#A2A2A2',
-
-    // YELLOW:         '#FBC02D',
-    // SHADOW:         '#000000',
-    // MODAL_OVERLAY:  'rgba(0, 0, 0, 0.5)',
-
-    // ERROR:          '#D32F2F',
-    // ERROR_BG:       '#FFEBEE',
-    // ERROR_BORDER:   '#FFCDD2',
-    // SUCCESS:        '#388E3C',
-    // WARNING:        '#D32F2F',   
-
-    // SEARCH_BAR_BG:  '#EBEBE8',
-    // CHIP_INACTIVE:  '#C4C4C440', 
-    // CHIP_ACTIVE:    '#8DB654',
-
-
-
-// Sample 1 = {
-//     BLACK:          '#0F2815', 
-//     WHITE:          '#FFFFFF',
-//     Gray:           '#607D66',
-//     GRAY_MEDIUM:    '#A5B6A8', 
-//     GRAY_LIGHT:     '#E8F5E9', 
-
-//     PRIMARY:        '#2E7D32', 
-//     SECONDARY:      '#81C784',
-//     BACKGROUND:     '#FAFCFA', 
-
-//     // Utilities
-//     ERROR:          '#D32F2F',
-//     ERROR_BG:       '#FFEBEE',
-//     ERROR_BORDER:   '#FFCDD2',
-//     SUCCESS:        '#388E3C',
-//     WARNING:        '#FBC02D',
-//     MODAL_OVERLAY:  'rgba(15, 40, 21, 0.5)',
-// }
-
-// Sample 2 = {
-//     BLACK:          '#121212',
-//     WHITE:          '#FFFFFF',
-//     Gray:           '#757575',
-//     GRAY_MEDIUM:    '#BDBDBD', 
-//     GRAY_LIGHT:     '#EEEEEE',
-
-//     PRIMARY:        '#009688',
-//     SECONDARY:      '#263238',
-//     BACKGROUND:     '#F4F4F4',
-
-//     ERROR:          '#D32F2F',
-//     ERROR_BG:       '#FFEBEE',
-//     ERROR_BORDER:   '#FFCDD2',
-//     SUCCESS:        '#00C853',
-//     WARNING:        '#FFAB00',
-//     MODAL_OVERLAY:  'rgba(0, 0, 0, 0.6)',
-// }
-
-// Sample 3 = {
-//     BLACK:          '#121212',
-//     WHITE:          '#FFFFFF',
-//     Gray:           '#757575',
-//     GRAY_MEDIUM:    '#BDBDBD', 
-//     GRAY_LIGHT:     '#EEEEEE',
-
-//     PRIMARY:        '#013F4A',
-//     SECONDARY:      '#068562',
-//     BACKGROUND:     '#FAFAFA',
-
-//     ERROR:          '#D32F2F',
-//     ERROR_BG:       '#FFEBEE',
-//     ERROR_BORDER:   '#FFCDD2',
-//     SUCCESS:        '#00C853',
-//     WARNING:        '#FFAB00',
-//     MODAL_OVERLAY:  'rgba(0, 0, 0, 0.6)',
-// }

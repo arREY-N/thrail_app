@@ -17,10 +17,13 @@ export interface HikerLocation {
 export interface TrailMapProps {
     initialLon?: number | string | (number | string)[];
     initialLat?: number | string | (number | string)[];
+    mountainId?: string;
+    trailFileName?: string;
     showControls?: boolean;
     showRecenter?: boolean;
     bottomInset?: number;
     compassPosition?: { top: number; left: number } | { top: number; right: number } | { bottom: number; right: number } | { bottom: number; left: number };
+    attributionPosition?: { top: number; left: number } | { top: number; right: number } | { bottom: number; right: number } | { bottom: number; left: number };
     hikerLocations?: HikerLocation[];
     currentUserId?: string;
 }

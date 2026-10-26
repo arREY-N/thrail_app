@@ -6,6 +6,8 @@ import { TabItem } from '@/src/features/Book/components/BookTabs';
 import { FilterSection } from '@/src/components/CustomFilterModal';
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
+
 export type TabId = 'upcoming' | 'pending' | 'history';
 export type SortBy = 'hike-date' | 'booked-date' | 'last-updated';
 export type SortOrder = 'asc' | 'desc';
@@ -21,7 +23,40 @@ export const getBookingEffectiveStatus = (
     const cancellationDoc = userCancellations?.find(
         c => c.bookingId === booking.id
     );
+    const payments = booking.payment || [];
+    const isPayMongo = payments.some(p => p.gateway === 'paymongo');
+    const hasRefundedPayment = payments.some(p => p.status === 'refunded' || (p.refundedAmount || 0) > 0);
+    const isAllRefunded = payments.length > 0 && payments.every(p => p.status === 'refunded');
+    const hasRefundReceipt = Boolean(cancellationDoc?.adminRefundReceiptUrl);
+
+    // A refund is fully completed if:
+    // 1. Booking status is already 'refunded'
+    // 2. Admin uploaded refund receipt proof (manual QR)
+    // 3. Handshake is marked 'completed'
+    // 4. PayMongo payment was already refunded
+    // 5. All payments are marked 'refunded'
+    const isFullyRefunded =
+        booking.status === 'refunded' ||
+        hasRefundReceipt ||
+        cancellationDoc?.handshakeStep === 'completed' ||
+        isAllRefunded ||
+        (isPayMongo && hasRefundedPayment);
+
+    if (isFullyRefunded) {
+        return 'refunded';
+    }
+
     if (cancellationDoc?.status === 'approved') {
+        const hasCapturedPayments = payments.some(p => p.status === 'captured');
+        const isManualRefundPending =
+            !isPayMongo &&
+            ((cancellationDoc.handshakeStep && cancellationDoc.handshakeStep !== 'completed') ||
+             payments.some(p => p.gateway === 'manual_qr') ||
+             PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
+        if (isManualRefundPending && (hasCapturedPayments || cancellationDoc.refundAmount)) {
+            return 'refund';
+        }
         return 'cancelled';
     }
     if (cancellationDoc?.status === 'pending') {
@@ -35,13 +70,27 @@ export const getBookingEffectiveStatus = (
     ) {
         return 'cancellation-rejected';
     }
+    if (booking.status === 'refund') {
+        const hasCapturedPayments = payments.some(p => p.status === 'captured');
+        const isManualRefundPending =
+            !isPayMongo &&
+            (payments.some(p => p.gateway === 'manual_qr') || PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
+        if (isManualRefundPending && (hasCapturedPayments || cancellationDoc?.refundAmount)) {
+            return 'refund';
+        }
+        return 'cancelled';
+    }
     return booking.status;
 };
 
 /**
  * Checks whether a booking status requires user action or attention.
  */
-export const isActionNeededStatus = (status: string): boolean => {
+export const isActionNeededStatus = (status: string, cancellation?: Cancellation | null): boolean => {
+    if (status === 'refund') {
+        return !cancellation?.userWallet?.accountNumber;
+    }
     return [
         'reservation-rejected',
         'approved-docs',
@@ -81,10 +130,11 @@ export const computeOptimalTab = (
     today.setHours(0, 0, 0, 0);
 
     const hasPendingAction = bookings.some((b) => {
+        const cancelDoc = cancellations?.find(c => c.bookingId === b.id);
         const st = getBookingEffectiveStatus(b, cancellations);
         const hikeDate = safeParseDateString(b.offer?.date);
         const isPast = hikeDate.getTime() < today.getTime();
-        return !isPast && isActionNeededStatus(st) && [
+        return !isPast && isActionNeededStatus(st, cancelDoc) && [
             'for-reservation',
             'reservation-rejected',
             'approved-docs',
@@ -93,6 +143,7 @@ export const computeOptimalTab = (
             'for-cancellation',
             'cancellation-rejected',
             'reschedule-rejected',
+            'refund',
         ].includes(st);
     });
     if (hasPendingAction) return 'pending';
@@ -126,6 +177,7 @@ export const computeOptimalTab = (
             'for-cancellation',
             'cancellation-rejected',
             'reschedule-rejected',
+            'refund',
         ].includes(st);
     });
     if (hasPending) return 'pending';
@@ -187,7 +239,6 @@ export default function useBookingFilters(
             const isPast = hikeDate.getTime() < today.getTime();
             const isDead = [
                 'cancelled',
-                'refund',
                 'refunded',
                 'finished',
                 'expired',
@@ -208,11 +259,13 @@ export default function useBookingFilters(
                 'for-cancellation',
                 'cancellation-rejected',
                 'reschedule-rejected',
+                'refund',
             ].includes(status)) {
                 tab = 'pending';
             }
 
-            if (isActionNeededStatus(status)) {
+            const cancelDoc = userCancellations?.find(c => c.bookingId === booking.id);
+            if (isActionNeededStatus(status, cancelDoc)) {
                 counts[tab] += 1;
             }
         });
@@ -253,7 +306,6 @@ export default function useBookingFilters(
             const isPast = hikeDate.getTime() < today.getTime();
             const isDead = [
                 'cancelled',
-                'refund',
                 'refunded',
                 'finished',
                 'expired',
@@ -273,6 +325,7 @@ export default function useBookingFilters(
                     'for-cancellation',
                     'cancellation-rejected',
                     'reschedule-rejected',
+                    'refund',
                 ].includes(status);
             }
 
@@ -284,12 +337,16 @@ export default function useBookingFilters(
         });
 
         if (filterBy === 'action-needed') {
-            filtered = filtered.filter(b => isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations)));
+            filtered = filtered.filter(b => {
+                const cancelDoc = userCancellations?.find(c => c.bookingId === b.id);
+                return isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations), cancelDoc);
+            });
         } else if (filterBy === 'waiting') {
             filtered = filtered.filter(b => [
                 'for-reservation',
                 'for-reschedule',
                 'for-cancellation',
+                'refund',
             ].includes(getBookingEffectiveStatus(b, userCancellations)));
         } else if (filterBy === 'partial') {
             filtered = filtered.filter(b => getBookingEffectiveStatus(b, userCancellations) === 'downpayment');
@@ -298,8 +355,10 @@ export default function useBookingFilters(
         filtered.sort((a, b) => {
             // 1. Smart Action-First: prioritize action-needed bookings in pending and upcoming
             if (activeTab === 'pending' || activeTab === 'upcoming') {
-                const aAction = isActionNeededStatus(getBookingEffectiveStatus(a, userCancellations));
-                const bAction = isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations));
+                const aCancel = userCancellations?.find(c => c.bookingId === a.id);
+                const bCancel = userCancellations?.find(c => c.bookingId === b.id);
+                const aAction = isActionNeededStatus(getBookingEffectiveStatus(a, userCancellations), aCancel);
+                const bAction = isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations), bCancel);
                 if (aAction !== bAction) {
                     return aAction ? -1 : 1;
                 }

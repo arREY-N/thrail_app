@@ -1,9 +1,9 @@
 import { db } from '@/src/core/config/Firebase';
 import { Admin, adminConverter, newAdmin } from '@/src/core/models/Admin/Admin';
-import { Business } from '@/src/core/models/Business/interfaces/Business.types';
+import { Business, IBusinessPaymentConfig } from '@/src/core/models/Business/interfaces/Business.types';
 import { businessConverter } from '@/src/core/models/Business/utils/BusinessFactory';
 import { User } from '@/src/core/models/User/User';
-import { collection, doc, getDoc, getDocs, updateDoc } from "firebase/firestore";
+import { collection, doc, Firestore, getDoc, getDocs, updateDoc } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export type AdminParams = {
@@ -11,15 +11,15 @@ export type AdminParams = {
     businessId: string;
 };
 
-const createBusinessCollection = (db: any) => {
+const createBusinessCollection = (db: Firestore) => {
     return collection(db, 'businesses').withConverter(businessConverter);
 };
 
-const createAdminCollection = (db: any, id: string) => {
+const createAdminCollection = (db: Firestore, id: string) => {
     return collection(db, 'businesses', id, 'admins').withConverter(adminConverter);
 };
 
-export const BusinessRepository = (db: any) => ({
+export const BusinessRepository = (db: Firestore) => ({
     /**
      * Fetches all registered tour businesses.
      */
@@ -140,6 +140,29 @@ export const BusinessRepository = (db: any) => ({
         } catch (err) {
             if (err instanceof Error) throw err;
             throw new Error('Failed creating business admin');
+        }
+    },
+
+    /**
+     * Updates master QR payment configuration for a business.
+     */
+    async updatePaymentConfig(businessId: string, paymentConfig: IBusinessPaymentConfig<Date> | null): Promise<void> {
+        try {
+            const col = createBusinessCollection(db);
+            const docRef = doc(col, businessId);
+            await updateDoc(docRef, {
+                paymentConfig: paymentConfig ? {
+                    qrCodeUrl: paymentConfig.qrCodeUrl,
+                    accountName: paymentConfig.accountName || '',
+                    accountNumber: paymentConfig.accountNumber || '',
+                    providerName: paymentConfig.providerName || '',
+                    updatedAt: new Date(),
+                    updatedBy: paymentConfig.updatedBy || '',
+                } : null
+            });
+        } catch (err) {
+            if (err instanceof Error) throw err;
+            throw new Error('Failed updating business payment configuration');
         }
     },
 });

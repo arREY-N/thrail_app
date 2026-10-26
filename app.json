@@ -1,21 +1,23 @@
 {
   "expo": {
     "owner": "thrail",
-    "name": "thrail_app",
+    "name": "Thrail App",
     "slug": "thrail_app",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "thrailapp",
     "userInterfaceStyle": "automatic",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "backgroundColor": "#2E7D32",
+    "assetBundlePatterns": ["**/*"],
+    "icon": "./src/assets/logos/Logo Idea 2/Squere Logo.png",
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "backgroundColor": "#2E7D32",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE"
+        "foregroundImage": "./src/assets/logos/Logo Idea 2/Adaptive Foreground.png",
+        "backgroundColor": "#2E7D32"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.thesis.thrail",
@@ -29,10 +31,12 @@
         "POST_NOTIFICATIONS",
         "CAMERA",
         "READ_MEDIA_IMAGES",
-        "READ_EXTERNAL_STORAGE"
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
+      "favicon": "./public/favicon.png",
       "output": "static"
     },
     "updates": {
@@ -42,11 +46,7 @@
       [
         "expo-asset",
         {
-          "assets": [
-            "src/assets/tiles",
-            "src/assets/fonts",
-            "src/assets/map_data"
-          ]
+          "assets": ["src/assets/tiles", "src/assets/fonts"]
         }
       ],
       "expo-router",
@@ -69,8 +69,23 @@
           "cameraPermission": "Allow Thrail to access your camera to capture photos to share in the group chat."
         }
       ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Thrail to save payment QR codes to your photo gallery.",
+          "savePhotosPermission": "Allow Thrail to save payment QR codes to your photo gallery."
+        }
+      ],
       "expo-sharing",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./src/assets/logos/Logo Idea 2/Splash Glyph Native.png",
+          "imageWidth": 140,
+          "resizeMode": "contain",
+          "backgroundColor": "#2E7D32"
+        }
+      ],
       "expo-image",
       [
         "@sentry/react-native/expo",

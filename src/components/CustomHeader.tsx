@@ -6,7 +6,7 @@
  * - `hybrid`: Standard header visuals (BACKGROUND bg, centered title, back button) with dashboard search capability.
  */
 
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
     Platform,
     StyleProp,
@@ -19,6 +19,11 @@ import {
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomSearchBar, { CustomSearchBarProps } from '@/src/components/CustomSearchBar';
 import CustomText from '@/src/components/CustomText';
+import {
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -64,6 +69,7 @@ export interface CustomHeaderProps {
     searchValue?: string;
     onSearchChange?: (text: string) => void;
     searchPlaceholder?: string;
+    searchContainerRef?: React.RefObject<View | null>;
 }
 
 /**
@@ -94,6 +100,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
     searchValue = '',
     onSearchChange,
     searchPlaceholder = 'Search...',
+    searchContainerRef,
 }) => {
 
     // Always called unconditionally (Rules of Hooks compliance)
@@ -106,6 +113,24 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
     const activeDrawerToggle = onToggleDrawer || (hasProvider ? toggleDrawer : undefined);
 
     const [isMobileSearchActive, setIsMobileSearchActive] = useState<boolean>(false);
+    const hamburgerRef = useRef<View>(null);
+
+    const measureHamburgerNow = useCallback(() => {
+        hamburgerRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('web_nav_menu', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const handleHamburgerLayout = useCallback(() => {
+        if (!isTutorialMeasurementActive()) return;
+        measureHamburgerNow();
+    }, [measureHamburgerNow]);
+
+    useEffect(() => {
+        return registerMeasureCallback('web_nav_menu', measureHamburgerNow);
+    }, [measureHamburgerNow]);
 
     // ── Dashboard Variant (admin/superadmin shell header) ──
     if (variant === 'dashboard') {
@@ -154,7 +179,13 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                             onPress={activeDrawerToggle}
                             activeOpacity={0.7}
                         >
-                            <CustomIcon library="Feather" name="menu" size={24} color={Colors.PRIMARY} />
+                            <View
+                                ref={hamburgerRef}
+                                onLayout={handleHamburgerLayout}
+                                collapsable={false}
+                            >
+                                <CustomIcon library="Feather" name="menu" size={24} color={Colors.PRIMARY} />
+                            </View>
                         </TouchableOpacity>
                     ) : null}
                     {!isMobile && (
@@ -327,6 +358,8 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                                 <View style={styles.leftTitleGroup}>
                                     <TouchableOpacity
                                         onPress={activeDrawerToggle}
+                                        ref={hamburgerRef}
+                                        onLayout={handleHamburgerLayout}
                                         style={styles.hamburgerButton}
                                         activeOpacity={0.7}
                                     >
@@ -422,7 +455,9 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
 
                 {/* Embedded Search Bar */}
                 {hasSearch && (
-                    <CustomSearchBar {...enhancedSearchProps} />
+                    <View ref={searchContainerRef} collapsable={false}>
+                        <CustomSearchBar {...enhancedSearchProps} />
+                    </View>
                 )}
 
             </View>

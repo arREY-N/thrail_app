@@ -5,7 +5,6 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { getStatusConfig } from '@/src/constants/statusConfig';
 import { BookingStatus as BookingStatusType } from '@/src/core/models/Booking/Booking';
 
 export interface BookingStatusProps {
@@ -15,6 +14,10 @@ export interface BookingStatusProps {
     reason?: string;
     /** Whether payment has been captured for this booking */
     isPaid?: boolean;
+    /** Whether the user's payment was rejected by the organizer */
+    isPaymentRejected?: boolean;
+    /** Whether payment receipt has been submitted and is awaiting organizer verification */
+    isPaymentVerifying?: boolean;
 }
 
 interface StepDefinition {
@@ -24,19 +27,23 @@ interface StepDefinition {
 }
 
 const DEFAULT_STEPS: StepDefinition[] = [
-    { id: 0, defaultLabel: 'REVIEW', defaultIcon: 'file-text' },
+    { id: 0, defaultLabel: 'DOCS REVIEW', defaultIcon: 'file-text' },
     { id: 1, defaultLabel: 'PAYMENT', defaultIcon: 'credit-card' },
-    { id: 2, defaultLabel: 'VERIFYING', defaultIcon: 'shield' },
-    { id: 3, defaultLabel: 'COMPLETED', defaultIcon: 'check-circle' },
+    { id: 2, defaultLabel: 'VERIFICATION', defaultIcon: 'shield' },
+    { id: 3, defaultLabel: 'CONFIRMED', defaultIcon: 'check-circle' },
 ];
 
 /**
  * Visual 4-step progress tracker for booking lifecycle.
  * Preserves the 4 steps at all times and dynamically updates the active/cancelled step.
  */
-const BookingStatus: React.FC<BookingStatusProps> = ({ status, isPaid = false }) => {
+const BookingStatus: React.FC<BookingStatusProps> = ({
+    status,
+    isPaid = false,
+    isPaymentRejected = false,
+    isPaymentVerifying = false,
+}) => {
     const rawStatus = status || 'unknown';
-    const config = getStatusConfig(status, 'user');
 
     let currentIndex = 0;
     let overrideLabel: string | undefined;
@@ -46,17 +53,33 @@ const BookingStatus: React.FC<BookingStatusProps> = ({ status, isPaid = false })
 
     switch (rawStatus) {
         case 'for-reservation':
+        case 'pending-docs':
             currentIndex = 0;
+            overrideLabel = 'UNDER REVIEW';
+            overrideIcon = 'clock';
             break;
         case 'reservation-rejected':
             currentIndex = 0;
-            overrideLabel = 'REJECTED';
+            overrideLabel = 'DOCS REJECTED';
             overrideIcon = 'x-circle';
             isErrorState = true;
             break;
         case 'approved-docs':
         case 'for-payment':
-            currentIndex = 1;
+            if (isPaymentVerifying) {
+                currentIndex = 2;
+                overrideLabel = 'VERIFYING';
+                overrideIcon = 'clock';
+            } else if (isPaymentRejected) {
+                currentIndex = 1;
+                overrideLabel = 'REJECTED';
+                overrideIcon = 'x-circle';
+                isErrorState = true;
+            } else {
+                currentIndex = 1;
+                overrideLabel = 'TO PAY';
+                overrideIcon = 'credit-card';
+            }
             break;
         case 'expired':
             currentIndex = 1;
@@ -65,18 +88,40 @@ const BookingStatus: React.FC<BookingStatusProps> = ({ status, isPaid = false })
             isErrorState = true;
             break;
         case 'downpayment':
+            currentIndex = 2;
+            if (isPaymentVerifying) {
+                overrideLabel = 'VERIFYING';
+                overrideIcon = 'clock';
+            } else {
+                overrideLabel = 'DOWNPAYMENT';
+                overrideIcon = 'pie-chart';
+            }
+            break;
         case 'paid':
             currentIndex = 2;
+            if (isPaymentVerifying) {
+                overrideLabel = 'VERIFYING';
+                overrideIcon = 'clock';
+            } else {
+                overrideLabel = 'PAID';
+                overrideIcon = 'check-circle';
+            }
             break;
         case 'completed':
         case 'rescheduled':
-        case 'for-reschedule':
         case 'finished':
             currentIndex = 3;
+            overrideLabel = 'CONFIRMED';
+            overrideIcon = 'check-circle';
+            break;
+        case 'for-reschedule':
+            currentIndex = 3;
+            overrideLabel = 'RESCHEDULING';
+            overrideIcon = 'calendar';
             break;
         case 'reschedule-rejected':
             currentIndex = 3;
-            overrideLabel = 'REJECTED';
+            overrideLabel = 'DECLINED';
             overrideIcon = 'x-circle';
             isErrorState = true;
             break;
@@ -146,27 +191,34 @@ const BookingStatus: React.FC<BookingStatusProps> = ({ status, isPaid = false })
                         circleBg = Colors.SUCCESS;
                         iconColor = Colors.WHITE;
                         iconName = 'check';
+                        labelText = step.id === 2 ? 'PAID' : step.defaultLabel;
                         labelColor = Colors.TEXT_PRIMARY;
                     } else if (isCurrent) {
                         if (isErrorState) {
                             circleBg = Colors.STATUS_CANCELLED_BG;
                             iconColor = Colors.ERROR;
                             iconName = overrideIcon || 'alert-triangle';
-                            labelText = overrideLabel || config.label;
+                            labelText = overrideLabel || step.defaultLabel;
                             labelColor = Colors.ERROR;
                         } else if (isRefundState) {
                             circleBg = rawStatus === 'refunded' ? Colors.STATUS_APPROVED_BG : '#FEF3C7';
                             iconColor = rawStatus === 'refunded' ? Colors.PRIMARY : '#D97706';
                             iconName = overrideIcon || 'rotate-ccw';
-                            labelText = overrideLabel || config.label;
+                            labelText = overrideLabel || step.defaultLabel;
                             labelColor = rawStatus === 'refunded' ? Colors.PRIMARY : '#92400E';
                         } else {
-                            circleBg = config.bgColor;
-                            iconColor = config.textColor === Colors.WHITE ? Colors.WHITE : config.textColor;
-                            iconName = config.icon;
-                            labelText = config.label;
-                            labelColor = config.textColor === Colors.WHITE ? Colors.PRIMARY : config.textColor;
+                            circleBg = Colors.STATUS_APPROVED_BG;
+                            iconColor = Colors.PRIMARY;
+                            iconName = overrideIcon || step.defaultIcon;
+                            labelText = overrideLabel || step.defaultLabel;
+                            labelColor = Colors.PRIMARY;
                         }
+                    } else {
+                        circleBg = Colors.GRAY_LIGHT;
+                        iconColor = Colors.TEXT_SECONDARY;
+                        iconName = step.defaultIcon;
+                        labelText = step.defaultLabel;
+                        labelColor = Colors.TEXT_SECONDARY;
                     }
 
                     return (

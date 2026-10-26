@@ -5,6 +5,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import WeatherWidget from '@/src/components/WeatherWidget';
 import { Colors } from '@/src/constants/colors';
+import { Layout } from '@/src/constants/layout';
 import { ITrail } from '@/src/core/models/Trail/Trail';
 import { resolveCoordsForTrail } from '@/src/core/utility/weatherHelpers';
 
@@ -52,7 +53,9 @@ const TrailWeatherTab: React.FC<TrailWeatherTabProps> = ({ latitude, longitude, 
 
 const styles = StyleSheet.create({
     tabContent: {
-        gap: 20,
+        width: '100%',
+        maxWidth: Layout.MAX_WIDTH,
+        alignSelf: 'center',
     },
     noCoords: {
         alignItems: 'center',

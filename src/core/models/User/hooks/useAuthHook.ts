@@ -23,6 +23,7 @@ export function useAuthHook() {
 
     const isSuperadmin = role === 'superadmin'
     const isAdmin = role === 'admin'
+    const isOwner = role === 'owner' || (Boolean(businessId) && (profile?.id === businessId || user?.uid === businessId));
     const isNotUser = role && role !== 'user';
 
     const onSignOutPress = async () => {
@@ -79,6 +80,7 @@ export function useAuthHook() {
         role,
         isSuperadmin,
         isAdmin,
+        isOwner,
         profile,
         user,
         isLoading,

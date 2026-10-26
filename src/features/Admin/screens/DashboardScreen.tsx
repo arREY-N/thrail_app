@@ -3,13 +3,14 @@
  * @description Screen displaying organization profile details, admin staff details, and action buttons.
  */
 
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     StyleSheet,
     TouchableOpacity,
     View
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from '@/src/components/CustomButton';
@@ -18,12 +19,23 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import {
+    CustomTutorialModal,
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
+import { Business, IBusinessPaymentConfig } from '@/src/core/models/Business/Business';
+import { User } from '@/src/core/models/User/User';
 import { formatDate } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { OwnerQRModal } from './components/OwnerQRModal';
 
 /**
  * Props for the DashboardScreen component.
@@ -39,21 +51,23 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
  * @param onRetryPress - Callback when retry button is pressed in error state.
  */
 export interface DashboardScreenProps {
-    businessAccount?: any; 
+    businessAccount?: Business | null; 
     onManageAdminsPress: () => void; 
     onManageOffersPress: () => void;
     onManageTrailsPress: () => void;
-    adminProfile?: any; 
+    adminProfile?: User | null; 
     error?: string | null;
     onBackPress: () => void; 
     isLoading?: boolean;
     onRetryPress?: () => void;
+    isOwner?: boolean;
+    onSavePaymentConfig?: (config: IBusinessPaymentConfig<Date> | null) => Promise<boolean>;
 }
 
 /**
  * DashboardScreen — Main admin dashboard displaying business profile, admin info, and quick actions.
  */
-const DashboardScreen: React.FC<DashboardScreenProps> = ({ 
+const DashboardScreen = ({ 
     businessAccount, 
     onManageAdminsPress, 
     onManageOffersPress,
@@ -62,11 +76,78 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
     error,
     onBackPress,
     isLoading = false,
-    onRetryPress
-}) => {
+    onRetryPress,
+    isOwner = false,
+    onSavePaymentConfig,
+}: DashboardScreenProps): React.JSX.Element => {
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
     const insets = useSafeAreaInsets();
+    const tutorial = useTutorialGuide('admin_dashboard', !isLoading && !error);
+
+    const [showQRModal, setShowQRModal] = useState<boolean>(false);
+    const isNavigatingRef = useRef<boolean>(false);
+    const overviewRef = useRef<View>(null);
+    const trailsBtnRef = useRef<View>(null);
+    const offersBtnRef = useRef<View>(null);
+    const personnelBtnRef = useRef<View>(null);
+
+    const measureOverviewNow = useCallback(() => {
+        overviewRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('admin_dash_overview', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureTrailsBtnNow = useCallback(() => {
+        trailsBtnRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('admin_action_0', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureOffersBtnNow = useCallback(() => {
+        offersBtnRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('admin_action_1', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measurePersonnelBtnNow = useCallback(() => {
+        personnelBtnRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('admin_action_2', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const unsubOverview = registerMeasureCallback('admin_dash_overview', measureOverviewNow);
+        const unsub0 = registerMeasureCallback('admin_action_0', measureTrailsBtnNow);
+        const unsub1 = registerMeasureCallback('admin_action_1', measureOffersBtnNow);
+        const unsub2 = registerMeasureCallback('admin_action_2', measurePersonnelBtnNow);
+        return () => {
+            unsubOverview();
+            unsub0();
+            unsub1();
+            unsub2();
+        };
+    }, [measureOverviewNow, measureTrailsBtnNow, measureOffersBtnNow, measurePersonnelBtnNow]);
+
+    useFocusEffect(
+        useCallback(() => {
+            isNavigatingRef.current = false;
+        }, [])
+    );
+
+    const handleNavPress = (action: () => void) => {
+        if (isNavigatingRef.current) return;
+        isNavigatingRef.current = true;
+        action();
+    };
 
     const InfoRow = ({ label, value, noMargin }: { label: string, value: string | undefined | null, noMargin?: boolean }) => {
         const displayValue = value || 'N/A';
@@ -84,7 +165,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
         return fullName.length > 0 ? fullName : 'N/A';
     };
 
-    const formatLocation = (locationData: string | string[]) => {
+    const formatLocation = (locationData?: string | string[] | null) => {
         if (!locationData) return 'N/A';
         if (Array.isArray(locationData)) {
             return locationData.join(', ');
@@ -134,8 +215,34 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                 <InfoRow 
                     label="Approved" 
                     value={businessAccount?.createdAt ? formatDate(businessAccount.createdAt) : 'N/A'} 
-                    noMargin={true}
+                    noMargin={!isOwner}
                 />
+
+                {isOwner && (
+                    <View style={styles.paymentConfigSection}>
+                        <View style={styles.paymentConfigHeader}>
+                            <View style={styles.paymentConfigTitleRow}>
+                                <CustomIcon library="MaterialCommunityIcons" name="qrcode-scan" size={16} color={Colors.PRIMARY} />
+                                <CustomText style={styles.paymentConfigTitle}>Manual Payment QR</CustomText>
+                            </View>
+                            <TouchableOpacity 
+                                style={styles.paymentConfigEditBtn}
+                                onPress={() => setShowQRModal(true)}
+                                activeOpacity={0.7}
+                            >
+                                <CustomText style={styles.paymentConfigEditBtnText}>
+                                    {businessAccount?.paymentConfig?.qrCodeUrl ? 'Manage QR' : 'Setup QR'}
+                                </CustomText>
+                                <CustomIcon library="Feather" name="chevron-right" size={14} color={Colors.PRIMARY} />
+                            </TouchableOpacity>
+                        </View>
+                        <CustomText style={styles.paymentConfigSubtitle}>
+                            {businessAccount?.paymentConfig?.qrCodeUrl 
+                                ? `Active QR: ${businessAccount.paymentConfig.accountName || 'Configured'} (${businessAccount.paymentConfig.accountNumber || ''})`
+                                : 'No master QR configured. Hikers will not be able to pay manually.'}
+                        </CustomText>
+                    </View>
+                )}
             </View>
         </View>
     );
@@ -182,28 +289,28 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                 Quick Actions
             </CustomText>
             <View style={styles.webActionContainer}>
-                <View style={styles.webButtonWrapper}>
+                <View ref={isWideScreen ? trailsBtnRef : undefined} collapsable={false} style={styles.webButtonWrapper}>
                     <CustomButton 
                         title="Trails"
-                        onPress={onManageTrailsPress}
+                        onPress={() => handleNavPress(onManageTrailsPress)}
                         variant="secondary"
                         icon="map"
                         iconLibrary="Feather"
                     />
                 </View>
-                <View style={styles.webButtonWrapper}>
+                <View ref={isWideScreen ? offersBtnRef : undefined} collapsable={false} style={styles.webButtonWrapper}>
                     <CustomButton 
                         title="Offers"
-                        onPress={onManageOffersPress}
+                        onPress={() => handleNavPress(onManageOffersPress)}
                         variant="primary"
                         icon="pricetags"
                         iconLibrary="Ionicons"
                     />
                 </View>
-                <View style={styles.webButtonWrapper}>
+                <View ref={isWideScreen ? personnelBtnRef : undefined} collapsable={false} style={styles.webButtonWrapper}>
                     <CustomButton 
                         title="Personnel"
-                        onPress={onManageAdminsPress}
+                        onPress={() => handleNavPress(onManageAdminsPress)}
                         variant="secondary" 
                         icon="users"
                         iconLibrary="Feather"
@@ -222,32 +329,44 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                     Quick Actions
                 </CustomText>
                 <View style={styles.stickyButtonRow}>
-                    <TouchableOpacity 
-                        style={[styles.stickyActionBtn, styles.secondaryStickyBtn]} 
-                        onPress={onManageTrailsPress}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon library="Feather" name="map" size={16} color={Colors.PRIMARY} />
-                        <CustomText style={styles.secondaryStickyBtnText} numberOfLines={1}>Trails</CustomText>
-                    </TouchableOpacity>
+                    <View ref={!isWideScreen ? trailsBtnRef : undefined} collapsable={false} style={styles.stickyButtonWrapper}>
+                        <CustomButton 
+                            title="Trails"
+                            onPress={() => handleNavPress(onManageTrailsPress)}
+                            variant="secondary"
+                            icon="map"
+                            iconLibrary="Feather"
+                            iconSize={16}
+                            style={styles.mobileCustomButton}
+                            textStyle={styles.mobileButtonText}
+                        />
+                    </View>
 
-                    <TouchableOpacity 
-                        style={[styles.stickyActionBtn, styles.primaryStickyBtn]} 
-                        onPress={onManageOffersPress}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon library="Ionicons" name="pricetags" size={16} color={Colors.WHITE} />
-                        <CustomText style={styles.primaryStickyBtnText} numberOfLines={1}>Offers</CustomText>
-                    </TouchableOpacity>
+                    <View ref={!isWideScreen ? offersBtnRef : undefined} collapsable={false} style={styles.stickyButtonWrapper}>
+                        <CustomButton 
+                            title="Offers"
+                            onPress={() => handleNavPress(onManageOffersPress)}
+                            variant="primary"
+                            icon="pricetags"
+                            iconLibrary="Ionicons"
+                            iconSize={16}
+                            style={styles.mobileCustomButton}
+                            textStyle={styles.mobileButtonText}
+                        />
+                    </View>
 
-                    <TouchableOpacity 
-                        style={[styles.stickyActionBtn, styles.secondaryStickyBtn]} 
-                        onPress={onManageAdminsPress}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon library="Feather" name="users" size={16} color={Colors.PRIMARY} />
-                        <CustomText style={styles.secondaryStickyBtnText} numberOfLines={1}>Personnel</CustomText>
-                    </TouchableOpacity>
+                    <View ref={!isWideScreen ? personnelBtnRef : undefined} collapsable={false} style={styles.stickyButtonWrapper}>
+                        <CustomButton 
+                            title="Personnel"
+                            onPress={() => handleNavPress(onManageAdminsPress)}
+                            variant="secondary" 
+                            icon="users"
+                            iconLibrary="Feather"
+                            iconSize={16}
+                            style={styles.mobileCustomButton}
+                            textStyle={styles.mobileButtonText}
+                        />
+                    </View>
                 </View>
             </View>
         );
@@ -258,7 +377,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <CustomHeader 
                 title="Admin Dashboard" 
                 centerTitle={true}
-                onBackPress={onBackPress} 
+                onBackPress={onBackPress}
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />} 
             />
 
             {isLoading ? (
@@ -311,7 +431,14 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                     ]}
                 >
                     {isWideScreen ? (
-                        <View style={styles.desktopColumns}>
+                        <View
+                            ref={overviewRef}
+                            collapsable={false}
+                            onLayout={() => {
+                                if (isTutorialMeasurementActive()) measureOverviewNow();
+                            }}
+                            style={styles.desktopColumns}
+                        >
                             <View style={styles.columnWide}>
                                 {renderBusinessCard()}
                             </View>
@@ -320,7 +447,14 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
                             </View>
                         </View>
                     ) : (
-                        <View style={styles.mobileStack}>
+                        <View
+                            ref={overviewRef}
+                            collapsable={false}
+                            onLayout={() => {
+                                if (isTutorialMeasurementActive()) measureOverviewNow();
+                            }}
+                            style={styles.mobileStack}
+                        >
                             {renderBusinessCard()}
                             {renderAdminCard()}
                         </View>
@@ -331,6 +465,27 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({
             )}
 
             {!isLoading && !error && !isWideScreen && renderMobileStickyActions()}
+
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
+            />
+
+            {businessAccount && (
+                <OwnerQRModal
+                    visible={showQRModal}
+                    onClose={() => setShowQRModal(false)}
+                    business={businessAccount}
+                    isOwner={Boolean(isOwner)}
+                    onSavePaymentConfig={onSavePaymentConfig || (async () => false)}
+                />
+            )}
         </ScreenWrapper>
     );
 };
@@ -552,34 +707,57 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    stickyActionBtn: {
+    stickyButtonWrapper: {
         flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
+    },
+    mobileCustomButton: {
         paddingVertical: 12,
         paddingHorizontal: 8,
-        borderRadius: 16,
+    },
+    mobileButtonText: {
+        fontSize: 12,
+    },
+
+    paymentConfigSection: {
+        marginTop: 14,
+        paddingTop: 14,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_ULTRALIGHT,
+    },
+    paymentConfigHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    paymentConfigTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
         gap: 6,
-        height: 48,
     },
-    primaryStickyBtn: {
-        backgroundColor: Colors.PRIMARY,
+    paymentConfigTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
     },
-    secondaryStickyBtn: {
-        backgroundColor: Colors.WHITE,
-        borderWidth: 1,
-        borderColor: Colors.PRIMARY,
+    paymentConfigEditBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 2,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 6,
+        backgroundColor: Colors.PRIMARY_LIGHT,
     },
-    primaryStickyBtnText: {
-        color: Colors.WHITE,
-        fontWeight: 'bold',
+    paymentConfigEditBtnText: {
         fontSize: 12,
-    },
-    secondaryStickyBtnText: {
+        fontWeight: '600',
         color: Colors.PRIMARY,
-        fontWeight: 'bold',
+    },
+    paymentConfigSubtitle: {
         fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 16,
     },
 });
 

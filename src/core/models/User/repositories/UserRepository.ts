@@ -3,11 +3,12 @@ import { getAuthErrorMessage } from '@/src/core/error/autherror';
 import { CredentialResponse, SignUp, UserCredential } from '@/src/core/models/User/interfaces/SignUp.types';
 import { LogIn, User } from '@/src/core/models/User/interfaces/User.types';
 import { newUser, userConverter } from '@/src/core/models/User/utils/UserFactory';
+import { UserProfiles } from '@/src/recommendation/interfaces/Profile';
 import NetInfo from "@react-native-community/netinfo";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { FirebaseError } from 'firebase/app';
-import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithCredential, signInWithCustomToken, signInWithPopup, } from 'firebase/auth';
-import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, query, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithCredential, signInWithCustomToken, signInWithPopup } from 'firebase/auth';
+import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, query, serverTimestamp, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { httpsCallable } from "firebase/functions";
 
 const isOffline = async (): Promise<boolean> => {
@@ -118,7 +119,7 @@ export const UserRepository = (db: Firestore) => ({
             const checkCredentials = httpsCallable(functions, 'checkEmail');
             const response = await checkCredentials(userCredentials);
 
-            let unavailable = []
+            let unavailable = [];
 
             if (!(response as CredentialResponse).data.emailAvailable) unavailable.push('Email');
             if (!(response as CredentialResponse).data.usernameAvailable) unavailable.push('Username');
@@ -303,6 +304,55 @@ export const UserRepository = (db: Firestore) => ({
         } catch (err: unknown) {
             if (err instanceof Error) throw err;
             throw new Error('Failed to update user verification');
+        }
+    },
+
+    /**
+     * Safely merges tutorial completion status into `users/{userId}.onTutorialComplete` in Firestore.
+     * Uses `setDoc(..., { merge: true })` so existing accounts without `onTutorialComplete` never fail or crash.
+     *
+     * @param userId - ID of the user document to update
+     * @param tourId - Tutorial tour identifier (e.g., 'tabs', 'booking_offers', 'payment')
+     * @param completed - Whether the tutorial has been completed (defaults to true)
+     */
+    async updateTutorialProgress(
+        userId: string,
+        tourId: string,
+        completed: boolean = true
+    ): Promise<void> {
+        if (!userId || !tourId) return;
+        const userRef = doc(db, 'users', userId);
+        await setDoc(
+            userRef,
+            {
+                onTutorialComplete: {
+                    [tourId]: completed,
+                },
+                updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+        );
+    },
+
+    /**
+     * Updates only the profile field of a single user document in Firestore.
+     *
+     * @param id - The ID of the user document.
+     * @param profile - The generated UserProfiles object.
+     */
+    async updateProfile(id: string, profile: UserProfiles): Promise<void> {
+        try {
+            if (!id) throw new Error('User ID is required to update profile');
+            const userRef = doc(db, 'users', id);
+            const cleanProfile = JSON.parse(JSON.stringify(profile));
+            await updateDoc(userRef, {
+                profile: cleanProfile,
+                updatedAt: serverTimestamp(),
+            });
+        } catch (err: unknown) {
+            console.error(`Error updating user profile (${id}) in Firestore:`, err);
+            if (err instanceof Error) throw err;
+            throw new Error('Failed to update user profile in Firestore');
         }
     }
 });

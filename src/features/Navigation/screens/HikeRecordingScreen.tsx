@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import React, { memo, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Animated, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
@@ -27,6 +27,18 @@ const getInitials = (firstName?: string, lastName?: string) => {
     if (firstName && lastName) return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
     if (firstName) return firstName.charAt(0).toUpperCase();
     return '?';
+};
+
+const formatTimeAgo = (timestamp?: Date | string | number, currentTimeMs = Date.now()): string => {
+    if (!timestamp) return "";
+    const timeMs = timestamp instanceof Date ? timestamp.getTime() : new Date(timestamp).getTime();
+    if (isNaN(timeMs)) return "";
+    const mins = Math.max(0, Math.floor((currentTimeMs - timeMs) / (1000 * 60)));
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+    return `${hours}h ${remainingMins}m ago`;
 };
 
 interface HikeDurationTimerProps {
@@ -68,7 +80,7 @@ interface HikeRecordingScreenProps {
     hike: Hike;
     booking: Booking | null;
     currentGroup: Group | null;
-    hikerLocations: { id?: string, timestamp: Date | string, latitude: number, longitude: number, altitude?: number, hikerName?: string }[];
+    hikerLocations: { id?: string, timestamp: Date | string, latitude: number, longitude: number, altitude?: number, hikerName?: string, status?: string }[];
     error: string | null;
     fullOffer?: Offer | null;
 
@@ -106,6 +118,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     shareLocationEnabled, setShareLocationEnabled, profile, onSendSMS,
 }) => {
     const insets = useSafeAreaInsets();
+    const { height: screenHeight } = useWindowDimensions();
     const mapRef = useRef<TrailMapRef | null>(null);
 
     const [localError, setLocalError] = useState<string | null>(error);
@@ -131,6 +144,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [isDiscarding, setIsDiscarding] = useState(false);
+    const [dashboardHeight, setDashboardHeight] = useState(250);
 
     const handleDiscardPrompt = () => {
         setShowDiscardConfirm(true);
@@ -232,12 +246,16 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         member: IUserSummary | IGroupMember,
         locData: NonNullable<HikeRecordingScreenProps['hikerLocations']>[number]
     ) => {
+        const timeMs = locData.timestamp instanceof Date ? locData.timestamp.getTime() : new Date(locData.timestamp).getTime();
+        const isLost = (currentTime - timeMs) > 120000;
+        const timeAgo = formatTimeAgo(locData.timestamp, currentTime);
+
         Alert.alert(
-            `Hiker Location: ${member.firstname} ${member.lastname || ''}`.trim(),
-            `Coordinates: ${locData.latitude.toFixed(6)}, ${locData.longitude.toFixed(6)}\nLast Updated: ${formatDate(locData.timestamp)}`,
+            isLost ? `⚠️ Last Known Location: ${member.firstname} ${member.lastname || ''}`.trim() : `Hiker Location: ${member.firstname} ${member.lastname || ''}`.trim(),
+            `Coordinates: ${locData.latitude.toFixed(6)}, ${locData.longitude.toFixed(6)}\n${isLost ? `Signal Lost: ${timeAgo} (Last: ${formatDate(locData.timestamp, 'time')})` : `Last Updated: ${formatDateTime(locData.timestamp)}`}`,
             [
                 {
-                    text: "Track",
+                    text: isLost ? "Track Last Known Pin" : "Track",
                     onPress: () => {
                         mapRef.current?.flyTo?.({
                             center: [locData.longitude, locData.latitude],
@@ -274,20 +292,40 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
         const membersWithLoc = allMembers.map(member => {
             const locData = hikerLocations?.find(loc => loc.id === member.id);
-            // Treat as inactive if no location reported or older than 2 minutes (aligned with LKL)
-            const isInactive = locData ? (currentTime - new Date(locData.timestamp).getTime() > 120000) : true;
+            let status: 'live' | 'signal_lost' | 'offline' = 'offline';
+
+            if (locData) {
+                const timeMs = locData.timestamp instanceof Date ? locData.timestamp.getTime() : new Date(locData.timestamp).getTime();
+                const elapsedMs = isNaN(timeMs) ? Infinity : Math.max(0, currentTime - timeMs);
+
+                if (locData.status === 'GPS_SIGNAL_LOST' || elapsedMs > 120000) {
+                    status = 'signal_lost';
+                } else {
+                    status = 'live';
+                }
+            }
+
             return {
                 ...member,
                 locData,
-                isInactive,
+                status,
+                isInactive: status !== 'live',
             };
         });
 
+        const statusRank: Record<'live' | 'signal_lost' | 'offline', number> = {
+            live: 0,
+            signal_lost: 1,
+            offline: 2,
+        };
+
         return membersWithLoc.sort((a, b) => {
-            // Active members first, inactive/offline members below
-            if (a.isInactive && !b.isInactive) return 1;
-            if (!a.isInactive && b.isInactive) return -1;
-            return 0;
+            if (statusRank[a.status] !== statusRank[b.status]) {
+                return statusRank[a.status] - statusRank[b.status];
+            }
+            const timeA = a.locData?.timestamp ? new Date(a.locData.timestamp).getTime() : 0;
+            const timeB = b.locData?.timestamp ? new Date(b.locData.timestamp).getTime() : 0;
+            return timeB - timeA;
         });
     }, [currentGroup, hikerLocations, currentTime]);
 
@@ -337,8 +375,9 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 ref={mapRef}
                 initialLon={lon}
                 initialLat={lat}
-                bottomInset={210}
-                compassPosition={{ bottom: 245, left: 16 }}
+                bottomInset={dashboardHeight + 16}
+                attributionPosition={{ bottom: dashboardHeight + 8, left: 16 }}
+                compassPosition={{ bottom: dashboardHeight + 40, left: 16 }}
                 hikerLocations={showOtherHikers ? enrichedHikerLocations : []}
                 currentUserId={profile?.id}
             />
@@ -364,7 +403,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 </TouchableOpacity>
             </View>
 
-            <View style={[styles.mapControls, { bottom: 230 }]}>
+            <View style={[styles.mapControls, { bottom: dashboardHeight + 16 }]}>
                 {booking && (
                     <TouchableOpacity style={styles.fabBtn} onPress={() => setShowTrailInfo(true)}>
                         <CustomIcon library="Feather" name="info" size={20} color={Colors.PRIMARY} />
@@ -393,7 +432,15 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 </TouchableOpacity>
             </View>
 
-            <View style={[styles.dashboardWrapper, { paddingBottom: insets.bottom + 16 }]}>
+            <View 
+                style={[styles.dashboardWrapper, { paddingBottom: insets.bottom + 16 }]}
+                onLayout={(e) => {
+                    const h = Math.round(e.nativeEvent.layout.height);
+                    if (h > 0 && Math.abs(h - dashboardHeight) > 2) {
+                        setDashboardHeight(h);
+                    }
+                }}
+            >
                 {localError && (
                     <TouchableOpacity style={styles.errorBox} onPress={() => setLocalError(null)}>
                         <CustomIcon library="Feather" name="alert-circle" size={16} color={Colors.ERROR} />
@@ -685,31 +732,87 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                 <CustomIcon library="Feather" name="x" size={24} color={Colors.TEXT_PRIMARY} />
                             </TouchableOpacity>
                         </View>
-                        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+                        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: Math.max(260, screenHeight * 0.55) }}>
                             {sortedMembers.map((member, index) => {
                                 const locData = member.locData;
-                                const isInactive = member.isInactive;
+                                const status = member.status;
+                                const isLive = status === 'live';
+                                const isLost = status === 'signal_lost';
+                                const isOffline = status === 'offline';
+
                                 return (
-                                    <View key={index} style={styles.memberCard}>
-                                        <View style={[styles.memberAvatar, isInactive && { backgroundColor: Colors.GRAY_MEDIUM }]}>
-                                            <CustomText style={styles.avatarText}>{getInitials(member.firstname, member.lastname)}</CustomText>
+                                    <View key={member.id || index} style={styles.memberCard}>
+                                        <View style={[
+                                            styles.memberAvatar,
+                                            isLive && styles.avatarLive,
+                                            isLost && styles.avatarSignalLost,
+                                            isOffline && styles.avatarOffline,
+                                        ]}>
+                                            <CustomText style={styles.avatarText}>
+                                                {getInitials(member.firstname, member.lastname)}
+                                            </CustomText>
                                         </View>
+
                                         <View style={styles.memberInfo}>
-                                            <CustomText style={styles.memberName}>{member.firstname} {member.lastname}</CustomText>
-                                            <CustomText variant="caption">{locData ? `Updated: ${formatDateTime(locData.timestamp)}` : 'Waiting for signal...'}</CustomText>
+                                            <CustomText style={styles.memberName} numberOfLines={1} ellipsizeMode="tail">
+                                                {member.firstname} {member.lastname}
+                                            </CustomText>
+
+                                            {isLive && locData && (
+                                                <CustomText variant="caption" numberOfLines={1} style={styles.memberSubtext}>
+                                                    Updated: {formatDate(locData.timestamp, 'time')}
+                                                </CustomText>
+                                            )}
+
+                                            {isLost && locData && (
+                                                <CustomText variant="caption" numberOfLines={2} style={styles.memberSubtextLost}>
+                                                    Signal Lost • {formatTimeAgo(locData.timestamp, currentTime)} (Last: {formatDate(locData.timestamp, 'time')})
+                                                </CustomText>
+                                            )}
+
+                                            {isOffline && (
+                                                <CustomText variant="caption" numberOfLines={1} style={styles.memberSubtextOffline}>
+                                                    Waiting for signal...
+                                                </CustomText>
+                                            )}
+
                                             {locData && (
                                                 <TouchableOpacity
-                                                    style={styles.trackHikerBtn}
+                                                    style={[styles.trackHikerBtn, isLost && styles.trackHikerBtnLost]}
                                                     onPress={() => handleHikerLocationPress(member, locData)}
+                                                    activeOpacity={0.8}
                                                 >
-                                                    <CustomIcon library="Feather" name="map-pin" size={11} color={Colors.PRIMARY} />
-                                                    <CustomText style={styles.trackHikerBtnText}>Track Hiker</CustomText>
+                                                    <CustomIcon 
+                                                        library="Feather" 
+                                                        name={isLost ? "alert-triangle" : "map-pin"} 
+                                                        size={11} 
+                                                        color={isLost ? '#E65100' : Colors.PRIMARY} 
+                                                    />
+                                                    <CustomText style={[styles.trackHikerBtnText, isLost && styles.trackHikerBtnTextLost]}>
+                                                        {isLost ? "Track Last Known" : "Track Hiker"}
+                                                    </CustomText>
                                                 </TouchableOpacity>
                                             )}
                                         </View>
-                                        <View style={[styles.statusBadge, isInactive ? styles.badgeOffline : styles.badgeLive]}>
-                                            <View style={[styles.statusDot, isInactive ? { backgroundColor: Colors.TEXT_SECONDARY } : { backgroundColor: Colors.PRIMARY }]} />
-                                            <CustomText style={isInactive ? styles.textOffline : styles.textLive}>{isInactive ? 'Offline' : 'Live'}</CustomText>
+
+                                        <View style={[
+                                            styles.statusBadge,
+                                            isLive && styles.badgeLive,
+                                            isLost && styles.badgeSignalLost,
+                                            isOffline && styles.badgeOffline,
+                                        ]}>
+                                            {isLive && <View style={[styles.statusDot, { backgroundColor: Colors.PRIMARY }]} />}
+                                            {isLost && <CustomIcon library="Feather" name="alert-triangle" size={10} color="#E65100" />}
+                                            {isOffline && <View style={[styles.statusDot, { backgroundColor: Colors.TEXT_SECONDARY }]} />}
+
+                                            <CustomText style={[
+                                                styles.statusBadgeText,
+                                                isLive && styles.textLive,
+                                                isLost && styles.textSignalLost,
+                                                isOffline && styles.textOffline,
+                                            ]}>
+                                                {isLive ? 'Live' : isLost ? 'Signal Lost' : 'Offline'}
+                                            </CustomText>
                                         </View>
                                     </View>
                                 );
@@ -796,19 +899,105 @@ const styles = StyleSheet.create({
     sheetCancelText: { color: Colors.TEXT_SECONDARY, fontWeight: 'bold', fontSize: 15 },
 
     modalOverlayBottom: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-    bottomSheet: { backgroundColor: Colors.WHITE, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' },
+    bottomSheet: {
+        backgroundColor: Colors.WHITE,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        maxHeight: '85%',
+        width: '100%',
+        maxWidth: 500,
+        alignSelf: 'center',
+    },
     sheetHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     closeBtn: { padding: 4, backgroundColor: Colors.GRAY_ULTRALIGHT, borderRadius: 16 },
-    memberCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.GRAY_ULTRALIGHT },
-    memberAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.PRIMARY, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    memberCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.GRAY_ULTRALIGHT,
+    },
+    memberAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+        flexShrink: 0,
+    },
+    avatarLive: { backgroundColor: Colors.PRIMARY },
+    avatarSignalLost: { backgroundColor: '#F59E0B' },
+    avatarOffline: { backgroundColor: Colors.GRAY_MEDIUM },
     avatarText: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 14 },
-    memberInfo: { flex: 1 },
-    memberName: { fontWeight: 'bold', color: Colors.TEXT_PRIMARY },
-    statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, gap: 4 },
+
+    memberInfo: {
+        flex: 1,
+        minWidth: 0,
+        paddingRight: 8,
+    },
+    memberName: {
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+        fontSize: 14,
+    },
+    memberSubtext: {
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 2,
+    },
+    memberSubtextLost: {
+        color: '#D97706',
+        fontWeight: '600',
+        marginTop: 2,
+    },
+    memberSubtextOffline: {
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 2,
+    },
+
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        gap: 4,
+        flexShrink: 0,
+        alignSelf: 'center',
+    },
     badgeLive: { backgroundColor: '#E8F5E9', borderColor: '#A5D6A7' },
+    badgeSignalLost: { backgroundColor: '#FFF3E0', borderColor: '#FFE0B2' },
     badgeOffline: { backgroundColor: Colors.GRAY_ULTRALIGHT, borderColor: Colors.GRAY_LIGHT },
-    textLive: { fontSize: 10, fontWeight: 'bold', color: Colors.PRIMARY },
-    textOffline: { fontSize: 10, fontWeight: 'bold', color: Colors.TEXT_SECONDARY },
+
+    statusBadgeText: { fontSize: 10, fontWeight: 'bold' },
+    textLive: { color: Colors.PRIMARY },
+    textSignalLost: { color: '#E65100' },
+    textOffline: { color: Colors.TEXT_SECONDARY },
+
+    trackHikerBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: 8,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        alignSelf: 'flex-start',
+    },
+    trackHikerBtnLost: {
+        backgroundColor: '#FFF3E0',
+    },
+    trackHikerBtnText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: Colors.PRIMARY,
+    },
+    trackHikerBtnTextLost: {
+        color: '#E65100',
+    },
 
     infoSection: { marginBottom: 20 },
     infoTitle: { fontSize: 16, fontWeight: 'bold', color: Colors.TEXT_PRIMARY, marginBottom: 8 },
@@ -826,23 +1015,6 @@ const styles = StyleSheet.create({
     toggleBtnInactive: { backgroundColor: Colors.WHITE, borderColor: Colors.GRAY_LIGHT },
     toggleTextActive: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 12 },
     toggleTextInactive: { color: Colors.TEXT_SECONDARY, fontWeight: 'bold', fontSize: 12 },
-
-    trackHikerBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        marginTop: 6,
-        paddingHorizontal: 8,
-        paddingVertical: 5,
-        borderRadius: 8,
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        alignSelf: 'flex-start',
-    },
-    trackHikerBtnText: {
-        fontSize: 11,
-        fontWeight: 'bold',
-        color: Colors.PRIMARY,
-    },
 });
 
 export default HikeRecordingScreen;

@@ -1,6 +1,7 @@
-import LoadingScreen from "@/src/app/loading";
+import SplashScreenView from "@/src/components/SplashScreenView";
 import { MaintenanceScreen } from "@/src/app/maintenance";
-import GlobalErrorFallback from "@/src/components/GlobalErrorFallback";
+import { GlobalErrorFallback } from "@/src/components/GlobalErrorFallback";
+import { ToastProvider } from "@/src/components/Toast/Toast";
 import useMaintenance from "@/src/core/hook/useMaintenance";
 import { useAuthHook } from "@/src/core/models/User/User";
 import {
@@ -21,7 +22,7 @@ import {
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -77,20 +78,18 @@ function RootLayout() {
 		};
 	}, [initialize]);
 
+	const isAppReady = (fontsLoaded || fontError) && checked && hasInitialAuthResolved;
+
 	useEffect(() => {
-		if (fontsLoaded || fontError) {
-			SplashScreen.hideAsync();
+		if (isAppReady) {
+			SplashScreen.hideAsync().catch(() => {});
 		}
-	}, [fontsLoaded, fontError]);
+	}, [isAppReady]);
 
-	if (!fontsLoaded && !fontError) {
-		return null;
-	}
-
-	if (!checked || !hasInitialAuthResolved) {
+	if (!isAppReady) {
 		return (
 			<GestureHandlerRootView style={{ flex: 1 }}>
-				<LoadingScreen />
+				<SplashScreenView />
 			</GestureHandlerRootView>
 		);
 	}
@@ -105,11 +104,13 @@ function RootLayout() {
 
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
-			<Sentry.ErrorBoundary fallback={GlobalErrorFallback}>
-				<KeyboardProvider statusBarTranslucent>
-					<Stack screenOptions={{ headerShown: false }} />
-				</KeyboardProvider>
-			</Sentry.ErrorBoundary>
+			<ToastProvider>
+				<Sentry.ErrorBoundary fallback={(props) => <GlobalErrorFallback {...props} />}>
+					<KeyboardProvider statusBarTranslucent>
+						<Stack screenOptions={{ headerShown: false }} />
+					</KeyboardProvider>
+				</Sentry.ErrorBoundary>
+			</ToastProvider>
 		</GestureHandlerRootView>
 	);
 }

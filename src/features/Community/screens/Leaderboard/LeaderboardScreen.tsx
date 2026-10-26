@@ -3,10 +3,11 @@
  * @description Mountain-themed Leaderboard View component displaying Top 3 Mountain Peaks, Metric Filter Tabs, Ranking Cards (#4+), Top Hiker Detail Modal, and Sticky User Standing Footer.
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
+    LayoutChangeEvent,
     ListRenderItemInfo,
     StyleSheet,
     TouchableOpacity,
@@ -19,7 +20,7 @@ import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
-import CustomToast from '@/src/components/CustomToast';
+import { ToastContext, useToast } from '@/src/components/Toast/Toast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -80,8 +81,18 @@ const LeaderboardScreen = ({
     const { isDesktop } = useBreakpoints();
     const insets = useSafeAreaInsets();
     const safeBottomPadding = Math.max(insets.bottom, 16);
+    const { showToast } = useToast();
+    const toastContext = useContext(ToastContext);
     const [selectedTopUser, setSelectedTopUser] = useState<RankedUsers<Date> | null>(null);
-    const [showResetToast, setShowResetToast] = useState(false);
+
+    const unregisterFooterHeight = toastContext?.unregisterFooterHeight;
+    useEffect(() => {
+        return () => {
+            if (unregisterFooterHeight) {
+                unregisterFooterHeight();
+            }
+        };
+    }, [unregisterFooterHeight]);
 
     const {
         topThree,
@@ -118,7 +129,7 @@ const LeaderboardScreen = ({
                     <TouchableOpacity 
                         style={styles.resetBadge}
                         activeOpacity={0.7}
-                        onPress={() => setShowResetToast(true)}
+                        onPress={() => showToast.info(`Next rankings update on ${nextMonthStr}.`)}
                     >
                         <CustomIcon library="MaterialCommunityIcons" name="timer-outline" size={12} color={Colors.PRIMARY} />
                         <CustomText variant="caption" style={styles.resetBadgeText}>
@@ -202,6 +213,12 @@ const LeaderboardScreen = ({
                     style={[styles.currentUserFooter, { paddingBottom: safeBottomPadding }]}
                     activeOpacity={currentUserData.rank > 0 ? 0.8 : 1}
                     disabled={currentUserData.rank === 0}
+                    onLayout={(e: LayoutChangeEvent) => {
+                        const { height } = e.nativeEvent.layout;
+                        if (height > 0) {
+                            toastContext?.registerFooterHeight(height);
+                        }
+                    }}
                     onPress={() => {
                         if (currentUserData.rank > 0) {
                             setSelectedTopUser(currentUserData);
@@ -258,14 +275,6 @@ const LeaderboardScreen = ({
                 user={selectedTopUser}
                 onClose={() => setSelectedTopUser(null)}
                 currentUserId={currentUserData?.userId}
-            />
-
-            <CustomToast
-                message={`Next rankings update on ${nextMonthStr}.`}
-                visible={showResetToast}
-                onHide={() => setShowResetToast(false)}
-                type="info"
-                position="sticky_footer"
             />
         </ScreenWrapper>
     );

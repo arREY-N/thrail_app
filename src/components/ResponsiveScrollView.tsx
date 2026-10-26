@@ -18,7 +18,7 @@ interface ResponsiveScrollViewProps extends ScrollViewProps {
     contentHeightOffset?: number;
 }
 
-const ResponsiveScrollView: React.FC<ResponsiveScrollViewProps> = ({ 
+const ResponsiveScrollView = React.forwardRef<ScrollView, ResponsiveScrollViewProps>(({ 
     children, 
     minHeight = 600, 
     contentContainerStyle, 
@@ -27,7 +27,7 @@ const ResponsiveScrollView: React.FC<ResponsiveScrollViewProps> = ({
     scrollEnabled,
     contentHeightOffset = 0,
     ...props 
-}) => {
+}, ref) => {
     
     const { height } = useWindowDimensions();
     const [contentHeight, setContentHeight] = useState(0);
@@ -40,6 +40,7 @@ const ResponsiveScrollView: React.FC<ResponsiveScrollViewProps> = ({
 
     return (
         <ScrollView
+            ref={ref}
             style={styles.container}
             contentContainerStyle={[
                 styles.scrollContent,
@@ -58,7 +59,9 @@ const ResponsiveScrollView: React.FC<ResponsiveScrollViewProps> = ({
             {children}
         </ScrollView>
     );
-};
+});
+
+ResponsiveScrollView.displayName = 'ResponsiveScrollView';
 
 const styles = StyleSheet.create({
     container: {

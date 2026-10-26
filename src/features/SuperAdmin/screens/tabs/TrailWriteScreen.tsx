@@ -5,7 +5,7 @@
  * CustomStickyFooter with interactive submit states, dismissible CustomToast validation alerts, and confirmation modals.
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -18,8 +18,8 @@ import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomStickyFooter, { getStickyFooterScrollPadding } from '@/src/components/CustomStickyFooter';
-import CustomToast from '@/src/components/CustomToast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { useToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { IBaseWriteHook, TEdit } from '@/src/core/interface/domainHookInterface';
@@ -32,14 +32,10 @@ import TrailGeographySection from '@/src/features/SuperAdmin/components/trail/Tr
 import TrailRulesSection from '@/src/features/SuperAdmin/components/trail/TrailRulesSection';
 import TrailTourismSection from '@/src/features/SuperAdmin/components/trail/TrailTourismSection';
 import {
-    FormToastConfig,
     getDeleteConfirmConfig,
     getDiscardConfirmConfig,
-    getErrorToastConfig,
     getMissingFieldsSummary,
     getOptionStrings,
-    getSaveButtonStyle,
-    getSaveButtonTextStyle,
     getSaveButtonTitle,
     getSaveConfirmConfig,
     isDifficultyComplete,
@@ -91,25 +87,7 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
     const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
     const [actionLoading, setActionLoading] = useState<'create' | 'save' | 'delete' | null>(null);
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
-    const [toastConfig, setToastConfig] = useState<FormToastConfig>({
-        visible: false,
-        message: '',
-        type: 'error',
-        mode: 'dismissible',
-        triggerKey: 0,
-    });
-
-    const showToast = useCallback((
-        message: string,
-        type: 'error' | 'warning' | 'info' | 'success' = 'error',
-        mode: 'simple' | 'dismissible' = 'dismissible',
-        triggerKey: number = Date.now()
-    ) => {
-        setToastConfig({
-            ...getErrorToastConfig(message, mode, triggerKey),
-            type,
-        });
-    }, []);
+    const { showToast } = useToast();
 
     const [submitCount, setSubmitCount] = useState<number>(0);
     const [handledSubmitCount, setHandledSubmitCount] = useState<number>(0);
@@ -120,7 +98,7 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
     if (error && error !== prevError) {
         setPrevError(error);
         if (!isLoading) {
-            setToastConfig(getErrorToastConfig(error));
+            showToast.error(error);
         }
     } else if (!error && prevError) {
         setPrevError(null);
@@ -129,7 +107,7 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
     if (submitCount > handledSubmitCount) {
         setHandledSubmitCount(submitCount);
         if (error) {
-            setToastConfig(getErrorToastConfig(error));
+            showToast.error(error);
         }
     }
 
@@ -187,8 +165,9 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
     const handleSavePress = async () => {
         if (!formValid) {
             setHasAttemptedSubmit(true);
-            showToast(
-                getMissingFieldsSummary(generalComplete, geographyComplete, difficultyComplete, rulesComplete)
+            showToast.error(
+                getMissingFieldsSummary(generalComplete, geographyComplete, difficultyComplete, rulesComplete),
+                { onHide: () => setHasAttemptedSubmit(false) }
             );
             return;
         }
@@ -208,8 +187,6 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
             setActionLoading(null);
         }
     };
-
-    const isButtonError = !formValid && hasAttemptedSubmit && toastConfig.visible;
 
     const backHeaderAction = (
         <TouchableOpacity
@@ -348,12 +325,13 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
 
             {/* Sticky Action Footer */}
             <CustomStickyFooter
+                enableToastDock={true}
                 primaryButton={{
                     title: getSaveButtonTitle(isLoading, isEditMode),
                     disabled: isLoading,
                     isLoading: Boolean(isLoading && (actionLoading === 'save' || actionLoading === 'create')),
-                    style: getSaveButtonStyle(isLoading, formValid, isButtonError),
-                    textStyle: getSaveButtonTextStyle(formValid, isLoading, isButtonError),
+                    validationState: formValid ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                    isIdleDisabled: false,
                     onPress: handleSavePress,
                 }}
                 secondaryButton={isEditMode ? {
@@ -377,19 +355,6 @@ const TrailWriteScreen: React.FC<TrailWriteScreenProps> = ({
                             ? 'Creating new trail in database...'
                             : 'Saving trail changes to database...'
                 }
-            />
-
-            {/* Status Toast Notification positioned above sticky footer */}
-            <CustomToast
-                visible={toastConfig.visible}
-                message={toastConfig.message}
-                type={toastConfig.type || 'error'}
-                mode={toastConfig.mode || 'dismissible'}
-                triggerKey={toastConfig.triggerKey}
-                position="sticky_footer"
-                onHide={() => {
-                    setToastConfig(prev => ({ ...prev, visible: false }));
-                }}
             />
         </View>
     );

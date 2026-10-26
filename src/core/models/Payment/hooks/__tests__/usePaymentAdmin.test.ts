@@ -109,6 +109,16 @@ describe('usePaymentAdmin Hook', () => {
         });
     });
 
+    it('should skip refund execution and not invoke Cloud Function when refundType is none', async () => {
+        const { result } = renderHook(() => usePaymentAdmin());
+
+        await act(async () => {
+            await result.current.onRefund(mockBooking, 'none');
+        });
+
+        expect(mockHttpsCallableFn).not.toHaveBeenCalled();
+    });
+
     it('should handle callable errors and set localError', async () => {
         mockHttpsCallableFn.mockRejectedValueOnce(new Error('PayMongo Gateway Error'));
         const { result } = renderHook(() => usePaymentAdmin());

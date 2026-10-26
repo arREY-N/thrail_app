@@ -1,7 +1,11 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+    ImageSourcePropType,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
     Platform,
     RefreshControl,
+    ScrollView,
     StyleSheet,
     TouchableOpacity,
     View
@@ -12,6 +16,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
+import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
@@ -20,6 +25,7 @@ import { IReview } from '@/src/core/models/Review/Review';
 import { ITrail, useTrailStats } from '@/src/core/models/Trail/Trail';
 import { useWeatherStore } from '@/src/core/stores/weatherStore';
 import { resolveCoordsForTrail } from '@/src/core/utility/weatherHelpers';
+import { ScrollToTopPill } from '@/src/features/Community/components/ScrollToTopPill';
 import { getHeroImageSource } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
 import TrailDetailsTab from '@/src/features/Trail/tabs/TrailDetailsTab';
@@ -69,18 +75,97 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
     const [activeTab, setActiveTab] = useState(initialTab || 'Details');
     const insets = useSafeAreaInsets();
 
+    const scrollViewRef = useRef<ScrollView>(null);
+    const isScrollingToTop = useRef<boolean>(false);
+    const [showScrollTopPill, setShowScrollTopPill] = useState<boolean>(false);
+
+    const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        if (isScrollingToTop.current) return;
+        const currentOffsetY = event.nativeEvent.contentOffset.y;
+
+        if (activeTab === 'Reviews' && currentOffsetY > 350) {
+            setShowScrollTopPill(true);
+        } else {
+            setShowScrollTopPill(false);
+        }
+    }, [activeTab]);
+
+    const handleScrollToTop = useCallback(() => {
+        isScrollingToTop.current = true;
+        setShowScrollTopPill(false);
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        setTimeout(() => {
+            isScrollingToTop.current = false;
+        }, 800);
+    }, []);
+
+    const handleTabChange = useCallback((tab: string) => {
+        setActiveTab(tab);
+        setShowScrollTopPill(false);
+    }, []);
+
+    // Fast path: If curated length and gain/elevation are already provided, skip heavy GeoJSON parsing
+    const hasCuratedMetrics = Boolean(
+        trail?.difficulty?.length &&
+        Number(trail.difficulty.length) > 0 &&
+        ((trail.difficulty.gain !== undefined && trail.difficulty.gain !== null && Number(trail.difficulty.gain) > 0) ||
+         (trail.difficulty.elevation && Number(trail.difficulty.elevation) > 0))
+    );
+
+    const [interactionsComplete, setInteractionsComplete] = useState(false);
+
+    useEffect(() => {
+        if (hasCuratedMetrics) return;
+
+        if (typeof requestIdleCallback !== 'undefined') {
+            const idleId = requestIdleCallback(() => {
+                setInteractionsComplete(true);
+            });
+            return () => cancelIdleCallback(idleId);
+        } else {
+            const timerId = setTimeout(() => {
+                setInteractionsComplete(true);
+            }, 100);
+            return () => clearTimeout(timerId);
+        }
+    }, [hasCuratedMetrics]);
+
+    const shouldComputeStats = !hasCuratedMetrics && interactionsComplete;
+
     const mountainName = Array.isArray(trail?.general?.mountain)
         ? trail.general.mountain[0]
         : (trail?.general?.mountain || trail?.general?.name);
 
     const { stats: trailStats, isLoading: statsLoading } = useTrailStats(
-        mountainName,
+        shouldComputeStats ? mountainName : null,
         trail?.geography?.startLat,
         trail?.geography?.startLong
     );
 
-    const heroImage = getHeroImageSource(trail);
+    const [isImagePreviewVisible, setIsImagePreviewVisible] = useState(false);
+
+    const heroImage = useMemo(
+        () => getHeroImageSource(trail),
+        [trail]
+    );
     const name = trail?.general?.name || "Unnamed Trail";
+
+    const coverImage = trail?.coverImage;
+    const routeMapImage = trail?.routeMapImage;
+
+    const previewImages = useMemo(() => {
+        const list: (string | { uri: string } | ImageSourcePropType)[] = [];
+        if (coverImage) {
+            list.push(coverImage);
+        }
+        if (routeMapImage && routeMapImage !== coverImage) {
+            list.push(routeMapImage);
+        }
+        if (list.length === 0 && heroImage) {
+            list.push(heroImage);
+        }
+        return list;
+    }, [coverImage, routeMapImage, heroImage]);
 
     const location = Array.isArray(trail?.general?.province)
         ? trail.general.province.join(', ')
@@ -156,27 +241,37 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
             )}
 
             <ResponsiveScrollView
+                ref={scrollViewRef}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 style={[styles.container, { marginTop: -insets.top }]}
                 bounces={true}
                 overScrollMode="auto"
+                scrollEventThrottle={16}
+                onScroll={handleScroll}
                 refreshControl={
                     <RefreshControl
                         refreshing={isRefreshing}
                         onRefresh={onRefresh}
                         colors={[Colors.PRIMARY]}
                         tintColor={Colors.PRIMARY}
+                        progressViewOffset={insets.top + 20}
                     />
                 }
             >
-                <View style={styles.imageContainer}>
+                <TouchableOpacity
+                    style={styles.imageContainer}
+                    onPress={() => setIsImagePreviewVisible(true)}
+                    activeOpacity={0.9}
+                    accessibilityLabel="View full photo"
+                    accessibilityRole="button"
+                >
                     <CustomImage
                         source={heroImage}
                         style={styles.headerImage}
                         resizeMode="cover"
                     />
-                </View>
+                </TouchableOpacity>
 
                 <View style={styles.bodyContainer}>
                     <View style={styles.headerInfo}>
@@ -213,7 +308,7 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                             <TouchableOpacity
                                 key={tab}
                                 style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
-                                onPress={() => setActiveTab(tab)}
+                                onPress={() => handleTabChange(tab)}
                             >
                                 <CustomText style={[
                                     styles.tabText,
@@ -258,6 +353,12 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                 </View>
             </ResponsiveScrollView>
 
+            <ScrollToTopPill
+                visible={showScrollTopPill}
+                onPress={handleScrollToTop}
+                topOffset={27}
+            />
+
             <CustomStickyFooter
                 primaryButton={{
                     title: "Book",
@@ -265,14 +366,22 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                     showIndicator: (offersCount ?? 0) > 0,
                     badgeCount: offersCount,
                 }}
-                secondaryButton={{
+                secondaryButton={Platform.OS !== 'web' ? {
                     title: "Hike",
                     onPress: () => onHikePress(trail?.id),
                     variant: 'outline',
                     style: { borderColor: Colors.PRIMARY, borderWidth: 1.5 },
                     textStyle: { color: Colors.PRIMARY }
-                }}
+                } : undefined}
             />
+
+            {isImagePreviewVisible && (
+                <ImagePreviewModal
+                    visible={isImagePreviewVisible}
+                    images={previewImages}
+                    onClose={() => setIsImagePreviewVisible(false)}
+                />
+            )}
 
         </ScreenWrapper>
     );
@@ -305,7 +414,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        backgroundColor: Colors.HEADER_BUTTON_BG,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
@@ -317,7 +426,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        backgroundColor: Colors.HEADER_BUTTON_BG,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
@@ -331,7 +440,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 24,
         paddingTop: 24,
         paddingHorizontal: 24,
-        paddingBottom: 140,
+        paddingBottom: 120,
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_LIGHT,
         ...Platform.select({

@@ -181,7 +181,7 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
             await Promise.all([
                 updateTrailRating(review.trail.id, review.overallRating),
                 create(finalReviewToSave)
-            ])
+            ]);
 
             router.replace('/');
         } catch (error) {

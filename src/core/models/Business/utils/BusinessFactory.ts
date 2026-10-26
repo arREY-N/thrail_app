@@ -55,13 +55,21 @@ const businessFromFirestore = (id: string, data: IBusinessDB): Business => {
         permits: data.permits || { bir: '', denr: '', dti: '' },
         name: data.name || '',
         address: data.address || '',
+        paymentConfig: data.paymentConfig ? {
+            qrCodeUrl: data.paymentConfig.qrCodeUrl || '',
+            accountName: data.paymentConfig.accountName,
+            accountNumber: data.paymentConfig.accountNumber,
+            providerName: data.paymentConfig.providerName,
+            updatedAt: toDate(data.paymentConfig.updatedAt),
+            updatedBy: data.paymentConfig.updatedBy || '',
+        } : undefined,
     };
 };
 
 const businessToFirestore = (business: Business): IBusinessDB => {
     const isNew = business.id === '';
 
-    return {
+    const doc: IBusinessDB = {
         id: business.id,
         createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(business.createdAt),
         updatedAt: serverTimestamp(),
@@ -73,6 +81,21 @@ const businessToFirestore = (business: Business): IBusinessDB => {
         owner: business.owner,
         permits: business.permits,
     };
+
+    if (business.paymentConfig) {
+        doc.paymentConfig = {
+            qrCodeUrl: business.paymentConfig.qrCodeUrl,
+            accountName: business.paymentConfig.accountName,
+            accountNumber: business.paymentConfig.accountNumber,
+            providerName: business.paymentConfig.providerName,
+            updatedAt: business.paymentConfig.updatedAt instanceof Date 
+                ? Timestamp.fromDate(business.paymentConfig.updatedAt) 
+                : serverTimestamp(),
+            updatedBy: business.paymentConfig.updatedBy,
+        };
+    }
+
+    return doc;
 };
 
 export const businessConverter: FirestoreDataConverter<Business> = {

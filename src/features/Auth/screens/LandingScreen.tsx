@@ -6,9 +6,12 @@
  * landing with CTA buttons.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    Animated,
+    Easing,
     Platform,
+    Pressable,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -19,10 +22,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from "@/src/components/CustomButton";
+import CustomIcon from "@/src/components/CustomIcon";
 import CustomImage from "@/src/components/CustomImage";
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomText from "@/src/components/CustomText";
+import SplashScreenView from '@/src/components/SplashScreenView';
 
+import { BRAND } from '@/src/constants/branding';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
@@ -33,6 +39,9 @@ import LogInScreen from '@/src/features/Auth/screens/LogInScreen';
 import SignUpScreen from '@/src/features/Auth/screens/SignUpScreen';
 
 const HERO_IMAGE = require('@/src/assets/images/Mt.Tagapo.jpg');
+
+// Session flag: launch animation only plays once on initial app cold start
+let hasColdLaunched = false;
 
 /**
  * Props for the LandingScreen component.
@@ -50,6 +59,7 @@ export interface LandingScreenProps {
     onPrivacyPress: () => void;
     initialMode?: 'login' | 'signup' | 'forgot';
     onModeChange?: (mode: 'login' | 'signup' | 'forgot') => void;
+    onBrandingLabPress?: () => void;
 }
 
 /**
@@ -62,7 +72,8 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
     onTermsPress,
     onPrivacyPress,
     initialMode,
-    onModeChange
+    onModeChange,
+    onBrandingLabPress,
 }) => {
     const { isLargeScreen } = useBreakpoints();
     const insets = useSafeAreaInsets();
@@ -78,6 +89,93 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
             setAuthMode(initialMode);
         }
     }
+
+    // Cold launch animation controls (plays once on app cold startup)
+    const [shouldAnimateLaunch] = useState<boolean>(() => !hasColdLaunched && !initialMode);
+    const [isLaunchComplete, setIsLaunchComplete] = useState<boolean>(() => !shouldAnimateLaunch);
+
+    const [splashBgOpacity] = useState<Animated.Value>(() => new Animated.Value(shouldAnimateLaunch ? 1 : 0));
+    const [splashTranslateY] = useState<Animated.Value>(() => new Animated.Value(0));
+    const [splashScale] = useState<Animated.Value>(() => new Animated.Value(1));
+    const [mobileCardTranslateY] = useState<Animated.Value>(() => new Animated.Value(shouldAnimateLaunch ? 80 : 0));
+    const [webAuthTranslateX] = useState<Animated.Value>(() => new Animated.Value(shouldAnimateLaunch ? 120 : 0));
+    const [webAuthOpacity] = useState<Animated.Value>(() => new Animated.Value(shouldAnimateLaunch ? 0 : 1));
+
+    useEffect(() => {
+        if (!shouldAnimateLaunch) {
+            return;
+        }
+        hasColdLaunched = true;
+
+        const timer = setTimeout(() => {
+            if (isLargeScreen) {
+                Animated.parallel([
+                    Animated.timing(splashBgOpacity, {
+                        toValue: 0,
+                        duration: 420,
+                        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(splashScale, {
+                        toValue: 1.1,
+                        duration: 420,
+                        useNativeDriver: true,
+                    }),
+                    Animated.spring(webAuthTranslateX, {
+                        toValue: 0,
+                        friction: 8,
+                        tension: 40,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(webAuthOpacity, {
+                        toValue: 1,
+                        duration: 350,
+                        useNativeDriver: true,
+                    }),
+                ]).start(() => {
+                    setIsLaunchComplete(true);
+                });
+            } else {
+                Animated.parallel([
+                    Animated.timing(splashBgOpacity, {
+                        toValue: 0,
+                        duration: 380,
+                        delay: 0,
+                        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(splashTranslateY, {
+                        toValue: -screenHeight * 0.42,
+                        duration: 380,
+                        delay: 0,
+                        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+                        useNativeDriver: true,
+                    }),
+                    Animated.spring(mobileCardTranslateY, {
+                        toValue: 0,
+                        friction: 7.5,
+                        tension: 40,
+                        delay: 0,
+                        useNativeDriver: true,
+                    }),
+                ]).start(() => {
+                    setIsLaunchComplete(true);
+                });
+            }
+        }, 120);
+
+        return () => clearTimeout(timer);
+    }, [
+        shouldAnimateLaunch,
+        isLargeScreen,
+        screenHeight,
+        splashBgOpacity,
+        splashScale,
+        splashTranslateY,
+        mobileCardTranslateY,
+        webAuthTranslateX,
+        webAuthOpacity,
+    ]);
 
     const loginHook = useAuthHook();
     const signupHook = useSignUp(false);
@@ -115,22 +213,55 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
                         resizeMode="cover"
                     />
                     <View style={styles.overlay} />
+                    {__DEV__ && onBrandingLabPress && (
+                        <Pressable
+                            onPress={onBrandingLabPress}
+                            style={[styles.devBrandingButton, { top: insets.top + 16 }]}
+                        >
+                            <CustomIcon
+                                library="Ionicons"
+                                name="color-palette"
+                                size={16}
+                                color={Colors.BACKGROUND}
+                            />
+                            <CustomText variant="caption" style={styles.devBrandingText}>
+                                Branding Lab
+                            </CustomText>
+                        </Pressable>
+                    )}
                     {/* All branding at the absolute bottom-left */}
                     <View style={styles.brandingContainer}>
-                        <CustomText variant="h1" style={styles.brandingTitle}>
-                            Thrail
-                        </CustomText>
+                        <View style={styles.brandingTitleRow}>
+                            <View style={styles.brandingLogoWrapper}>
+                                <CustomImage
+                                    source={BRAND.ASSETS.GLYPH_WHITE}
+                                    style={styles.fullImage}
+                                    resizeMode="contain"
+                                />
+                            </View>
+                            <CustomText variant="h1" style={styles.brandingTitle}>
+                                Thrail
+                            </CustomText>
+                        </View>
                         <CustomText variant="h3" style={styles.brandingSlogan}>
-                            Find thrill in your trail
+                            {BRAND.SLOGAN}
                         </CustomText>
                         <CustomText variant="body" style={styles.brandingSubtext}>
-                            Discover breathtaking mountains, book local guides,{'\n'}and start your adventure today.
+                            {BRAND.SUBTITLE}
                         </CustomText>
                     </View>
                 </View>
 
                 {/* Right Panel — forms own their scroll via isSplitScreen */}
-                <View style={styles.rightPanel}>
+                <Animated.View
+                    style={[
+                        styles.rightPanel,
+                        {
+                            opacity: webAuthOpacity,
+                            transform: [{ translateX: webAuthTranslateX }],
+                        },
+                    ]}
+                >
                     <View style={styles.formWrapper}>
                         {authMode === 'login' ? (
                             <LogInScreen
@@ -181,7 +312,24 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
                                     : "Sending reset email..."
                         }
                     />
-                </View>
+                </Animated.View>
+
+                {/* Splash Screen Launch Overlay on Web */}
+                {!isLaunchComplete && (
+                    <Animated.View
+                        pointerEvents="none"
+                        style={[
+                            StyleSheet.absoluteFill,
+                            {
+                                zIndex: 9999,
+                                opacity: splashBgOpacity,
+                                transform: [{ scale: splashScale }],
+                            },
+                        ]}
+                    >
+                        <SplashScreenView />
+                    </Animated.View>
+                )}
             </View>
         );
     }
@@ -198,13 +346,30 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
                     style={styles.heroImage}
                     resizeMode="cover"
                 />
+                {__DEV__ && onBrandingLabPress && (
+                    <Pressable
+                        onPress={onBrandingLabPress}
+                        style={[styles.devBrandingButton, { top: insets.top + 16 }]}
+                    >
+                        <CustomIcon
+                            library="Ionicons"
+                            name="color-palette"
+                            size={16}
+                            color={Colors.BACKGROUND}
+                        />
+                        <CustomText variant="caption" style={styles.devBrandingText}>
+                            Branding Lab
+                        </CustomText>
+                    </Pressable>
+                )}
             </View>
 
-            <View style={[
+            <Animated.View style={[
                 styles.cardSection,
                 {
                     paddingBottom: Math.max(insets.bottom + 16, 32),
                     paddingTop: isLandscapeMode ? 48 : 32,
+                    transform: [{ translateY: mobileCardTranslateY }],
                 }
             ]}>
                 <View style={styles.contentConstrainer}>
@@ -223,36 +388,27 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
                                 styles.titleText,
                                 {
                                     fontSize: isLandscapeMode ? 28 : 32,
-                                    lineHeight: isLandscapeMode ? 36 : 40
-                                }
+                                    lineHeight: isLandscapeMode ? 34 : 38,
+                                },
                             ]}
                         >
-                            Your Next Trail
-                        </CustomText>
-                        <CustomText
-                            variant="h1"
-                            style={[
-                                styles.titleText,
-                                {
-                                    fontSize: isLandscapeMode ? 28 : 32,
-                                    lineHeight: isLandscapeMode ? 36 : 40
-                                }
-                            ]}
-                        >
-                            Begins Here
+                            {BRAND.SLOGAN_STACKED}
                         </CustomText>
 
                         <CustomText
                             variant="body"
+                            numberOfLines={2}
+                            adjustsFontSizeToFit
                             style={[
                                 styles.subtitleText,
                                 {
-                                    marginTop: isLandscapeMode ? 10 : 16,
-                                    fontSize: isLandscapeMode ? 14 : 15
-                                }
+                                    marginTop: isLandscapeMode ? 8 : 12,
+                                    fontSize: isLandscapeMode ? 12.5 : 13.5,
+                                    lineHeight: isLandscapeMode ? 18 : 20,
+                                },
                             ]}
                         >
-                            Discover breathtaking mountains, book local guides, and start your adventure today.
+                            {BRAND.SUBTITLE_2LINE}
                         </CustomText>
                     </View>
 
@@ -295,7 +451,24 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
                         .
                     </CustomText>
                 </View>
-            </View>
+            </Animated.View>
+
+            {/* Splash Screen Launch Overlay on Mobile (Sync Lift) */}
+            {!isLaunchComplete && (
+                <Animated.View
+                    pointerEvents="none"
+                    style={[
+                        StyleSheet.absoluteFill,
+                        {
+                            zIndex: 9999,
+                            opacity: splashBgOpacity,
+                            transform: [{ translateY: splashTranslateY }],
+                        },
+                    ]}
+                >
+                    <SplashScreenView />
+                </Animated.View>
+            )}
         </>
     );
 
@@ -333,7 +506,7 @@ const styles = StyleSheet.create({
     imageWrapper: {
         flex: 1,
         width: '100%',
-        backgroundColor: Colors.GRAY_LIGHT,
+        backgroundColor: '#2E5D32',
     },
     heroImage: {
         width: '100%',
@@ -383,16 +556,18 @@ const styles = StyleSheet.create({
     },
     titleText: {
         textAlign: 'center',
-        lineHeight: 40,
+        lineHeight: 38,
         fontSize: 32,
     },
     subtitleText: {
         textAlign: 'center',
         color: Colors.TEXT_SECONDARY,
-        marginTop: 16,
-        paddingHorizontal: 16,
-        lineHeight: 24,
-        fontSize: 15,
+        marginTop: 12,
+        paddingHorizontal: 0,
+        width: '100%',
+        alignSelf: 'center',
+        lineHeight: 20,
+        fontSize: 13.5,
     },
 
     buttonContainer: {
@@ -443,12 +618,25 @@ const styles = StyleSheet.create({
         left: 32,
         right: 32,
     },
+    brandingTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        marginBottom: 8,
+    },
+    brandingLogoWrapper: {
+        width: 76,
+        height: 76,
+    },
+    fullImage: {
+        width: '100%',
+        height: '100%',
+    },
     brandingTitle: {
         color: Colors.TEXT_INVERSE,
         fontSize: 64,
-        lineHeight: 48,
+        lineHeight: 64,
         fontWeight: 'bold',
-        marginBottom: 12,
     },
     brandingSlogan: {
         color: Colors.TEXT_INVERSE,
@@ -472,6 +660,24 @@ const styles = StyleSheet.create({
     formWrapper: {
         flex: 1,
         overflow: 'hidden',
+    },
+    devBrandingButton: {
+        position: 'absolute',
+        left: 20,
+        zIndex: 50,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: Colors.PRIMARY,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        ...GlobalStyles.dropShadow(3),
+    },
+    devBrandingText: {
+        color: Colors.BACKGROUND,
+        fontWeight: 'bold',
+        fontSize: 11,
     },
 });
 

@@ -1,3 +1,4 @@
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { getStatusConfig } from '@/src/constants/statusConfig';
 import {
     calculateVerificationValidity,
@@ -50,7 +51,7 @@ export default function useReviewLogic(
     const isOfferExpired = offerDate ? offerDate.getTime() < new Date().setHours(0, 0, 0, 0) : false;
     const isTerminalStatus = ['completed', 'cancelled', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(booking?.status ?? '');
 
-    const hasRefundedPayment = booking?.payment?.some((p) => p.status === 'refunded');
+    const hasRefundedPayment = booking?.payment?.some((p) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0)) || booking?.status === 'refund' || booking?.status === 'refunded';
     
     const currentStatus = hasRefundedPayment 
         ? 'refunded' 
@@ -59,7 +60,7 @@ export default function useReviewLogic(
             : (booking?.status || 'for-reservation'));
             
     const displayCancellationReason = hasRefundedPayment 
-        ? 'Refund processed securely via PayMongo.' 
+        ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? 'Refund processed.' : 'Refund processed securely via PayMongo.') 
         : (cancellationRequest?.reason || booking?.cancellationReason);
 
     const isCancellationPending = (cancellationRequest?.status === 'pending') || currentStatus === 'for-cancellation';

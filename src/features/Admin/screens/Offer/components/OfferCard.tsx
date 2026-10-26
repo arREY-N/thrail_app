@@ -492,4 +492,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default OfferCard;
+export default React.memo(OfferCard);

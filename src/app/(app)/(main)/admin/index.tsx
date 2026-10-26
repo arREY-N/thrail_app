@@ -18,12 +18,14 @@ export default function AdminHome() {
         profile,
         error,
         role,
+        isOwner,
         isLoading,
     } = useAuthHook();
 
 
     const {
         businessAccount,
+        updatePaymentConfig,
         onRefresh
     } = useBusinessAdmin();
 
@@ -41,6 +43,13 @@ export default function AdminHome() {
     if (!isLoading && (!businessId || !profile || !role))
         return <UnauthorizedScreen />;
 
+    const isBusinessOwner = Boolean(
+        isOwner ||
+        role === 'owner' ||
+        role === 'admin' ||
+        (businessAccount?.owner?.id && profile?.id && businessAccount.owner.id === profile.id)
+    );
+
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
@@ -55,6 +64,11 @@ export default function AdminHome() {
                 onBackPress={onBackPress}
                 isLoading={showLoading}
                 onRetryPress={onRefresh}
+                isOwner={isBusinessOwner}
+                onSavePaymentConfig={async (config) => {
+                    if (!businessId) return false;
+                    return await updatePaymentConfig(businessId, config);
+                }}
             />
         </>
     );

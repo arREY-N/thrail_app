@@ -77,6 +77,7 @@ This tracker monitors all historical fixes, identified bugs in recent commits, a
 | **T-29** | Map Compass Repositioning Under Center Button | Move MapLibre compass from top-right (behind Emergency SOS) to directly under the center/locate button (`compassPosition={{ bottom: 175, right: 18 }}`). | ✅ **Finished** | Relocated compass to right edge beneath locate FAB in `TrailMap.native.tsx`; clears SOS header overlap completely. |
 | **T-30** | Field-Test Session Reset Floating Action Button | Add temporary amber reset FAB (`rotate-ccw`) on `HikeRecordingScreen` to instantly discard test hikes without holding finish button. | ✅ **Finished** | Added reset FAB to `mapControls` in `HikeRecordingScreen.tsx`, wired `onResetHike` to stop tracking, delete live pin, wipe store, and return to lobby. |
 | **T-31 / TD-02** | Official Production "Discard Hike" Feature | Official 2-step pause-state Discard button with dynamic safeguard confirmation modal and atomic 5-step teardown. | ✅ **Finished** | Replaced dev FAB with subtle [Discard Hike] button in pause action dashboard. Implemented dynamic safeguard modal (<100m false start vs. long hike warning) and atomic sensor, storage, Firestore live pin, and store cleanup. |
+| **T-32 / TD-03** | UI Overlap & Responsive FAB Layout Architecture | Resolve floating Resume Banner collision with side FABs on `NavigationScreen` and `metricsCard` collision with `locate` FAB on `HikeRecordingScreen`. | ✅ **Finished** | Implemented Option 1A (bottom docked resume card in thumb zone + dynamic `mapControlsColumn`) preserving Developer Date Bypass & Yellow DIY Dev Tool. Implemented Option 2A (self-measuring `onLayout` dynamic FAB clearance in `HikeRecordingScreen`). |
 | **TD-01** | Guide / Admin Group Hike Session Completion | Enable guides/admins to officially end the hike for the entire group and synchronize member timers and completion state. | 💡 **Proposal Only (To-Do / Not Verified by Team)** | Feature proposal only. Currently timers are 100% individual; guides have no group master completion action. |
 
 
@@ -841,4 +842,281 @@ graph TD
   3. `clearLocalTrack()` in [hikeStorage.ts](file:///d:/thrail_app/src/core/utility/hikeStorage.ts) truncates `thrail_current_hike.csv` back to clean CSV header.
   4. `onResetHike()` in [CreateHikeFlow.ts](file:///d:/thrail_app/src/core/flows/CreateHikeFlow.ts) resets Zustand store and AsyncStorage persist cache to 0.
   5. Navigates cleanly back via `router.back()` (with fallback to `/(app)/(tabs)/hike`).
+
+---
+
+### 8.13 Task TD-03: UI Overlap Resolution & Responsive FAB Layout Architecture
+
+#### 1. Strategic Context & Visual Audit
+Recent field testing revealed two distinct UI collision bugs occurring on smaller viewport heights and dynamic state transitions:
+1. **Collision A (`NavigationScreen.tsx`):** The top "Hike in Progress" Resume Banner collides with the right-hand floating action buttons (specifically the yellow test FAB at `bottom: 520` and the upcoming ticket FAB at `bottom: 460`).
+2. **Collision B (`HikeRecordingScreen.tsx`):** When pausing a hike, the new solid `[ 🗑️ Discard Hike ]` pill button expands the bottom dashboard wrapper from ~190px to ~270px upward, causing the top edge of `metricsCard` to directly overlap and cut off the bottom FAB (`locate` / center-on-user button) anchored at `bottom: 230`.
+
+---
+
+#### 2. Collision A: Floating Resume Banner vs. Side FAB Stack (`NavigationScreen.tsx`)
+
+##### A. Root Cause Analysis
+```
+┌─────────────────────────────────────────────────────────────┐
+│ [ CustomSearchBar: "Search mountains or trails..." ]        │  <- top: searchTopPadding (~54px)
+│ ┌───────────────────────────────────────────────┐           │
+│ │ 🟢 Independent Route (DIY) [PAUSED]  Resume > │ 🟡 [Tool] │  <- OVERLAP! bottom: 520 puts FAB at Y=~186px
+│ └───────────────────────────────────────────────┘ 🎫 [Ticket│  <- OVERLAP! bottom: 460 puts FAB at Y=~246px
+│                                                   💬 [Chat] │
+│                                                   🗺️ [Layers│
+│                                                   🎯 [Locate│
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ Selected Trail Card / Bottom Sheet (~260px)             │ │  <- bottom: 24px
+│ └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+1. `floatingSearchWrapper` occupies `top: searchTopPadding` with full screen width (`marginHorizontal: 16`).
+2. When a session is active/paused, `resumeBannerContainer` is appended directly below the search input, extending the top header stack down to `Y = ~180px–220px`.
+3. Concurrently, `floatingIconBtn` elements are rendered with **hardcoded static bottom offsets**:
+   - `bottom: 520` (Legacy yellow Dev/Test FAB)
+   - `bottom: 460` (Upcoming bookings ticket FAB)
+4. On mobile screens with viewport heights of 750px–820px, `bottom: 520` renders at `Y = ScreenHeight - 520 - 44 = ~186px`, directly under the right half of the Resume Banner.
+
+##### B. Preservation of Critical Developer & Testing Features
+1. **Developer Date Lock Bypass (Preserved 100%):**
+   - The 2-second `onLongPress` on `disabledLaunchButton` (`Starts on {date}`) and the `isDevBypassModalVisible` `ConfirmationModal` on the lobby card remain completely untouched.
+   - Admins/developers can continue bypassing future booking dates to test live sessions.
+2. **Yellow Tool FAB for DIY Hike Testing (Preserved 100%):**
+   - The yellow tool FAB (`Feather` name `"tool"`, `backgroundColor: Colors.YELLOW`) allows switching directly into a DIY free-roam session (`hikeId: "new_diy_session"`) even when an active future booking card is locked on screen.
+   - This button **MUST NOT be removed**. It will remain accessible.
+
+##### C. UX & Design Options Comparison
+| Solution Option | Implementation Description | Developer Bypass & Dev Tool Status | Recommendation |
+|---|---|:---:|:---:|
+| **Option 1A: Docked Bottom "Active Hike" Bar** | Relocate the Resume Banner from the top search bar to the **bottom of the screen**, floating right above the lobby bottom sheet. | Both Bypass & Yellow Dev Tool **100% Preserved**. Yellow tool FAB stays on the right side. | ⭐ **Strongly Recommended (Gold Standard)** |
+| **Option 1B: Compact Vertical FAB Column (Keep Top Banner)** | Keep Resume Banner at the top. Group all 5 right FABs (Locate, Offline, Chat, Ticket, **Yellow Dev Tool**) into a single flex container anchored at `bottom: 240` with compact `gap: 8`. | Both Bypass & Yellow Dev Tool **100% Preserved**. All 5 buttons remain in the right stack. | ⭐ **Viable Alternative (Preserves Top Layout)** |
+| **Option 1C: Right-Padded Top Banner** | Keep banner at top, but constrain width with `marginRight: 64px` to avoid the FAB column. | Both Preserved. | ⚠️ *Causes text truncation on small phones* |
+
+##### D. Comparison of Option 1A vs Option 1B:
+- **If Option 1A (Bottom Docked Card):**
+  - Search bar stays clean at top.
+  - Active session banner docks at the bottom above the lobby card in the natural thumb zone.
+  - All 5 FABs (`locate`, `offline`, `chat`, `ticket`, `yellow dev tool`) sit on the right side with 0% chance of collision.
+  - Bypass stays on the booking card.
+- **If Option 1B (Keep Banner at Top):**
+  - Banner stays at the top under the search bar.
+  - The 5 FABs (`locate`, `offline`, `chat`, `ticket`, `yellow dev tool`) are grouped into a single flex column with `gap: 8`.
+  - Because the buttons are tightly stacked instead of sprawling at 60px hardcoded intervals, the topmost yellow button only reaches $Y \approx 300\text{px}$, leaving ~100px of clearance below the top banner ($Y \approx 190\text{px}$).
+  - Bypass stays on the booking card.
+
+
+---
+
+#### 3. Collision B: Metrics Card Overlapping Center/Locate FAB (`HikeRecordingScreen.tsx`)
+
+##### A. Root Cause Analysis
+```
+Normal / Started State (Height ~190px):
+   [ Locate FAB ] (bottom: 230)
+   --------------------------------- (Clearance: ~40px)
+   [ Metrics Card: 0m | 0:00:01 | 0m ]
+   [ Pause Button (56px) ]
+   (insets.bottom + 16)
+
+Paused State with Discard Button (Height ~270px):
+   [ Locate FA┌────────────────────────────────┐  <- COLLISION!
+              │ Metrics Card: 0m | 0:00:01 | 0m│  <- Pushed up by +62px Discard Btn
+              └────────────────────────────────┘
+   [ Resume (56px) ]  [ Hold to Finish (56px) ]
+   [ 🗑️ Discard Hike (52px + 10px margin) ]
+   (insets.bottom + 16)
+```
+1. `mapControls` is hardcoded to `bottom: 230`.
+2. When tracking is paused (`isPaused`), the dashboard renders `discardRowBtn` (`height: 52`, `marginTop: 10`), increasing `dashboardWrapper` height from ~190px to ~268px–285px.
+3. Because `dashboardWrapper` is pinned to `bottom: 0`, the extra height pushes the `metricsCard` upward into `Y = 268px` from screen bottom.
+4. The top-right corner of `metricsCard` overlaps the `locate` button (anchored at `bottom: 230`) by ~38px–50px, cutting off the button icon.
+
+##### B. UX & Design Options Comparison
+| Solution Option | Implementation Description | UX Pros | UX Cons | Recommendation |
+|---|---|---|---|:---:|
+| **Option 2A: Self-Measuring Dynamic `onLayout` Offset** | Measure `dashboardWrapper` via `onLayout={(e) => setDashboardHeight(e.nativeEvent.layout.height)}` and set `mapControls` to `bottom: dashboardHeight + 16`. | **100% immune to screen height variations, gesture bar heights, or state changes**; works seamlessly if error banners appear. | Tiny state update on layout mount. | ⭐ **Strongly Recommended (Bulletproof)** |
+| **Option 2B: State-Based Conditional Offset** | Set `bottom: isPaused ? (insets.bottom + 270) : (insets.bottom + 210)`. | Simple static calculation without layout listener. | Vulnerable to text wrapping, different font scales, or error banners. | ⚠️ *Fragile Alternative* |
+| **Option 2C: Side-by-Side 3-Button Action Row** | Squeeze `[ Discard ]`, `[ Resume ]`, and `[ Finish ]` into a single 56px horizontal row. | Dashboard never grows taller in paused state. | Buttons become cramped on 360px screens; increases accidental misclicks between Resume and Discard while moving. | ❌ *High UX Risk* |
+
+##### C. Recommended Architecture for Collision B
+Implement **Option 2A**:
+1. Add `const [dashboardHeight, setDashboardHeight] = useState(250);` to `HikeRecordingScreen.tsx`.
+2. Attach `onLayout={(e) => setDashboardHeight(e.nativeEvent.layout.height)}` to `dashboardWrapper`.
+3. Dynamically set `mapControls` position:
+   ```tsx
+   <View style={[styles.mapControls, { bottom: dashboardHeight + 16 }]}>
+   ```
+4. Also update MapLibre's compass bottom position:
+   ```tsx
+   compassPosition={{ bottom: dashboardHeight + 16, right: 18 }}
+   ```
+5. **Result:** The `locate` FAB, layers FAB, and compass smoothly float exactly 16px above the top of the metrics card at all times, in both active tracking, paused state, and when error banners expand the dashboard.
+
+---
+
+#### 4. Implementation Status & Code References (Completed)
+- **Status:** ✅ **Fully Implemented in Production**
+- **Collision A Resolution (`NavigationScreen.tsx`):**
+  - Removed `resumeBannerContainer` from `floatingSearchWrapper` at the top, leaving search 100% clean and unobstructed.
+  - Docked `resumeBannerContainer` inside `floatingControlsContainer` at the bottom of the screen (thumb zone, AllTrails/Strava model).
+  - Wrapped right-side FABs into `styles.mapControlsColumn` anchored dynamically at `bottom: controlsHeight + 36` (measured via `onLayout`).
+  - Preserved **Developer Date Lock Bypass** (2s long press on `disabledLaunchButton` and `ConfirmationModal` remain 100% functional).
+  - Preserved **Yellow Dev Tool FAB** (`new_diy_session` shortcut button remains 100% accessible in the right FAB column).
+- **Collision B Resolution (`HikeRecordingScreen.tsx`):**
+  - Attached `onLayout` to `dashboardWrapper` to measure dynamic `dashboardHeight`.
+  - Positioned `styles.mapControls` at `bottom: dashboardHeight + 16`.
+  - Positioned MapLibre `compassPosition` at `bottom: dashboardHeight + 16, left: 16`.
+  - Adjusted MapLibre `bottomInset` dynamically to `dashboardHeight + 16`.
+  - Fully immune to screen size differences, navigation bar insets, and state changes between active tracking and paused states.
+
+---
+
+### 8.11 Task T-33: MapLibre Ornament Placement & OpenStreetMap Legal Attribution Optimization
+
+#### 1. Problem & Architecture Audit
+- **Hidden Collision on Bottom-Left:**
+  - In `TrailMap.native.tsx`, MapLibre's logo defaulted to `{ bottom: bottomInset, left: 16 }`.
+  - In `HikeRecordingScreen.tsx`, `compassPosition` was positioned at `{ bottom: dashboardHeight + 16, left: 16 }` where `bottomInset = dashboardHeight + 16`.
+  - Whenever a hiker rotated or tilted the map, the MapLibre compass needle rendered directly on top of the MapLibre logo.
+- **Mid-Canvas Attribution Glitch:**
+  - `attributionPosition` was hardcoded to `{ bottom: bottomInset, left: 100 }`, causing the attribution text / `(i)` button to float mid-canvas in the middle-left of the viewport.
+- **Licensing & Legal Compliance (MapLibre vs. OpenStreetMap / MapTiler):**
+  - **MapLibre Engine (BSD-3):** Does not legally require displaying the engine bird logo on the map canvas. Displaying it is purely promotional and adds visual noise.
+  - **Map Data / Tiles (ODbL / MapTiler):** Legally requires crediting *"© OpenStreetMap contributors"* and *"© MapTiler"*. MapLibre's built-in `attribution={true}` ornament provides a compliant `(i)` info button that opens the official license dialogue on tap.
+
+#### 2. Implementation & Structural Geometry
+1. **Disabled MapLibre Engine Logo:**
+   - Set `logo={false}` on `<Map>` in `src/features/Map/TrailMap.native.tsx`.
+   - Removes engine watermark across all screens, elevating Thrail to a clean, custom-branded experience.
+2. **Enabled Legal OSM Attribution Ornament:**
+   - Set `attribution={true}` on `<Map>` with support for dynamic `attributionPosition` prop in `TrailMapProps` (`TrailMap.tsx` and `TrailMap.native.tsx`).
+   - Defaults to `{ bottom: bottomInset, left: 16 }` for general screens (e.g., `NavigationScreen.tsx`).
+3. **Clean Vertical Bottom-Left Stack in `HikeRecordingScreen.tsx`:**
+   - **OSM Attribution `(i)`:** `{ bottom: dashboardHeight + 8, left: 16 }`
+   - **Navigation Compass:** `{ bottom: dashboardHeight + 40, left: 16 }`
+   - **Spacing & Motion:** Provides 12px clean vertical clearance between the `(i)` button and the compass. Because both are keyed to `dashboardHeight` via `onLayout`, both ornaments smoothly adjust when the pause/resume state expands or collapses the timer card.
+4. **Clean Bottom-Left Stack in `NavigationScreen.tsx`:**
+   - **OSM Attribution `(i)`:** `{ bottom: controlsHeight + 20, left: 16 }`
+   - **Navigation Compass:** `{ bottom: controlsHeight + 56, left: 16 }`
+   - Completely removes the previous `left: 100` mid-canvas glitch.
+
+#### 3. Status
+- **Status:** ✅ **Finished & Documented**
+- **Files Modified:**
+  - `src/features/Map/TrailMap.tsx`
+  - `src/features/Map/TrailMap.native.tsx`
+  - `src/features/Navigation/screens/HikeRecordingScreen.tsx`
+  - `plans/GPS_AUDIT_IMPROVEMENTS.md`
+
+---
+
+### 8.12 Task T-34: "Signal Lost" / Last Known Location (LKL) Status in Hiker Status Board
+
+#### 1. Problem Statement & User Findings
+- **Discrepancy Between Map Layer and Status Board:**
+  - On the native map (`TrailMap.native.tsx`), Thrail already has a mature 3-state tracking model:
+    1. **Live Beacon** (Green pulse/dot, recent updates $\le 2\text{ min}$)
+    2. **Signal Lost / Last Known Location** (Amber warning badge `⚠️ Signal Lost • Xm ago`, pin retained on canvas for 24h search & rescue)
+    3. **Offline** (No pin on map)
+  - In contrast, the **Hiker Status Board** modal in `HikeRecordingScreen.tsx` currently only uses a **flat binary 2-state model** (`Live` vs. `Offline`).
+- **Safety & Situational Awareness Gap:**
+  - When a group member enters a dead zone, canyon, or runs out of battery mid-hike:
+    - Their card in the Hiker Status Board switches to `• Offline` with `Updated: Oct 18, 3:42 PM`.
+    - Members who **never joined / never broadcasted** also show `• Offline` with `Waiting for signal...`.
+    - There is **no visual distinction** (no amber badge, no warning indicator, no relative elapsed time) showing who has dropped connection while actively out on the trail versus someone who simply hasn't started.
+  - A Lead Guide or member glancing at the board cannot quickly distinguish a potential lost/disconnected hiker who needs immediate safety checks.
+
+#### 2. Technical Gap Analysis in `HikeRecordingScreen.tsx`
+1. **Binary Inactive Calculation (Lines 276–285):**
+   ```typescript
+   const isInactive = locData ? (currentTime - new Date(locData.timestamp).getTime() > 120000) : true;
+   ```
+   - This lumps `!locData` (offline/no broadcast) and `elapsedTime > 120s` (signal lost mid-hike) into a single boolean `isInactive`.
+2. **Binary UI Badge Rendering (Lines 720–723):**
+   ```tsx
+   <View style={[styles.statusBadge, isInactive ? styles.badgeOffline : styles.badgeLive]}>
+       <View style={[styles.statusDot, isInactive ? { backgroundColor: Colors.TEXT_SECONDARY } : { backgroundColor: Colors.PRIMARY }]} />
+       <CustomText style={isInactive ? styles.textOffline : styles.textLive}>{isInactive ? 'Offline' : 'Live'}</CustomText>
+   </View>
+   ```
+   - Only `badgeLive` (green) and `badgeOffline` (gray) exist.
+   - There is no amber warning badge style (`badgeSignalLost`).
+3. **Static Timestamp Without Relative Elapsed Duration (Line 709):**
+   ```tsx
+   <CustomText variant="caption">{locData ? `Updated: ${formatDateTime(locData.timestamp)}` : 'Waiting for signal...'}</CustomText>
+   ```
+   - Guides must perform mental arithmetic against the current clock to guess how many minutes have passed since the hiker last checked in.
+
+#### 3. Proposed 3-Tier State Architecture for Hiker Status Board
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ Hiker Status Board                                                 [X] │
+├────────────────────────────────────────────────────────────────────────┤
+│ (RV) Raven VILLANU3VA                                                  │
+│      Updated: Oct 18, 3:42 PM                                 [• Live] │
+│      [📍 Track Hiker]                                                  │
+├────────────────────────────────────────────────────────────────────────┤
+│ (TO) Test Owner ⚠️                                                     │
+│      Signal Lost • 6m ago (Last known: 3:36 PM)          [⚠️ Lost]     │
+│      [📍 Track Hiker]                                                  │
+├────────────────────────────────────────────────────────────────────────┤
+│ (RP) Reynal Penus                                                      │
+│      Waiting for signal...                                   [• Offline]│
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **3-State Classification:**
+   - **`live`**:
+     - Condition: `locData` exists AND `(currentTime - timestamp) <= 120,000` (within 2 minutes) AND `locData.status !== 'GPS_SIGNAL_LOST'`.
+     - Badge: `• Live` (Green `#E8F5E9`, border `#A5D6A7`, text `#2E7D32`).
+     - Subtitle: `Updated: ${formatTime(locData.timestamp)}`.
+     - Avatar: Primary Green background.
+     - Action: `[📍 Track Hiker]` button visible (centers map on live pin).
+   - **`lost` (Signal Lost / Last Known Location):**
+     - Condition: `locData` exists AND (`(currentTime - timestamp) > 120,000` OR `locData.status === 'GPS_SIGNAL_LOST'`).
+     - Badge: `⚠️ Signal Lost` (Amber `#FFF3E0`, border `#FFE0B2`, text `#E65100`).
+     - Subtitle: `Signal Lost • ${formatTimeAgo(locData.timestamp)} (Last: ${formatTime(locData.timestamp)})`.
+     - Avatar: Amber border or warning badge indicator on avatar circle.
+     - Action: `[📍 Track Hiker]` button remains visible! (centers map on their Last Known Location pin for rescue navigation).
+   - **`offline`**:
+     - Condition: `!locData` (no telemetry received during this session).
+     - Badge: `• Offline` (Gray `#F5F5F5`, border `#E0E0E0`, text `#757575`).
+     - Subtitle: `Waiting for signal...`.
+     - Avatar: Gray background.
+     - Action: No track button.
+
+2. **Safety-First Sorting Hierarchy:**
+   - 1st: **Live** members (actively streaming telemetry).
+   - 2nd: **Signal Lost** members (flagged prominently for group monitoring / guide awareness).
+   - 3rd: **Offline** members (unconnected / waiting to join).
+
+3. **Cross-Device Responsiveness Safeguards (Compact 320px–360px Phones to Tablets):**
+   - **Horizontal Space Management on 360px Devices:**
+     - Modal inner padding: $24\text{px} \times 2 = 48\text{px}$, leaving only $312\text{px}$ usable width on a $360\text{px}$ device.
+     - `statusBadge`: Must have `flexShrink: 0` and `alignSelf: 'flex-start'` (or centered vertically) so badges like `⚠️ Signal Lost` never get squished, wrap onto two lines, or clip their text.
+     - `memberName`: Add `numberOfLines={1}` and `ellipsizeMode="tail"` with `flexShrink: 1` so long hiker names (e.g. "Maria Santos Dela Cruz") don't push the badge off the right edge.
+     - `memberInfo`: Add `minWidth: 0, flex: 1, paddingRight: 8` for rigid flexbox constraint boundaries.
+     - Subtitle: Allow clean wrapping (`numberOfLines={2}`) so `Signal Lost • 6m ago (Last known: 3:36 PM)` reads comfortably without text truncation.
+   - **Large Screens & Tablet Adaptation:**
+     - Constrain `bottomSheet` with `maxWidth: 500`, `width: '100%'`, and `alignSelf: 'center'` so it renders as a sleek, centered sheet on tablets, foldables, and desktop/web fallbacks rather than stretching across the entire width.
+   - **Dynamic Vertical Height Handling:**
+     - Replace hardcoded `maxHeight: 400` on the ScrollView with dynamic viewport fraction `maxHeight: SCREEN_HEIGHT * 0.55` so short screens or devices with dense DPI scaling do not push the close button or header offscreen.
+
+4. **Status & Implementation References:**
+   - **Status:** ✅ **Implemented & Verified in Production**
+   - **Target File:** `src/features/Navigation/screens/HikeRecordingScreen.tsx`
+   - **Key Capabilities Added:**
+     - 3-tier reactive mapping (`live` -> Green, `signal_lost` -> Amber, `offline` -> Gray).
+     - Live elapsed time formatting via `formatTimeAgo(locData.timestamp, currentTime)`.
+     - 5-second dynamic re-calculation interval driven by `currentTime` state ticker.
+     - Amber `⚠️ Signal Lost` status badge and amber avatar highlight.
+     - Dedicated `Track Last Known` action button flying camera directly to the member's Last Known Location (LKL) pin with coordinates and elapsed disconnect time alert.
+     - Full cross-device responsiveness with rigid flex constraints (`flexShrink: 0` on badges, `numberOfLines={1}` on names, `maxWidth: 500` centered bottom sheet, and dynamic `screenHeight * 0.55` viewport scroll).
+
+
+
+
+
 

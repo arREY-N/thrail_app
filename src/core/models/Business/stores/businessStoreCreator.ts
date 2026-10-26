@@ -1,8 +1,7 @@
 import { TEdit } from "@/src/core/interface/domainHookInterface";
 import { Admin } from "@/src/core/models/Admin/Admin";
-import { Business } from "@/src/core/models/Business/interfaces/Business.types";
+import { Business, IBusinessPaymentConfig } from "@/src/core/models/Business/interfaces/Business.types";
 import { BusinessRepo } from "@/src/core/models/Business/repositories/businessRepository";
-import { newBusiness } from "@/src/core/models/Business/utils/BusinessFactory";
 import { User } from "@/src/core/models/User/User";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { StateCreator } from "zustand";
@@ -21,8 +20,8 @@ export interface BusinessState {
 
     fetchAll: () => Promise<void>;
     refresh: (userId?: string | null) => Promise<void>;
-    load: (...args: any) => Promise<void>;
-    create: (...args: any) => Promise<boolean>;
+    load: (id: string | null) => Promise<void>;
+    create: (business: Business, applicationId: string) => Promise<boolean>;
     delete: (id: string) => Promise<void>;
     edit?: (property: TEdit<Business>) => void;
     reset: () => void;
@@ -33,6 +32,7 @@ export interface BusinessState {
     createBusinessAdmin: (admin: AdminUI) => Promise<void>;
     loadBusinessAdmins: (providedBusinessId: string | null) => Promise<void>;
     reloadBusinessAdmins: (providedBusinessId: string | null) => Promise<void>;
+    updatePaymentConfig: (businessId: string, paymentConfig: IBusinessPaymentConfig<Date> | null) => Promise<boolean>;
 }
 
 const init = {
@@ -40,8 +40,8 @@ const init = {
     current: null,
     businessAdmins: [],
     lastFetchedAt: 0,
-    isLoading: true,
-    isFetching: true,
+    isLoading: false,
+    isFetching: false,
     error: null,
 };
 
@@ -106,7 +106,7 @@ export const businessStoreCreator: StateCreator<
 
     load: async (id: string | null) => {
         if (!id) {
-            set({ current: newBusiness() });
+            set({ current: null, isLoading: false, isFetching: false });
             return;
         }
 
@@ -130,6 +130,7 @@ export const businessStoreCreator: StateCreator<
                 set({
                     error: 'Business not found',
                     isLoading: false,
+                    isFetching: false,
                 });
                 return;
             }
@@ -179,6 +180,31 @@ export const businessStoreCreator: StateCreator<
 
     edit: () => {
 
+    },
+
+    updatePaymentConfig: async (businessId: string, paymentConfig: IBusinessPaymentConfig<Date> | null) => {
+        set({ isLoading: true, error: null });
+        try {
+            await BusinessRepo.updatePaymentConfig(businessId, paymentConfig);
+            set((state) => {
+                if (state.current && state.current.id === businessId) {
+                    state.current.paymentConfig = paymentConfig || undefined;
+                }
+                const idx = state.data.findIndex(b => b.id === businessId);
+                if (idx !== -1) {
+                    state.data[idx].paymentConfig = paymentConfig || undefined;
+                }
+                state.isLoading = false;
+            });
+            return true;
+        } catch (err) {
+            console.error((err as Error).message);
+            set({
+                error: (err as Error).message ?? 'Failed to update payment config',
+                isLoading: false,
+            });
+            return false;
+        }
     },
 
     delete: async (id: string) => {

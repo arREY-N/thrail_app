@@ -2,6 +2,7 @@ import { db } from "@/src/core/config/Firebase";
 import { Hike } from "@/src/core/models/Hike/interfaces/Hike.types";
 import { hikeConverter } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location, locationConverter } from "@/src/core/models/Location/Location";
+import { IUserSummary, User } from "@/src/core/models/User/User";
 import { collection, deleteDoc, doc, Firestore, getDoc, getDocs, onSnapshot, setDoc, Timestamp, Unsubscribe } from "firebase/firestore";
 const createHikesCollection = (db: Firestore, userId: string) => {
     return collection(db, "users", userId, "hikes").withConverter(hikeConverter);
@@ -25,6 +26,49 @@ export const HikeRepository = (db: Firestore) => ({
             console.error("Error fetching hikes: ", err);
             if (err instanceof Error) throw err;
             throw new Error("Failed fetching hikes");
+        }
+    },
+
+    /**
+     * Fetches all hikes across multiple users from Firestore.
+     * Enriches each hike with user summary details if missing.
+     * @param users - Array of user objects or user IDs.
+     * @returns Promise<Hike[]>
+     */
+    async fetchAllFromUsers(users: (User | IUserSummary | string)[]): Promise<Hike[]> {
+        try {
+            const fetchPromises = users.map(async (u) => {
+                const userId = typeof u === 'string' ? u : u.id;
+                if (!userId) return [];
+                try {
+                    const userHikes = await this.fetchAll(userId);
+                    return userHikes.map((h) => ({
+                        ...h,
+                        trail: {
+                            id: h.trail?.id || "diy",
+                            name: h.trail?.name || "DIY Hike / Custom Route",
+                            location: h.trail?.location || "",
+                        },
+                        user: h.user?.id ? h.user : {
+                            id: userId,
+                            username: typeof u !== 'string' ? u.username || '' : '',
+                            firstname: typeof u !== 'string' ? u.firstname || '' : '',
+                            lastname: typeof u !== 'string' ? u.lastname || '' : '',
+                            email: typeof u !== 'string' ? u.email || '' : '',
+                        },
+                    }));
+                } catch (err) {
+                    console.warn(`Could not fetch hikes for user ${userId}:`, err);
+                    return [];
+                }
+            });
+
+            const results = await Promise.all(fetchPromises);
+            return results.flat();
+        } catch (err) {
+            console.error("Error fetching all users' hikes:", err);
+            if (err instanceof Error) throw err;
+            throw new Error("Failed fetching all users' hikes");
         }
     },
 

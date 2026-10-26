@@ -4,8 +4,13 @@ import { Platform, StyleSheet, View } from 'react-native';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
-import CustomToast from '@/src/components/CustomToast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { useToast } from '@/src/components/Toast/Toast';
+import {
+    CustomTutorialModal,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -14,13 +19,16 @@ import { useAuthStore } from "@/src/core/models/User/User";
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
 import { checkIfMinor } from '@/src/utils/dateFormatter';
 
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
+import { ManualQRMethodScreen } from '@/src/features/Book/screens/Payment/ManualQRMethodScreen';
 import MethodScreen from '@/src/features/Book/screens/Payment/MethodScreen';
 import StatusScreen from '@/src/features/Book/screens/Payment/StatusScreen';
 
 import { app } from '@/src/core/config/Firebase';
-import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
+import { Booking, IPayment, useBookingsStore } from '@/src/core/models/Booking/Booking';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+
 
 export interface PaymentResultResponse {
     checkout_url: string;
@@ -51,6 +59,8 @@ const PaymentScreen = ({
     const isSubmittingRef = useRef(false);
     const [isWaitingForVerification, setIsWaitingForVerification] = useState(false);
     const [paymentError, setPaymentError] = useState<string | null>(null);
+    const activeTourId = currentStep === 2 ? 'payment_status' : 'payment';
+    const tutorial = useTutorialGuide(activeTourId, !isSubmitting && !isWaitingForVerification);
 
     useEffect(() => {
         if (Platform.OS !== 'web') return;
@@ -85,12 +95,11 @@ const PaymentScreen = ({
 
     const [paymentType, setPaymentType] = useState<'full' | 'downpayment'>('full');
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+    const [manualReceiptUrl, setManualReceiptUrl] = useState<string>('');
+    const [manualReferenceCode, setManualReferenceCode] = useState<string>('');
     const [isSignatureValid, setIsSignatureValid] = useState(false);
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
-    const [toastConfig, setToastConfig] = useState<{ visible: boolean; message: string }>({
-        visible: false,
-        message: '',
-    });
+    const { showToast } = useToast();
 
     const payments = Array.isArray(bookingData?.payment) ? bookingData.payment : [];
     const latestPayment: IPayment<Date> | undefined = payments[payments.length - 1];
@@ -101,13 +110,13 @@ const PaymentScreen = ({
         if (p.status === 'captured') return sum + (p.amount || 0);
         return sum;
     }, 0);
-    const remainingBalance = totalPrice - amountPaidAlready;
+    const remainingBalance = bookingData?.remainingBalance !== undefined 
+        ? bookingData.remainingBalance 
+        : Math.max(0, totalPrice - amountPaidAlready);
 
-    const isPayingBalance = amountPaidAlready > 0;
+    const isPayingBalance = amountPaidAlready > 0 || (bookingData?.status === 'downpayment' && remainingBalance > 0);
     const effectivePaymentType = isPayingBalance ? 'full' : paymentType;
-    const amountToPay = isPayingBalance
-        ? remainingBalance
-        : (effectivePaymentType === 'full' ? totalPrice : totalPrice / 2);
+    const amountToPay = isPayingBalance ? remainingBalance : totalPrice;
 
     const rawBirthday = bookingData?.user?.birthday || profile?.birthday;
     const isUserMinor = checkIfMinor(rawBirthday);
@@ -148,23 +157,82 @@ const PaymentScreen = ({
         if (currentStep === 1) {
             setPaymentError(null);
 
+            if (PAYMENT_CONFIG.PROVIDER === 'manual_qr') {
+                if (!manualReceiptUrl) {
+                    setHasAttemptedSubmit(true);
+                    showToast.error("Please upload the screenshot of your payment receipt to proceed.", {
+                        onHide: () => setHasAttemptedSubmit(false),
+                    });
+                    return;
+                }
+
+                if (!isSignatureValid) {
+                    setHasAttemptedSubmit(true);
+                    showToast.error(
+                        isUserMinor
+                            ? "Parent / Guardian signature is required to authorize payment."
+                            : "Please type your full name in the signature field to authorize payment.",
+                        {
+                            onHide: () => setHasAttemptedSubmit(false),
+                        }
+                    );
+                    return;
+                }
+
+                try {
+                    isSubmittingRef.current = true;
+                    setIsSubmitting(true);
+
+                    const newPayment: IPayment<Date> = {
+                        gateway: 'manual_qr',
+                        sessionId: `manual_${Date.now()}`,
+                        referenceCode: manualReferenceCode.trim() || `REF-${Date.now()}`,
+                        amount: amountToPay,
+                        status: 'pending',
+                        createdAt: new Date(),
+                        paidAt: new Date(),
+                        receiptUrl: manualReceiptUrl,
+                        classification: effectivePaymentType as 'full' | 'downpayment',
+                    };
+
+                    const updatedBooking: Booking = {
+                        ...bookingData,
+                        payment: [...(bookingData.payment || []), newPayment],
+                        paymentVerificationStatus: 'pending_verification',
+                        updatedAt: new Date(),
+                    };
+                    delete updatedBooking.paymentRejectionReason;
+
+                    await useBookingsStore.getState().create(updatedBooking, false, true);
+                    setCurrentStep(2);
+                } catch (err: unknown) {
+                    console.error('[PaymentScreen] Manual QR submission failed:', err);
+                    setPaymentError(err instanceof Error ? err.message : "Failed to submit receipt. Please try again.");
+                } finally {
+                    isSubmittingRef.current = false;
+                    setIsSubmitting(false);
+                }
+                return;
+            }
+
             if (!selectedMethod) {
                 setHasAttemptedSubmit(true);
-                setToastConfig({
-                    visible: true,
-                    message: "Please select a payment method to proceed.",
+                showToast.error("Please select a payment method to proceed.", {
+                    onHide: () => setHasAttemptedSubmit(false),
                 });
                 return;
             }
 
             if (!isSignatureValid) {
                 setHasAttemptedSubmit(true);
-                setToastConfig({
-                    visible: true,
-                    message: isUserMinor
+                showToast.error(
+                    isUserMinor
                         ? "Parent / Guardian signature is required to authorize payment."
                         : "Please type your full name in the signature field to authorize payment.",
-                });
+                    {
+                        onHide: () => setHasAttemptedSubmit(false),
+                    }
+                );
                 return;
             }
 
@@ -254,6 +322,16 @@ const PaymentScreen = ({
                             }, 3000);
                         } else {
                             setIsWaitingForVerification(true);
+                            // Safety fallback: if verification takes longer than 15s, release spinner and notify user
+                            setTimeout(() => {
+                                setIsWaitingForVerification(prev => {
+                                    if (prev) {
+                                        setPaymentError("We are finalizing your payment with the provider. If your payment was completed, your booking status will update automatically in a few moments.");
+                                        return false;
+                                    }
+                                    return prev;
+                                });
+                            }, 15000);
                         }
                     }
 
@@ -295,6 +373,9 @@ const PaymentScreen = ({
         latestPayment,
         isSignatureValid,
         isUserMinor,
+        showToast,
+        manualReceiptUrl,
+        manualReferenceCode,
     ]);
 
     const handleHeaderBackPress = useCallback(() => {
@@ -331,12 +412,46 @@ const PaymentScreen = ({
             };
         }
         if (currentStep === 1) {
+            if (PAYMENT_CONFIG.PROVIDER === 'manual_qr') {
+                const isReady = Boolean(manualReceiptUrl && isSignatureValid);
+                const isRejected = bookingData?.paymentVerificationStatus === 'rejected';
+                return {
+                    title: isSubmitting
+                        ? "Submitting Receipt..."
+                        : (isRejected ? "Resubmit Payment & Receipt" : "Submit Payment & Receipt"),
+                    onPress: handleNextStep,
+                    disabled: isSubmitting,
+                    isLoading: isSubmitting,
+                    validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                    isIdleDisabled: false,
+                    style: {
+                        backgroundColor: isReady
+                            ? Colors.PRIMARY
+                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_BG : Colors.GRAY_ULTRALIGHT),
+                        borderColor: isReady
+                            ? Colors.PRIMARY
+                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.GRAY_LIGHT),
+                        borderWidth: 1.5,
+                    },
+                    textStyle: {
+                        color: isReady
+                            ? Colors.WHITE
+                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.TEXT_SECONDARY),
+                    },
+                };
+            }
+
             const isReady = Boolean(selectedMethod && isSignatureValid);
+            const isRejected = bookingData?.paymentVerificationStatus === 'rejected';
             return {
-                title: isSubmitting ? "Opening Gateway..." : "Continue to Payment",
+                title: isSubmitting
+                    ? "Opening Gateway..."
+                    : (isRejected ? "Resubmit Payment" : "Continue to Payment"),
                 onPress: handleNextStep,
                 disabled: isSubmitting || isWaitingForVerification,
                 isLoading: isSubmitting,
+                validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                isIdleDisabled: false,
                 style: {
                     backgroundColor: isReady
                         ? Colors.PRIMARY
@@ -369,7 +484,18 @@ const PaymentScreen = ({
             disabled: false,
             isLoading: false,
         };
-    }, [isWaitingForVerification, currentStep, selectedMethod, isSignatureValid, isSubmitting, hasAttemptedSubmit, handleNextStep, handleCancelVerification]);
+    }, [
+        isWaitingForVerification,
+        currentStep,
+        selectedMethod,
+        isSignatureValid,
+        isSubmitting,
+        hasAttemptedSubmit,
+        handleNextStep,
+        handleCancelVerification,
+        manualReceiptUrl,
+        bookingData?.paymentVerificationStatus,
+    ]);
 
     const lineFillPercentage = ((currentStep - 1) / 1) * 100;
 
@@ -389,6 +515,7 @@ const PaymentScreen = ({
                 title={currentStep === 2 ? "Payment Status" : "Setup Payment"}
                 centerTitle={true}
                 onBackPress={currentStep === 2 ? undefined : handleHeaderBackPress}
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />}
             />
 
             <View style={styles.progressWrapper}>
@@ -426,52 +553,77 @@ const PaymentScreen = ({
 
             <View style={styles.contentArea}>
                 {currentStep === 1 && (
-                    <MethodScreen
-                        amountToPay={amountToPay}
-                        paymentType={effectivePaymentType}
-                        setPaymentType={setPaymentType}
-                        selectedMethod={selectedMethod}
-                        setSelectedMethod={setSelectedMethod}
-                        profileFullName={expectedSignatureName}
-                        setIsSignatureValid={setIsSignatureValid}
-                        paymentError={paymentError}
-                        isPayingBalance={isPayingBalance}
-                        isMinor={isUserMinor}
-                        minorName={hikerFullName}
-                    />
+                    PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? (
+                        <ManualQRMethodScreen
+                            bookingData={bookingData}
+                            amountToPay={amountToPay}
+                            paymentType={effectivePaymentType}
+                            setPaymentType={setPaymentType}
+                            receiptUrl={manualReceiptUrl}
+                            setReceiptUrl={setManualReceiptUrl}
+                            referenceCode={manualReferenceCode}
+                            setReferenceCode={setManualReferenceCode}
+                            profileFullName={expectedSignatureName}
+                            setIsSignatureValid={setIsSignatureValid}
+                            paymentError={paymentError}
+                            isPayingBalance={isPayingBalance}
+                            isMinor={isUserMinor}
+                            minorName={hikerFullName}
+                        />
+                    ) : (
+                        <MethodScreen
+                            amountToPay={amountToPay}
+                            paymentType={effectivePaymentType}
+                            setPaymentType={setPaymentType}
+                            selectedMethod={selectedMethod}
+                            setSelectedMethod={setSelectedMethod}
+                            profileFullName={expectedSignatureName}
+                            setIsSignatureValid={setIsSignatureValid}
+                            paymentError={paymentError}
+                            isPayingBalance={isPayingBalance}
+                            isMinor={isUserMinor}
+                            minorName={hikerFullName}
+                            activeTutorialStep={tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined}
+                            isTutorialVisible={tutorial.isVisible}
+                        />
+                    )
                 )}
                 {currentStep === 2 && (
                     <StatusScreen
-                        selectedMethod={latestPayment?.gateway || selectedMethod}
+                        selectedMethod={PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? 'Manual QR' : (latestPayment?.gateway || selectedMethod)}
                         amountToPay={latestPayment?.amount || amountToPay}
                         bookingId={bookingData?.id}
-                        referenceCode={latestPayment?.referenceCode || latestPayment?.sessionId}
+                        referenceCode={manualReferenceCode || latestPayment?.referenceCode || latestPayment?.sessionId}
+                        activeTutorialStep={tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined}
+                        isTutorialVisible={tutorial.isVisible}
                     />
                 )}
             </View>
 
             <CustomStickyFooter
+                enableToastDock={true}
                 primaryButton={{
                     title: footerConfig.title,
                     onPress: footerConfig.onPress,
                     disabled: footerConfig.disabled,
                     isLoading: footerConfig.isLoading,
                     variant: footerConfig.variant,
+                    validationState: footerConfig.validationState,
+                    isIdleDisabled: footerConfig.isIdleDisabled,
                     style: footerConfig.style,
                     textStyle: footerConfig.textStyle,
                 }}
             />
 
-            <CustomToast
-                visible={toastConfig.visible}
-                message={toastConfig.message}
-                type="error"
-                mode="dismissible"
-                position="sticky_footer"
-                onHide={() => {
-                    setToastConfig(prev => ({ ...prev, visible: false }));
-                    setHasAttemptedSubmit(false);
-                }}
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
             />
         </ScreenWrapper>
     );

@@ -3,7 +3,7 @@
  * @description Admin screen displaying detailed information for an offer and its filtered, sortable recent bookings list.
  */
 
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
     Platform,
     ScrollView,
@@ -17,6 +17,15 @@ import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import {
+    CustomTutorialModal,
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    requestTargetMeasurement,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
@@ -61,10 +70,71 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
     const { 
         activeFilter, 
         setActiveFilter, 
-        sortOrder,
-        setSortOrder,
+        sortOrder, 
+        setSortOrder, 
         filteredBookings 
     } = useBookingFilters(bookings);
+
+    const tutorial = useTutorialGuide('admin_offer_view', Boolean(offer));
+    const scrollViewRef = useRef<ScrollView>(null);
+    const summaryRef = useRef<View>(null);
+    const filtersRef = useRef<View>(null);
+    const firstBookingRef = useRef<View>(null);
+    const emptyStateRef = useRef<View>(null);
+    const bookingsOffsetY = useRef<number>(240);
+
+    const measureSummaryNow = useCallback(() => {
+        summaryRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('admin_view_summary', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureFiltersNow = useCallback(() => {
+        filtersRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('admin_view_filters', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureBookingCardNow = useCallback(() => {
+        const target = firstBookingRef.current || emptyStateRef.current;
+        target?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('admin_view_booking_card', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const u1 = registerMeasureCallback('admin_view_summary', measureSummaryNow);
+        const u2 = registerMeasureCallback('admin_view_filters', measureFiltersNow);
+        const u3 = registerMeasureCallback('admin_view_booking_card', measureBookingCardNow);
+        return () => {
+            u1();
+            u2();
+            u3();
+        };
+    }, [measureSummaryNow, measureFiltersNow, measureBookingCardNow]);
+
+    useEffect(() => {
+        if (!tutorial.isVisible) return;
+        const step = tutorial.currentStep?.targetSpotlight;
+        if (!step) return;
+        if (step === 'admin_view_summary' || step === 'header_help') {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        } else if (step === 'admin_view_filters') {
+            scrollViewRef.current?.scrollTo({ y: Math.max(0, bookingsOffsetY.current - 80), animated: true });
+        } else if (step === 'admin_view_booking_card') {
+            scrollViewRef.current?.scrollTo({ y: Math.max(0, bookingsOffsetY.current - 16), animated: true });
+            setTimeout(() => {
+                requestTargetMeasurement('admin_view_booking_card');
+            }, 250);
+        }
+        requestTargetMeasurement(step);
+    }, [tutorial.isVisible, tutorial.currentStep?.targetSpotlight]);
 
     if (!offer) return null;
     
@@ -82,23 +152,45 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
             <CustomHeader 
                 title="Offer Details" 
                 centerTitle={true} 
-                onBackPress={onBackPress} 
+                onBackPress={onBackPress}
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />} 
             />
             
             <ScrollView 
                 showsVerticalScrollIndicator={false} 
+                ref={scrollViewRef}
                 contentContainerStyle={styles.scrollContent}
             >
-                <View style={styles.constrainer}>
+                <View
+                    style={styles.constrainer}
+                >
                     
-                    <OfferSummaryCard 
+                    <View
+                        ref={summaryRef}
+                        collapsable={false}
+                        style={styles.summaryCardWrapper}
+                        onLayout={() => {
+                            if (isTutorialMeasurementActive()) measureSummaryNow();
+                        }}
+                    >
+                        <OfferSummaryCard 
                         offer={offer} 
                         trailName={trailName} 
                         bookings={bookings}
                         isOfferLocked={isOfferLocked}
+                        style={styles.noMarginBottom}
                     />
+                    </View>
 
-                    <View style={styles.sectionHeaderRow}>
+                    <View
+                        ref={filtersRef}
+                        collapsable={false}
+                        onLayout={(e) => {
+                            bookingsOffsetY.current = e.nativeEvent.layout.y;
+                            if (isTutorialMeasurementActive()) measureFiltersNow();
+                        }}
+                    >
+                        <View style={styles.sectionHeaderRow}>
                         <CustomText variant="h3" style={styles.sectionTitle}>
                             Recent Bookings <CustomText style={styles.sectionTitleCounter}>({filteredBookings.length})</CustomText>
                         </CustomText>
@@ -130,6 +222,7 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                             containerStyle={styles.filterScrollWrapper}
                         />
                     )}
+                    </View>
 
                     {error && (
                         <CustomText style={styles.errorText}>
@@ -138,17 +231,34 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                     )}
 
                     {filteredBookings && filteredBookings.length > 0 ? (
-                        filteredBookings.map((b: Booking) => (
-                            <AdminBookingCard 
+                        filteredBookings.map((b: Booking, index: number) => (
+                            <View
+                                key={b.id}
+                                ref={index === 0 ? firstBookingRef : undefined}
+                                collapsable={false}
+                                style={styles.bookingCardWrapper}
+                                onLayout={index === 0 ? () => {
+                                    if (isTutorialMeasurementActive()) measureBookingCardNow();
+                                } : undefined}
+                            >
+                                <AdminBookingCard 
                                 key={b.id} 
                                 booking={b} 
                                 offerId={offerId} 
                                 onViewBooking={onViewBooking} 
                                 isOfferLocked={isOfferLocked}
+                                style={styles.noMarginBottom}
                             />
-                        ))
-                    ) : (
-                        <View style={styles.emptyState}>
+                            </View>
+                        ))) : (
+                        <View
+                            ref={emptyStateRef}
+                            collapsable={false}
+                            onLayout={() => {
+                                if (isTutorialMeasurementActive()) measureBookingCardNow();
+                            }}
+                            style={styles.emptyState}
+                        >
                             <CustomIcon 
                                 library="Feather" 
                                 name="inbox" 
@@ -165,6 +275,17 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                     )}
                 </View>
             </ScrollView>
+
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
+            />
         </ScreenWrapper>
     );
 };
@@ -281,6 +402,15 @@ const styles = StyleSheet.create({
         borderRadius: 16, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT 
+    },
+    summaryCardWrapper: {
+        marginBottom: 24,
+    },
+    bookingCardWrapper: {
+        marginBottom: 12,
+    },
+    noMarginBottom: {
+        marginBottom: 0,
     },
     emptyText: { 
         marginTop: 8, 

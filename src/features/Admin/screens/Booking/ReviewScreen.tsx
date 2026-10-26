@@ -1,7 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Linking,
     ScrollView,
     StyleSheet,
@@ -19,13 +18,28 @@ import CustomLoading from '@/src/components/CustomLoading';
 import CustomSelectionModal from '@/src/components/CustomSelectionModal';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
-import CustomToast from '@/src/components/CustomToast';
+import { useToast } from '@/src/components/Toast/Toast';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import {
+    adminBookingReviewDocSteps,
+    adminBookingReviewPaymentSteps,
+    createReplayHelpStep,
+} from '@/src/components/Tutorial/constants';
+import {
+    CustomTutorialModal,
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    requestTargetMeasurement,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 
 import useReviewLogic from '@/src/features/Admin/hooks/useReviewLogic';
 import { ActivityLog } from '@/src/features/Admin/screens/Booking/components/ActivityLog';
@@ -42,6 +56,7 @@ import { Booking } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { User } from '@/src/core/models/User/User';
+import { SelectedFile } from '@/src/core/repositories/fileRepository';
 import {
     CANCELLATION_DECLINE_REASONS,
     getDynamicRejectionSuggestions,
@@ -84,10 +99,15 @@ export interface ReviewScreenProps {
     error?: string;
     hikerProfile?: User | null;
     cancellationRequest?: Cancellation | null;
-    onApproveCancellation?: (request?: Cancellation | null, booking?: Booking, refundType?: RefundType, customAmount?: number) => Promise<void>;
+    onApproveCancellation?: (request?: Cancellation | null, booking?: Booking, refundType?: RefundType, customAmount?: number, adminNote?: string) => Promise<void>;
     onDeclineCancellation?: (reason: string, request?: Cancellation | null, booking?: Booking) => Promise<void>;
     onRevertCancellation?: (request?: Cancellation | null) => Promise<void>;
     onAdminCancelBooking?: (booking: Booking, reason: string) => Promise<void>;
+    onVerifyManualPayment?: (classification: 'full' | 'downpayment', note?: string, booking?: Booking, verifiedAmount?: number) => Promise<void>;
+    onRejectManualPayment?: (reason: string, booking?: Booking) => Promise<void>;
+    onSettleRemainingBalance?: (booking?: Booking) => Promise<void>;
+    onUploadRefundProof?: (file: SelectedFile, request?: Cancellation | null, booking?: Booking | null) => Promise<void | string>;
+    onApproveWithManualRefund?: (amount: number, request?: Cancellation | null, booking?: Booking | null) => Promise<void | Cancellation>;
 }
 
 /**
@@ -111,6 +131,11 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     onDeclineCancellation,
     onRevertCancellation,
     onAdminCancelBooking,
+    onVerifyManualPayment,
+    onRejectManualPayment,
+    onSettleRemainingBalance,
+    onUploadRefundProof,
+    onApproveWithManualRefund,
 }) => {
     const { width } = useWindowDimensions();
     const isWide = width >= 768;
@@ -141,6 +166,89 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         syncGlobalVerification,
     } = useReviewLogic(booking, offers, cancellationRequest);
 
+    const dynamicTourSteps = useMemo(() => {
+        const steps = activeTab === 'payment'
+            ? adminBookingReviewPaymentSteps
+            : adminBookingReviewDocSteps;
+        return [...steps, createReplayHelpStep('Booking Review')];
+    }, [activeTab]);
+
+    const tutorial = useTutorialGuide('admin_booking_review', !isLoading && Boolean(booking), dynamicTourSteps);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const leftColRef = useRef<View>(null);
+    const tabBarRef = useRef<View>(null);
+    const contentRef = useRef<View>(null);
+    const firstCardRef = useRef<View>(null);
+    const tabBarOffsetY = useRef<number>(360);
+
+    const measureProfileNow = useCallback(() => {
+        leftColRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_review_profile', {
+                    x,
+                    y,
+                    width: w,
+                    height: h,
+                });
+            }
+        });
+    }, []);
+
+    const measureTabsNow = useCallback(() => {
+        tabBarRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_review_tabs', { x, y, width: w, height: h });
+            }
+        });
+    }, []);
+
+    const measureContentNow = useCallback(() => {
+        const targetRef = activeTab === 'documents' ? firstCardRef : contentRef;
+        targetRef.current?.measureInWindow((x, y, w, h) => {
+            if (w > 0 && h > 0) {
+                registerTutorialLayout('admin_review_content', {
+                    x,
+                    y,
+                    width: w,
+                    height: h,
+                });
+            }
+        });
+    }, [activeTab]);
+
+    useEffect(() => {
+        const u1 = registerMeasureCallback('admin_review_profile', measureProfileNow);
+        const u2 = registerMeasureCallback('admin_review_tabs', measureTabsNow);
+        const u3 = registerMeasureCallback('admin_review_content', measureContentNow);
+        return () => {
+            u1();
+            u2();
+            u3();
+        };
+    }, [measureProfileNow, measureTabsNow, measureContentNow]);
+
+    useEffect(() => {
+        if (!tutorial.isVisible) return;
+        const step = tutorial.currentStep?.targetSpotlight;
+        if (!step) return;
+        if (step === 'admin_review_profile' || step === 'header_help') {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        } else if (step === 'admin_review_tabs' || step === 'admin_review_content') {
+            if (!isWide) {
+                scrollViewRef.current?.scrollTo({
+                    y: Math.max(0, tabBarOffsetY.current - 32),
+                    animated: true,
+                });
+            }
+        } else if (step === 'booking_footer') {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+            setTimeout(() => {
+                requestTargetMeasurement('booking_footer');
+            }, 250);
+        }
+        requestTargetMeasurement(step);
+    }, [tutorial.isVisible, tutorial.currentStep?.targetSpotlight, isWide]);
+
     const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
     const [isConfirmVisible, setIsConfirmVisible] = useState(false);
     const [isConfirmPaymentVisible, setIsConfirmPaymentVisible] = useState(false);
@@ -148,6 +256,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
     const [selectedRescheduleOffer, setSelectedRescheduleOffer] = useState<{ id: string; label: string; subLabel?: string; originalData: Offer } | null>(null);
     const [showRefundModal, setShowRefundModal] = useState(false);
+    const [refundModalInitialType, setRefundModalInitialType] = useState<RefundType>('full');
     const [showCancelUnpaidModal, setShowCancelUnpaidModal] = useState(false);
 
     const [isProcessingAction, setIsProcessingAction] = useState(false);
@@ -157,25 +266,43 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const [isConfirmCancellationVisible, setIsConfirmCancellationVisible] = useState(false);
     const [isConfirmDeclineVisible, setIsConfirmDeclineVisible] = useState(false);
     const [isConfirmRevertVisible, setIsConfirmRevertVisible] = useState(false);
+    const [isUploadingProof, setIsUploadingProof] = useState(false);
 
-    const [toastConfig, setToastConfig] = useState<{
-        visible: boolean;
-        message: string;
-        type: 'info' | 'warning' | 'error' | 'success';
-    }>({
-        visible: false,
-        message: '',
-        type: 'info',
-    });
+    const { showToast } = useToast();
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
-    const [hasInteracted, setHasInteracted] = useState<boolean>(false);
+
+    const handleUploadRefundProof = async (file: SelectedFile) => {
+        if (!onUploadRefundProof) return;
+        setIsUploadingProof(true);
+        try {
+            await onUploadRefundProof(file, cancellationRequest, booking);
+            showToast.success("Refund payout proof uploaded successfully.");
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to upload refund proof";
+            showToast.error(errorMessage);
+        } finally {
+            setIsUploadingProof(false);
+        }
+    };
+
+    const handleApproveWithManualRefund = async (amount: number) => {
+        if (!onApproveWithManualRefund) return;
+        setIsProcessingAction(true);
+        try {
+            await onApproveWithManualRefund(amount, cancellationRequest, booking);
+            showToast.success(`Refund of ₱${amount.toFixed(2)} approved. Awaiting hiker wallet.`);
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to approve refund";
+            showToast.error(errorMessage);
+        } finally {
+            setIsProcessingAction(false);
+        }
+    };
 
     const isRejecting = hasRejections || isRejectingBooking;
 
     const hasUnverifiedPhone = personalStatus !== 'verified' || (emergencyStatus !== 'verified' && !!booking?.emergencyContact);
-    const isSecondaryVisible = isRejecting 
-        ? true 
-        : (hasInteracted || hasUnverifiedPhone || docStates.length === 0);
+    const isSecondaryVisible = isRejecting || hasUnverifiedPhone || hasRejections || docStates.length === 0;
 
     const dynamicSuggestions = useMemo(
         () => getDynamicRejectionSuggestions(docStates.length, hasRejections),
@@ -183,24 +310,28 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     );
 
     const totalAmountPaid = booking?.payment?.reduce((sum: number, p) => p.status === 'captured' ? sum + p.amount : sum, 0) || 0;
-    const totalRefundedAmount = booking?.payment?.reduce((sum: number, p) => p.status === 'refunded' ? sum + (p.refundedAmount || p.amount) : sum, 0) || 0;
+    const totalRefundedAmount = typeof booking?.refundedAmount === 'number' && booking.refundedAmount > 0
+        ? booking.refundedAmount
+        : (typeof cancellationRequest?.refundAmount === 'number' && cancellationRequest.refundAmount > 0
+            ? cancellationRequest.refundAmount
+            : (booking?.payment?.reduce((sum: number, p) => (p.status === 'refunded' || ((p.refundedAmount || 0) > 0)) ? sum + (p.refundedAmount || p.amount) : sum, 0) || 0));
+    const remainingRefundableAmount = Math.max(0, totalAmountPaid - totalRefundedAmount);
+    const isOfferFinished = Boolean(booking?.offer?.date && new Date(booking.offer.date) < new Date());
     const lastCapturedPayment = booking?.payment?.slice().reverse().find(p => p.status === 'captured');
     const paymentCapturedAt = lastCapturedPayment?.createdAt || null;
 
     const handleLockedVerifyPress = useCallback((vStatus: VerificationStatus) => {
         const message = getLockedVerificationToastMessage(currentStatus, vStatus);
-        setToastConfig({
-            visible: true,
-            message,
-            type: 'info',
-        });
-    }, [currentStatus]);
+        showToast.info(message);
+    }, [currentStatus, showToast]);
 
     const handleViewFile = async (url: string, index: number) => {
-        if (!url) return Alert.alert("Notice", "No file uploaded.");
+        if (!url) {
+            showToast.info("No file uploaded.");
+            return;
+        }
 
         setViewedDocs((prev: Record<number, boolean>) => ({ ...prev, [index]: true }));
-        setHasInteracted(true);
 
         if (url.toLowerCase().includes('.pdf')) {
             if (await Linking.canOpenURL(url)) {
@@ -249,10 +380,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             const hasReason = rejectionReason.trim().length > 0;
             if (!hasReason) {
                 setHasAttemptedSubmit(true);
-                setToastConfig({
-                    visible: true,
-                    message: REVIEW_TOASTS.REASON_REQUIRED,
-                    type: 'error',
+                showToast.error(REVIEW_TOASTS.REASON_REQUIRED, {
+                    onHide: () => setHasAttemptedSubmit(false),
                 });
                 return;
             }
@@ -263,16 +392,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         if (isDecisionIncomplete) {
             const pendingCount = docStates.filter((d: DocState) => d.valid === 'pending').length;
             setHasAttemptedSubmit(true);
-            setToastConfig({
-                visible: true,
-                message: REVIEW_TOASTS.DOCS_INCOMPLETE(pendingCount),
-                type: 'error',
+            showToast.error(REVIEW_TOASTS.DOCS_INCOMPLETE(pendingCount), {
+                onHide: () => setHasAttemptedSubmit(false),
             });
             return;
         }
 
         setIsConfirmVisible(true);
-    }, [isRejecting, rejectionReason, isDecisionIncomplete, docStates]);
+    }, [isRejecting, rejectionReason, isDecisionIncomplete, docStates, showToast]);
 
     const handleSecondaryPress = useCallback(() => {
         if (isRejecting) {
@@ -280,11 +407,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             setRejectionReason('');
             setIsRejectingBooking(false);
             setHasAttemptedSubmit(false);
-            setToastConfig(prev => ({ ...prev, visible: false }));
             return;
         }
 
-        setHasInteracted(true);
         setIsRejectingBooking(true);
         setHasAttemptedSubmit(false);
     }, [isRejecting, setDocStates, setRejectionReason]);
@@ -296,28 +421,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 title: "Submit Rejection",
                 variant: 'destructive' as const,
                 disabled: isProcessingAction,
-                style: hasReason ? {
-                    backgroundColor: Colors.ERROR,
-                    borderColor: Colors.ERROR,
-                } : (hasAttemptedSubmit ? {
-                    backgroundColor: Colors.STATUS_CANCELLED_BG,
-                    borderColor: Colors.STATUS_CANCELLED_TEXT,
-                    borderWidth: 1.5,
-                } : {
-                    backgroundColor: Colors.GRAY_ULTRALIGHT,
-                    borderColor: Colors.GRAY_LIGHT,
-                    borderWidth: 1.5,
-                }),
-                textStyle: hasReason ? {
-                    color: Colors.WHITE,
-                    fontWeight: 'bold' as const,
-                } : (hasAttemptedSubmit ? {
-                    color: Colors.STATUS_CANCELLED_TEXT,
-                    fontWeight: 'bold' as const,
-                } : {
-                    color: Colors.TEXT_SECONDARY,
-                    fontWeight: 'bold' as const,
-                }),
+                validationState: hasReason ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                isIdleDisabled: false,
                 onPress: handlePrimaryPress,
             };
         }
@@ -328,28 +433,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             title: "Approve Booking",
             variant: 'primary' as const,
             disabled: isProcessingAction,
-            style: isReady ? {
-                backgroundColor: Colors.PRIMARY,
-                borderColor: Colors.PRIMARY,
-            } : (hasAttemptedSubmit ? {
-                backgroundColor: Colors.STATUS_CANCELLED_BG,
-                borderColor: Colors.STATUS_CANCELLED_TEXT,
-                borderWidth: 1.5,
-            } : {
-                backgroundColor: Colors.GRAY_ULTRALIGHT,
-                borderColor: Colors.GRAY_LIGHT,
-                borderWidth: 1.5,
-            }),
-            textStyle: isReady ? {
-                color: Colors.WHITE,
-                fontWeight: 'bold' as const,
-            } : (hasAttemptedSubmit ? {
-                color: Colors.STATUS_CANCELLED_TEXT,
-                fontWeight: 'bold' as const,
-            } : {
-                color: Colors.TEXT_SECONDARY,
-                fontWeight: 'bold' as const,
-            }),
+            validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+            isIdleDisabled: false,
             onPress: handlePrimaryPress,
         };
     }, [isRejecting, rejectionReason, isProcessingAction, hasAttemptedSubmit, isDecisionIncomplete, docStates.length, handlePrimaryPress]);
@@ -360,11 +445,6 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 title: "Cancel Rejection",
                 variant: 'outline' as const,
                 disabled: isProcessingAction,
-                textStyle: { color: Colors.TEXT_PRIMARY },
-                style: {
-                    borderColor: Colors.GRAY_LIGHT,
-                    backgroundColor: Colors.WHITE,
-                },
                 onPress: handleSecondaryPress,
             };
         }
@@ -377,14 +457,36 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             title: "Reject Booking",
             variant: 'outline' as const,
             disabled: isProcessingAction,
+            style: { borderColor: Colors.ERROR },
             textStyle: { color: Colors.ERROR },
-            style: {
-                borderColor: Colors.GRAY_LIGHT,
-                backgroundColor: Colors.WHITE,
-            },
             onPress: handleSecondaryPress,
         };
     }, [isRejecting, isSecondaryVisible, isProcessingAction, handleSecondaryPress]);
+
+    const hasRemainingBalance = Boolean(booking?.remainingBalance !== undefined && booking.remainingBalance > 0);
+    const isDownpaymentStatus = currentStatus === 'downpayment' || hasRemainingBalance;
+    const isLockedStatus = isCancelledStatus || ['reservation-rejected', 'cancellation-rejected', 'for-cancellation', 'for-reschedule'].includes(currentStatus);
+    const isPaymentActionable = currentStatus === 'paid' && !hasRemainingBalance && !isLockedStatus;
+    const isTutorialFooterPreview = tutorial.isVisible && tutorial.currentStep?.targetSpotlight === 'booking_footer';
+
+    const paymentPrimaryConfig = useMemo(() => {
+        const remainingBalAmount = booking?.remainingBalance ?? (booking?.offer?.price ? booking.offer.price / 2 : 0);
+        let buttonTitle = isProcessingAction ? "Completing..." : "Complete Booking";
+        if (isDownpaymentStatus) {
+            buttonTitle = `Balance Pending (₱${remainingBalAmount.toFixed(2)})`;
+        }
+
+        return {
+            title: buttonTitle,
+            variant: 'primary' as const,
+            disabled: !isPaymentActionable || isProcessingAction,
+            onPress: () => {
+                if (isPaymentActionable) {
+                    setIsConfirmPaymentVisible(true);
+                }
+            },
+        };
+    }, [isProcessingAction, isPaymentActionable, isDownpaymentStatus, booking?.remainingBalance, booking?.offer?.price]);
 
     const cancellationPrimaryConfig = useMemo(() => {
         if (isDecliningCancellation) {
@@ -393,27 +495,13 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 title: "Submit Decline",
                 variant: 'destructive' as const,
                 disabled: isProcessingAction,
-                style: hasReason ? {
-                    backgroundColor: Colors.ERROR,
-                    borderColor: Colors.ERROR,
-                } : {
-                    backgroundColor: Colors.GRAY_ULTRALIGHT,
-                    borderColor: Colors.GRAY_LIGHT,
-                    borderWidth: 1.5,
-                },
-                textStyle: hasReason ? {
-                    color: Colors.WHITE,
-                    fontWeight: 'bold' as const,
-                } : {
-                    color: Colors.TEXT_SECONDARY,
-                    fontWeight: 'bold' as const,
-                },
+                validationState: hasReason ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                isIdleDisabled: false,
                 onPress: () => {
                     if (cancellationDeclineReason.trim().length === 0) {
-                        setToastConfig({
-                            visible: true,
-                            message: REVIEW_TOASTS.REASON_REQUIRED,
-                            type: 'error',
+                        setHasAttemptedSubmit(true);
+                        showToast.error(REVIEW_TOASTS.REASON_REQUIRED, {
+                            onHide: () => setHasAttemptedSubmit(false),
                         });
                         return;
                     }
@@ -426,14 +514,6 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             title: totalAmountPaid > 0 ? "Approve & Refund" : "Approve Cancellation",
             variant: 'destructive' as const,
             disabled: isProcessingAction,
-            style: {
-                backgroundColor: Colors.ERROR,
-                borderColor: Colors.ERROR,
-            },
-            textStyle: {
-                color: Colors.WHITE,
-                fontWeight: 'bold' as const,
-            },
             onPress: () => {
                 if (totalAmountPaid > 0) {
                     setShowRefundModal(true);
@@ -442,7 +522,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 }
             },
         };
-    }, [isDecliningCancellation, cancellationDeclineReason, isProcessingAction, totalAmountPaid]);
+    }, [isDecliningCancellation, cancellationDeclineReason, isProcessingAction, hasAttemptedSubmit, showToast, totalAmountPaid]);
 
     const cancellationSecondaryConfig = useMemo(() => {
         if (isDecliningCancellation) {
@@ -450,11 +530,6 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 title: "Cancel Decline",
                 variant: 'outline' as const,
                 disabled: isProcessingAction,
-                textStyle: { color: Colors.TEXT_PRIMARY },
-                style: {
-                    borderColor: Colors.GRAY_LIGHT,
-                    backgroundColor: Colors.WHITE,
-                },
                 onPress: () => {
                     setIsDecliningCancellation(false);
                     setCancellationDeclineReason('');
@@ -466,11 +541,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             title: "Decline Cancellation",
             variant: 'outline' as const,
             disabled: isProcessingAction,
+            style: { borderColor: Colors.ERROR },
             textStyle: { color: Colors.ERROR },
-            style: {
-                borderColor: Colors.ERROR,
-                backgroundColor: Colors.WHITE,
-            },
             onPress: () => {
                 setIsDecliningCancellation(true);
             },
@@ -557,17 +629,24 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 centerTitle={true}
                 onBackPress={onBackPress}
                 rightActions={
-                    <TouchableOpacity
-                        style={styles.headerOptionsBtn}
-                        onPress={() => setShowActionMenu(true)}
-                        activeOpacity={0.7}
-                    >
-                        <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.PRIMARY} />
-                    </TouchableOpacity>
+                    <View style={styles.headerRightActions}>
+                        <TutorialHelpButton onPress={tutorial.onReplayTour} />
+                        <TouchableOpacity
+                            style={styles.headerOptionsBtn}
+                            onPress={() => setShowActionMenu(true)}
+                            activeOpacity={0.7}
+                        >
+                            <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.PRIMARY} />
+                        </TouchableOpacity>
+                    </View>
                 }
             />
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+                ref={scrollViewRef}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
                 <View style={styles.constrainer}>
 
                     {error && !error.includes('No payment found') && (
@@ -575,7 +654,15 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     )}
                     <View style={isWide ? styles.splitLayoutContainer : styles.verticalLayoutContainer}>
                         {/* Left Column: Hiker Profile */}
-                        <View style={isWide ? styles.leftColumn : styles.fullWidthContainer}>
+                        <View
+                            ref={leftColRef}
+                            collapsable={false}
+                            onLayout={(e) => {
+                                tabBarOffsetY.current = e.nativeEvent.layout.height + 16;
+                                if (isTutorialMeasurementActive()) measureProfileNow();
+                            }}
+                            style={isWide ? styles.leftColumn : styles.fullWidthContainer}
+                        >
                             <HikerProfileCard
                                 user={booking.user}
                                 emergencyContact={booking.emergencyContact}
@@ -596,7 +683,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 onLockedVerifyPress={handleLockedVerifyPress}
                             />
                             {isWide && (
-                                <ActivityLog booking={booking} currentStatus={currentStatus} />
+                                <ActivityLog booking={booking} cancellation={cancellationRequest} currentStatus={currentStatus} />
                             )}
                         </View>
 
@@ -613,6 +700,18 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 cancelledBy={cancellationRequest?.cancelledBy || (hasRejections ? 'user' : booking.cancelledBy)}
                                 onRevert={isAdminCancellationPending && Boolean(onRevertCancellation) ? () => setIsConfirmRevertVisible(true) : undefined}
                                 isReverting={isProcessingAction}
+                                onRefundClick={() => {
+                                    setRefundModalInitialType('full');
+                                    setShowRefundModal(true);
+                                }}
+                                onCloseWithoutRefundClick={() => {
+                                    setRefundModalInitialType('none');
+                                    setShowRefundModal(true);
+                                }}
+                                onUploadRefundProof={onUploadRefundProof ? handleUploadRefundProof : undefined}
+                                isUploadingProof={isUploadingProof}
+                                onApproveWithManualRefund={onApproveWithManualRefund ? handleApproveWithManualRefund : undefined}
+                                payments={booking.payment}
                             />
 
                             {isHikerCancellationPending && isDecliningCancellation && (
@@ -640,7 +739,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 </View>
                             )}
 
-                            <View style={styles.tabContainer}>
+                            <View
+                                ref={tabBarRef}
+                                collapsable={false}
+                                onLayout={() => {
+                                    if (isTutorialMeasurementActive()) measureTabsNow();
+                                }}
+                                style={styles.tabContainer}
+                            >
                                 <TouchableOpacity
                                     style={[styles.tabBtn, activeTab === 'documents' && styles.tabBtnActive]}
                                     onPress={() => setActiveTab('documents')}
@@ -664,7 +770,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 </TouchableOpacity>
                             </View>
 
-                            {activeTab === 'documents' && (
+                            <View
+                                ref={contentRef}
+                                collapsable={false}
+                                onLayout={() => {
+                                    if (isTutorialMeasurementActive()) measureContentNow();
+                                }}
+                            >
+                                {activeTab === 'documents' && (
                                 <DocumentTab
                                     booking={booking}
                                     docStates={docStates}
@@ -687,17 +800,13 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                     setRejectionReason={handleRejectionReasonChange}
                                     suggestions={dynamicSuggestions}
                                     onAttachmentRequired={() => {
-                                        setToastConfig({
-                                            visible: true,
-                                            message: REVIEW_TOASTS.ATTACHMENT_REQUIRED,
-                                            type: 'error',
-                                        });
+                                        showToast.error(REVIEW_TOASTS.ATTACHMENT_REQUIRED);
                                     }}
                                     onInteraction={() => {
-                                        setHasInteracted(true);
                                         if (hasAttemptedSubmit) setHasAttemptedSubmit(false);
                                     }}
                                     onViewFile={handleViewFile}
+                                    firstCardRef={firstCardRef}
                                 />
                             )}
 
@@ -709,11 +818,46 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                     isRejectedStatus={isRejectedStatus}
                                     isCancelledStatus={isCancelledStatus}
                                     onConfirmPaymentClick={() => setIsConfirmPaymentVisible(true)}
+                                    onVerifyManualPayment={onVerifyManualPayment ? async (classification, note, verifiedAmount) => {
+                                        setIsProcessingAction(true);
+                                        try {
+                                            await onVerifyManualPayment(classification, note, booking, verifiedAmount);
+                                            showToast.success(classification === 'full' ? 'Full payment verified!' : 'Payment verified and balance updated!');
+                                        } catch (err: unknown) {
+                                            showToast.error(err instanceof Error ? err.message : 'Failed to verify payment');
+                                        } finally {
+                                            setIsProcessingAction(false);
+                                        }
+                                    } : undefined}
+                                    onRejectManualPayment={onRejectManualPayment ? async (reason) => {
+                                        setIsProcessingAction(true);
+                                        try {
+                                            await onRejectManualPayment(reason, booking);
+                                            showToast.success('Payment receipt rejected. Hiker notified.');
+                                        } catch (err: unknown) {
+                                            showToast.error(err instanceof Error ? err.message : 'Failed to reject payment');
+                                        } finally {
+                                            setIsProcessingAction(false);
+                                        }
+                                    } : undefined}
+                                    onSettleRemainingBalance={onSettleRemainingBalance ? async () => {
+                                        setIsProcessingAction(true);
+                                        try {
+                                            await onSettleRemainingBalance(booking);
+                                            showToast.success('Remaining balance settled in full!');
+                                        } catch (err: unknown) {
+                                            showToast.error(err instanceof Error ? err.message : 'Failed to settle balance');
+                                        } finally {
+                                            setIsProcessingAction(false);
+                                        }
+                                    } : undefined}
+                                    isProcessing={isProcessingAction}
                                 />
                             )}
+                            </View>
 
                             {!isWide && (
-                                <ActivityLog booking={booking} currentStatus={currentStatus} />
+                                <ActivityLog booking={booking} cancellation={cancellationRequest} currentStatus={currentStatus} />
                             )}
                         </View>
                     </View>
@@ -721,33 +865,23 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             </ScrollView>
 
             {isHikerCancellationPending ? (
-                <View style={styles.footerWrapper}>
-                    <CustomStickyFooter
-                        primaryButton={cancellationPrimaryConfig}
-                        secondaryButton={cancellationSecondaryConfig}
-                    />
-                </View>
-            ) : (!isReviewComplete && activeTab === 'documents' && (
-                <View style={styles.footerWrapper}>
-                    <CustomStickyFooter
-                        primaryButton={primaryButtonConfig}
-                        secondaryButton={secondaryButtonConfig}
-                    />
-                </View>
-            ))}
-
-            {/* Custom Toast above Sticky Footer */}
-            <CustomToast
-                visible={toastConfig.visible}
-                message={toastConfig.message}
-                type={toastConfig.type}
-                mode="dismissible"
-                position="sticky_footer"
-                onHide={() => {
-                    setToastConfig(prev => ({ ...prev, visible: false }));
-                    setHasAttemptedSubmit(false);
-                }}
-            />
+                <CustomStickyFooter
+                    enableToastDock={true}
+                    primaryButton={cancellationPrimaryConfig}
+                    secondaryButton={cancellationSecondaryConfig}
+                />
+            ) : (activeTab === 'documents' && (!isReviewComplete || isTutorialFooterPreview)) ? (
+                <CustomStickyFooter
+                    enableToastDock={true}
+                    primaryButton={primaryButtonConfig}
+                    secondaryButton={secondaryButtonConfig}
+                />
+            ) : (activeTab === 'payment' && (isPaymentActionable || isTutorialFooterPreview)) ? (
+                <CustomStickyFooter
+                    enableToastDock={true}
+                    primaryButton={paymentPrimaryConfig}
+                />
+            ) : null}
 
             <ConfirmationModal
                 visible={isConfirmVisible}
@@ -790,17 +924,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         setIsProcessingAction(true);
                         try {
                             await onAdminCancelBooking(booking, selectedReason);
-                            setToastConfig({
-                                visible: true,
-                                message: REVIEW_TOASTS.ORGANIZER_CANCELLED,
-                                type: 'success',
-                            });
+                            showToast.success(REVIEW_TOASTS.ORGANIZER_CANCELLED);
                         } catch (err: unknown) {
-                            setToastConfig({
-                                visible: true,
-                                message: err instanceof Error ? err.message : "Failed to cancel booking",
-                                type: 'error',
-                            });
+                            showToast.error(err instanceof Error ? err.message : "Failed to cancel booking");
                         } finally {
                             setIsProcessingAction(false);
                         }
@@ -824,17 +950,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         setIsProcessingAction(true);
                         try {
                             await onApproveCancellation(cancellationRequest, booking);
-                            setToastConfig({
-                                visible: true,
-                                message: REVIEW_TOASTS.CANCELLATION_APPROVED,
-                                type: 'success',
-                            });
+                            showToast.success(REVIEW_TOASTS.CANCELLATION_APPROVED);
                         } catch (err: unknown) {
-                            setToastConfig({
-                                visible: true,
-                                message: err instanceof Error ? err.message : 'Failed to approve cancellation.',
-                                type: 'error',
-                            });
+                            showToast.error(err instanceof Error ? err.message : 'Failed to approve cancellation.');
                         } finally {
                             setIsProcessingAction(false);
                         }
@@ -859,17 +977,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             await onDeclineCancellation(cancellationDeclineReason, cancellationRequest, booking);
                             setIsDecliningCancellation(false);
                             setCancellationDeclineReason('');
-                            setToastConfig({
-                                visible: true,
-                                message: REVIEW_TOASTS.CANCELLATION_DECLINED,
-                                type: 'success',
-                            });
+                            showToast.success(REVIEW_TOASTS.CANCELLATION_DECLINED);
                         } catch (err: unknown) {
-                            setToastConfig({
-                                visible: true,
-                                message: err instanceof Error ? err.message : 'Failed to decline cancellation.',
-                                type: 'error',
-                            });
+                            showToast.error(err instanceof Error ? err.message : 'Failed to decline cancellation.');
                         } finally {
                             setIsProcessingAction(false);
                         }
@@ -892,17 +1002,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         setIsProcessingAction(true);
                         try {
                             await onRevertCancellation(cancellationRequest);
-                            setToastConfig({
-                                visible: true,
-                                message: REVIEW_TOASTS.CANCELLATION_REVERTED,
-                                type: 'success',
-                            });
+                            showToast.success(REVIEW_TOASTS.CANCELLATION_REVERTED);
                         } catch (err: unknown) {
-                            setToastConfig({
-                                visible: true,
-                                message: err instanceof Error ? err.message : 'Failed to revert cancellation.',
-                                type: 'error',
-                            });
+                            showToast.error(err instanceof Error ? err.message : 'Failed to revert cancellation.');
                         } finally {
                             setIsProcessingAction(false);
                         }
@@ -941,46 +1043,56 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
             <AdminRefundModal
                 visible={showRefundModal}
+                initialType={refundModalInitialType}
                 amountPaid={totalAmountPaid}
                 paymentCapturedAt={paymentCapturedAt}
+                isCancellationFlow={Boolean(cancellationRequest) || isCancellationPending || isCancelledStatus || isHikerCancellationPending || isAdminCancellationPending}
                 onClose={() => setShowRefundModal(false)}
-                onSelect={(refundType: RefundType, customAmount?: number) => {
+                onSelect={(refundType: RefundType, customAmount?: number, adminNote?: string) => {
                     setShowRefundModal(false);
                     setTimeout(async () => {
                         setIsProcessingAction(true);
                         try {
-                            if (isHikerCancellationPending && onApproveCancellation) {
-                                await onApproveCancellation(cancellationRequest, booking, refundType, customAmount);
-                                setToastConfig({
-                                    visible: true,
-                                    message: 'Cancellation approved and refund processed successfully via PayMongo.',
-                                    type: 'success',
-                                });
+                            const isCancellationFlow = Boolean(cancellationRequest) || isCancellationPending || isCancelledStatus || isHikerCancellationPending || isAdminCancellationPending;
+                            const isManualProvider = PAYMENT_CONFIG.PROVIDER === 'manual_qr';
+
+                            if (isCancellationFlow) {
+                                if (refundType === 'none') {
+                                    if (onApproveCancellation) {
+                                        await onApproveCancellation(cancellationRequest, booking, 'none', 0, adminNote);
+                                        showToast.success('Cancellation approved and slot released without refund.');
+                                    }
+                                } else if (isManualProvider && onApproveWithManualRefund) {
+                                    const resolvedAmount = refundType === 'custom'
+                                        ? (customAmount || totalAmountPaid)
+                                        : (refundType === 'partial' ? Math.round(totalAmountPaid * 0.10 * 100) / 100 : totalAmountPaid);
+                                    await onApproveWithManualRefund(resolvedAmount, cancellationRequest, booking);
+                                    showToast.success(`Cancellation approved. Refund of ₱${resolvedAmount.toFixed(2)} set. Awaiting hiker wallet.`);
+                                } else if (onApproveCancellation) {
+                                    await onApproveCancellation(cancellationRequest, booking, refundType, customAmount, adminNote);
+                                    showToast.success('Cancellation approved and refund processed successfully.');
+                                }
+                            } else if (refundType === 'none') {
+                                showToast.error('Policy forfeiture without refund is only applicable when cancelling a booking.');
+                            } else if (isManualProvider) {
+                                showToast.info('Direct refund outside cancellation is not supported for manual payments. Please issue via cancellation.');
                             } else if (onRefund) {
                                 await onRefund(booking, refundType, customAmount);
-                                setToastConfig({
-                                    visible: true,
-                                    message: 'Refund processed successfully via PayMongo.',
-                                    type: 'success',
-                                });
+                                showToast.success('Refund processed successfully.');
                             }
                         } catch (err: unknown) {
                                 const rawMessage = err instanceof Error ? err.message : String(err || '');
                                 let displayMessage = 'Failed to process refund. Please try again.';
 
                                 if (rawMessage.includes('Cannot partially refund') || rawMessage.includes('same day')) {
-                                    displayMessage = 'PayMongo Policy: Partial refunds cannot be processed on the same calendar day. You may issue a 100% full refund today, or wait until tomorrow after gateway settlement.';
+                                    displayMessage = 'Payment Policy: Partial refunds cannot be processed on the same calendar day for gateway payments.';
                                 } else if (rawMessage.includes('Insufficient') || rawMessage.includes('balance')) {
-                                    displayMessage = 'Your PayMongo account has insufficient merchant balance to cover this refund.';
+                                    displayMessage = 'Your account has insufficient merchant balance to cover this refund.';
                                 } else if (rawMessage) {
                                     displayMessage = rawMessage.replace('Payment Gateway Error: ', '').replace('PayMongo API Error: ', '');
                                 }
 
-                                setToastConfig({
-                                    visible: true,
-                                    message: displayMessage,
-                                    type: 'error',
-                                });
+                                showToast.error(displayMessage);
                             } finally {
                                 setIsProcessingAction(false);
                             }
@@ -998,8 +1110,11 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 visible={showActionMenu}
                 onClose={() => setShowActionMenu(false)}
                 isCancelledStatus={isCancelledStatus}
-                isCompletedStatus={currentStatus === 'completed'}
+                isFinishedStatus={currentStatus === 'finished' || currentStatus === 'expired'}
                 totalAmountPaid={totalAmountPaid}
+                totalRefundedAmount={totalRefundedAmount}
+                remainingRefundableAmount={remainingRefundableAmount}
+                isOfferFinished={isOfferFinished}
                 hasPendingCancellation={isCancellationPending}
                 onRescheduleClick={() => {
                     setShowActionMenu(false);
@@ -1013,6 +1128,17 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     setShowActionMenu(false);
                     setTimeout(() => setShowCancelUnpaidModal(true), 300);
                 }}
+            />
+
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
             />
         </ScreenWrapper>
     );
@@ -1137,6 +1263,11 @@ const styles = StyleSheet.create({
         marginTop: 16,
         minWidth: 200,
         borderRadius: 12,
+    },
+    headerRightActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
 });
 

@@ -39,37 +39,43 @@ export function useSuperadminDomain(params: SuperadminParams | null) {
 
     const onManageBusinessPress = () => {
         router.push({
-            pathname: '/(main)/superadmin/business/list'
+            pathname: '/(app)/(main)/superadmin/business/list'
         })
     }
 
     const onManageTrailsPress = () => {
         router.push({
-            pathname: '/(main)/superadmin/trail/list'
+            pathname: '/(app)/(main)/superadmin/trail/list'
         })
     }
 
     const onManageUsersPress = () => {
         router.push({
-            pathname: '/(main)/superadmin/user/list'
+            pathname: '/(app)/(main)/superadmin/user/list'
         })
     }
 
     const onManageMountainPress = () => {
         router.push({
-            pathname: '/(main)/superadmin/mountain/list'
+            pathname: '/(app)/(main)/superadmin/mountain/list'
         })
     }
 
     const onManageApplicationPress = () => {
         router.push({
-            pathname: '/(main)/superadmin/application/list',
+            pathname: '/(app)/(main)/superadmin/application/list',
+        })
+    }
+
+    const onManageRecommendationPress = () => {
+        router.push({
+            pathname: '/(app)/(main)/superadmin/recommendation',
         })
     }
 
     const onViewApplicationPress = (applicationId: string) => {
         router.push({
-            pathname: '/(main)/superadmin/application/view',
+            pathname: '/(app)/(main)/superadmin/application/view',
             params: { applicationId }
         })
     }
@@ -90,6 +96,7 @@ export function useSuperadminDomain(params: SuperadminParams | null) {
         onManageUsersPress,
         onManageMountainPress,
         onManageApplicationPress,
+        onManageRecommendationPress,
         onViewApplicationPress,
     }
 }

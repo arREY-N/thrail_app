@@ -1,6 +1,8 @@
 import { CircularityType, DifficultyPointsType, TrailQualityType, ViewpointType } from "@/src/core/types/Enum";
 import { Hours, Kilometers, Meters, Percentage } from "@/src/core/types/Unit";
+import { Profile } from "@/src/recommendation/interfaces/Profile";
 import { FieldValue, GeoPoint, Timestamp } from "firebase/firestore";
+
 
 export interface ITrailSummary {
     id: string;
@@ -17,6 +19,7 @@ export interface ITrailBase<T> {
     difficulty: IDifficulty;
     tourism: ITourism;
     description: IDescription;
+    profile?: Profile;
     createdAt: T;
     updatedAt: T;
 }

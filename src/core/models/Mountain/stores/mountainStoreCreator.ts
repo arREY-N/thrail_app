@@ -40,7 +40,7 @@ export const mountainStoreCreator: StateCreator<
             }
 
             set({
-                data: mountains.sort((a, b) => a.name.toUpperCase().localeCompare(b.name.toUpperCase())),
+                data: mountains.sort((a, b) => (a?.name || '').toUpperCase().localeCompare((b?.name || '').toUpperCase())),
                 isLoading: false,
             });
         } catch (err) {
@@ -65,7 +65,7 @@ export const mountainStoreCreator: StateCreator<
             }
 
             set({
-                data: mountains.sort((a, b) => a.name.toUpperCase().localeCompare(b.name.toUpperCase())),
+                data: mountains.sort((a, b) => (a?.name || '').toUpperCase().localeCompare((b?.name || '').toUpperCase())),
                 isLoading: false,
             });
         } catch (err) {
@@ -135,7 +135,7 @@ export const mountainStoreCreator: StateCreator<
             const newList = data.find(m => m.id === create.id)
                 ? [...data.filter(m => m.id !== create.id), created]
                 : [...data, created];
-            const sorted = newList.sort((a, b) => a.name.localeCompare(b.name));
+            const sorted = newList.sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
 
             set({
                 data: sorted,

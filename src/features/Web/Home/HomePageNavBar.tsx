@@ -1,16 +1,22 @@
 import type { Href } from "expo-router";
 import { router, usePathname, useSegments } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
+import {
+  isDrawerMeasurementActive,
+  registerDrawerItemLayout,
+  registerDrawerMeasureCallback,
+} from "@/src/components/Tutorial/utils/webDrawerLayoutRegistry";
 import { Colors } from "@/src/constants/colors";
 import { SignOutFlow } from "@/src/core/flows/SignOutFlow";
 import { useAuthStore } from "@/src/core/models/User/User";
 import { IconLibrary } from "@/src/types/ui.types";
 import { getInitials } from "@/src/utils/dateFormatter";
-import { useState } from "react";
+
 
 interface NavItemConfig {
   id: string;
@@ -133,12 +139,31 @@ const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
         library: "Feather",
         route: "/(app)/(main)/superadmin/user/list",
       },
+      {
+        id: "recommendation",
+        label: "Recommendations",
+        icon: "sliders",
+        library: "Feather",
+        route: "/(app)/(main)/superadmin/recommendation",
+      },
     ],
   },
 ];
 
 // ── Admin (Business Admin) Navigation Sections ──
 const ADMIN_NAV_SECTIONS: NavSection[] = [
+  {
+    title: "ADMIN MAIN",
+    items: [
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        icon: "grid",
+        library: "Feather",
+        route: "/(app)/(main)/admin",
+      },
+    ],
+  },
   {
     title: "MANAGEMENT",
     items: [
@@ -159,7 +184,7 @@ const ADMIN_NAV_SECTIONS: NavSection[] = [
       {
         id: "personnel",
         label: "Personnel",
-        icon: "map",
+        icon: "users",
         library: "Feather",
         route: "/(app)/(main)/admin/personnel/list",
       },
@@ -178,6 +203,25 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
 
   const profile = useAuthStore((s) => s.profile);
   const role = useAuthStore((s) => s.role);
+
+  const itemRefs = useRef<Record<string, View | null>>({});
+
+  const measureAllItemsNow = useCallback(() => {
+    Object.entries(itemRefs.current).forEach(([id, node]) => {
+      node?.measureInWindow?.((_x, y, _w, h) => {
+        if (h > 0) {
+          registerDrawerItemLayout(id, { y, height: h });
+        }
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isDrawerMeasurementActive()) {
+      measureAllItemsNow();
+    }
+    return registerDrawerMeasureCallback(measureAllItemsNow);
+  }, [measureAllItemsNow]);
 
   const fullName = profile
     ? `${profile.firstname || ""} ${profile.lastname || ""}`.trim()
@@ -234,9 +278,13 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
     return segs.includes(targetKey) || currentPath.includes(targetKey);
   };
 
-  const handleNavPress = (route: Href) => {
-    router.push(route);
+  const handleNavPress = (route: Href, id?: string) => {
+    if (isItemActive(route, id)) {
+      onClose?.();
+      return;
+    }
     onClose?.();
+    router.push(route);
   };
 
   const { signOut } = SignOutFlow();
@@ -307,11 +355,14 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
               return (
                 <TouchableOpacity
                   key={item.id}
+                  ref={(node) => {
+                    itemRefs.current[item.id] = node;
+                  }}
                   style={[
                     styles.navItem,
                     isActive && styles.navItemActive,
                   ]}
-                  onPress={() => handleNavPress(item.route)}
+                  onPress={() => handleNavPress(item.route, item.id)}
                   activeOpacity={0.7}
                 >
                   <View style={styles.navIconWrapper}>

@@ -7,7 +7,7 @@ import { useRef, useState } from "react";
 export function useHomeRefresh() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const lastRefreshTimeRef = useRef<number>(0);
-    const { profile } = useAuthHook();
+    const { profile, user } = useAuthHook();
 
     const onRefreshPress = async () => {
         const now = Date.now();
@@ -18,12 +18,13 @@ export function useHomeRefresh() {
         lastRefreshTimeRef.current = now;
         setIsRefreshing(true);
         try {
-            if (!profile?.id) return;
+            const uid = profile?.id || user?.uid;
+            if (!uid) return;
 
             await Promise.all([
                 useOfferStore.getState().fetchAll(),
                 useTrailsStore.getState().fetchAll(),
-                useRecommendationsStore.getState().load(profile.id),
+                useRecommendationsStore.getState().load(uid),
             ]);
         } catch (err) {
             console.error("Error pulling to refresh Home screen:", err);

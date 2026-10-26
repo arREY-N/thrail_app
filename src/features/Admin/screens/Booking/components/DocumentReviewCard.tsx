@@ -129,8 +129,8 @@ const DocumentReviewCard = ({
                             doc.valid === 'rejected' && styles.btnActiveReject,
                             (isReviewComplete || needsReview) && { opacity: 0.4 }
                         ]}
-                        onPress={() => !isReviewComplete && !needsReview && onToggleDecision(index, 'rejected')}
-                        activeOpacity={(isReviewComplete || needsReview) ? 1 : 0.7}
+                        onPress={() => !isReviewComplete && onToggleDecision(index, 'rejected')}
+                        activeOpacity={isReviewComplete ? 1 : 0.7}
                     >
                         <CustomIcon 
                             library="Feather" 
@@ -154,8 +154,8 @@ const DocumentReviewCard = ({
                             doc.valid === 'approved' && styles.btnActiveApprove,
                             (isReviewComplete || needsReview) && { opacity: 0.4 }
                         ]}
-                        onPress={() => !isReviewComplete && !needsReview && onToggleDecision(index, 'approved')}
-                        activeOpacity={(isReviewComplete || needsReview) ? 1 : 0.7}
+                        onPress={() => !isReviewComplete && onToggleDecision(index, 'approved')}
+                        activeOpacity={isReviewComplete ? 1 : 0.7}
                     >
                         <CustomIcon 
                             library="Feather" 

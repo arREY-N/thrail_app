@@ -54,6 +54,9 @@ This tracker monitors all identified bugs, remediation tasks, and architectural 
 | **W-10** | Seamless Transparent Banner Styling | Replace solid card background and harsh border with translucent tint (`rgba(..., 0.08)`), remove drop shadow halo, and blend seamlessly into chat. | ✅ **Finished** | **P1 (High)** | Implemented in `GroupWeatherAlertBanner.tsx`. Uses hairline border with subtle alpha tint and eliminated drop shadow halo. |
 | **W-11** | De-Clutter Typography & 2-Row Header | Eliminate redundant text (`(7-Day Forecast)`, repeated mountain name, repeated rain emoji) in favor of a sleek 2-row collapsed layout. | ✅ **Finished** | **P2 (Medium)** | Implemented in `GroupWeatherAlertBanner.tsx`. Clean 2-row collapsed layout with target date (`📅 Sun, Oct 19`) and quick stats pill. |
 | **W-12** | Bento-Style Expanded Metrics Grid | Modernize expanded bulletin drawer with 4 clean micro-stat cards (Rain %, Temp, Wind, UV) and structured trail safety advisory. | ✅ **Finished** | **P2 (Medium)** | Implemented in `GroupWeatherAlertBanner.tsx`. Features 4 Bento micro-stat cards with WHO UV labels and safety advisory. |
+| **W-13** | Backend Forecast Alignment & Exact Date Index | In `functions/index.js`, match forecast day by exact ISO calendar date (`weatherData.daily.time.indexOf(hikeDateIso)`) instead of `Math.floor(diffHours/24)`, and add `&models=best_match` to align with per-mountain weather tab. | ✅ **Finished** | **P1 (High)** | Fixes day-index offset where alerts were reading Sunday/Monday instead of Tuesday. |
+| **W-14** | Collapsed Banner: Remove Date & Display Advisory Text | Remove date tag; display status badge + dynamic countdown on left, hike day forecast (`27°C • 💨 17 km/h`) on right, and direct Trail Safety Advisory text on bottom row. | ✅ **Finished** | **P1 (High)** | Clean collapsed view with immediate actionable safety advice and forecast context. |
+| **W-15** | Expanded Layout: Inverted (Advisory UP, 3-Card Metrics BOTTOM) | Remove date tag; position `TRAIL SAFETY ADVISORY` box at the top (UP), and 3-card Bento forecast grid (`Rain %`, `Temp`, `Wind` — removing misleading UV card) at the bottom. | ✅ **Finished** | **P1 (High)** | Clean 3-card layout eliminating high-UV-during-rain contradiction and prioritizing safety advisory. |
 
 ---
 
@@ -346,4 +349,84 @@ When tapped, the banner smoothly expands into an organized weather card:
 ```
 * **Bento Metric Chips:** 4 micro-cards for Rain %, Temperature, Wind Speed, and UV Index with soft rounded corners (`borderRadius: 10`) and clean typography.
 * **Trail Safety Advisory:** Clear, actionable advice formatted with readable line spacing.
+
+---
+
+## 7. Refined UI/UX Architecture: Advisory-First Layout, 3-Card Metrics (Option A) & Backend Alignment
+
+### 7.1 Design Decisions & User Alignment
+Based on system analysis and user feedback, the following refinements are established:
+1. **Forecast Weather for the Hike Day**:
+   - The collapsed small banner displays the **hike day forecast metrics** (`27°C • 💨 17 km/h`) rather than current mountain weather. Hikers in a group chat planning an upcoming hike need actionable clarity for the hike day, preventing contradictions between live conditions and future warnings.
+2. **Date Removal on Collapsed & Expanded**:
+   - The date tag (`📅 Tue, Oct 20`) is removed from both collapsed and expanded states. The dynamic badge (`5-DAY FORECAST`, `TOMORROW • EVE-OF-HIKE`, `TODAY • FINAL DEPARTURE`) already communicates the time horizon clearly and cleanly.
+3. **Option A: 3-Card Bento Grid (Eliminating Contradictory UV Index)**:
+   - In tropical regions (e.g. Philippines), Open-Meteo's `daily.uv_index_max` reports the theoretical solar noon clear-sky spike (`8 V.High`), which severely clashes when paired with `100% Rain`.
+   - The UV card is removed in favor of **3 focused Bento cards**: `Rain %`, `Temp`, and `Wind Speed`.
+4. **Inverted Hierarchy ("Advisory UP, Metrics BOTTOM")**:
+   - When expanded, the **Trail Safety Advisory** box is placed at the top (UP), ensuring users read the safety guidelines and pack advice first.
+   - The **Metrics Breakdown** 3-card grid is placed at the bottom (BOTTOM) to substantiate the advisory.
+5. **Backend Forecast Alignment with Per-Mountain Tab**:
+   - In `functions/index.js`, replace `Math.floor(diffHours / 24)` with exact calendar ISO date matching:
+     `const targetDayIndex = weatherData.daily?.time?.indexOf(hikeDateIso);`
+     This resolves the off-by-one bug where alerts read Monday/Sunday while the mountain tab viewed Tuesday.
+   - Add `&models=best_match` to the Cloud Function's Open-Meteo query to match the high-resolution model used in `weatherRepository.ts`.
+
+---
+
+### 7.2 Collapsed State: Small Banner in Chat (Not Expanded)
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ 🟠 CAUTION • 5-DAY FORECAST                                    27°C • 💨 17 km/h   [v] │
+│ ⓘ Rain expected (100% chance) at Mt. Daraitan. Pack waterproof rain covers & footwear. │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+* **Top Header Row**:
+  - **Left**: Status badge (`🟠 CAUTION`) + Live target day countdown (`5-DAY FORECAST`).
+  - **Right**: Hike day forecast metrics (`27°C • 💨 17 km/h`) + Chevron expand indicator (`[v]`).
+* **Bottom Advisory Row**:
+  - Direct hike-day trail safety guidance (`latestAlert.message`), giving hikers immediate actionable safety advice at a glance.
+
+---
+
+### 7.3 Expanded State: Advisory UP, 3-Card Metrics BOTTOM (Option A)
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ 🟠 CAUTION • 5-DAY FORECAST                                    27°C • 💨 17 km/h   [^] │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ [UP] TRAIL SAFETY ADVISORY                                                             │
+│ ┌────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ ⓘ TRAIL SAFETY ADVISORY                                                            │ │
+│ │ Rain expected (100% chance) at Mt. Daraitan. Pack waterproof rain covers and       │ │
+│ │ traction footwear.                                                                 │ │
+│ └────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                        │
+│ [BOTTOM] METRICS BREAKDOWN                                                             │
+│ ┌───────────────────────┐ ┌───────────────────────┐ ┌────────────────────────┐       │
+│ │       🌧️ Rain        │ │       🌡️ Temp        │ │       💨 Wind        │       │
+│ │         100%          │ │         27°C          │ │        17 km/h       │       │
+│ └───────────────────────┘ └───────────────────────┘ └────────────────────────┘       │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+* **Top Card**: `TRAIL SAFETY ADVISORY` box (`latestAlert.message`) in translucent accent tint.
+* **Bottom Grid**: 3 clean Bento cards (`Rain %`, `Temp`, `Wind Speed`) with generous spacing and high legibility.
+
+---
+
+### 7.4 Technical Implementation Tasks
+
+1. **Backend Alignment (`functions/index.js`)**:
+   - In `processGroupWeatherAlert`:
+     Extract `hikeDateIso = hikeDate.toISODate()`.
+     Compute `targetDayIndex = weatherData.daily?.time?.indexOf(hikeDateIso)`. Fallback to bounded math if date string not found in 7-day array.
+   - Update Open-Meteo URL to append `&models=best_match`.
+2. **Frontend Banner Component (`GroupWeatherAlertBanner.tsx`)**:
+   - Remove date formatting / date tag rendering from both collapsed and expanded states.
+   - Collapsed view: Top row shows status badge + dynamic countdown on left, quick forecast metrics pill (`27°C • 💨 17 km/h`) on right. Bottom row displays `latestAlert.message` with info icon.
+   - Expanded view: Render `TRAIL SAFETY ADVISORY` box **UP** (top), and `METRICS BREAKDOWN` 3-card Bento grid **BOTTOM** (bottom). Remove the UV Index card.
+
 

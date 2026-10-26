@@ -4,8 +4,8 @@
  */
 
 import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LayoutAnimation, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomHeader from '@/src/components/CustomHeader';
@@ -13,7 +13,15 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
-import CustomToast from '@/src/components/CustomToast';
+import { useToast } from '@/src/components/Toast/Toast';
+import {
+    CustomTutorialModal,
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    TutorialHelpButton,
+    useTutorialGuide,
+} from '@/src/components/Tutorial/Tutorial';
 import EmergencySetupModal, { UserSearchResult } from '@/src/components/EmergencyModal';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -21,6 +29,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { Booking, BookingStatus, Requirements } from "@/src/core/models/Booking/Booking";
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { IOffer } from "@/src/core/models/Offer/Offer";
 import { IEmergencyContact, User } from '@/src/core/models/User/User';
 import { logger } from '@/src/core/utility/errorFormatter';
@@ -111,6 +120,7 @@ const BookingDetailsScreen = ({
     onUpdateCancellationReason,
     onAcceptAdminCancellation,
 }: BookingDetailsScreenProps): React.JSX.Element => {
+    const { showToast } = useToast();
     const [showActionMenu, setShowActionMenu] = useState<boolean>(false);
     const [showCancelDraftModal, setShowCancelDraftModal] = useState<boolean>(false);
     const [isCancelingDraft, setIsCancelingDraft] = useState<boolean>(false);
@@ -183,7 +193,9 @@ const BookingDetailsScreen = ({
     const totalAmount = booking?.offer?.price || 0;
     const payments = booking?.payment || [];
     const amountPaid = payments.reduce((sum, p) => {
-        if (p.status === 'captured') return sum + (p.amount || 0);
+        if (p.status === 'captured' || p.status === 'refunded' || ((p.refundedAmount || 0) > 0)) {
+            return sum + (p.amount || 0);
+        }
         return sum;
     }, 0) || 0;
 
@@ -191,14 +203,37 @@ const BookingDetailsScreen = ({
         cancellation?.cancelledBy === 'admin' ||
         (localStatus === 'cancelled' && booking?.cancelledBy === 'admin');
 
-    const hasRefund = payments.some(p => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+    const isPayMongo = payments.some(p => p.gateway === 'paymongo');
+    const hasRefundedPayment = payments.some(p => p.status === 'refunded' || (p.refundedAmount || 0) > 0);
+    const isAllRefunded = payments.length > 0 && payments.every(p => p.status === 'refunded');
+    const hasRefundReceipt = Boolean(cancellation?.adminRefundReceiptUrl);
+
+    const isRefundComplete =
+        localStatus === 'refunded' ||
+        hasRefundReceipt ||
+        cancellation?.handshakeStep === 'completed' ||
+        isAllRefunded ||
+        (isPayMongo && hasRefundedPayment);
 
     let displayStatus: BookingStatus | undefined = localStatus;
 
     if (cancellation?.status === 'pending') {
         displayStatus = 'for-cancellation';
     } else if (cancellation?.status === 'approved') {
-        displayStatus = (hasRefund || localStatus === 'refunded') ? 'refunded' : (amountPaid > 0 ? 'refund' : 'cancelled');
+        const hasCapturedPayments = payments.some(p => p.status === 'captured');
+        const isManualRefundPending =
+            !isPayMongo &&
+            ((cancellation.handshakeStep && cancellation.handshakeStep !== 'completed') ||
+             payments.some(p => p.gateway === 'manual_qr') ||
+             PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
+        if (isRefundComplete) {
+            displayStatus = 'refunded';
+        } else if (isManualRefundPending && (hasCapturedPayments || cancellation?.refundAmount)) {
+            displayStatus = 'refund';
+        } else {
+            displayStatus = 'cancelled';
+        }
     } else if (
         cancellation?.status === 'rejected' &&
         localStatus !== 'cancelled' &&
@@ -209,7 +244,7 @@ const BookingDetailsScreen = ({
     }
 
     if (displayStatus === 'cancelled' || displayStatus === 'for-cancellation' || displayStatus === 'refund') {
-        if (hasRefund || localStatus === 'refunded') {
+        if (isRefundComplete) {
             displayStatus = 'refunded';
         }
     }
@@ -217,6 +252,12 @@ const BookingDetailsScreen = ({
     // Ensure cancelled or refunded bookings do not display a false remaining balance
     const isInactiveBooking = displayStatus === 'cancelled' || displayStatus === 'refunded' || localStatus === 'cancelled' || localStatus === 'refunded';
     const remainingBalance = isInactiveBooking ? 0 : Math.max(0, totalAmount - amountPaid);
+
+    const isPaymentVerifying = booking?.paymentVerificationStatus === 'pending_verification' ||
+        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+
+    const isPaymentRejected = booking?.paymentVerificationStatus === 'rejected' ||
+        (displayStatus === 'for-payment' && Boolean(booking?.payment?.length && booking.payment[booking.payment.length - 1].status === 'rejected'));
 
     const user = booking?.user;
 
@@ -314,7 +355,6 @@ const BookingDetailsScreen = ({
         isSubmittingDocs,
         confirmResubmitModalVisible, setConfirmResubmitModalVisible,
         hasAttemptedSubmit, setHasAttemptedSubmit,
-        toastConfig, setToastConfig,
         originalRejectedIndices,
         totalRejectedCount,
         stagedCount,
@@ -363,6 +403,161 @@ const BookingDetailsScreen = ({
         onViewReceipt,
     });
 
+    const tutorial = useTutorialGuide('my_booking_details', !isLoadingOffer);
+    const activeTutorialStep = tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined;
+
+    const scrollViewRef = useRef<ScrollView>(null);
+    const quickInfoRef = useRef<View>(null);
+    const statusTrackerRef = useRef<View>(null);
+    const documentsRef = useRef<View>(null);
+    const accordionsRef = useRef<View>(null);
+    const paymentSummaryRef = useRef<View>(null);
+
+    const statusOffsetY = useRef<number>(0);
+    const documentsOffsetY = useRef<number>(0);
+    const accordionsOffsetY = useRef<number>(0);
+    const paymentSummaryOffsetY = useRef<number>(0);
+
+    const measureQuickInfoNow = useCallback(() => {
+        quickInfoRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 40 && height > 16) {
+                registerTutorialLayout('my_booking_quick_info', {
+                    x: x + 20,
+                    y,
+                    width: width - 40,
+                    height: height - 16,
+                });
+            }
+        });
+    }, []);
+
+    const measureStatusTrackerNow = useCallback(() => {
+        statusTrackerRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 40 && height > 16) {
+                registerTutorialLayout('my_booking_status_tracker', {
+                    x: x + 20,
+                    y,
+                    width: width - 40,
+                    height: height - 16,
+                });
+            }
+        });
+    }, []);
+
+    const measureDocumentsNow = useCallback(() => {
+        documentsRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 40 && height > 12) {
+                registerTutorialLayout('my_booking_documents', {
+                    x: x + 20,
+                    y,
+                    width: width - 40,
+                    height: height - 12,
+                });
+            }
+        });
+    }, []);
+
+    const measureAccordionsNow = useCallback(() => {
+        accordionsRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 40 && height > 12) {
+                registerTutorialLayout('my_booking_accordions', {
+                    x: x + 20,
+                    y,
+                    width: width - 40,
+                    height: height - 12,
+                });
+            }
+        });
+    }, []);
+
+    const measurePaymentSummaryNow = useCallback(() => {
+        paymentSummaryRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 40 && height > 16) {
+                registerTutorialLayout('my_booking_payment_summary', {
+                    x: x + 20,
+                    y,
+                    width: width - 40,
+                    height: height - 16,
+                });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const unsubQuick = registerMeasureCallback('my_booking_quick_info', measureQuickInfoNow);
+        const unsubStatus = registerMeasureCallback('my_booking_status_tracker', measureStatusTrackerNow);
+        const unsubDocs = registerMeasureCallback('my_booking_documents', measureDocumentsNow);
+        const unsubAcc = registerMeasureCallback('my_booking_accordions', measureAccordionsNow);
+        const unsubPay = registerMeasureCallback('my_booking_payment_summary', measurePaymentSummaryNow);
+        return () => {
+            unsubQuick();
+            unsubStatus();
+            unsubDocs();
+            unsubAcc();
+            unsubPay();
+        };
+    }, [
+        measureQuickInfoNow,
+        measureStatusTrackerNow,
+        measureDocumentsNow,
+        measureAccordionsNow,
+        measurePaymentSummaryNow,
+    ]);
+
+    useEffect(() => {
+        if (!tutorial.isVisible) return;
+
+        if (activeTutorialStep === 'my_booking_quick_info' || activeTutorialStep === 'header_help') {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            const timer = setTimeout(measureQuickInfoNow, 260);
+            return () => clearTimeout(timer);
+        } else if (activeTutorialStep === 'my_booking_status_tracker') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, statusOffsetY.current - 24),
+                animated: true,
+            });
+            const timer = setTimeout(measureStatusTrackerNow, 260);
+            return () => clearTimeout(timer);
+        } else if (activeTutorialStep === 'my_booking_documents') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, documentsOffsetY.current - 24),
+                animated: true,
+            });
+            const timer = setTimeout(measureDocumentsNow, 260);
+            return () => clearTimeout(timer);
+        } else if (activeTutorialStep === 'my_booking_accordions') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, accordionsOffsetY.current - 24),
+                animated: true,
+            });
+            const timer = setTimeout(measureAccordionsNow, 260);
+            return () => clearTimeout(timer);
+        } else if (activeTutorialStep === 'my_booking_payment_summary') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, paymentSummaryOffsetY.current - 24),
+                animated: true,
+            });
+            const timer = setTimeout(measurePaymentSummaryNow, 260);
+            return () => clearTimeout(timer);
+        }
+    }, [
+        tutorial.isVisible,
+        activeTutorialStep,
+        measureQuickInfoNow,
+        measureStatusTrackerNow,
+        measureDocumentsNow,
+        measureAccordionsNow,
+        measurePaymentSummaryNow,
+    ]);
+
+    const prevTutorialVisible = useRef(tutorial.isVisible);
+    useEffect(() => {
+        if (prevTutorialVisible.current && !tutorial.isVisible) {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        }
+        prevTutorialVisible.current = tutorial.isVisible;
+    }, [tutorial.isVisible]);
+
     if (isLoadingOffer) {
         return (
             <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -371,7 +566,7 @@ const BookingDetailsScreen = ({
                     visible={true}
                     message="Loading itinerary..."
                 />
-            </ScreenWrapper>
+        </ScreenWrapper>
         );
     }
 
@@ -382,15 +577,16 @@ const BookingDetailsScreen = ({
                 centerTitle={true}
                 onBackPress={onBackPress}
                 rightActions={
-                    showMenuIcon ? (
+                    <View style={styles.headerActionsRow}><TutorialHelpButton onPress={tutorial.onReplayTour} />{showMenuIcon ? (
                         <TouchableOpacity style={styles.headerOptionsBtn} onPress={() => setShowActionMenu(true)} activeOpacity={0.7}>
                             <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.PRIMARY} />
                         </TouchableOpacity>
-                    ) : undefined
+                    ) : null}</View>
                 }
             />
 
             <ScrollView
+                ref={scrollViewRef}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 bounces={false}
@@ -399,12 +595,86 @@ const BookingDetailsScreen = ({
 
                     <HeroHeader booking={enhancedBooking} />
 
-                    <QuickInfoCard booking={enhancedBooking} />
+                    <View
+                        ref={quickInfoRef}
+                        onLayout={() => {
+                            if (isTutorialMeasurementActive()) {
+                                measureQuickInfoNow();
+                            }
+                        }}
+                    >
+                        <QuickInfoCard booking={enhancedBooking} />
+                    </View>
+
+                    <View
+                        ref={statusTrackerRef}
+                        onLayout={(e) => {
+                            statusOffsetY.current = e.nativeEvent.layout.y;
+                            if (isTutorialMeasurementActive()) {
+                                measureStatusTrackerNow();
+                            }
+                        }}
+                    >
 
                     <BookingStatusComponent
                         status={displayStatus}
                         isPaid={hasHistoricalPayments}
+                        isPaymentRejected={isPaymentRejected}
+                        isPaymentVerifying={isPaymentVerifying}
                     />
+
+                    {isPaymentVerifying && (
+                        <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
+                            <View style={styles.paymentPendingBanner}>
+                                <View style={styles.paymentPendingHeader}>
+                                    <View style={styles.paymentPendingIconCircle}>
+                                        <CustomIcon library="Feather" name="clock" size={18} color={Colors.PRIMARY} />
+                                    </View>
+                                    <View style={styles.paymentPendingTitleContainer}>
+                                        <CustomText style={styles.paymentPendingTitle}>
+                                            Payment Verification in Progress
+                                        </CustomText>
+                                        <CustomText variant="caption" style={styles.paymentPendingSubtitle}>
+                                            Your payment receipt has been submitted and is currently being verified by the organizer. You will be notified once it is approved.
+                                        </CustomText>
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+
+                    {isPaymentRejected && (
+                        <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
+                            <View style={styles.paymentRejectionBanner}>
+                                <View style={styles.paymentRejectionHeader}>
+                                    <View style={styles.paymentRejectionIconCircle}>
+                                        <CustomIcon library="Feather" name="alert-triangle" size={18} color={Colors.ERROR} />
+                                    </View>
+                                    <View style={styles.paymentRejectionTitleContainer}>
+                                        <CustomText style={styles.paymentRejectionTitle}>
+                                            Payment Verification Rejected
+                                        </CustomText>
+                                        <CustomText variant="caption" style={styles.paymentRejectionSubtitle}>
+                                            Your payment receipt could not be verified by the organizer.
+                                        </CustomText>
+                                    </View>
+                                </View>
+                                {booking?.paymentRejectionReason ? (
+                                    <View style={styles.paymentRejectionReasonBox}>
+                                        <CustomText variant="caption" style={styles.paymentRejectionReasonLabel}>
+                                            Organizer Feedback:
+                                        </CustomText>
+                                        <CustomText style={styles.paymentRejectionReasonText}>
+                                            {`"${booking.paymentRejectionReason}"`}
+                                        </CustomText>
+                                    </View>
+                                ) : null}
+                                <CustomText variant="caption" style={styles.paymentRejectionHintText}>
+                                    Please review the feedback above and resubmit your payment and valid receipt to confirm your reservation.
+                                </CustomText>
+                            </View>
+                        </View>
+                    )}
 
                     {wasAdminCancellationLifted && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
@@ -438,17 +708,9 @@ const BookingDetailsScreen = ({
                             if (onWithdrawCancellation) {
                                 try {
                                     await onWithdrawCancellation(item);
-                                    setToastConfig({
-                                        visible: true,
-                                        message: 'Cancellation request withdrawn successfully.',
-                                        type: 'success',
-                                    });
+                                    showToast.success('Cancellation request withdrawn successfully.');
                                 } catch (err: unknown) {
-                                    setToastConfig({
-                                        visible: true,
-                                        message: err instanceof Error ? err.message : 'Failed to withdraw cancellation request.',
-                                        type: 'error',
-                                    });
+                                    showToast.error(err instanceof Error ? err.message : 'Failed to withdraw cancellation request.');
                                 }
                             }
                         }}
@@ -461,17 +723,9 @@ const BookingDetailsScreen = ({
                             if (onAcceptAdminCancellation) {
                                 try {
                                     await onAcceptAdminCancellation(item);
-                                    setToastConfig({
-                                        visible: true,
-                                        message: 'Cancellation confirmed successfully.',
-                                        type: 'success',
-                                    });
+                                    showToast.success('Cancellation confirmed successfully.');
                                 } catch (err: unknown) {
-                                    setToastConfig({
-                                        visible: true,
-                                        message: err instanceof Error ? err.message : 'Failed to confirm cancellation.',
-                                        type: 'error',
-                                    });
+                                    showToast.error(err instanceof Error ? err.message : 'Failed to confirm cancellation.');
                                 }
                             }
                         }}
@@ -489,6 +743,17 @@ const BookingDetailsScreen = ({
                         </View>
                     )}
 
+                    </View>
+
+                    <View
+                        ref={documentsRef}
+                        onLayout={(e) => {
+                            documentsOffsetY.current = e.nativeEvent.layout.y;
+                            if (isTutorialMeasurementActive()) {
+                                measureDocumentsNow();
+                            }
+                        }}
+                    >
                     <RequiredDocumentsSection
                         localDocs={localDocs}
                         originalRejectedIndices={originalRejectedIndices}
@@ -497,6 +762,7 @@ const BookingDetailsScreen = ({
                         isCancelled={isCancelled}
                         rejectionReason={booking.cancellationReason}
                         onUploadSuccess={(idx, url, docName) => {
+                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                             setStagedReplacements(prev => ({
                                 ...prev,
                                 [idx]: url,
@@ -514,11 +780,21 @@ const BookingDetailsScreen = ({
                                 })
                             );
                             setHasAttemptedSubmit(false);
-                            setToastConfig(prev => ({ ...prev, visible: false }));
                         }}
                         onPreviewDoc={(url) => setPreviewDocUrl(url || null)}
                     />
 
+                    </View>
+
+                    <View
+                        ref={accordionsRef}
+                        onLayout={(e) => {
+                            accordionsOffsetY.current = e.nativeEvent.layout.y;
+                            if (isTutorialMeasurementActive()) {
+                                measureAccordionsNow();
+                            }
+                        }}
+                    >
                     {(user || localEmergencyContact) && (
                         <PersonalInformationSection
                             user={user}
@@ -575,20 +851,35 @@ const BookingDetailsScreen = ({
                         </AccordionItem>
                     )}
 
+                    </View>
+
                     <View style={styles.spacing} />
+
+                    <View
+                        ref={paymentSummaryRef}
+                        onLayout={(e) => {
+                            paymentSummaryOffsetY.current = e.nativeEvent.layout.y;
+                            if (isTutorialMeasurementActive()) {
+                                measurePaymentSummaryNow();
+                            }
+                        }}
+                    >
 
                     <PaymentSummaryCard
                         totalAmount={totalAmount}
                         amountPaid={amountPaid}
                         remainingBalance={remainingBalance}
                         payments={booking?.payment || []}
+                        refundedAmount={booking?.refundedAmount || cancellation?.refundAmount}
                     />
 
                 </View>
+                    </View>
             </ScrollView>
 
             {footerConfig && (
                 <CustomStickyFooter
+                    enableToastDock={true}
                     primaryButton={footerConfig.primaryButton}
                     secondaryButton={footerConfig.secondaryButton}
                 />
@@ -613,38 +904,24 @@ const BookingDetailsScreen = ({
                         if (activeCancelModal === 'cancel') {
                             await onCancelConfirm(booking, reason);
                             setActiveCancelModal(null);
-                            setToastConfig({
-                                visible: true,
-                                message: 'Cancellation request submitted successfully.',
-                                type: 'success',
-                            });
+                            showToast.success('Cancellation request submitted successfully.');
                         } else if (activeCancelModal === 'refund') {
                             await onRefundConfirm(booking, reason);
                             setActiveCancelModal(null);
                             const isPaid = ['paid', 'downpayment'].includes(booking.status);
-                            setToastConfig({
-                                visible: true,
-                                message: isPaid
+                            showToast.success(
+                                isPaid
                                     ? 'Cancellation & refund request submitted successfully.'
-                                    : 'Cancellation request submitted successfully.',
-                                type: 'success',
-                            });
+                                    : 'Cancellation request submitted successfully.'
+                            );
                         } else if (activeCancelModal === 'update' && cancellation && onUpdateCancellationReason) {
                             try {
                                 await onUpdateCancellationReason({ reason, oldRequest: cancellation });
                                 setActiveCancelModal(null);
-                                setToastConfig({
-                                    visible: true,
-                                    message: 'Cancellation appeal submitted successfully.',
-                                    type: 'success',
-                                });
+                                showToast.success('Cancellation appeal submitted successfully.');
                             } catch (err: unknown) {
                                 setActiveCancelModal(null);
-                                setToastConfig({
-                                    visible: true,
-                                    message: err instanceof Error ? err.message : 'Failed to submit cancellation appeal.',
-                                    type: 'error',
-                                });
+                                showToast.error(err instanceof Error ? err.message : 'Failed to submit cancellation appeal.');
                             }
                         }
                     } catch (err: unknown) {
@@ -695,28 +972,16 @@ const BookingDetailsScreen = ({
 
                     if (displayStatus === 'reservation-rejected') {
                         setHasStagedContactChanges(true);
-                        setToastConfig({
-                            visible: true,
-                            message: RESUBMIT_TOASTS.STAGED_CONTACTS_SUCCESS,
-                            type: 'success',
-                        });
+                        showToast.success(RESUBMIT_TOASTS.STAGED_CONTACTS_SUCCESS);
                         return;
                     }
 
                     if (onUpdateContacts) {
                         const ok = await onUpdateContacts(booking, data.phone, data.emergencyContact);
                         if (ok) {
-                            setToastConfig({
-                                visible: true,
-                                message: 'Contact details updated successfully.',
-                                type: 'success',
-                            });
+                            showToast.success('Contact details updated successfully.');
                         } else {
-                            setToastConfig({
-                                visible: true,
-                                message: 'Failed to update contact details.',
-                                type: 'error',
-                            });
+                            showToast.error('Failed to update contact details.');
                         }
                     }
                 }}
@@ -746,11 +1011,7 @@ const BookingDetailsScreen = ({
                         setShowCancelDraftModal(false);
                     } catch (err: unknown) {
                         setShowCancelDraftModal(false);
-                        setToastConfig({
-                            visible: true,
-                            message: err instanceof Error ? err.message : 'Failed to cancel reservation.',
-                            type: 'error',
-                        });
+                        showToast.error(err instanceof Error ? err.message : 'Failed to cancel reservation.');
                     } finally {
                         setIsCancelingDraft(false);
                     }
@@ -779,24 +1040,21 @@ const BookingDetailsScreen = ({
                 iconColor={resubmitModalContent.iconColor}
             />
 
-            {/* Custom Toast above Sticky Footer for document validation feedback */}
-            <CustomToast
-                visible={toastConfig.visible}
-                message={toastConfig.message}
-                type={toastConfig.type}
-                mode={toastConfig.type === 'error' ? 'dismissible' : 'simple'}
-                position="sticky_footer"
-                onHide={() => {
-                    setToastConfig(prev => ({ ...prev, visible: false }));
-                    setHasAttemptedSubmit(false);
-                }}
-            />
-
             {/* Modal Image Preview for uploaded/approved documents */}
             <ImagePreviewModal
                 visible={Boolean(previewDocUrl)}
                 images={previewDocUrl ? [previewDocUrl] : []}
                 onClose={() => setPreviewDocUrl(null)}
+            />
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
             />
         </ScreenWrapper>
     );
@@ -818,7 +1076,12 @@ const styles = StyleSheet.create({
         marginBottom: 16
     },
     paddingHorizontal: {
-        paddingHorizontal: 16
+        paddingHorizontal: 20,
+    },
+    headerActionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
     },
     headerOptionsBtn: {
         paddingHorizontal: 8
@@ -876,6 +1139,105 @@ const styles = StyleSheet.create({
     bulletText: {
         flex: 1,
         lineHeight: 22
+    },
+    paymentRejectionBanner: {
+        backgroundColor: Colors.ERROR_BG,
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 1.5,
+        borderColor: Colors.ERROR_BORDER,
+        gap: 12,
+    },
+    paymentRejectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    paymentRejectionIconCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: Colors.WHITE,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+    },
+    paymentRejectionTitleContainer: {
+        flex: 1,
+        gap: 2,
+    },
+    paymentRejectionTitle: {
+        fontWeight: 'bold',
+        fontSize: 15,
+        color: Colors.ERROR,
+    },
+    paymentRejectionSubtitle: {
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 18,
+    },
+    paymentRejectionReasonBox: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 8,
+        padding: 12,
+        borderLeftWidth: 3,
+        borderLeftColor: Colors.ERROR,
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+        gap: 4,
+    },
+    paymentRejectionReasonLabel: {
+        fontWeight: '600',
+        color: Colors.ERROR,
+        textTransform: 'uppercase',
+        fontSize: 11,
+        letterSpacing: 0.5,
+    },
+    paymentRejectionReasonText: {
+        color: Colors.TEXT_PRIMARY,
+        fontSize: 13,
+        lineHeight: 18,
+        fontStyle: 'italic',
+    },
+    paymentRejectionHintText: {
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 18,
+    },
+    paymentPendingBanner: {
+        backgroundColor: Colors.STATUS_PENDING_BG,
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 1.5,
+        borderColor: Colors.PRIMARY,
+        gap: 12,
+    },
+    paymentPendingHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    paymentPendingIconCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: Colors.WHITE,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: Colors.PRIMARY,
+    },
+    paymentPendingTitleContainer: {
+        flex: 1,
+        gap: 2,
+    },
+    paymentPendingTitle: {
+        fontWeight: 'bold',
+        fontSize: 15,
+        color: Colors.PRIMARY,
+    },
+    paymentPendingSubtitle: {
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 18,
     },
 });
 

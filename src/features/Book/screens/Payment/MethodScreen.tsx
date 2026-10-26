@@ -7,6 +7,13 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
 import { IconLibrary } from '@/src/types/ui.types';
+import React, { useCallback, useEffect, useRef } from 'react';
+import {
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+    requestTargetMeasurement,
+} from '@/src/components/Tutorial/Tutorial';
 
 export interface PaymentMethodOption {
     id: string;
@@ -42,6 +49,8 @@ export interface MethodScreenProps {
     isPayingBalance: boolean;
     isMinor: boolean;
     minorName?: string;
+    activeTutorialStep?: string;
+    isTutorialVisible?: boolean;
 }
 
 const MethodScreen = ({
@@ -56,17 +65,96 @@ const MethodScreen = ({
     isPayingBalance,
     isMinor,
     minorName,
+    activeTutorialStep,
+    isTutorialVisible,
 }: MethodScreenProps) => {
+    const scrollViewRef = useRef<ScrollView>(null);
+    const optionsRef = useRef<View>(null);
+    const walletRef = useRef<View>(null);
+    const termsRef = useRef<View>(null);
+    const walletOffsetY = useRef<number>(0);
+    const termsOffsetY = useRef<number>(0);
+
+    const measureOptionsNow = useCallback(() => {
+        optionsRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('payment_options', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureWalletNow = useCallback(() => {
+        walletRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('payment_wallet', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    const measureTermsNow = useCallback(() => {
+        termsRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('payment_terms', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        const unsub1 = registerMeasureCallback('payment_options', measureOptionsNow);
+        const unsub2 = registerMeasureCallback('payment_wallet', measureWalletNow);
+        const unsub3 = registerMeasureCallback('payment_terms', measureTermsNow);
+        return () => {
+            unsub1();
+            unsub2();
+            unsub3();
+        };
+    }, [measureOptionsNow, measureWalletNow, measureTermsNow]);
+
+    const prevTutorialVisible = useRef(isTutorialVisible);
+    useEffect(() => {
+        if (prevTutorialVisible.current && !isTutorialVisible) {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        }
+        prevTutorialVisible.current = isTutorialVisible;
+    }, [isTutorialVisible]);
+
+    useEffect(() => {
+        if (!isTutorialVisible) return;
+        if (activeTutorialStep === 'payment_options' || activeTutorialStep === 'header_help') {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            requestTargetMeasurement(activeTutorialStep);
+        } else if (activeTutorialStep === 'payment_wallet') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, walletOffsetY.current - 24),
+                animated: true,
+            });
+            requestTargetMeasurement('payment_wallet');
+        } else if (activeTutorialStep === 'payment_terms') {
+            scrollViewRef.current?.scrollTo({
+                y: Math.max(0, termsOffsetY.current - 40),
+                animated: true,
+            });
+            requestTargetMeasurement('payment_terms');
+        }
+    }, [isTutorialVisible, activeTutorialStep]);
 
     return (
         <ScrollView 
             showsVerticalScrollIndicator={false} 
+            ref={scrollViewRef}
             contentContainerStyle={styles.scrollContent}
         >
             <View style={styles.constrainer}>
                 <View style={styles.section}>
                     
-                    <View style={styles.amountDisplayCard}>
+                    <View
+                        ref={isPayingBalance ? optionsRef : undefined}
+                        collapsable={false}
+                        onLayout={() => {
+                            if (isPayingBalance && isTutorialMeasurementActive()) measureOptionsNow();
+                        }}
+                        style={styles.amountDisplayCard}
+                    >
                         <CustomText variant="caption" style={styles.amountDisplayLabel}>
                             Amount to Pay
                         </CustomText>
@@ -81,7 +169,14 @@ const MethodScreen = ({
                                 Payment Options
                             </CustomText>
                             
-                            <View style={styles.toggleContainer}>
+                            <View
+                                ref={!isPayingBalance ? optionsRef : undefined}
+                                collapsable={false}
+                                onLayout={() => {
+                                    if (!isPayingBalance && isTutorialMeasurementActive()) measureOptionsNow();
+                                }}
+                                style={styles.toggleContainer}
+                            >
                                 <TouchableOpacity 
                                     style={[
                                         styles.toggleBtn, 
@@ -142,12 +237,22 @@ const MethodScreen = ({
                         Select Wallet
                     </CustomText>
 
-                    {paymentMethods.map((method) => {
+                    <View
+                        ref={walletRef}
+                        collapsable={false}
+                        style={styles.walletContainer}
+                        onLayout={(e) => {
+                            walletOffsetY.current = e.nativeEvent.layout.y;
+                            if (isTutorialMeasurementActive()) measureWalletNow();
+                        }}
+                    >
+                    {paymentMethods.map((method, index) => {
                         const isSelected = selectedMethod === method.id;
+                        const isLast = index === paymentMethods.length - 1;
                         return (
                             <TouchableOpacity
                                 key={method.id}
-                                style={[styles.methodCard, isSelected && styles.selectedMethodCard]}
+                                style={[styles.methodCard, isSelected && styles.selectedMethodCard, isLast && styles.methodCardLast]}
                                 activeOpacity={0.7}
                                 onPress={() => setSelectedMethod(method.id)}
                             >
@@ -164,7 +269,16 @@ const MethodScreen = ({
                         );
                     })}
 
-                    <View style={styles.termsWrapper}>
+                    </View>
+                    <View
+                        ref={termsRef}
+                        collapsable={false}
+                        style={styles.termsWrapper}
+                        onLayout={(e) => {
+                            termsOffsetY.current = e.nativeEvent.layout.y;
+                            if (isTutorialMeasurementActive()) measureTermsNow();
+                        }}
+                    >
                         <TermsSignature 
                             expectedName={profileFullName}
                             isMinor={isMinor}
@@ -187,7 +301,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16
     },
     scrollContent: { 
-        paddingBottom: 120
+        paddingBottom: 140
     },
     section: { 
         paddingTop: 24 
@@ -275,6 +389,13 @@ const styles = StyleSheet.create({
         color: Colors.ERROR, 
         lineHeight: 18, 
         fontWeight: '500' 
+    },
+    walletContainer: {
+        width: '100%',
+        marginBottom: 24,
+    },
+    methodCardLast: {
+        marginBottom: 0,
     },
     methodCard: { 
         flexDirection: 'row', 
