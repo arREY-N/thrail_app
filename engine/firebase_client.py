@@ -186,8 +186,10 @@ def save_user_recommendations(user_id: str, month_id: str, doc_data: Dict[str, A
 
     try:
         ref = client.collection("users").document(user_id).collection("recommendations").document(month_id)
-        doc_data["updatedAt"] = firestore.SERVER_TIMESTAMP
-        ref.set(doc_data, merge=True)
+        # Avoid in-place mutation of doc_data with non-JSON-serializable Sentinel
+        firestore_payload = dict(doc_data)
+        firestore_payload["updatedAt"] = firestore.SERVER_TIMESTAMP
+        ref.set(firestore_payload, merge=True)
         return True
     except Exception as e:
         logger.error(f"Failed writing recommendations for user {user_id}: {e}")

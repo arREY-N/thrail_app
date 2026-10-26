@@ -441,6 +441,244 @@ def run_batch_recommendations(
     }
 
 
+def run_single_user_recommendations(
+    user_id: str,
+    cbf_engine: Union[str, Callable] = "GD",
+    cf_engine: Union[str, Callable] = "GD",
+    month_id: Optional[str] = None,
+    candidate_trails: Optional[List[Dict[str, Any]]] = None,
+    user_doc: Optional[Dict[str, Any]] = None,
+    peer_users: Optional[List[Dict[str, Any]]] = None,
+    commit_to_firestore: bool = True,
+    feature_weights: Optional[Dict[str, float]] = None,
+    generate_ai_reasoning: bool = True,
+    db: Any = None
+) -> Dict[str, Any]:
+    """
+    Executes a personalized recommendation run strictly for a single user (e.g. upon onboarding/sign up).
+    
+    Guarantees:
+        - Only reads other users' saved profile vectors as read-only references for Collaborative Filtering.
+        - NEVER modifies or overwrites any other active user's recommendation set or profile.
+        - Calls Gemini AI reasoning only once for this specific user's top recommended trail.
+        - Ensures new users receive their initial recommendation list immediately upon registration.
+    """
+    active_month = month_id or get_current_month_id()
+    logger.info(f"Running THARESYS recommendation for single user '{user_id}' (month: '{active_month}')")
+
+    if db is None:
+        db = initialize_firebase()
+
+    # 1. Fetch user doc if not supplied
+    if user_doc is None:
+        if db:
+            u_snap = db.collection("users").document(user_id).get()
+            if not u_snap.exists:
+                raise ValueError(f"User '{user_id}' not found in Firestore.")
+            user_doc = u_snap.to_dict() or {}
+            user_doc["id"] = user_id
+        else:
+            raise ValueError(f"User document for '{user_id}' must be provided when Firestore is unavailable.")
+    else:
+        if not user_doc.get("id"):
+            user_doc["id"] = user_id
+
+    # 2. Extract or formulate user anchors
+    easy_vec, diff_vec, raw_easy, raw_diff = extract_user_anchor_profiles(user_doc)
+
+    # If the user does not have a saved profile object yet, persist the formulated anchors to Firestore
+    existing_prof = user_doc.get("profile")
+    if not existing_prof or not isinstance(existing_prof, dict) or not existing_prof.get("easy"):
+        formatted_profiles = {
+            "easy": {
+                "metadata": {"type": "user", "id": user_id, "profile": "easy"},
+                "features": raw_easy.get("features", raw_easy)
+            },
+            "difficult": {
+                "metadata": {"type": "user", "id": user_id, "profile": "difficult"},
+                "features": raw_diff.get("features", raw_diff)
+            }
+        }
+        if commit_to_firestore and db:
+            save_user_profile(user_id, formatted_profiles, db=db)
+            logger.info(f"Saved initial baseline profile anchors for new user '{user_id}'")
+
+    # 3. Load & prepare candidate trails
+    trail_list = candidate_trails if candidate_trails is not None else fetch_trails(db)
+    if not trail_list:
+        logger.warning(f"No candidate trails found for user '{user_id}'.")
+        return {
+            "status": "warning",
+            "message": "No trails found in database.",
+            "month": active_month,
+            "userId": user_id,
+            "total_trails_scored": 0
+        }
+
+    prepared_trails = []
+    trail_by_id = {str(t.get("id") or ""): t for t in trail_list}
+    for t in trail_list:
+        tid = str(t.get("id") or "")
+        general = t.get("general") or {}
+        tname = general.get("name") if isinstance(general, dict) else None
+        if not tname:
+            tname = t.get("name") or "Unknown Trail"
+        prof = t.get("profile", t)
+        tvec = flatten_profile_features(prof)
+        prepared_trails.append({
+            "id": tid,
+            "name": tname,
+            "vector": tvec
+        })
+
+    # 4. Gather peer profiles (read-only for Collaborative Filtering)
+    if peer_users is None and db:
+        peer_users = fetch_users(db, require_profile=True)
+    elif peer_users is None:
+        peer_users = []
+
+    other_peers = []
+    for p in peer_users:
+        pid = str(p.get("id") or "")
+        if pid and pid != user_id:
+            p_easy, _, _, _ = extract_user_anchor_profiles(p)
+            other_peers.append(p_easy)
+
+    total_user_count = len(other_peers) + 1
+    alpha = compute_alpha(total_user_count)
+    weight_vector = build_feature_weight_vector(feature_weights)
+
+    # 5. Fetch hike completion history
+    hiked_ids = set()
+    if db:
+        hiked_ids = fetch_completed_trail_ids(user_id, db)
+
+    # 6. Score candidate trails & perform disjoint partitioning
+    easy_items = []
+    diff_items = []
+
+    for trail in prepared_trails:
+        tid = trail["id"]
+        tname = trail["name"]
+        tvec = trail["vector"]
+        have_hiked = tid in hiked_ids
+
+        res_easy = engine_details(
+            cbf_engine=cbf_engine,
+            cf_engine=cf_engine,
+            array_1=easy_vec,
+            array_2=tvec,
+            a=alpha,
+            peer_profiles=other_peers if other_peers else None,
+            weights=weight_vector
+        )
+
+        res_diff = engine_details(
+            cbf_engine=cbf_engine,
+            cf_engine=cf_engine,
+            array_1=diff_vec,
+            array_2=tvec,
+            a=alpha,
+            peer_profiles=other_peers if other_peers else None,
+            weights=weight_vector
+        )
+
+        easy_score = round(float(res_easy["score"]), 4)
+        diff_score = round(float(res_diff["score"]), 4)
+
+        if easy_score <= diff_score:
+            easy_items.append({
+                "id": tid,
+                "trailName": tname,
+                "category": "easy",
+                "haveHiked": have_hiked,
+                "score": easy_score,
+                "easyScore": easy_score,
+                "diffScore": diff_score,
+                "cbfScore": round(float(res_easy["cbf"]), 4),
+                "cfScore": round(float(res_easy["cf"]), 4),
+            })
+        else:
+            diff_items.append({
+                "id": tid,
+                "trailName": tname,
+                "category": "difficult",
+                "haveHiked": have_hiked,
+                "score": diff_score,
+                "easyScore": easy_score,
+                "diffScore": diff_score,
+                "cbfScore": round(float(res_diff["cbf"]), 4),
+                "cfScore": round(float(res_diff["cf"]), 4),
+            })
+
+    easy_items.sort(key=lambda x: x["score"])
+    diff_items.sort(key=lambda x: x["score"])
+
+    # 7. Generate Gemini AI reasoning for top #1 recommendation
+    ai_reasonings = {}
+    if generate_ai_reasoning and (easy_items or diff_items):
+        if easy_items:
+            top_item = easy_items[0]
+            top_profile = raw_easy
+            is_challenge = False
+        else:
+            top_item = min(diff_items, key=lambda x: x.get("easyScore", x["score"]))
+            top_item["isChallengeOfMonth"] = True
+            top_profile = raw_easy
+            is_challenge = True
+
+        top_trail_doc = trail_by_id.get(top_item["id"])
+        try:
+            reasoning = generate_gemini_reasoning(
+                trail=top_trail_doc,
+                reco_item=top_item,
+                user=user_doc,
+                user_profile=top_profile,
+                month_label=active_month,
+                is_challenge=is_challenge
+            )
+            ai_reasonings[top_item["id"]] = reasoning
+        except Exception as e:
+            logger.warning(f"Failed to generate Gemini reasoning for user {user_id}: {e}")
+
+    # 8. Construct monthly recommendation document matching schema
+    doc_data = {
+        "id": active_month,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
+        "engineConfig": {
+            "cbf": str(cbf_engine),
+            "cf": str(cf_engine),
+            "alpha": round(alpha, 4),
+            "userCount": total_user_count,
+            "featureWeights": feature_weights if feature_weights else "default"
+        },
+        "profile": {
+            "easy": raw_easy,
+            "difficult": raw_diff
+        },
+        "easy": easy_items,
+        "difficult": diff_items,
+        "aiReasonings": ai_reasonings
+    }
+
+    # 9. Commit to Firestore
+    if commit_to_firestore and db:
+        save_user_recommendations(user_id, active_month, doc_data, db)
+        logger.info(f"Successfully saved initial recommendation document for user '{user_id}' in month '{active_month}'")
+
+    return {
+        "status": "success",
+        "month": active_month,
+        "userId": user_id,
+        "total_trails_scored": len(prepared_trails),
+        "easy_count": len(easy_items),
+        "difficult_count": len(diff_items),
+        "alpha": round(alpha, 4),
+        "recommendation": doc_data
+    }
+
+
 if __name__ == "__main__":
     # Self-test using mock data strictly conforming to ITrailDB and IUserDB models
     mock_trails = [

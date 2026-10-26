@@ -15,8 +15,9 @@ from fastapi import FastAPI, HTTPException, Request, Depends, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+import numpy as np
 from tars import engine, compute_alpha, GD, ED, CS
-from batch_runner import run_batch_recommendations
+from batch_runner import run_batch_recommendations, run_single_user_recommendations
 from profile_utils import (
     CANONICAL_FEATURES,
     extract_user_anchor_profiles,
@@ -85,12 +86,14 @@ class AdminRunEngineRequest(BaseModel):
 
 
 class SingleRecommendRequest(BaseModel):
-    user_id: str
-    user_profile: Dict[str, Any]
-    candidate_trails: List[Dict[str, Any]]
+    user_id: Optional[str] = None
     cbf_engine: str = "GD"
     cf_engine: str = "GD"
-    active_user_count: int = 10
+    month_id: Optional[str] = None
+    candidate_trails: Optional[List[Dict[str, Any]]] = None
+    user_doc: Optional[Dict[str, Any]] = None
+    commit_to_firestore: bool = True
+    generate_ai_reasoning: bool = True
     feature_weights: Optional[Dict[str, float]] = None
 
 
@@ -145,6 +148,62 @@ async def admin_run_engine(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Batch execution failed: {str(e)}"
+        )
+
+
+def sanitize_json(data: Any) -> Any:
+    """Recursively converts Firestore Sentinel, Datetime, and NumPy primitives to JSON-safe types."""
+    if isinstance(data, dict):
+        return {
+            k: sanitize_json(v)
+            for k, v in data.items()
+            if not str(type(v)).endswith("Sentinel'>")
+        }
+    elif isinstance(data, list):
+        return [sanitize_json(v) for v in data]
+    elif hasattr(data, "isoformat"):
+        return data.isoformat()
+    elif isinstance(data, (np.floating, np.float32, np.float64)):
+        return float(data)
+    elif isinstance(data, (np.integer, np.int32, np.int64)):
+        return int(data)
+    elif isinstance(data, np.ndarray):
+        return data.tolist()
+    return data
+
+
+@app.post("/api/users/{user_id}/initial-recommendation")
+@app.post("/api/users/{user_id}/recommend")
+async def generate_user_initial_recommendation(
+    user_id: str,
+    payload: Optional[SingleRecommendRequest] = None,
+    _auth: bool = Depends(verify_admin_key)
+):
+    """
+    Generates recommendations exclusively for a single user (e.g. upon onboarding or sign up).
+    Uses existing users' profiles strictly as read-only references for collaborative filtering.
+    Does NOT modify or overwrite other active users' recommendations or profiles.
+    """
+    logger.info(f"Generating initial recommendations for user '{user_id}'")
+    req = payload or SingleRecommendRequest(user_id=user_id)
+    try:
+        result = run_single_user_recommendations(
+            user_id=user_id,
+            cbf_engine=req.cbf_engine,
+            cf_engine=req.cf_engine,
+            month_id=req.month_id,
+            candidate_trails=req.candidate_trails,
+            user_doc=req.user_doc,
+            commit_to_firestore=req.commit_to_firestore,
+            feature_weights=req.feature_weights,
+            generate_ai_reasoning=req.generate_ai_reasoning
+        )
+        return sanitize_json(result)
+    except Exception as e:
+        logger.error(f"Failed generating initial recommendations for user '{user_id}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Single user recommendation generation failed: {str(e)}"
         )
 
 

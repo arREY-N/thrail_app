@@ -301,3 +301,53 @@ export async function updateUserProfileFromHikes(
 
     return data;
 }
+
+/**
+ * Triggers initial personalized recommendation generation for a single user (e.g., upon onboarding/sign up).
+ * Generates their initial profile and recommendations without altering any other user's data.
+ */
+export async function generateInitialUserRecommendations(
+    userId: string,
+    options?: {
+        cbf_engine?: string;
+        cf_engine?: string;
+        generate_ai_reasoning?: boolean;
+    }
+): Promise<any> {
+    const baseUrl = getTarsApiBaseUrl();
+    const apiKey = getTarsApiKey();
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(apiKey ? { 'X-THARESYS-KEY': apiKey } : {}),
+    };
+
+    const controller = new AbortController();
+    // 35-second timeout for single-user scoring and Gemini synthesis
+    const timeoutId = setTimeout(() => controller.abort(), 35000);
+
+    try {
+        const res = await fetch(`${baseUrl}/api/users/${userId}/initial-recommendation`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                user_id: userId,
+                cbf_engine: options?.cbf_engine || 'GD',
+                cf_engine: options?.cf_engine || 'GD',
+                generate_ai_reasoning: options?.generate_ai_reasoning !== false,
+            }),
+            signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || `Server error (${res.status}) generating initial recommendations.`);
+        }
+        return data;
+    } catch (err: any) {
+        clearTimeout(timeoutId);
+        console.warn(`[THARESYS] Initial recommendation generation failed or timed out:`, err.message);
+        throw err;
+    }
+}
+
