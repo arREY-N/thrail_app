@@ -11,7 +11,7 @@ import uuid
 import logging
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Union
-from fastapi import FastAPI, HTTPException, Request, Depends, status
+from fastapi import FastAPI, HTTPException, Request, Depends, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -49,6 +49,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def verify_admin_key(
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+    x_tharesys_key: Optional[str] = Header(None, alias="X-THARESYS-KEY")
+) -> bool:
+    """
+    Validates request against THARESYS_API_KEY environment variable.
+    If THARESYS_API_KEY is not configured (e.g. local dev), allows requests.
+    """
+    configured_key = os.environ.get("THARESYS_API_KEY", "").strip()
+    if not configured_key:
+        return True
+
+    provided_key = (x_tharesys_key or x_api_key or "").strip()
+    if not provided_key or provided_key != configured_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing THARESYS API key."
+        )
+    return True
+
 
 
 class AdminRunEngineRequest(BaseModel):
@@ -95,7 +117,10 @@ def get_canonical_features():
 
 
 @app.post("/api/admin/run-engine")
-async def admin_run_engine(payload: AdminRunEngineRequest):
+async def admin_run_engine(
+    payload: AdminRunEngineRequest,
+    _auth: bool = Depends(verify_admin_key)
+):
     """
     Superadmin endpoint to execute a full recommendation engine run.
     Evaluates all users against all trails and writes monthly recommendation
@@ -176,7 +201,10 @@ class UpdateUserProfileRequest(BaseModel):
 
 
 @app.post("/api/user/update-profile")
-async def update_user_profile(payload: UpdateUserProfileRequest):
+async def update_user_profile(
+    payload: UpdateUserProfileRequest,
+    _auth: bool = Depends(verify_admin_key)
+):
     """
     Updates a user's dual anchor profiles (easy and difficult) based on completed hike feedback.
     Partitions hikes by their assigned recommendation category, applies error-driven
@@ -265,4 +293,7 @@ async def update_user_profile(payload: UpdateUserProfileRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    reload = os.environ.get("ENV", "development").lower() != "production"
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=reload)
+
