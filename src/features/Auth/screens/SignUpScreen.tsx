@@ -5,9 +5,10 @@
 
 import { useState } from 'react';
 import {
+    Platform,
     ScrollView,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
@@ -106,11 +107,15 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 placeholder="name@example.com"
                 value={email}
                 onChangeText={(text: string) => {
-                    setEmail(sanitizeEmail(text));
+                    setEmail(text);
                     if (activeError) clearError();
                 }}
+                sanitizeText={sanitizeEmail}
                 keyboardType="email-address"
+                textContentType="emailAddress"
+                autoComplete="email"
                 autoCapitalize="none"
+                autoCorrect={false}
             />
 
             <CustomTextInput
@@ -118,10 +123,16 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 placeholder="Choose a username"
                 value={username}
                 onChangeText={(text: string) => {
-                    setUsername(sanitizeUsername(text));
+                    setUsername(text);
                     if (activeError) clearError();
                 }}
+                sanitizeText={sanitizeUsername}
+                keyboardType={Platform.OS === 'ios' ? 'ascii-capable' : 'default'}
+                textContentType="username"
+                autoComplete="username"
                 autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={30}
             />
 
             <View>
@@ -130,12 +141,19 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                     placeholder="Type your password"
                     value={password}
                     onChangeText={(text: string) => {
-                        setPassword(sanitizePassword(text));
+                        setPassword(text);
                         if (activeError) clearError();
                     }}
+                    sanitizeText={sanitizePassword}
                     secureTextEntry
                     isPasswordVisible={showPasswords}
                     onTogglePassword={() => setShowPasswords(!showPasswords)}
+                    keyboardType={Platform.OS === 'ios' ? 'ascii-capable' : 'default'}
+                    textContentType="newPassword"
+                    autoComplete="new-password"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    maxLength={64}
                     style={{ marginBottom: 0 }}
                 />
 
@@ -161,12 +179,19 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 placeholder="Retype your password"
                 value={confirmPassword}
                 onChangeText={(text: string) => {
-                    setConfirmPassword(sanitizePassword(text));
+                    setConfirmPassword(text);
                     if (activeError) clearError();
                 }}
+                sanitizeText={sanitizePassword}
                 secureTextEntry
                 isPasswordVisible={showPasswords}
                 onTogglePassword={() => setShowPasswords(!showPasswords)}
+                keyboardType={Platform.OS === 'ios' ? 'ascii-capable' : 'default'}
+                textContentType="newPassword"
+                autoComplete="new-password"
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={64}
             />
 
             <ErrorMessage error={activeError} />
