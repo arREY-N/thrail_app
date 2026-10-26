@@ -7,7 +7,7 @@ import { useState } from 'react';
 
 import { cleanPhoneNumber } from '@/src/components/CustomTextInput';
 import { EmergencyContactFlow } from "@/src/core/flows/EmergencyContactFlow";
-import { IEmergencyContact, IMedicalProfile, IPreference, IUser } from "@/src/core/models/User/User";
+import { IEmergencyContact, IMedicalProfile, IPreference, IUser, newUser } from "@/src/core/models/User/User";
 import { toDateOrNull } from "@/src/core/utility/date";
 import { safeParseDateString } from "@/src/utils/dateFormatter";
 
@@ -59,7 +59,19 @@ export function useProfileForm({
     const { findUser, setEmergencyContact: saveEmergencyContactToDb } = EmergencyContactFlow();
 
     const handleSaveEmergencyContact = async (contact: IEmergencyContact, linkedUserResult?: Partial<IUser> | null): Promise<boolean> => {
-        const success = await saveEmergencyContactToDb(contact, linkedUserResult);
+        const nameParts = (contact.name || '').trim().split(' ');
+        const firstname = linkedUserResult?.firstname || nameParts[0] || '';
+        const lastname = linkedUserResult?.lastname || nameParts.slice(1).join(' ') || '';
+
+        const contactUser = newUser({
+            id: contact.userId || linkedUserResult?.id || '',
+            phoneNumber: contact.contactNumber || linkedUserResult?.phoneNumber || '',
+            email: contact.email || linkedUserResult?.email || '',
+            firstname,
+            lastname,
+        });
+
+        const success = await saveEmergencyContactToDb(contactUser);
         if (success) {
             setEmergencyContact(contact);
             setLinkedUser(contact.userId ? {
@@ -68,7 +80,7 @@ export function useProfileForm({
                 email: contact.email,
             } : null);
         }
-        return success;
+        return Boolean(success);
     };
     const [searchEmail, setSearchEmail] = useState<string>('');
     const [isSearching, setIsSearching] = useState<boolean>(false);
@@ -303,6 +315,14 @@ export function useProfileForm({
             setFormError("Username is required.");
             return;
         }
+        if (birthday) {
+            const cutoff = new Date();
+            cutoff.setFullYear(cutoff.getFullYear() - 10);
+            if (birthday > cutoff) {
+                setFormError("You must be at least 10 years old.");
+                return;
+            }
+        }
         if (medicalProfile.hasCondition && (!medicalProfile.details || medicalProfile.details.length === 0)) {
             setFormError("Please specify your medical condition(s).");
             return;
@@ -349,6 +369,7 @@ export function useProfileForm({
         searchSuccess,
         searchInfo,
         formError,
+        setFormError,
         isDirty,
         handleConfirmEdit,
         handleEmergencySearch,
