@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
     StyleSheet,
     TouchableOpacity,
     View,
@@ -10,13 +14,15 @@ import { useRouter } from 'expo-router';
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import CustomTextInput from '@/src/components/CustomTextInput';
+import { useToast } from '@/src/components/Toast/Toast';
 import ExpandableText from '@/src/components/ExpandableText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { Booking } from '@/src/core/models/Booking/Booking';
-import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
+import { Cancellation, useCancellationUser } from '@/src/core/models/Cancellation/Cancellation';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
 
 export interface CancellationCardProps {
@@ -65,22 +71,52 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
         cancellation?.status === 'rejected' ||
         bookingStatus === 'cancellation-rejected';
 
+    const isCancellationAcceptedOrApproved =
+        cancellation?.status === 'approved' ||
+        cancellation?.status === 'refund_submitted' ||
+        cancellation?.status === 'refund_disputed' ||
+        cancellation?.status === 'refund_completed';
+
+    const isNoRefund =
+        cancellation?.refundDecision === 'no_refund' ||
+        (cancellation?.status === 'approved' &&
+         bookingStatus === 'cancelled' &&
+         cancellation?.refundAmount === 0 &&
+         cancellation?.handshakeStep !== 'awaiting_user_wallet' &&
+         cancellation?.handshakeStep !== 'awaiting_admin_payout' &&
+         !cancellation?.adminRefundReceiptUrl);
+
+    const isHandshakeCompleted =
+        !isNoRefund &&
+        (cancellation?.handshakeStep === 'completed' ||
+         cancellation?.status === 'refund_completed' ||
+         bookingStatus === 'refunded');
+
     const isApprovedOrRefunded =
-        (cancellation?.status === 'approved' && !isAdminCancelled) ||
+        (isCancellationAcceptedOrApproved && !isAdminCancelled) ||
         bookingStatus === 'refund' ||
-        bookingStatus === 'refunded';
+        bookingStatus === 'refunded' ||
+        (bookingStatus === 'cancelled' && !isAdminCancelled && isNoRefund);
 
     const isCancelledClosed =
         bookingStatus === 'cancelled' && !isAdminCancelled && !isRejected;
 
-    const isTerminal = isApprovedOrRefunded || isCancelledClosed;
     const router = useRouter();
+
+    const { confirmRefundReceived, disputeRefundPayout } = useCancellationUser();
+    const { showToast } = useToast();
 
     const [isWithdrawing, setIsWithdrawing] = useState<boolean>(false);
     const [isAccepting, setIsAccepting] = useState<boolean>(false);
     const [showWithdrawModal, setShowWithdrawModal] = useState<boolean>(false);
-    const [isExpanded, setIsExpanded] = useState<boolean>(() => !isTerminal);
+    const [isExpanded, setIsExpanded] = useState<boolean>(true);
     const [previewProofUrl, setPreviewProofUrl] = useState<string | null>(null);
+
+    const [showConfirmReceivedModal, setShowConfirmReceivedModal] = useState<boolean>(false);
+    const [isConfirmingReceived, setIsConfirmingReceived] = useState<boolean>(false);
+    const [showDisputeModal, setShowDisputeModal] = useState<boolean>(false);
+    const [disputeReasonInput, setDisputeReasonInput] = useState<string>('');
+    const [isSubmittingDispute, setIsSubmittingDispute] = useState<boolean>(false);
 
     if (!isCancellationRelated) {
         return null;
@@ -140,6 +176,255 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
         }
     };
 
+    const handleExecuteConfirmReceived = async () => {
+        if (!booking.id || !booking.business?.id) return;
+        setIsConfirmingReceived(true);
+        try {
+            await confirmRefundReceived({
+                bookingId: booking.id,
+                cancellationId: cancellation?.id,
+                businessId: booking.business.id,
+                offerId: booking.offer?.id,
+            });
+            setShowConfirmReceivedModal(false);
+            showToast.success('Refund confirmed! Your refund has been finalized.');
+        } catch (err: unknown) {
+            showToast.error(err instanceof Error ? err.message : 'Failed to confirm refund.');
+        } finally {
+            setIsConfirmingReceived(false);
+        }
+    };
+
+    const handleExecuteDispute = async () => {
+        if (!booking.id || !booking.business?.id) return;
+        if (!disputeReasonInput.trim()) {
+            showToast.error('Please provide a reason explaining why the refund was not received.');
+            return;
+        }
+        setIsSubmittingDispute(true);
+        try {
+            await disputeRefundPayout({
+                bookingId: booking.id,
+                cancellationId: cancellation?.id,
+                businessId: booking.business.id,
+                offerId: booking.offer?.id,
+                disputeReason: disputeReasonInput.trim(),
+            });
+            setShowDisputeModal(false);
+            setDisputeReasonInput('');
+            showToast.success('Dispute submitted. The organizer has been notified to re-verify.');
+        } catch (err: unknown) {
+            showToast.error(err instanceof Error ? err.message : 'Failed to submit refund dispute.');
+        } finally {
+            setIsSubmittingDispute(false);
+        }
+    };
+
+    const renderManualRefundHandshake = () => {
+        if (!isPaid || PAYMENT_CONFIG.PROVIDER !== 'manual_qr') return null;
+
+        const isHandshakeCompleted =
+            !isNoRefund &&
+            (cancellation?.handshakeStep === 'completed' ||
+             cancellation?.status === 'refund_completed' ||
+             bookingStatus === 'refunded');
+
+        const isDisputed =
+            cancellation?.handshakeStep === 'refund_disputed' ||
+            cancellation?.status === 'refund_disputed' ||
+            booking.paymentVerificationStatus === 'refund_disputed';
+
+        const hasProof = Boolean(cancellation?.adminRefundReceiptUrl);
+        const disputeCount = cancellation?.disputeCount || 0;
+        const canDispute = disputeCount < 3;
+
+        return (
+            <View style={styles.manualRefundHandshakeBox}>
+                {isNoRefund ? (
+                    <View style={styles.infoBanner}>
+                        <CustomIcon library="Feather" name="info" size={16} color={Colors.TEXT_SECONDARY} />
+                        <CustomText style={styles.infoBannerText}>
+                            This booking has been cancelled and finalized without a refund.
+                        </CustomText>
+                    </View>
+                ) : isHandshakeCompleted ? (
+                    <View style={styles.payoutCompletedBox}>
+                        <View style={styles.payoutCompletedHeader}>
+                            <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
+                            <CustomText style={styles.payoutCompletedTitle}>
+                                Refund Completed & Received
+                            </CustomText>
+                        </View>
+                        <CustomText style={styles.payoutCompletedSubtitle}>
+                            {cancellation?.userConfirmedReceivedAt
+                                ? `You confirmed receipt of the refund on ${formatDateToStandard(cancellation.userConfirmedReceivedAt)}. Your refund is fully settled.`
+                                : 'You have confirmed receipt of the refund payment. Your refund is complete.'}
+                        </CustomText>
+                        {hasProof && (
+                            <TouchableOpacity
+                                style={styles.viewProofBtn}
+                                onPress={() => setPreviewProofUrl(cancellation?.adminRefundReceiptUrl || null)}
+                                activeOpacity={0.8}
+                            >
+                                <CustomIcon library="Feather" name="eye" size={14} color={Colors.PRIMARY} />
+                                <CustomText style={styles.viewProofBtnText}>View Refund Receipt Proof</CustomText>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                ) : isDisputed ? (
+                    <View style={styles.disputedAlertBox}>
+                        <View style={styles.disputedAlertHeader}>
+                            <CustomIcon library="Feather" name="alert-triangle" size={16} color={Colors.ERROR} />
+                            <CustomText style={styles.disputedAlertTitle}>
+                                Refund Disputed (Attempt {disputeCount}/3)
+                            </CustomText>
+                        </View>
+                        <CustomText style={styles.disputedAlertText}>
+                            You reported: &quot;{cancellation?.disputeReason || 'Refund not received.'}&quot;
+                        </CustomText>
+                        <CustomText style={styles.disputedChatNoticeText}>
+                            The organizer has been notified to re-verify or re-send the transfer. You will remain in the tour group chat until this is resolved.
+                        </CustomText>
+                        <View style={styles.disputedActionsRow}>
+                            {hasProof && (
+                                <TouchableOpacity
+                                    style={styles.viewProofBtn}
+                                    onPress={() => setPreviewProofUrl(cancellation?.adminRefundReceiptUrl || null)}
+                                    activeOpacity={0.8}
+                                >
+                                    <CustomIcon library="Feather" name="eye" size={14} color={Colors.PRIMARY} />
+                                    <CustomText style={styles.viewProofBtnText}>View Uploaded Receipt</CustomText>
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity
+                                style={styles.confirmReceivedSmallBtn}
+                                onPress={() => setShowConfirmReceivedModal(true)}
+                                activeOpacity={0.8}
+                            >
+                                <CustomIcon library="Feather" name="check" size={14} color={Colors.WHITE} />
+                                <CustomText style={styles.confirmReceivedSmallBtnText}>
+                                    I Received It Now
+                                </CustomText>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                ) : hasProof ? (
+                    <View style={styles.payoutCompletedBox}>
+                        <View style={styles.payoutCompletedHeader}>
+                            <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
+                            <CustomText style={styles.payoutCompletedTitle}>
+                                Refund Payout Sent by Organizer
+                            </CustomText>
+                        </View>
+                        <CustomText style={styles.payoutCompletedSubtitle}>
+                            The organizer has sent your refund of ₱{(cancellation?.refundAmount ?? totalRefundedAmount ?? totalAmountPaid).toFixed(2)} and uploaded receipt proof. Please check your e-wallet and confirm receipt below.
+                        </CustomText>
+                        <TouchableOpacity
+                            style={styles.viewProofBtn}
+                            onPress={() => setPreviewProofUrl(cancellation?.adminRefundReceiptUrl || null)}
+                            activeOpacity={0.8}
+                        >
+                            <CustomIcon library="Feather" name="eye" size={14} color={Colors.PRIMARY} />
+                            <CustomText style={styles.viewProofBtnText}>View Refund Receipt Proof</CustomText>
+                        </TouchableOpacity>
+
+                        <View style={styles.handshakeActionRow}>
+                            <TouchableOpacity
+                                style={styles.confirmReceivedPrimaryBtn}
+                                onPress={() => setShowConfirmReceivedModal(true)}
+                                activeOpacity={0.8}
+                            >
+                                <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.WHITE} />
+                                <CustomText style={styles.confirmReceivedPrimaryBtnText}>
+                                    Confirm Received
+                                </CustomText>
+                            </TouchableOpacity>
+
+                            {canDispute ? (
+                                <TouchableOpacity
+                                    style={styles.disputeOutlineBtn}
+                                    onPress={() => setShowDisputeModal(true)}
+                                    activeOpacity={0.8}
+                                >
+                                    <CustomIcon library="Feather" name="alert-triangle" size={15} color={Colors.ERROR} />
+                                    <CustomText style={styles.disputeOutlineBtnText}>
+                                        Not Received / Appeal
+                                    </CustomText>
+                                </TouchableOpacity>
+                            ) : (
+                                <View style={styles.maxDisputeReachedBox}>
+                                    <CustomIcon library="Feather" name="info" size={14} color={Colors.TEXT_SECONDARY} />
+                                    <CustomText style={styles.maxDisputeReachedText}>
+                                        Max disputes reached (3/3). Please chat directly with organizer in the tour group chat.
+                                    </CustomText>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                ) : cancellation?.userWallet ? (
+                    <View style={styles.walletSubmittedBox}>
+                        <View style={styles.walletSubmittedHeader}>
+                            <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_PENDING_TEXT} />
+                            <CustomText style={styles.walletSubmittedTitle}>
+                                Wallet Submitted — Awaiting Payout
+                            </CustomText>
+                        </View>
+                        <CustomText style={styles.walletSubmittedText}>
+                            Account: {cancellation.userWallet.walletType} ({cancellation.userWallet.accountNumber}) - {cancellation.userWallet.accountName}
+                        </CustomText>
+                        <TouchableOpacity
+                            style={styles.updateWalletBtn}
+                            onPress={() => router.push({ pathname: '/book/refund', params: { bookingId: booking.id, cancellationId: cancellation?.id } })}
+                            activeOpacity={0.7}
+                        >
+                            <CustomText style={styles.updateWalletBtnText}>Edit Wallet Details</CustomText>
+                        </TouchableOpacity>
+                    </View>
+                ) : cancellation?.refundDecision === 'no_refund' || (cancellation?.refundAmount === 0 && cancellation?.status === 'approved') ? (
+                    <View style={styles.infoBanner}>
+                        <CustomIcon library="Feather" name="info" size={16} color={Colors.TEXT_SECONDARY} />
+                        <CustomText style={styles.infoBannerText}>
+                            This booking has been cancelled and finalized without a refund.
+                        </CustomText>
+                    </View>
+                ) : (cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || cancellation?.refundAmount === undefined) ? (
+                    <View style={styles.awaitingDecisionBox}>
+                        <View style={styles.awaitingDecisionHeader}>
+                            <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_PENDING_TEXT} />
+                            <CustomText style={styles.awaitingDecisionTitle}>
+                                Cancellation Approved — Awaiting Refund Amount
+                            </CustomText>
+                        </View>
+                        <CustomText style={styles.awaitingDecisionText}>
+                            The organizer is reviewing this booking to set the refund amount. You will be prompted to verify once the refund is sent.
+                        </CustomText>
+                    </View>
+                ) : (
+                    <View style={styles.needWalletBox}>
+                        <View style={styles.needWalletHeader}>
+                            <CustomIcon library="Feather" name="alert-circle" size={16} color={Colors.PRIMARY} />
+                            <CustomText style={styles.needWalletTitle}>
+                                Action Required: Submit Refund Wallet
+                            </CustomText>
+                        </View>
+                        <CustomText style={styles.needWalletText}>
+                            The organizer has approved a refund of ₱{(cancellation?.refundAmount ?? totalAmountPaid).toFixed(2)}. Please submit your GCash or Maya wallet so the organizer can send your payment.
+                        </CustomText>
+                        <TouchableOpacity
+                            style={styles.enterWalletBtn}
+                            onPress={() => router.push({ pathname: '/book/refund', params: { bookingId: booking.id, cancellationId: cancellation?.id } })}
+                            activeOpacity={0.8}
+                        >
+                            <CustomText style={styles.enterWalletBtnText}>
+                                Enter GCash / Maya Wallet Details
+                            </CustomText>
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
+        );
+    };
+
     const renderConfirmationModal = () => (
         <>
             <ConfirmationModal
@@ -155,6 +440,101 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                 iconName="alert-triangle"
                 iconColor={Colors.ERROR}
             />
+
+            <ConfirmationModal
+                visible={showConfirmReceivedModal}
+                onClose={() => !isConfirmingReceived && setShowConfirmReceivedModal(false)}
+                onConfirm={handleExecuteConfirmReceived}
+                title="Confirm Refund Received"
+                message={`Are you sure you have received the refund amount of ₱${(cancellation?.refundAmount ?? totalRefundedAmount ?? totalAmountPaid).toFixed(2)}${cancellation?.userWallet ? ` in your ${cancellation.userWallet.walletType} account (${cancellation.userWallet.accountNumber})` : ''}? This will mark the refund as complete and release your tour slot.`}
+                confirmText="Yes, Received"
+                cancelText="Cancel"
+                isDestructive={false}
+                isLoading={isConfirmingReceived}
+                iconName="check-circle"
+                iconColor={Colors.SUCCESS}
+            />
+
+            <Modal
+                visible={showDisputeModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => !isSubmittingDispute && setShowDisputeModal(false)}
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.modalBackdrop}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+                >
+                    <ScrollView
+                        contentContainerStyle={styles.modalScrollContent}
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
+                    >
+                        <View style={styles.disputeModalCard}>
+                            <View style={styles.disputeModalHeader}>
+                                <View style={styles.disputeIconWrap}>
+                                    <CustomIcon library="Feather" name="alert-triangle" size={20} color={Colors.ERROR} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <CustomText style={styles.disputeModalTitle}>
+                                        Report Refund Issue
+                                    </CustomText>
+                                    <CustomText style={styles.disputeModalSubtitle}>
+                                        Attempt {Math.min(3, (cancellation?.disputeCount || 0) + 1)} of 3
+                                    </CustomText>
+                                </View>
+                            </View>
+
+                            <CustomText style={styles.disputeModalDesc}>
+                                If you checked your e-wallet and haven&apos;t received the funds, or if there is an issue with the organizer&apos;s receipt proof, describe it below. The organizer will be notified immediately to re-verify the payout.
+                            </CustomText>
+
+                            <CustomTextInput
+                                multiline
+                                numberOfLines={3}
+                                placeholder="e.g. Checked GCash transaction history at 2:30 PM, no incoming transfer of ₱500 found..."
+                                value={disputeReasonInput}
+                                onChangeText={setDisputeReasonInput}
+                                style={{ marginBottom: 4 }}
+                                containerStyle={{ minHeight: 96 }}
+                            />
+
+                            <View style={styles.disputeModalChatNotice}>
+                                <CustomIcon library="Feather" name="message-circle" size={14} color={Colors.TEXT_SECONDARY} />
+                                <CustomText style={styles.disputeModalChatNoticeText}>
+                                    You will remain in the tour group chat so you can coordinate with the organizer until your refund is resolved.
+                                </CustomText>
+                            </View>
+
+                            <View style={styles.disputeModalActions}>
+                                <TouchableOpacity
+                                    style={styles.disputeCancelBtn}
+                                    onPress={() => !isSubmittingDispute && setShowDisputeModal(false)}
+                                    disabled={isSubmittingDispute}
+                                >
+                                    <CustomText style={styles.disputeCancelBtnText}>Cancel</CustomText>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.disputeSubmitBtn,
+                                        !disputeReasonInput.trim() && styles.btnDisabled,
+                                    ]}
+                                    onPress={handleExecuteDispute}
+                                    disabled={isSubmittingDispute || !disputeReasonInput.trim()}
+                                >
+                                    {isSubmittingDispute ? (
+                                        <ActivityIndicator size="small" color={Colors.WHITE} />
+                                    ) : (
+                                        <CustomText style={styles.disputeSubmitBtnText}>Submit Appeal</CustomText>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </Modal>
+
             {previewProofUrl && (
                 <ImagePreviewModal
                     visible={Boolean(previewProofUrl)}
@@ -214,22 +594,24 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                                 </CustomText>
                             </View>
 
-                            <View style={styles.infoRow}>
-                                <CustomIcon
-                                    library="Feather"
-                                    name="info"
-                                    size={15}
-                                    color={Colors.TEXT_SECONDARY}
-                                />
-                                <CustomText variant="caption" style={styles.infoText}>
-                                    {totalAmountPaid > 0
-                                        ? 'You are eligible for a full refund or can choose to reschedule to an alternative available date.'
-                                        : 'This booking is unpaid and has been cancelled. Your reservation spot has been released.'}
-                                </CustomText>
-                            </View>
+                            {!isNoRefund && !isHandshakeCompleted && (
+                                <View style={styles.infoRow}>
+                                    <CustomIcon
+                                        library="Feather"
+                                        name="info"
+                                        size={15}
+                                        color={Colors.TEXT_SECONDARY}
+                                    />
+                                    <CustomText variant="caption" style={styles.infoText}>
+                                        {totalAmountPaid > 0
+                                            ? 'You are eligible for a full refund or can choose to reschedule to an alternative available date.'
+                                            : 'This booking is unpaid and has been cancelled. Your reservation spot has been released.'}
+                                    </CustomText>
+                                </View>
+                            )}
 
                             <View style={styles.actionsColumn}>
-                                {cancellation && onAcceptAdminCancellation && cancellation.status !== 'approved' && (
+                                {cancellation && onAcceptAdminCancellation && !isCancellationAcceptedOrApproved && (
                                     <TouchableOpacity
                                         style={styles.primaryDestructiveBtn}
                                         onPress={handleExecuteAcceptAdmin}
@@ -248,92 +630,11 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                                     </TouchableOpacity>
                                 )}
 
-                                {isPaid && PAYMENT_CONFIG.PROVIDER === 'manual_qr' && (cancellation?.status === 'approved' || cancellation?.handshakeStep === 'awaiting_user_wallet' || cancellation?.handshakeStep === 'awaiting_admin_payout' || cancellation?.handshakeStep === 'completed' || cancellation?.userWallet || cancellation?.adminRefundReceiptUrl) && (
-                                    <View style={styles.manualRefundHandshakeBox}>
-                                        {cancellation?.adminRefundReceiptUrl ? (
-                                            <View style={styles.payoutCompletedBox}>
-                                                <View style={styles.payoutCompletedHeader}>
-                                                    <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
-                                                    <CustomText style={styles.payoutCompletedTitle}>
-                                                        Refund Payout Sent by Organizer
-                                                    </CustomText>
-                                                </View>
-                                                <CustomText style={styles.payoutCompletedSubtitle}>
-                                                    The organizer has sent your refund and uploaded receipt proof.
-                                                </CustomText>
-                                                <TouchableOpacity
-                                                    style={styles.viewProofBtn}
-                                                    onPress={() => setPreviewProofUrl(cancellation.adminRefundReceiptUrl || null)}
-                                                    activeOpacity={0.8}
-                                                >
-                                                    <CustomIcon library="Feather" name="eye" size={14} color={Colors.PRIMARY} />
-                                                    <CustomText style={styles.viewProofBtnText}>View Refund Receipt Proof</CustomText>
-                                                </TouchableOpacity>
-                                            </View>
-                                        ) : cancellation?.userWallet ? (
-                                            <View style={styles.walletSubmittedBox}>
-                                                <View style={styles.walletSubmittedHeader}>
-                                                    <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_PENDING_TEXT} />
-                                                    <CustomText style={styles.walletSubmittedTitle}>
-                                                        Wallet Submitted — Awaiting Payout
-                                                    </CustomText>
-                                                </View>
-                                                <CustomText style={styles.walletSubmittedText}>
-                                                    Account: {cancellation.userWallet.walletType} ({cancellation.userWallet.accountNumber}) - {cancellation.userWallet.accountName}
-                                                </CustomText>
-                                                <TouchableOpacity
-                                                    style={styles.updateWalletBtn}
-                                                    onPress={() => router.push({ pathname: '/book/refund', params: { bookingId: booking.id, cancellationId: cancellation?.id } })}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <CustomText style={styles.updateWalletBtnText}>Edit Wallet Details</CustomText>
-                                                </TouchableOpacity>
-                                            </View>
-                                        ) : cancellation?.refundDecision === 'no_refund' || (cancellation?.refundAmount === 0 && cancellation?.status === 'approved') ? (
-                                            <View style={styles.infoBanner}>
-                                                <CustomIcon library="Feather" name="info" size={16} color={Colors.TEXT_SECONDARY} />
-                                                <CustomText style={styles.infoBannerText}>
-                                                    This booking has been cancelled and finalized without a refund.
-                                                </CustomText>
-                                            </View>
-                                        ) : (cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || cancellation?.refundAmount === undefined) ? (
-                                            <View style={styles.awaitingDecisionBox}>
-                                                <View style={styles.awaitingDecisionHeader}>
-                                                    <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_PENDING_TEXT} />
-                                                    <CustomText style={styles.awaitingDecisionTitle}>
-                                                        Cancellation Accepted — Awaiting Refund Amount
-                                                    </CustomText>
-                                                </View>
-                                                <CustomText style={styles.awaitingDecisionText}>
-                                                    You have accepted the cancellation. The organizer is reviewing this booking to set the refund amount. Once the organizer specifies the amount, you will be prompted to submit your GCash or Maya wallet details here.
-                                                </CustomText>
-                                            </View>
-                                        ) : (
-                                            <View style={styles.needWalletBox}>
-                                                <View style={styles.needWalletHeader}>
-                                                    <CustomIcon library="Feather" name="alert-circle" size={16} color={Colors.PRIMARY} />
-                                                    <CustomText style={styles.needWalletTitle}>
-                                                        Action Required: Submit Refund Wallet
-                                                    </CustomText>
-                                                </View>
-                                                <CustomText style={styles.needWalletText}>
-                                                    The organizer has approved a refund of ₱{(cancellation?.refundAmount ?? totalAmountPaid).toFixed(2)}. Please submit your GCash or Maya wallet so the organizer can send your payment.
-                                                </CustomText>
-                                                <TouchableOpacity
-                                                    style={styles.enterWalletBtn}
-                                                    onPress={() => router.push({ pathname: '/book/refund', params: { bookingId: booking.id, cancellationId: cancellation?.id } })}
-                                                    activeOpacity={0.8}
-                                                >
-                                                    <CustomText style={styles.enterWalletBtnText}>
-                                                        Enter GCash / Maya Wallet Details
-                                                    </CustomText>
-                                                </TouchableOpacity>
-                                            </View>
-                                        )}
-                                    </View>
+                                {isPaid && PAYMENT_CONFIG.PROVIDER === 'manual_qr' && (cancellation?.status === 'approved' || cancellation?.handshakeStep === 'awaiting_user_wallet' || cancellation?.handshakeStep === 'awaiting_admin_payout' || cancellation?.handshakeStep === 'completed' || cancellation?.userWallet || cancellation?.adminRefundReceiptUrl || cancellation?.handshakeStep === 'refund_disputed' || isNoRefund) && (
+                                    renderManualRefundHandshake()
                                 )}
 
-                                {onReschedule && totalAmountPaid > 0 && !cancellation?.adminRefundReceiptUrl && (
+                                {onReschedule && totalAmountPaid > 0 && !cancellation?.adminRefundReceiptUrl && !isNoRefund && !isHandshakeCompleted && (
                                     <TouchableOpacity
                                         style={styles.outlineBtn}
                                         onPress={onReschedule}
@@ -454,51 +755,83 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
     // 3. APPROVED & REFUNDED (Terminal State in History)
     if (isApprovedOrRefunded) {
         const payments = booking.payment || [];
-        const isPayMongo = payments.some(p => p.gateway === 'paymongo');
-        const isManualRefund = !isPayMongo && (payments.some(p => p.gateway === 'manual_qr') || PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+        const isManualRefund = PAYMENT_CONFIG.PROVIDER === 'manual_qr' || payments.some(p => p.gateway === 'manual_qr');
+        const isPayMongo = !isManualRefund && payments.some(p => p.gateway === 'paymongo');
+
+        const isDisputed = isManualRefund && (
+            cancellation?.handshakeStep === 'refund_disputed' ||
+            cancellation?.status === 'refund_disputed' ||
+            booking.paymentVerificationStatus === 'refund_disputed'
+        );
+
+        const isAwaitingConfirmation = isManualRefund && !isDisputed && Boolean(
+            cancellation?.adminRefundReceiptUrl &&
+            cancellation?.handshakeStep !== 'completed' &&
+            bookingStatus !== 'refunded'
+        );
 
         const isRefundComplete = isPayMongo
             ? (hasRefundedPayments || totalRefundedAmount > 0 || bookingStatus === 'refunded')
-            : (Boolean(cancellation?.adminRefundReceiptUrl) || cancellation?.handshakeStep === 'completed' || bookingStatus === 'refunded');
+            : (cancellation?.handshakeStep === 'completed' || cancellation?.status === 'refund_completed' || bookingStatus === 'refunded');
 
         const isAwaitingPayout = isManualRefund && Boolean(cancellation?.userWallet && !cancellation?.adminRefundReceiptUrl);
         const isAwaitingWallet = Boolean(isManualRefund && isPaid && !cancellation?.userWallet && !cancellation?.adminRefundReceiptUrl);
 
-        const headerTitle = isPaid
-            ? (isRefundComplete
-                ? 'Cancellation Approved & Refunded'
-                : (isAwaitingPayout
-                    ? 'Cancellation Approved — Awaiting Payout'
-                    : (isAwaitingWallet
-                        ? 'Cancellation Approved — Action Required'
-                        : 'Cancellation Approved — Refund In Progress')))
-            : 'Cancellation Approved';
+        const headerTitle = isNoRefund
+            ? 'Cancellation Approved'
+            : (isPaid
+                ? (isRefundComplete
+                    ? 'Cancellation Approved & Refunded'
+                    : (isDisputed
+                        ? 'Refund Disputed'
+                        : (isAwaitingConfirmation
+                            ? 'Refund Sent — Please Confirm Receipt'
+                            : (isAwaitingPayout
+                                ? 'Cancellation Approved — Awaiting Payout'
+                                : (isAwaitingWallet
+                                    ? 'Cancellation Approved — Action Required'
+                                    : 'Cancellation Approved — Refund In Progress')))))
+                : 'Cancellation Approved');
 
-        const headerSubtitle = isPaid
-            ? (isRefundComplete
-                ? (isPayMongo ? 'Refund issued via PayMongo · Booking closed' : 'Refund issued · Booking closed')
-                : (isAwaitingPayout
-                    ? 'Wallet submitted · Awaiting organizer payout'
-                    : (isAwaitingWallet
-                        ? 'Please submit your wallet for refund'
-                        : 'Refund in progress')))
-            : 'Booking closed';
+        const headerSubtitle = isNoRefund
+            ? 'Booking closed without refund'
+            : (isPaid
+                ? (isRefundComplete
+                    ? (isPayMongo ? 'Refund issued via PayMongo · Booking closed' : 'Refund completed & confirmed')
+                    : (isDisputed
+                        ? `Attempt ${cancellation?.disputeCount || 1} of 3 · Awaiting organizer re-check`
+                        : (isAwaitingConfirmation
+                            ? 'Organizer uploaded receipt proof · Verify payment'
+                            : (isAwaitingPayout
+                                ? 'Wallet submitted · Awaiting organizer payout'
+                                : (isAwaitingWallet
+                                    ? 'Please submit your wallet for refund'
+                                    : 'Refund in progress')))))
+                : 'Booking closed');
 
-        const headerIcon = isPaid
-            ? (isRefundComplete ? 'check-circle' : 'clock')
-            : 'check-circle';
+        const headerIcon = isNoRefund
+            ? 'check-circle'
+            : (isPaid
+                ? (isRefundComplete ? 'check-circle' : (isDisputed ? 'alert-triangle' : 'clock'))
+                : 'check-circle');
 
-        const headerIconColor = isPaid
-            ? (isRefundComplete ? Colors.PRIMARY : '#D97706')
-            : Colors.PRIMARY;
+        const headerIconColor = isNoRefund
+            ? Colors.PRIMARY
+            : (isPaid
+                ? (isRefundComplete ? Colors.PRIMARY : (isDisputed ? Colors.ERROR : '#D97706'))
+                : Colors.PRIMARY);
 
-        const iconBgStyle = isPaid
-            ? (isRefundComplete ? styles.iconCircleSuccess : styles.iconCircleWarning)
-            : styles.iconCircleSuccess;
+        const iconBgStyle = isNoRefund
+            ? styles.iconCircleSuccess
+            : (isPaid
+                ? (isRefundComplete ? styles.iconCircleSuccess : (isDisputed ? styles.iconCircleError : styles.iconCircleWarning))
+                : styles.iconCircleSuccess);
 
-        const headerTitleStyle = isPaid
-            ? (isRefundComplete ? styles.titleSuccess : styles.titleWarning)
-            : styles.titleSuccess;
+        const headerTitleStyle = isNoRefund
+            ? styles.titleSuccess
+            : (isPaid
+                ? (isRefundComplete ? styles.titleSuccess : (isDisputed ? styles.titleError : styles.titleWarning))
+                : styles.titleSuccess);
 
         return (
             <>
@@ -540,19 +873,25 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                     <>
                         <View style={styles.successBox}>
                             <CustomText style={styles.successMessage}>
-                                {isPaid
-                                    ? (isManualRefund
-                                        ? (isRefundComplete
-                                            ? 'Your cancellation request has been approved and refund payout has been sent.'
-                                            : (isAwaitingPayout
-                                                ? 'Your cancellation request has been approved. The organizer will send your refund to your submitted e-wallet.'
-                                                : 'Your cancellation request has been approved by the organizer. Please submit your refund wallet below.'))
-                                        : (isRefundComplete
-                                            ? 'Your cancellation request has been approved and your payment has been refunded to your original payment method via PayMongo.'
-                                            : 'Your cancellation request has been approved. The refund transaction is being processed via PayMongo.'))
-                                    : 'Your cancellation request has been approved. Your reservation has been cancelled and slots released.'}
+                                {isNoRefund
+                                    ? 'Your cancellation request has been approved and finalized without a refund. Your reservation has been closed.'
+                                    : (isPaid
+                                        ? (isManualRefund
+                                            ? (isRefundComplete
+                                                ? 'Your cancellation request has been approved and refund payout has been confirmed.'
+                                                : (isDisputed
+                                                    ? 'You have disputed this refund payout. The organizer has been notified to re-verify the transaction.'
+                                                    : (isAwaitingConfirmation
+                                                        ? 'The organizer has sent your refund and uploaded receipt proof. Please review and confirm receipt.'
+                                                        : (isAwaitingPayout
+                                                            ? 'Your cancellation request has been approved. The organizer will send your refund to your submitted e-wallet.'
+                                                            : 'Your cancellation request has been approved by the organizer. Please submit your refund wallet below.'))))
+                                            : (isRefundComplete
+                                                ? 'Your cancellation request has been approved and your payment has been refunded to your original payment method via PayMongo.'
+                                                : 'Your cancellation request has been approved. The refund transaction is being processed via PayMongo.'))
+                                        : 'Your cancellation request has been approved. Your reservation has been cancelled and slots released.')}
                             </CustomText>
-                            {isPaid && isPayMongo && !isRefundComplete && (
+                            {isPaid && isPayMongo && !isRefundComplete && !isNoRefund && (
                                 <View style={styles.timelineBox}>
                                     <CustomIcon
                                         library="Feather"
@@ -566,89 +905,8 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                                 </View>
                             )}
 
-                            {isPaid && isManualRefund && (
-                                <View style={styles.manualRefundHandshakeBox}>
-                                    {cancellation?.adminRefundReceiptUrl ? (
-                                        <View style={styles.payoutCompletedBox}>
-                                            <View style={styles.payoutCompletedHeader}>
-                                                <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
-                                                <CustomText style={styles.payoutCompletedTitle}>
-                                                    Refund Payout Sent by Organizer
-                                                </CustomText>
-                                            </View>
-                                            <CustomText style={styles.payoutCompletedSubtitle}>
-                                                The organizer has sent your refund and uploaded receipt proof.
-                                            </CustomText>
-                                            <TouchableOpacity
-                                                style={styles.viewProofBtn}
-                                                onPress={() => setPreviewProofUrl(cancellation.adminRefundReceiptUrl || null)}
-                                                activeOpacity={0.8}
-                                            >
-                                                <CustomIcon library="Feather" name="eye" size={14} color={Colors.PRIMARY} />
-                                                <CustomText style={styles.viewProofBtnText}>View Refund Receipt Proof</CustomText>
-                                            </TouchableOpacity>
-                                        </View>
-                                    ) : cancellation?.userWallet ? (
-                                        <View style={styles.walletSubmittedBox}>
-                                            <View style={styles.walletSubmittedHeader}>
-                                                <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_PENDING_TEXT} />
-                                                <CustomText style={styles.walletSubmittedTitle}>
-                                                    Wallet Submitted — Awaiting Payout
-                                                </CustomText>
-                                            </View>
-                                            <CustomText style={styles.walletSubmittedText}>
-                                                Account: {cancellation.userWallet.walletType} ({cancellation.userWallet.accountNumber}) - {cancellation.userWallet.accountName}
-                                            </CustomText>
-                                            <TouchableOpacity
-                                                style={styles.updateWalletBtn}
-                                                onPress={() => router.push({ pathname: '/book/refund', params: { bookingId: booking.id, cancellationId: cancellation?.id } })}
-                                                activeOpacity={0.7}
-                                            >
-                                                <CustomText style={styles.updateWalletBtnText}>Edit Wallet Details</CustomText>
-                                            </TouchableOpacity>
-                                        </View>
-                                    ) : cancellation?.refundDecision === 'no_refund' || (cancellation?.refundAmount === 0 && cancellation?.status === 'approved') ? (
-                                        <View style={styles.infoBanner}>
-                                            <CustomIcon library="Feather" name="info" size={16} color={Colors.TEXT_SECONDARY} />
-                                            <CustomText style={styles.infoBannerText}>
-                                                Your cancellation has been approved and finalized without a refund.
-                                            </CustomText>
-                                        </View>
-                                    ) : (cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || cancellation?.refundAmount === undefined) ? (
-                                        <View style={styles.awaitingDecisionBox}>
-                                            <View style={styles.awaitingDecisionHeader}>
-                                                <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_PENDING_TEXT} />
-                                                <CustomText style={styles.awaitingDecisionTitle}>
-                                                    Cancellation Approved — Awaiting Refund Amount
-                                                </CustomText>
-                                            </View>
-                                            <CustomText style={styles.awaitingDecisionText}>
-                                                Your cancellation request is approved. The organizer is currently finalizing the refund amount. You will be prompted to submit your GCash or Maya wallet details once the amount is set.
-                                            </CustomText>
-                                        </View>
-                                    ) : (
-                                        <View style={styles.needWalletBox}>
-                                            <View style={styles.needWalletHeader}>
-                                                <CustomIcon library="Feather" name="alert-circle" size={16} color={Colors.PRIMARY} />
-                                                <CustomText style={styles.needWalletTitle}>
-                                                    Action Required: Submit Refund Wallet
-                                                </CustomText>
-                                            </View>
-                                            <CustomText style={styles.needWalletText}>
-                                                The organizer has approved a refund of ₱{(cancellation?.refundAmount ?? totalAmountPaid).toFixed(2)}. Please submit your GCash or Maya wallet so the organizer can send your payment.
-                                            </CustomText>
-                                            <TouchableOpacity
-                                                style={styles.enterWalletBtn}
-                                                onPress={() => router.push({ pathname: '/book/refund', params: { bookingId: booking.id, cancellationId: cancellation?.id } })}
-                                                activeOpacity={0.8}
-                                            >
-                                                <CustomText style={styles.enterWalletBtnText}>
-                                                    Enter GCash / Maya Wallet Details
-                                                </CustomText>
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
-                                </View>
+                            {isPaid && isManualRefund && !isNoRefund && (
+                                renderManualRefundHandshake()
                             )}
                         </View>
 
@@ -1244,6 +1502,205 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
         color: Colors.PRIMARY,
+    },
+    disputedAlertBox: {
+        backgroundColor: '#FEF2F2',
+        borderRadius: 12,
+        padding: 14,
+        gap: 6,
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+    },
+    disputedAlertHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    disputedAlertTitle: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: Colors.ERROR,
+    },
+    disputedAlertText: {
+        fontSize: 12,
+        color: Colors.TEXT_PRIMARY,
+        fontStyle: 'italic',
+        lineHeight: 16,
+    },
+    disputedChatNoticeText: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 15,
+        marginTop: 2,
+    },
+    disputedActionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 6,
+    },
+    confirmReceivedSmallBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        backgroundColor: Colors.SUCCESS,
+        paddingVertical: 7,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+    },
+    confirmReceivedSmallBtnText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: Colors.WHITE,
+    },
+    handshakeActionRow: {
+        marginTop: 8,
+        gap: 8,
+    },
+    confirmReceivedPrimaryBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: Colors.SUCCESS,
+        paddingVertical: 12,
+        borderRadius: 10,
+    },
+    confirmReceivedPrimaryBtnText: {
+        color: Colors.WHITE,
+        fontSize: 13,
+        fontWeight: 'bold',
+    },
+    disputeOutlineBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        borderWidth: 1.5,
+        borderColor: Colors.ERROR,
+        backgroundColor: Colors.WHITE,
+        paddingVertical: 11,
+        borderRadius: 10,
+    },
+    disputeOutlineBtnText: {
+        color: Colors.ERROR,
+        fontSize: 13,
+        fontWeight: 'bold',
+    },
+    maxDisputeReachedBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        padding: 10,
+        borderRadius: 8,
+    },
+    maxDisputeReachedText: {
+        flex: 1,
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 15,
+    },
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+    },
+    modalScrollContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    disputeModalCard: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 16,
+        padding: 20,
+        width: '100%',
+        maxWidth: 420,
+        gap: 12,
+        ...GlobalStyles.dropShadow(4),
+    },
+    disputeModalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    disputeIconWrap: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#FEE2E2',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    disputeModalTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+    },
+    disputeModalSubtitle: {
+        fontSize: 12,
+        color: Colors.ERROR,
+        fontWeight: '600',
+    },
+    disputeModalDesc: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 17,
+    },
+    disputeTextInput: {
+        minHeight: 96,
+    },
+    disputeModalChatNotice: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: Colors.PRIMARY_LIGHT,
+        padding: 10,
+        borderRadius: 8,
+    },
+    disputeModalChatNoticeText: {
+        flex: 1,
+        fontSize: 11,
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 15,
+    },
+    disputeModalActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 4,
+    },
+    disputeCancelBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    disputeCancelBtnText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: Colors.TEXT_SECONDARY,
+    },
+    disputeSubmitBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.ERROR,
+    },
+    disputeSubmitBtnText: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: Colors.WHITE,
+    },
+    btnDisabled: {
+        opacity: 0.5,
     },
 });
 
