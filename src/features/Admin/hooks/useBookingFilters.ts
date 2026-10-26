@@ -6,27 +6,40 @@
 import { useMemo, useState } from 'react';
 
 import { Booking, BookingStatus } from '@/src/core/models/Booking/Booking';
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 
 export const FILTER_OPTIONS = ['All', 'Needs Review', 'For Payment', 'Downpayment', 'Fully Paid', 'Completed', 'Rejected'];
 
 /**
- * useBookingFilters — Filters and sorts a list of bookings for a offer.
+ * useBookingFilters — Filters and sorts a list of bookings for an offer.
  * 
  * @param bookings - The array of booking objects to filter and sort.
+ * @param cancellations - Optional array of business cancellation records.
  * @returns An object containing the active filter, sorting order state, setter functions, and filtered/sorted bookings.
  */
-export default function useBookingFilters(bookings: Booking[]) {
+export default function useBookingFilters(bookings: Booking[], cancellations?: Cancellation[]) {
     const [activeFilter, setActiveFilter] = useState('All');
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     const filteredBookings = useMemo(() => {
         if (!bookings) return [];
 
+        const getEffectiveStatus = (b: Booking): BookingStatus | string => {
+            const cancellation = cancellations?.find(c => c.bookingId === b.id && !c.isDeleted);
+            if (cancellation?.status === 'approved' && !['refund', 'refunded', 'cancelled'].includes(b.status || '')) {
+                return 'cancelled';
+            }
+            if (cancellation?.status === 'pending') {
+                return 'for-cancellation';
+            }
+            return b.status || '';
+        };
+
         let result = [...bookings];
 
         if (activeFilter !== 'All') {
             result = result.filter(b => {
-                const status = b.status || '';
+                const status = getEffectiveStatus(b);
                 const isNeedsReview = status === 'for-reservation' || status === 'for-cancellation' || status === 'for-reschedule';
                 
                 if (activeFilter === 'Needs Review') return isNeedsReview;
@@ -61,8 +74,8 @@ export default function useBookingFilters(bookings: Booking[]) {
         }
 
         // 3-Tier Hierarchy for 'All' tab: Action Required -> In-Progress -> Dead / Closed
-        const getPriorityTier = (status?: BookingStatus | string): number => {
-            const s = status || '';
+        const getPriorityTier = (b: Booking): number => {
+            const s = getEffectiveStatus(b);
 
             // Tier 1: Action Required by Admin (Top)
             if (s === 'for-reservation' || s === 'for-cancellation' || s === 'for-reschedule' || s === 'paid') {
@@ -83,8 +96,8 @@ export default function useBookingFilters(bookings: Booking[]) {
         };
 
         return result.sort((a, b) => {
-            const tierA = getPriorityTier(a.status);
-            const tierB = getPriorityTier(b.status);
+            const tierA = getPriorityTier(a);
+            const tierB = getPriorityTier(b);
             
             if (tierA !== tierB) {
                 return tierA - tierB;
@@ -96,7 +109,7 @@ export default function useBookingFilters(bookings: Booking[]) {
             return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
         });
 
-    }, [bookings, activeFilter, sortOrder]);
+    }, [bookings, cancellations, activeFilter, sortOrder]);
 
     return {
         activeFilter,
