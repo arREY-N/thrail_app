@@ -62,6 +62,8 @@ export const OwnerQRModal: React.FC<OwnerQRModalProps> = ({
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
+    const isAccountPhoneInvalid = accountNumber.length > 0 && !/^09\d{9}$/.test(accountNumber);
+
     const handlePickImage = async () => {
         setErrorMessage(null);
         setSuccessMessage(null);
@@ -111,6 +113,16 @@ export const OwnerQRModal: React.FC<OwnerQRModalProps> = ({
         const effectiveQr = pickedLocalUri || qrCodeUrl;
         if (!effectiveQr || effectiveQr.trim() === '') {
             setErrorMessage('Please upload a master QR code image.');
+            return;
+        }
+
+        if (accountName.trim().length < 2) {
+            setErrorMessage('Account name must be at least 2 characters.');
+            return;
+        }
+
+        if (!/^09\d{9}$/.test(accountNumber.trim())) {
+            setErrorMessage('Account / mobile number must be a valid 11-digit PH mobile number starting with 09.');
             return;
         }
 
@@ -329,19 +341,34 @@ export const OwnerQRModal: React.FC<OwnerQRModalProps> = ({
                                             placeholder="e.g. Mt. Pulag Tours Co."
                                             value={accountName}
                                             onChangeText={setAccountName}
+                                            maxLength={80}
+                                            sanitizeText={(text) => text.replace(/[^a-zA-Z0-9\s.,'&()-]/g, '').replace(/\s{2,}/g, ' ')}
                                         />
-                                        <CustomTextInput
-                                            label="Account / Mobile Number"
-                                            placeholder="e.g. 0917-123-4567"
-                                            value={accountNumber}
-                                            onChangeText={setAccountNumber}
-                                            keyboardType="numeric"
-                                        />
+                                        <View>
+                                            <CustomTextInput
+                                                label="Account / Mobile Number"
+                                                placeholder="09XX XXX XXXX (11 digits)"
+                                                value={accountNumber}
+                                                type="numerical"
+                                                keyboardType="number-pad"
+                                                maxLength={11}
+                                                hasError={isAccountPhoneInvalid}
+                                                sanitizeText={(text) => text.replace(/[^0-9]/g, '').slice(0, 11)}
+                                                onChangeText={(val: string | Date | null) => setAccountNumber(String(val || '').replace(/[^0-9]/g, '').slice(0, 11))}
+                                            />
+                                            {isAccountPhoneInvalid && (
+                                                <CustomText style={styles.fieldErrorText}>
+                                                    Must be a valid 11-digit PH mobile number starting with 09
+                                                </CustomText>
+                                            )}
+                                        </View>
                                         <CustomTextInput
                                             label="Payment Channels Accepted"
                                             placeholder="e.g. GCash / Maya / All Banks"
                                             value={providerName}
                                             onChangeText={setProviderName}
+                                            maxLength={60}
+                                            sanitizeText={(text) => text.replace(/[^a-zA-Z0-9\s/,&-]/g, '').replace(/\s{2,}/g, ' ')}
                                         />
                                     </View>
 
@@ -595,5 +622,11 @@ const styles = StyleSheet.create({
     saveBtn: {
         flex: 1.3,
         width: 'auto',
+    },
+    fieldErrorText: {
+        fontSize: 11,
+        color: Colors.ERROR,
+        marginTop: 4,
+        marginLeft: 2,
     },
 });
