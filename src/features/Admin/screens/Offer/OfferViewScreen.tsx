@@ -31,6 +31,7 @@ import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 
 import { Booking } from '@/src/core/models/Booking/Booking';
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import useBookingFilters, { FILTER_OPTIONS } from '@/src/features/Admin/hooks/useBookingFilters';
 import AdminBookingCard from '@/src/features/Admin/screens/Offer/components/AdminBookingCard';
@@ -42,6 +43,7 @@ import OfferSummaryCard from '@/src/features/Admin/screens/Offer/components/Offe
  * @param offerId - The ID of the current offer.
  * @param offer - The offer details data object.
  * @param bookings - Array of all bookings associated with this offer.
+ * @param cancellations - Optional array of all cancellations associated with the business.
  * @param onViewBooking - Callback to view booking details page.
  * @param onBackPress - Callback for the back navigation action.
  * @param error - Optional error message text.
@@ -50,6 +52,7 @@ export interface OfferViewScreenProps {
     offerId: string;
     offer: IOffer;
     bookings: Booking[];
+    cancellations?: Cancellation[];
     onViewBooking: (bookingId: string, offerId: string) => void;
     onBackPress: () => void;
     error?: string;
@@ -62,6 +65,7 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
     offerId,
     offer, 
     bookings, 
+    cancellations = [],
     onViewBooking, 
     onBackPress, 
     error 
@@ -73,7 +77,7 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
         sortOrder, 
         setSortOrder, 
         filteredBookings 
-    } = useBookingFilters(bookings);
+    } = useBookingFilters(bookings, cancellations);
 
     const tutorial = useTutorialGuide('admin_offer_view', Boolean(offer));
     const scrollViewRef = useRef<ScrollView>(null);
@@ -231,26 +235,30 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                     )}
 
                     {filteredBookings && filteredBookings.length > 0 ? (
-                        filteredBookings.map((b: Booking, index: number) => (
-                            <View
-                                key={b.id}
-                                ref={index === 0 ? firstBookingRef : undefined}
-                                collapsable={false}
-                                style={styles.bookingCardWrapper}
-                                onLayout={index === 0 ? () => {
-                                    if (isTutorialMeasurementActive()) measureBookingCardNow();
-                                } : undefined}
-                            >
-                                <AdminBookingCard 
-                                key={b.id} 
-                                booking={b} 
-                                offerId={offerId} 
-                                onViewBooking={onViewBooking} 
-                                isOfferLocked={isOfferLocked}
-                                style={styles.noMarginBottom}
-                            />
-                            </View>
-                        ))) : (
+                        filteredBookings.map((b: Booking, index: number) => {
+                            const cancellation = cancellations.find(c => c.bookingId === b.id && !c.isDeleted);
+                            return (
+                                <View
+                                    key={b.id}
+                                    ref={index === 0 ? firstBookingRef : undefined}
+                                    collapsable={false}
+                                    style={styles.bookingCardWrapper}
+                                    onLayout={index === 0 ? () => {
+                                        if (isTutorialMeasurementActive()) measureBookingCardNow();
+                                    } : undefined}
+                                >
+                                    <AdminBookingCard 
+                                        key={b.id} 
+                                        booking={b} 
+                                        offerId={offerId} 
+                                        cancellation={cancellation}
+                                        onViewBooking={onViewBooking} 
+                                        isOfferLocked={isOfferLocked}
+                                        style={styles.noMarginBottom}
+                                    />
+                                </View>
+                            );
+                        })) : (
                         <View
                             ref={emptyStateRef}
                             collapsable={false}
