@@ -83,6 +83,18 @@ const bookingFromFirestore = (id: string, data: IBookingDB): Booking => {
         remainingBalance: data.remainingBalance,
         paymentVerificationStatus: data.paymentVerificationStatus,
         paymentRejectionReason: data.paymentRejectionReason,
+        overpayment: data.overpayment ? {
+            ...data.overpayment,
+            createdAt: toDate(data.overpayment.createdAt),
+            updatedAt: toDate(data.overpayment.updatedAt),
+            userWallet: data.overpayment.userWallet ? {
+                ...data.overpayment.userWallet,
+                submittedAt: toDate(data.overpayment.userWallet.submittedAt),
+            } : undefined,
+            adminRefundReceiptUploadedAt: data.overpayment.adminRefundReceiptUploadedAt ? toDate(data.overpayment.adminRefundReceiptUploadedAt) : undefined,
+            disputedAt: data.overpayment.disputedAt ? toDate(data.overpayment.disputedAt) : undefined,
+            userConfirmedReceivedAt: data.overpayment.userConfirmedReceivedAt ? toDate(data.overpayment.userConfirmedReceivedAt) : undefined,
+        } : undefined,
     };
 };
 
@@ -204,6 +216,30 @@ const bookingToFirestore = (booking: Booking): IBookingDB => {
     }
     if (booking.paymentRejectionReason !== undefined && booking.paymentRejectionReason !== null && booking.paymentRejectionReason !== '') {
         data.paymentRejectionReason = booking.paymentRejectionReason;
+    }
+    if (booking.overpayment) {
+        data.overpayment = {
+            ...booking.overpayment,
+            createdAt: booking.overpayment.createdAt instanceof Date && !isNaN(booking.overpayment.createdAt.getTime())
+                ? Timestamp.fromDate(booking.overpayment.createdAt)
+                : serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            userWallet: booking.overpayment.userWallet ? {
+                ...booking.overpayment.userWallet,
+                submittedAt: booking.overpayment.userWallet.submittedAt instanceof Date && !isNaN(booking.overpayment.userWallet.submittedAt.getTime())
+                    ? Timestamp.fromDate(booking.overpayment.userWallet.submittedAt)
+                    : Timestamp.now(),
+            } : undefined,
+            adminRefundReceiptUploadedAt: booking.overpayment.adminRefundReceiptUploadedAt instanceof Date && !isNaN(booking.overpayment.adminRefundReceiptUploadedAt.getTime())
+                ? Timestamp.fromDate(booking.overpayment.adminRefundReceiptUploadedAt)
+                : undefined,
+            disputedAt: booking.overpayment.disputedAt instanceof Date && !isNaN(booking.overpayment.disputedAt.getTime())
+                ? Timestamp.fromDate(booking.overpayment.disputedAt)
+                : undefined,
+            userConfirmedReceivedAt: booking.overpayment.userConfirmedReceivedAt instanceof Date && !isNaN(booking.overpayment.userConfirmedReceivedAt.getTime())
+                ? Timestamp.fromDate(booking.overpayment.userConfirmedReceivedAt)
+                : undefined,
+        } as unknown as NonNullable<IBookingDB['overpayment']>;
     }
 
     return sanitizeFirestoreData(data);
