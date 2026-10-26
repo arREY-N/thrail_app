@@ -73,6 +73,7 @@ interface TagItem {
         border: string;
         text: string;
         icon: string;
+        label?: string;
     };
 }
 
@@ -195,6 +196,10 @@ const PostCard = <T extends IReview = Review>({
     const allTags: TagItem[] = [];
     if (review?.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') {
         allTags.push({ id: `diff-main`, type: 'difficulty', value: review.perceivedDifficulty, style: getDifficultyStyle(review.perceivedDifficulty) });
+    }
+    if (review?.trailMaintenance && review.trailMaintenance !== 'undefined') {
+        const maintStyle = getMaintenanceStyle(review.trailMaintenance);
+        allTags.push({ id: `maint-main`, type: 'maintenance', value: review.trailMaintenance, label: maintStyle.label, style: maintStyle });
     }
     review?.difficultyFactors?.forEach((f: string) => allTags.push({ id: `factor-diff-${f}`, type: 'factor-diff', value: f }));
     review?.favoredFactors?.forEach((f: string) => allTags.push({ id: `factor-fav-${f}`, type: 'factor-fav', value: f }));
@@ -419,7 +424,9 @@ const PostCard = <T extends IReview = Review>({
                                 return (
                                     <View key={tag.id} style={[styles.statusPill, { backgroundColor: tag.style.bg, borderColor: tag.style.border }]}>
                                         <CustomIcon library="Feather" name={tag.style.icon} size={12} color={tag.style.text} />
-                                        <CustomText style={[styles.statusPillText, { color: tag.style.text }]}>{tag.label}</CustomText>
+                                        <CustomText style={[styles.statusPillText, { color: tag.style.text }]}>
+                                            {tag.style.label || tag.value}
+                                        </CustomText>
                                     </View>
                                 );
                             }
