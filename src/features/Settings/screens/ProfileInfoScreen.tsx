@@ -4,8 +4,8 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleProp, StyleSheet, TextStyle, TouchableOpacity, View } from 'react-native';
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
 import CustomFeedbackInput from "@/src/components/CustomFeedbackInput";
@@ -34,7 +34,7 @@ import { useProfileForm } from "@/src/features/Settings/hooks/useProfileForm";
 import { styles } from "@/src/features/Settings/styles/ProfileInfoStyles";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { IconLibrary } from "@/src/types/ui.types";
-import { formatDateToStandard } from "@/src/utils/dateFormatter";
+import { formatDateToStandard, safeParseDateString } from "@/src/utils/dateFormatter";
 
 const MOUNTAIN_OPTIONS = [
     'Mt. Ayaas (Rizal)', 'Mt. Banahaw (Quezon)', 'Mt. Batulao (Batangas)',
@@ -76,6 +76,7 @@ export interface InfoRowProps {
     label: string;
     value?: string | null;
     subValue?: string | null;
+    subValueStyle?: StyleProp<TextStyle>;
     noMargin?: boolean;
     forceStack?: boolean;
     badge?: React.ReactNode;
@@ -91,6 +92,7 @@ export const InfoRow = ({
     label,
     value,
     subValue,
+    subValueStyle,
     noMargin,
     forceStack = false,
     badge,
@@ -109,7 +111,7 @@ export const InfoRow = ({
                     <CustomText style={styles.stackedValue} numberOfLines={2} adjustsFontSizeToFit>{displayValue}</CustomText>
                 ) : null}
                 {subValue ? (
-                    <CustomText variant="caption" style={styles.validityCountdownSubtext}>
+                    <CustomText variant="caption" style={[styles.validityCountdownSubtext, subValueStyle]}>
                         {subValue}
                     </CustomText>
                 ) : null}
@@ -132,7 +134,7 @@ export const InfoRow = ({
                     {badgePosition === 'beside_value' && badge}
                 </View>
                 {subValue ? (
-                    <CustomText variant="caption" style={styles.validityCountdownSubtext}>
+                    <CustomText variant="caption" style={[styles.validityCountdownSubtext, subValueStyle]}>
                         {subValue}
                     </CustomText>
                 ) : null}
@@ -280,6 +282,15 @@ const ProfileInfoScreen = ({
     const personalDetailsRequiresStack = isWideScreen ? false : (isMobile ? checkSectionRequiresStack(personalDetailsFields) : false);
     const emergencyContactRequiresStack = isWideScreen ? false : (isMobile ? checkSectionRequiresStack(emergencyContactFields) : false);
 
+    const maxAllowedBirthday = useMemo(() => {
+        const d = new Date();
+        d.setFullYear(d.getFullYear() - 10);
+        return d;
+    }, []);
+
+    const userBirthdayDate = effectiveUser.birthday ? safeParseDateString(effectiveUser.birthday) : null;
+    const isExistingBirthdayUnderage = userBirthdayDate ? userBirthdayDate > maxAllowedBirthday : false;
+
     const handleSaveAccount = async (updatedFields: Partial<IUser>): Promise<void> => {
         if (!onSavePress) return;
         const sanitizedFields = { ...updatedFields };
@@ -324,6 +335,7 @@ const ProfileInfoScreen = ({
         searchSuccess,
         searchInfo,
         formError,
+        setFormError,
         isDirty,
         handleConfirmEdit,
         handleEmergencySearch,
@@ -663,7 +675,19 @@ const ProfileInfoScreen = ({
                                     <View style={styles.editForm}>
                                         <CustomTextInput label="Username" placeholder="Enter username" value={username} onChangeText={setUsername} />
                                         <CustomTextInput label="Phone Number" placeholder="Enter phone number" value={phoneNumber} onChangeText={setPhoneNumber} type="phone" prefix="+63" />
-                                        <CustomTextInput label="Birthday" placeholder="Select birthday" value={birthday} onChangeText={setBirthday} type="calendar" dateFormat="MM/DD/YYYY" />
+                                        <CustomTextInput
+                                            label="Birthday"
+                                            placeholder="Select birthday"
+                                            value={birthday}
+                                            onChangeText={(val: string | Date | null) => {
+                                                setFormError(null);
+                                                setBirthday(val instanceof Date ? val : (val ? safeParseDateString(val) : null));
+                                            }}
+                                            type="calendar"
+                                            dateFormat="MM/DD/YYYY"
+                                            defaultMode="year"
+                                            maximumDate={maxAllowedBirthday}
+                                        />
                                         <CustomTextInput label="Address" placeholder="Enter address" value={address} onChangeText={setAddress} style={styles.noMarginBottom} />
                                     </View>
                                 ) : (
@@ -677,7 +701,13 @@ const ProfileInfoScreen = ({
                                             subValue={personalExpiryText}
                                             forceStack={personalDetailsRequiresStack}
                                         />
-                                        <InfoRow label="Birthday" value={effectiveUser.birthday ? formatDateToStandard(effectiveUser.birthday) : null} forceStack={personalDetailsRequiresStack} />
+                                        <InfoRow
+                                            label="Birthday"
+                                            value={effectiveUser.birthday ? formatDateToStandard(effectiveUser.birthday) : null}
+                                            subValue={isExistingBirthdayUnderage ? 'Requires update: Minimum age is 10' : null}
+                                            subValueStyle={isExistingBirthdayUnderage ? { color: Colors.ERROR } : undefined}
+                                            forceStack={personalDetailsRequiresStack}
+                                        />
                                         <InfoRow label="Email Address" value={effectiveUser.email} forceStack={personalDetailsRequiresStack} />
                                         <InfoRow label="Address" value={effectiveUser.address} noMargin={true} forceStack={personalDetailsRequiresStack} />
                                     </View>
