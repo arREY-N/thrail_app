@@ -44,6 +44,13 @@
     },
     "plugins": [
       [
+        "expo-notifications",
+        {
+          "icon": "./src/assets/logos/Logo Idea 2/Primary Glyph White.png",
+          "color": "#2E7D32"
+        }
+      ],
+      [
         "expo-asset",
         {
           "assets": ["src/assets/tiles", "src/assets/fonts"]
