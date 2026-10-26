@@ -344,7 +344,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                     borderColor: hasError ? Colors.ERROR : (isFocused ? Colors.PRIMARY : Colors.GRAY_LIGHT),
                     backgroundColor: isFocused ? Colors.WHITE : Colors.BACKGROUND,
                 },
-                multiline && { height: 'auto', alignItems: 'flex-start' },
+                multiline && { height: 'auto', minHeight: 96, alignItems: 'flex-start', paddingVertical: 10 },
                 containerStyle,
             ]}>
                 
@@ -372,7 +372,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                     ref={inputRef}
                     style={[
                         styles.input,
-                        multiline && { height: 'auto', textAlignVertical: 'top' },
+                        multiline && { height: 'auto', minHeight: 72, textAlignVertical: 'top', paddingTop: 0, paddingBottom: 0 },
                         inputStyle
                     ]}
                     placeholder={placeholder}
@@ -392,7 +392,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                         onBlur?.(e);
                     }}
                     multiline={Boolean(multiline)}
-                    numberOfLines={multiline ? undefined : 1}
+                    numberOfLines={multiline ? (props.numberOfLines || 3) : 1}
                     {...props} 
                 />
 
