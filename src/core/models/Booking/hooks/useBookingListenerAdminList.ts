@@ -1,7 +1,7 @@
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { useOfferAdminList } from "@/src/core/models/Offer/Offer";
 import { useAuthHook } from "@/src/core/models/User/User";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 export function useBookingListenerAdminList() {
     const { businessId } = useAuthHook();
@@ -12,33 +12,39 @@ export function useBookingListenerAdminList() {
     const subscribeToBusinessBookings = useBookingsStore(s => s.subscribeToBusinessBookings);
     const unsubscribe = useBookingsStore(s => s.unsubscribeFromBusinessBookings);
 
+    // Derive a stable sorted key of active offer IDs so useEffect only triggers when offer IDs change,
+    // not every time reservedPax or other offer fields mutate.
+    // Also include past hike dates so admins can view/manage bookings for all completed/active hikes.
+    const activeOfferIdsKey = useMemo(() => {
+        if (!businessOffers || businessOffers.length === 0) return '';
+
+        return businessOffers
+            .filter(offer => {
+                const status = (offer.status || '').toLowerCase();
+                return status !== 'cancelled' && status !== 'rescheduled';
+            })
+            .map(o => o.id)
+            .sort()
+            .join(',');
+    }, [businessOffers]);
+
     useEffect(() => {
-        if (!businessOffers || businessOffers.length === 0) return;
+        if (!businessId || !activeOfferIdsKey) return;
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const offerIds = activeOfferIdsKey.split(',').filter(Boolean);
 
-        const activeOfferIds = businessOffers.filter(offer => {
-            const status = (offer.status || '').toLowerCase();
-            const offerDate = new Date(offer.date || offer.hikeDate || 0);
-            offerDate.setHours(0, 0, 0, 0);
-
-            const isUpcomingOrToday = offerDate >= today;
-            return isUpcomingOrToday && status !== 'cancelled' && status !== 'rescheduled';
-        }).map(o => o.id);
-
-        activeOfferIds.forEach(offerId => {
-            subscribeToBusinessBookings(offerId, businessId || '').catch(err => {
+        offerIds.forEach(offerId => {
+            subscribeToBusinessBookings(offerId, businessId).catch(err => {
                 console.error((err as Error).message || `Failed to subscribe to bookings for offer ${offerId}`);
             });
         });
 
         return () => {
-            activeOfferIds.forEach(offerId => {
+            offerIds.forEach(offerId => {
                 unsubscribe(offerId);
             });
         };
-    }, [businessId, businessOffers, subscribeToBusinessBookings, unsubscribe]);
+    }, [businessId, activeOfferIdsKey, subscribeToBusinessBookings, unsubscribe]);
 
     return {
         bookingByOffer,
