@@ -8,7 +8,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { useToast } from '@/src/components/Toast/Toast';
 import { Booking } from '@/src/core/models/Booking/Booking';
-import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
+import { Cancellation, IUserWalletDetails } from '@/src/core/models/Cancellation/Cancellation';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 
 export type MyBookingsView = 'list' | 'overview' | 'payment' | 'receipt';
@@ -19,9 +19,9 @@ export interface UseMyBookingsWorkflowParams {
     initialBookingId?: string | null;
     initialView?: MyBookingsView;
     onBackPress: () => void;
-    onCancelBookingPress: (booking: Booking, reason: string) => Promise<void> | void;
+    onCancelBookingPress: (booking: Booking, reason: string, userWallet?: IUserWalletDetails<Date>) => Promise<void> | void;
     onRescheduleBooking?: (booking: Booking, newOffer: IOffer) => Promise<void> | void;
-    onRefundBookingPress?: (booking: Booking, reason: string) => Promise<void> | void;
+    onRefundBookingPress?: (booking: Booking, reason: string, userWallet?: IUserWalletDetails<Date>) => Promise<void> | void;
 }
 
 export function useMyBookingsWorkflow({
@@ -92,10 +92,10 @@ export function useMyBookingsWorkflow({
         setCurrentView('receipt');
     }, []);
 
-    const handleCancelConfirm = useCallback(async (booking: Booking, reason: string) => {
+    const handleCancelConfirm = useCallback(async (booking: Booking, reason: string, userWallet?: IUserWalletDetails<Date>) => {
         const isDraft = booking.status === 'for-reservation';
         try {
-            await onCancelBookingPress(booking, reason);
+            await onCancelBookingPress(booking, reason, userWallet);
             if (isDraft) {
                 setCurrentView('list');
                 showToast.success('Reservation cancelled successfully.');
@@ -125,9 +125,9 @@ export function useMyBookingsWorkflow({
         }
     }, [onRescheduleBooking, showToast]);
 
-    const handleRefundConfirm = useCallback(async (booking: Booking, reason: string) => {
+    const handleRefundConfirm = useCallback(async (booking: Booking, reason: string, userWallet?: IUserWalletDetails<Date>) => {
         if (onRefundBookingPress) {
-            await onRefundBookingPress(booking, reason);
+            await onRefundBookingPress(booking, reason, userWallet);
         }
     }, [onRefundBookingPress]);
 
