@@ -18,7 +18,7 @@ import {
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomTextInput from '@/src/components/CustomTextInput';
+import CustomTextInput, { INVISIBLE_CHARS_REGEX } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 import { useScrollFades } from '@/src/hooks/useScrollFades';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
@@ -33,6 +33,7 @@ import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
  * @param onChangeText - Callback fired when the text value changes.
  * @param suggestions - List of pre-defined suggestion tags/chips.
  * @param variant - Visual style variant for suggestion chips ('primary' | 'danger'). Defaults to 'primary'.
+ * @param allowEmojis - Whether emoji characters are allowed in the feedback input. Defaults to false.
  * @param style - Additional style prop for the root container.
  */
 interface CustomFeedbackInputProps {
@@ -43,6 +44,7 @@ interface CustomFeedbackInputProps {
     onChangeText: (text: string) => void;
     suggestions?: string[];
     variant?: 'primary' | 'danger';
+    allowEmojis?: boolean;
     style?: StyleProp<ViewStyle>;
 }
 
@@ -58,6 +60,7 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
     onChangeText, 
     suggestions = [], 
     variant = 'primary',
+    allowEmojis = false,
     style 
 }) => {
     const scrollRef = useRef<ScrollView>(null);
@@ -94,6 +97,7 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
     const handleTextBlur = (): void => {
         const raw = value || '';
         const cleaned = raw
+            .replace(INVISIBLE_CHARS_REGEX, '')
             .split('\n')
             .map((line: string) => line.trim())
             .filter((line: string) => line.length > 0)
@@ -182,6 +186,7 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
                 numberOfLines={4}
                 inputStyle={styles.textArea}
                 containerStyle={isDanger ? styles.inputContainerDanger : undefined}
+                allowEmojis={allowEmojis}
                 style={styles.noMarginBottom}
             />
 
