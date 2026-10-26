@@ -11,7 +11,7 @@ Verifies the monthly cycle:
 
 import unittest
 import numpy as np
-from batch_runner import run_batch_recommendations
+from batch_runner import run_batch_recommendations, run_single_user_recommendations
 from profile_utils import resolve_review_factor_weights, flatten_profile_features
 
 
@@ -218,6 +218,86 @@ class TestMonthlyBatchProfileUpdate(unittest.TestCase):
         self.assertEqual(len(report["samples"]), 1)
         self.assertEqual(report["samples"][0]["userId"], "user_monthly_test_1")
         self.assertGreater(report["samples"][0]["easy_count"] + report["samples"][0]["difficult_count"], 0)
+
+    def test_single_user_recommendation_execution(self):
+        """
+        Verifies that run_single_user_recommendations generates an initial recommendation set
+        for a newly signed up user with valid anchors, disjoint partitioning, and peer CF blending,
+        without requiring a full batch run.
+        """
+        peer_user = {
+            "id": "peer_user_1",
+            "name": "Peer Hiker",
+            "profile": self.user["profile"]
+        }
+
+        result = run_single_user_recommendations(
+            user_id="user_monthly_test_1",
+            cbf_engine="GD",
+            cf_engine="GD",
+            month_id="2026-11",
+            candidate_trails=self.trails,
+            user_doc=self.user,
+            peer_users=[peer_user],
+            commit_to_firestore=False,
+            generate_ai_reasoning=False
+        )
+
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["userId"], "user_monthly_test_1")
+        self.assertEqual(result["month"], "2026-11")
+        self.assertGreater(result["total_trails_scored"], 0)
+        self.assertIn("recommendation", result)
+
+        reco = result["recommendation"]
+        self.assertIn("easy", reco)
+        self.assertIn("difficult", reco)
+        self.assertIn("engineConfig", reco)
+
+        # Check disjoint partitioning
+        easy_ids = {item["id"] for item in reco["easy"]}
+        diff_ids = {item["id"] for item in reco["difficult"]}
+        self.assertEqual(len(easy_ids.intersection(diff_ids)), 0, "Disjoint sets must have zero overlap")
+
+    def test_single_user_recommendation_uninitialized_profile(self):
+        """
+        Verifies that a brand-new user with only onboarding preferences (no saved profile yet)
+        automatically derives baseline profile anchors and generates recommendations without error.
+        """
+        new_signup_user = {
+            "id": "new_signup_user_123",
+            "name": "New Hiker",
+            "preferences": {
+                "experience": "Beginner",
+                "hike_length": ["Half-Day"],
+                "hiked": False,
+                "province": ["Batangas", "Cavite"],
+            },
+            "medicalProfile": {
+                "hasCondition": True,
+                "details": ["Asthma"],
+            }
+        }
+
+        result = run_single_user_recommendations(
+            user_id="new_signup_user_123",
+            cbf_engine="ED",
+            cf_engine="ED",
+            month_id="2026-11",
+            candidate_trails=self.trails,
+            user_doc=new_signup_user,
+            peer_users=[self.user],
+            commit_to_firestore=False,
+            generate_ai_reasoning=False
+        )
+
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["userId"], "new_signup_user_123")
+        reco = result["recommendation"]
+        self.assertIsNotNone(reco.get("profile"))
+        self.assertIn("easy", reco["profile"])
+        self.assertIn("difficult", reco["profile"])
+        self.assertGreater(len(reco["easy"]) + len(reco["difficult"]), 0)
 
 
 if __name__ == "__main__":

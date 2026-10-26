@@ -1,6 +1,6 @@
 import { db } from '@/src/core/config/Firebase';
+import type { IMedicalProfile, IPreference } from '@/src/core/models/User/User';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { IMedicalProfile, IPreference } from '@/src/core/models/User/User';
 
 export const finishOnboarding = async (
     uid: string,

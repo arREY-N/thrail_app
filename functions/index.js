@@ -2822,3 +2822,78 @@ exports.testGroupWeatherAlert = functions.https.onRequest(async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+/**
+ * Triggers initial personalized recommendation generation whenever a user completes onboarding.
+ * Listens for changes to /users/{userId}. When 'onBoardingComplete' transitions to true,
+ * it checks if recommendations exist for the current month. If missing, it securely calls the
+ * THARESYS recommendation engine server-to-server.
+ */
+exports.onUserOnboardingComplete = functions.firestore
+    .document('users/{userId}')
+    .onWrite(async (change, context) => {
+        const userId = context.params.userId;
+        const afterData = change.after.exists ? change.after.data() : null;
+        const beforeData = change.before.exists ? change.before.data() : null;
+
+        if (!afterData) return null;
+
+        // Trigger only when onBoardingComplete becomes true
+        const justCompleted = afterData.onBoardingComplete === true &&
+            (!beforeData || beforeData.onBoardingComplete !== true);
+
+        if (!justCompleted) return null;
+
+        // Current calendar month YYYY-MM in UTC
+        const now = new Date();
+        const monthId = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+
+        // Verify if recommendations already exist to avoid duplicate work
+        const recoSnap = await admin.firestore()
+            .collection('users')
+            .doc(userId)
+            .collection('recommendations')
+            .doc(monthId)
+            .get();
+
+        if (recoSnap.exists) {
+            console.log(`[onUserOnboardingComplete] Recommendations already exist for user ${userId} in ${monthId}`);
+            return null;
+        }
+
+        console.log(`[onUserOnboardingComplete] User ${userId} completed onboarding. Calling THARESYS engine for ${monthId}...`);
+
+        const engineBaseUrl = process.env.THARESYS_ENGINE_URL || 
+            (process.env.FUNCTIONS_EMULATOR ? "http://127.0.0.1:8000" : "http://localhost:8000");
+        const apiKey = process.env.THARESYS_API_KEY || "";
+
+        try {
+            const url = `${engineBaseUrl.replace(/\/+$/, '')}/api/users/${userId}/initial-recommendation`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(apiKey ? { 'X-THARESYS-KEY': apiKey } : {})
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    month_id: monthId,
+                    generate_ai_reasoning: true,
+                    commit_to_firestore: true
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`[onUserOnboardingComplete] THARESYS engine error (${response.status}): ${errorText}`);
+                return null;
+            }
+
+            const result = await response.json();
+            console.log(`[onUserOnboardingComplete] Initial recommendations successfully generated for ${userId}:`, result.status);
+            return result;
+        } catch (err) {
+            console.error(`[onUserOnboardingComplete] Failed contacting THARESYS engine for ${userId}:`, err.message);
+            return null;
+        }
+    });

@@ -3,6 +3,7 @@ import { IAITrailReasoning, Recommendation } from '@/src/core/models/Recommendat
 import { SAMPLE_CHALLENGE_RECOMMENDATION } from '@/src/core/models/Recommendation/mocks/sampleRecommendation';
 import { recommendationConverter } from '@/src/core/models/Recommendation/utils/RecommendationFactory';
 import getRecoID from '@/src/core/utility/recommendation';
+import { generateInitialUserRecommendations } from '@/src/features/SuperAdmin/services/tarsApiService';
 import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
 
 /**
@@ -12,6 +13,9 @@ import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
  * Set to false to resume reading from Firestore.
  */
 export const USE_SAMPLE_CHALLENGE_MOCK = false;
+
+// Prevent duplicate background initial recommendation requests in a single session
+const triggeredInitialUids = new Set<string>();
 
 const createRecommendationsCollection = (db: any, uid: string) => {
     return collection(db, 'users', uid, 'recommendations').withConverter(recommendationConverter);
@@ -97,6 +101,14 @@ export const RecommendationRepository = (db: any) => ({
             }
         } catch (allErr) {
             console.warn('[RecommendationRepo] Failed fallback fetchAll recommendations:', allErr);
+        }
+
+        // Auto-recovery: If user has no recommendations generated yet, kick off initial generation in background
+        if (!triggeredInitialUids.has(uid)) {
+            triggeredInitialUids.add(uid);
+            generateInitialUserRecommendations(uid).catch((err) => {
+                console.warn('[RecommendationRepo] Auto-recovery recommendation generation failed:', err?.message || err);
+            });
         }
 
         return null;

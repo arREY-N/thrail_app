@@ -209,6 +209,11 @@ def extract_user_anchor_profiles(user_doc: Dict[str, Any]) -> Tuple[np.ndarray, 
     easy_val = 0.250 * factor
     diff_val = 0.750 * factor
 
+    prefs = user_doc.get("preferences") or {}
+    user_provs = [str(p).strip().lower() for p in (prefs.get("province") or [])]
+    if not user_provs:
+        user_provs = ["rizal"]
+
     fallback_easy_feats = {
         "classification": 0.0,
         "length": easy_val,
@@ -216,7 +221,7 @@ def extract_user_anchor_profiles(user_doc: Dict[str, Any]) -> Tuple[np.ndarray, 
         "gain": easy_val,
         "slope": easy_val,
         "easy": easy_val,
-        "province": {p: 0.85 if p == "rizal" else 0.15 for p in PROVINCE_KEYS},
+        "province": {p: 0.85 if p in user_provs else 0.15 for p in PROVINCE_KEYS},
         "terrain": {t: easy_val for t in TERRAIN_KEYS},
         "circularity": {c: 0.33 for c in CIRCULARITY_KEYS},
         "waterforms": {w: easy_val for w in WATERFORM_KEYS},
@@ -230,7 +235,7 @@ def extract_user_anchor_profiles(user_doc: Dict[str, Any]) -> Tuple[np.ndarray, 
         "gain": diff_val,
         "slope": diff_val,
         "easy": diff_val,
-        "province": {p: 0.15 if p == "rizal" else 0.85 for p in PROVINCE_KEYS},
+        "province": {p: 0.15 if p in user_provs else 0.85 for p in PROVINCE_KEYS},
         "terrain": {t: diff_val for t in TERRAIN_KEYS},
         "circularity": {c: 0.33 for c in CIRCULARITY_KEYS},
         "waterforms": {w: diff_val for w in WATERFORM_KEYS},
