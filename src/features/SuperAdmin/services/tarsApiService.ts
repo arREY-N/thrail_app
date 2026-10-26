@@ -157,6 +157,10 @@ export const getTarsApiBaseUrl = (): string => {
 
 export const getTharesysApiBaseUrl = getTarsApiBaseUrl;
 
+export const getTarsApiKey = (): string | undefined => {
+    return process.env.EXPO_PUBLIC_THARESYS_API_KEY || process.env.EXPO_PUBLIC_TARS_API_KEY || undefined;
+};
+
 /**
  * Checks if the THARESYS Python recommendation server is running and reachable.
  */
@@ -181,7 +185,7 @@ export async function checkTarsHealth(): Promise<{ healthy: boolean; message: st
         return {
             healthy: false,
             message: err.name === 'AbortError'
-                ? 'Connection timed out. Ensure THARESYS server is running on port 8000.'
+                ? 'Connection timed out. Ensure THARESYS server is reachable.'
                 : `Cannot reach THARESYS server (${err.message || 'Network error'})`,
         };
     }
@@ -206,12 +210,16 @@ export async function runTarsEngine(options?: TarsBatchRequest): Promise<TarsBat
     // 300-second (5 minutes) timeout for full batch calculation and Gemini generation
     const timeoutId = setTimeout(() => controller.abort(), 300000);
 
+    const apiKey = getTarsApiKey();
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(apiKey ? { 'X-THARESYS-KEY': apiKey } : {}),
+    };
+
     try {
         const res = await fetch(`${baseUrl}/api/admin/run-engine`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify(payload),
             signal: controller.signal,
         });
@@ -274,9 +282,15 @@ export async function updateUserProfileFromHikes(
         commit_to_firestore: payload.commitToFirestore !== false,
     };
 
+    const apiKey = getTarsApiKey();
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(apiKey ? { 'X-THARESYS-KEY': apiKey } : {}),
+    };
+
     const res = await fetch(`${baseUrl}/api/user/update-profile`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(formattedPayload),
     });
 

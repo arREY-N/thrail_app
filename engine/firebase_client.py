@@ -21,17 +21,25 @@ def get_current_month_id() -> str:
     return datetime.utcnow().strftime("%Y-%m")
 
 
-def initialize_firebase(project_id: str = "thrail") -> Optional[Any]:
+def initialize_firebase(project_id: Optional[str] = None) -> Optional[Any]:
     """
     Initializes Firebase Admin SDK if not already initialized.
     Checks:
     1. Local serviceAccountKey.json
     2. GOOGLE_APPLICATION_CREDENTIALS environment variable
-    3. Default credentials / project ID
+    3. Default credentials / project ID (from param or PROJECT_ID/GCP_PROJECT env var, default 'thrail')
     """
     global _DB_CLIENT
     if _DB_CLIENT is not None:
         return _DB_CLIENT
+
+    target_project = (
+        project_id
+        or os.environ.get("PROJECT_ID")
+        or os.environ.get("GCP_PROJECT")
+        or os.environ.get("GOOGLE_CLOUD_PROJECT")
+        or "thrail"
+    )
 
     if not firebase_admin._apps:
         # Check for local service account key in engine or project root
@@ -50,10 +58,10 @@ def initialize_firebase(project_id: str = "thrail") -> Optional[Any]:
 
         try:
             if cred:
-                firebase_admin.initialize_app(cred, {"projectId": project_id})
+                firebase_admin.initialize_app(cred, {"projectId": target_project})
             else:
-                logger.info(f"Initializing Firebase Admin with default credentials for project '{project_id}'")
-                firebase_admin.initialize_app(options={"projectId": project_id})
+                logger.info(f"Initializing Firebase Admin with default credentials for project '{target_project}'")
+                firebase_admin.initialize_app(options={"projectId": target_project})
         except Exception as e:
             logger.warning(f"Could not initialize Firebase Admin SDK directly: {e}")
             return None
