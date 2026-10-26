@@ -1,5 +1,5 @@
 const admin = require("firebase-admin");
-const {setGlobalOptions} = require("firebase-functions/v2");
+const { setGlobalOptions } = require("firebase-functions/v2");
 const { https } = require("firebase-functions/v2");
 const { HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret, defineString } = require("firebase-functions/params");
@@ -28,9 +28,9 @@ const PayMongoProvider = require('./services/providers/PayMongoProvider');
 
 admin.initializeApp();
 
-setGlobalOptions({ 
-    region: 'us-central1', 
-    maxInstances: 10 
+setGlobalOptions({
+    region: 'us-central1',
+    maxInstances: 10
 });
 
 exports.onNewMessage = functions.firestore
@@ -59,7 +59,7 @@ exports.onNewMessage = functions.firestore
         const tokens = [];
         const userSnapshots = await admin.firestore()
             .collection('users')
-            .where(admin.firestore.FieldPath.documentId(), 'in', recipientIds.slice(0, 30)) 
+            .where(admin.firestore.FieldPath.documentId(), 'in', recipientIds.slice(0, 30))
             .get();
 
         userSnapshots.forEach(doc => {
@@ -72,7 +72,7 @@ exports.onNewMessage = functions.firestore
         if (uniqueTokens.length === 0) return null;
 
         const groupName = `${group.business?.name || 'Organizer'}_${group.trail?.name || 'Trail'}`;
-        
+
         const response = await admin.messaging().sendEachForMulticast({
             tokens: uniqueTokens,
             notification: {
@@ -82,7 +82,7 @@ exports.onNewMessage = functions.firestore
             android: {
                 priority: 'high',
                 notification: {
-                    channelId: 'default', 
+                    channelId: 'default',
                     clickAction: 'fcm.ACTION.HELLO',
                 }
             },
@@ -92,7 +92,7 @@ exports.onNewMessage = functions.firestore
                         contentAvailable: true,
                         badge: 1,
                         sound: 'default',
-                        priority: 10 
+                        priority: 10
                     }
                 }
             }
@@ -102,7 +102,7 @@ exports.onNewMessage = functions.firestore
         response.responses.forEach((res, idx) => {
             if (!res.success) {
                 const errorCode = res.error?.code;
-                if (errorCode === 'messaging/registration-token-not-registered' || 
+                if (errorCode === 'messaging/registration-token-not-registered' ||
                     errorCode === 'messaging/invalid-registration-token') {
                     tokensToRemove.push(uniqueTokens[idx]);
                 }
@@ -111,7 +111,7 @@ exports.onNewMessage = functions.firestore
 
         console.log(`Sent ${response.successCount} messages. ${tokensToRemove.length} stale tokens found.`);
     }
-);
+    );
 
 exports.onAddBooking = functions.firestore
     .document('users/{userId}/bookings/{bookingId}')
@@ -125,6 +125,7 @@ exports.onAddBooking = functions.firestore
                 console.log('Missing businessId');
                 return;
             }
+            const bookingId = snapshot.id;
 
             const userDoc = await admin.firestore()
                 .collection('users')
@@ -132,70 +133,284 @@ exports.onAddBooking = functions.firestore
                 .get();
 
             const user = userDoc.data();
-            const userName = user?.firstname || 'A user';
-
-            const adminIds = await admin.firestore()
-                .collection('businesses')
-                .doc(businessId)
-                .collection('admins')
-                .get()
-                .then(query => query.docs.map(doc => doc.data().id));
-
-            console.log(adminIds);
-
-            if (!adminIds.length) return;
-
-            const chunkSize = 10;
-            const chunks = [];
-            for (let i = 0; i < adminIds.length; i += chunkSize) {
-                chunks.push(adminIds.slice(i, i + chunkSize));
-            }   
-
-            const userDocs = await Promise.all(
-                adminIds.map(id =>
-                    admin.firestore().collection('users').doc(id).get()
-                )
-            );
-
-            let tokens = [];
-
-            userDocs.forEach(doc => {
-                if (!doc.exists) return;
-                const userTokens = doc.data().fcmTokens || [];
-                tokens.push(...userTokens);
-            });
-
-            if (!tokens.length) {
-                console.log('No admin tokens found');
-                return;
-            }
-
-            const uniqueTokens = [...new Set(tokens.map(t => t.token))];
-
+            const userName = user?.firstname || 'A hiker';
             const trailName = data.trail?.name || 'a trail';
 
-            const response = await admin.messaging().sendEachForMulticast({
-                tokens: uniqueTokens,
-                notification: {
-                    title: `New Booking for ${trailName}`,
-                    body: `${userName} just booked a hike for ${trailName}`
+            let hikeDate = '';
+            if (data.offer?.date) {
+                const rawDate = data.offer.date.toDate ? data.offer.date.toDate() : new Date(data.offer.date);
+                hikeDate = rawDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+            const dateStr = hikeDate ? `${hikeDate} ` : '';
+
+            const notificationTitle = `New Booking - ${trailName}`;
+            const notificationBody = `${userName} just booked the ${dateStr}offer for ${trailName}`;
+
+            await notifyBusinessAdmins(admin.firestore(), businessId, {
+                title: notificationTitle,
+                body: notificationBody,
+                inAppTitle: notificationTitle,
+                inAppMessage: notificationBody,
+                type: 'new_booking',
+                metadata: {
+                    bookingId,
+                    userId,
+                    trailName,
+                    hikeDate,
+                },
+                data: {
+                    bookingId,
+                    userId,
+                    businessId,
                 }
-            });
-
-
-            // Cleanup invalid tokens if any failed
-            // eslint-disable-next-line no-unused-vars
-            const tokensToRemove = uniqueTokens.filter((token, idx) => {
-                const res = response.responses.at(idx);
-                if (!res || res.success) return false;
-                const error = res.error?.code;
-                return error === 'messaging/registration-token-not-registered' || error === 'messaging/invalid-registration-token';
             });
         } catch (error) {
             throw new HttpsError('internal', 'Error processing new booking: ' + error.message);
         }
     }
-);
+    );
+
+/**
+ * Reusable helper to send in-app and push notifications to all admins of a business.
+ */
+async function notifyBusinessAdmins(db, businessId, {
+    title,
+    body,
+    inAppTitle,
+    inAppMessage,
+    type,
+    metadata = {},
+    data = {},
+    docId = null
+}) {
+    if (!businessId) return;
+
+    try {
+        const adminQuery = await db.collection('businesses').doc(businessId).collection('admins').get();
+        const rawAdminIds = adminQuery.docs.map(doc => doc.data().id).filter(Boolean);
+        const adminIds = [...new Set(rawAdminIds)];
+        if (!adminIds.length) return;
+
+        // Idempotency: if docId is specified, check if the notification already exists on the first admin
+        if (docId) {
+            const checkDoc = await db.collection('users').doc(adminIds[0]).collection('notifications').doc(docId).get();
+            if (checkDoc.exists) {
+                console.log(`[notifyBusinessAdmins] Notification ${docId} already sent to admins for business ${businessId}. Skipping to prevent duplicate.`);
+                return;
+            }
+        }
+
+        const userDocs = await Promise.all(
+            adminIds.map(id => db.collection('users').doc(id).get())
+        );
+
+        // 1. In-app notifications for admins
+        const notifPromises = adminIds.map(adminId => {
+            const notifRef = docId
+                ? db.collection('users').doc(adminId).collection('notifications').doc(docId)
+                : db.collection('users').doc(adminId).collection('notifications').doc();
+            return notifRef.set({
+                title: inAppTitle || title,
+                message: inAppMessage || body,
+                createdAt: FieldValue.serverTimestamp(),
+                read: false,
+                metadata: {
+                    type,
+                    businessId,
+                    ...metadata,
+                }
+            });
+        });
+        await Promise.all(notifPromises);
+
+        // 2. Multicast push to admins
+        let tokens = [];
+        userDocs.forEach(doc => {
+            if (!doc.exists) return;
+            const userTokens = doc.data().fcmTokens || [];
+            tokens.push(...userTokens);
+        });
+
+        const uniqueTokens = [...new Set(tokens.map(t => typeof t === 'string' ? t : t?.token))].filter(Boolean);
+        if (!uniqueTokens.length) {
+            console.log(`[notifyBusinessAdmins] No FCM tokens found for business ${businessId} admins`);
+            return;
+        }
+
+        const response = await admin.messaging().sendEachForMulticast({
+            tokens: uniqueTokens,
+            notification: {
+                title,
+                body,
+            },
+            data: {
+                title: String(title || ''),
+                body: String(body || ''),
+                type: String(type || ''),
+                businessId: String(businessId),
+                ...Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v ?? '')])),
+            },
+            android: {
+                priority: 'high',
+                notification: {
+                    channelId: 'default',
+                    sound: 'default',
+                    defaultSound: true,
+                    defaultVibrateTimings: true,
+                }
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        contentAvailable: true,
+                        badge: 1,
+                        sound: 'default',
+                        priority: 10,
+                    }
+                }
+            }
+        });
+
+        console.log(`[notifyBusinessAdmins] Push sent to ${uniqueTokens.length} tokens for business ${businessId}. Success: ${response.successCount}, Failure: ${response.failureCount}`);
+
+        // 3. Stale token cleanup
+        const tokensToRemove = [];
+        response.responses.forEach((res, idx) => {
+            if (!res.success) {
+                const errorCode = res.error?.code;
+                console.warn(`[notifyBusinessAdmins] FCM failed for token ${uniqueTokens[idx]}:`, errorCode, res.error?.message);
+                if (errorCode === 'messaging/registration-token-not-registered' ||
+                    errorCode === 'messaging/invalid-registration-token') {
+                    tokensToRemove.push(uniqueTokens[idx]);
+                }
+            }
+        });
+
+        if (tokensToRemove.length > 0) {
+            for (const doc of userDocs) {
+                if (!doc.exists) continue;
+                const existingTokens = doc.data().fcmTokens || [];
+                const cleaned = existingTokens.filter(t => {
+                    const tokenStr = typeof t === 'string' ? t : t?.token;
+                    return !tokensToRemove.includes(tokenStr);
+                });
+                if (cleaned.length !== existingTokens.length) {
+                    await db.collection('users').doc(doc.id).update({ fcmTokens: cleaned });
+                }
+            }
+        }
+    } catch (err) {
+        console.error(`[notifyBusinessAdmins] Failed notifying admins for business ${businessId}:`, err);
+    }
+}
+
+/**
+ * Sends both in-app and push notifications to a user, with automatic invalid token cleanup.
+ */
+async function notifyUser(db, userId, { title, body, inAppTitle, inAppMessage, type = 'booking_update', metadata = {}, data = {}, docId = null }) {
+    try {
+        if (!userId) return;
+
+        // Idempotency: if docId is specified, check if the notification already exists on user
+        if (docId) {
+            const checkDoc = await db.collection('users').doc(userId).collection('notifications').doc(docId).get();
+            if (checkDoc.exists) {
+                console.log(`[notifyUser] Notification ${docId} already sent to user ${userId}. Skipping to prevent duplicate.`);
+                return;
+            }
+        }
+
+        // 1. In-app notification
+        const notifRef = docId
+            ? db.collection('users').doc(userId).collection('notifications').doc(docId)
+            : db.collection('users').doc(userId).collection('notifications').doc();
+
+        await notifRef.set({
+            title: inAppTitle || title,
+            message: inAppMessage || body,
+            createdAt: FieldValue.serverTimestamp(),
+            read: false,
+            metadata: {
+                type,
+                ...metadata,
+            }
+        });
+
+        // 2. Fetch user's tokens for push
+        const userDoc = await db.collection('users').doc(userId).get();
+        if (!userDoc.exists) return;
+
+        const tokens = userDoc.data()?.fcmTokens || [];
+        const uniqueTokens = [...new Set(tokens.map(t => typeof t === 'string' ? t : t?.token))].filter(Boolean);
+
+        if (uniqueTokens.length > 0) {
+            const response = await admin.messaging().sendEachForMulticast({
+                tokens: uniqueTokens,
+                notification: {
+                    title,
+                    body,
+                },
+                data: {
+                    title: String(title || ''),
+                    body: String(body || ''),
+                    type: String(type),
+                    ...Object.entries(data).reduce((acc, [k, v]) => {
+                        acc[k] = v !== undefined && v !== null ? String(v) : '';
+                        return acc;
+                    }, {})
+                },
+                android: {
+                    priority: 'high',
+                    notification: {
+                        channelId: 'default',
+                        sound: 'default',
+                        defaultSound: true,
+                        defaultVibrateTimings: true,
+                    }
+                },
+                apns: {
+                    payload: {
+                        aps: {
+                            contentAvailable: true,
+                            badge: 1,
+                            sound: 'default',
+                            priority: 10,
+                        }
+                    }
+                }
+            });
+
+            console.log(`[notifyUser] Push sent to ${uniqueTokens.length} tokens for user ${userId}. Success: ${response.successCount}, Failure: ${response.failureCount}`);
+
+            // Clean up unregistered or invalid tokens
+            const tokensToRemove = [];
+            response.responses.forEach((res, idx) => {
+                if (!res.success) {
+                    const errorCode = res.error?.code;
+                    console.warn(`[notifyUser] FCM failed for token ${uniqueTokens[idx]}:`, errorCode, res.error?.message);
+                    if (errorCode === 'messaging/registration-token-not-registered' ||
+                        errorCode === 'messaging/invalid-registration-token') {
+                        tokensToRemove.push(uniqueTokens[idx]);
+                    }
+                }
+            });
+
+            if (tokensToRemove.length > 0) {
+                const cleaned = tokens.filter(t => {
+                    const tokenStr = typeof t === 'string' ? t : t?.token;
+                    return !tokensToRemove.includes(tokenStr);
+                });
+                if (cleaned.length !== tokens.length) {
+                    await db.collection('users').doc(userId).update({ fcmTokens: cleaned });
+                }
+            }
+        } else {
+            console.log(`[notifyUser] No FCM tokens found for user ${userId}`);
+        }
+    } catch (err) {
+        console.error(`[notifyUser] Failed notifying user ${userId}:`, err);
+    }
+}
 
 exports.onBookingStatusChange = functions.firestore
     .document('users/{userId}/bookings/{bookingId}')
@@ -204,8 +419,22 @@ exports.onBookingStatusChange = functions.firestore
             const before = change.before.data();
             const after = change.after.data();
             const { bookingId } = context.params;
-            
-            if (before.status === after.status) return;
+
+            // Detect user document resubmission
+            const isDocResubmission = (before.status === 'reservation-rejected' && after.status === 'for-reservation') ||
+                (after.status === 'for-reservation' && JSON.stringify(before.documents || []) !== JSON.stringify(after.documents || []));
+
+            // Detect user payment submission (uploading manual QR / receipt proof)
+            const isPaymentSubmitted = (
+                after.paymentVerificationStatus === 'pending_verification' &&
+                before.paymentVerificationStatus !== 'pending_verification'
+            ) || (
+                (after.payment?.length || 0) > (before.payment?.length || 0) &&
+                after.payment?.some(p => (p.gateway === 'manual_qr' || p.receiptUrl) && p.status === 'pending') &&
+                !before.payment?.some(p => (p.gateway === 'manual_qr' || p.receiptUrl) && p.status === 'pending')
+            );
+
+            if (before.status === after.status && !isDocResubmission && !isPaymentSubmitted) return;
 
             const { userId } = context.params;
 
@@ -214,74 +443,149 @@ exports.onBookingStatusChange = functions.firestore
                 .doc(userId)
                 .get();
 
-            const tokens = userDoc.data()?.fcmTokens || [];
-
-            if (!tokens.length) {
-                throw new HttpsError('not-found', 'No tokens found for user: ' + userId);
-            };
-
             const data = after;
 
             const trailName = data.trail?.name || 'your trail';
             const businessName = data.business?.name || 'the organizer';
+            const businessId = data.business?.id;
 
-            const dateStr = data.date?.toDate
-                ? data.date.toDate().toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    })
-                : '';
+            // 1. If documents were resubmitted, alert the business admins
+            if (isDocResubmission && businessId) {
+                const hikerName = data.user?.firstname || userDoc.data()?.firstname || 'A hiker';
+                await notifyBusinessAdmins(admin.firestore(), businessId, {
+                    title: `Requirements Resubmitted - ${trailName}`,
+                    body: `${hikerName} has resubmitted their booking documents for review.`,
+                    inAppTitle: `Requirements Resubmitted`,
+                    inAppMessage: `${hikerName} has resubmitted requirements for ${trailName}. Please review.`,
+                    type: 'document_resubmission',
+                    metadata: {
+                        bookingId,
+                        userId,
+                        trailName,
+                    },
+                    data: {
+                        bookingId,
+                        userId,
+                    }
+                });
+            }
 
-            const response = await admin.messaging().sendEachForMulticast({
-                tokens: tokens.map(t => t.token),
-                notification: {
-                    title: "Booking Update",
-                    body: `Your booking for ${trailName} with ${businessName} on ${dateStr} has been ${data.status}.`
+            // 2. If user uploaded and submitted payment records, alert the business admins (Case 4 - no amounts)
+            if (isPaymentSubmitted && businessId) {
+                const hikerName = data.user?.firstname || userDoc.data()?.firstname || 'A hiker';
+                const latestPayment = (data.payment || []).slice(-1)[0] || {};
+                await notifyBusinessAdmins(admin.firestore(), businessId, {
+                    title: `Payment Submitted - ${trailName}`,
+                    body: `${hikerName} has submitted payment proof for ${trailName}. Please verify.`,
+                    inAppTitle: `Payment Awaiting Verification`,
+                    inAppMessage: `${hikerName} has uploaded a payment receipt for ${trailName}. Please verify the payment.`,
+                    type: 'payment_submitted',
+                    metadata: {
+                        bookingId,
+                        userId,
+                        trailName,
+                        classification: latestPayment.classification || 'full',
+                    },
+                    data: {
+                        bookingId,
+                        userId,
+                    }
+                });
+            }
+
+            // 3. Determine tailored notification copy for the hiker
+            // Note: 'for-cancellation' is handled exclusively by onCancellationDocWrite to prevent duplicates (Case 7)
+            if (after.status === 'for-cancellation') {
+                return;
+            }
+
+            let notifTitle = "Booking Update";
+            let notifMessage = `Your booking for ${trailName} with ${businessName} has been updated to ${after.status}.`;
+            let notifType = 'booking_update';
+
+            if (isPaymentSubmitted) {
+                notifTitle = "Payment Submitted for Verification";
+                notifMessage = `Your payment proof for ${trailName} has been submitted to ${businessName} and is awaiting verification.`;
+                notifType = 'payment_submitted_user';
+            } else if (isDocResubmission) {
+                notifTitle = "Requirements Resubmitted";
+                notifMessage = `Your updated requirements for ${trailName} have been submitted to ${businessName} for review.`;
+                notifType = 'document_resubmission_user';
+            } else if (after.status === 'for-payment' || after.status === 'approved-docs') {
+                notifTitle = "Reservation Approved! 🎉";
+                notifMessage = `Great news! Your reservation for ${trailName} with ${businessName} has been approved. Please proceed to payment to secure your slot.`;
+                notifType = 'reservation_approved';
+            } else if (after.status === 'reservation-rejected') {
+                notifTitle = "Reservation Not Approved";
+                const reason = data.cancellationReason ? ` Reason: ${data.cancellationReason}.` : '';
+                notifMessage = `Your reservation for ${trailName} was not approved.${reason} You can review and update your documents.`;
+                notifType = 'reservation_rejected';
+            } else if (after.status === 'cancelled') {
+                const isAdminCancelled = data.cancelledBy === 'admin' || after.cancelledBy === 'admin';
+                const reason = data.cancellationReason ? ` Reason: ${data.cancellationReason}.` : '';
+                if (isAdminCancelled) {
+                    notifTitle = "Hike Cancelled by Organizer";
+                    notifMessage = `Your hike for ${trailName} was cancelled by ${businessName}.${reason} Go to your booking to choose between a refund or reschedule options.`;
+                    notifType = 'admin_cancellation';
+                } else {
+                    notifTitle = "Booking Cancelled";
+                    notifMessage = `Your booking for ${trailName} with ${businessName} has been cancelled.${reason}`;
+                    notifType = 'booking_cancelled';
+                }
+            } else if (after.status === 'paid' || after.status === 'downpayment') {
+                const isFull = after.status === 'paid';
+                notifTitle = isFull ? "Payment Verified! 🎉" : "Downpayment Verified";
+                notifMessage = isFull
+                    ? `Your payment for ${trailName} has been verified in full. You are ready to hike!`
+                    : `Your downpayment for ${trailName} has been verified. Remaining balance can be settled before or on the hike date.`;
+                notifType = 'payment_verified';
+            } else if (after.status === 'refunded') {
+                notifTitle = "Booking Refunded";
+                notifMessage = `Your booking for ${trailName} with ${businessName} has been refunded.`;
+                notifType = 'booking_refunded';
+            }
+
+            // 4. In-app & Push notification for the hiker via notifyUser
+            await notifyUser(admin.firestore(), userId, {
+                title: notifTitle,
+                body: notifMessage,
+                inAppTitle: notifTitle,
+                inAppMessage: notifMessage,
+                type: notifType,
+                docId: `${after.status}_${bookingId}`,
+                metadata: {
+                    bookingId,
+                    status: after.status,
+                    trailName,
+                    businessName,
+                    ...(data.cancellationReason ? { reason: data.cancellationReason } : {}),
+                },
+                data: {
+                    bookingId: String(bookingId),
+                    status: String(after.status),
                 }
             });
 
-            const validTokens = tokens.filter((t, i) => {
-                const res = response.responses[i];
-                console.log(`Token: ${t.token}, Success: ${res.success}, Error: ${res.error?.code}`);
-                if (res.success) return true;
-
-                const error = res.error?.code;
-
-                console.log(`Error for token ${t.token}: ${error}`);
-                return ![
-                    'messaging/registration-token-not-registered',
-                    'messaging/invalid-registration-token'
-                ].includes(error);
-            });
-
-            if (validTokens.length !== tokens.length) {
-                await admin.firestore()
-                    .collection('users')
-                    .doc(userId)
-                    .update({ fcmTokens: validTokens });
-            }
-
-            if(after.status === 'for-payment') {
-                if(!data.offer || !data.offer.date) {
+            if (after.status === 'for-payment') {
+                if (!data.offer || !data.offer.date) {
                     console.log('Booking missing offer date, skipping token cleanup');
                     throw new HttpsError('invalid-argument', 'Booking missing offer date, skipping token cleanup');
-                }    
+                }
 
-                const jsDate = data.offer.date.toDate(); 
+                const jsDate = data.offer.date.toDate();
                 const bookingDate = DateTime.fromJSDate(jsDate);
                 const reminderDateWeek = bookingDate.minus({ days: 7 });
                 const reminderDateDay = bookingDate.minus({ days: 1 });
-                
+
                 const project = JSON.parse(process.env.FIREBASE_CONFIG).projectId;
-                const location = 'us-central1'; 
+                const location = 'us-central1';
                 const queue = 'booking-reminders';
                 const queuePath = getTasksClient().queuePath(project, location, queue);
 
                 const url = `https://${location}-${project}.cloudfunctions.net/sendUserReminder`;
-                
+
                 const reminderDate = bookingDate.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY);
-                
+
                 const payload = {
                     userId,
                     reminderDate,
@@ -323,7 +627,252 @@ exports.onBookingStatusChange = functions.firestore
             throw new HttpsError('internal', 'Error processing booking update: ' + error.message);
         }
     }
-);
+    );
+
+/**
+ * Triggered whenever a cancellation request document is created under
+ * /businesses/{businessId}/cancellations/{cancellationId}.
+ * Ensures business admins receive push + in-app notifications and confirms to the user.
+ */
+exports.onNewCancellationRequest = functions.firestore
+    .document('businesses/{businessId}/cancellations/{cancellationId}')
+    .onWrite(async (change, context) => {
+        try {
+            if (!change.after.exists) return; // Deleted document
+
+            const data = change.after.data();
+            if (!data) return;
+
+            const { businessId, cancellationId } = context.params;
+            const db = admin.firestore();
+            const { userId, bookingId, reason } = data;
+
+            const isNewDoc = !change.before.exists;
+            const before = change.before.exists ? change.before.data() : null;
+
+            // Fetch business and hiker details
+            const bizDoc = await db.collection('businesses').doc(businessId).get();
+            const businessName = bizDoc.exists ? (bizDoc.data()?.name || 'The organizer') : 'The organizer';
+
+            let userName = 'A hiker';
+            if (userId) {
+                const userDoc = await db.collection('users').doc(userId).get();
+                if (userDoc.exists) {
+                    userName = userDoc.data()?.firstname || userName;
+                }
+            }
+
+            let trailName = 'your hike';
+            if (userId && bookingId) {
+                const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+                const bookingDoc = await bookingRef.get();
+                if (bookingDoc.exists) {
+                    trailName = bookingDoc.data()?.trail?.name || trailName;
+                }
+            }
+
+            const reasonText = reason ? ` Reason: ${reason}.` : '';
+
+            // ─────────────────────────────────────────────────────────────────
+            // CASE 8A: User Appeals a Declined Cancellation Request
+            // ─────────────────────────────────────────────────────────────────
+            const isAppeal = before && before.status === 'rejected' && data.status === 'pending';
+            if (isAppeal) {
+                if (data.appealNotificationSent) {
+                    console.log(`[onNewCancellationRequest] Cancellation appeal ${cancellationId} already processed, skipping.`);
+                    return;
+                }
+
+                console.log(`[onNewCancellationRequest] Detected appeal for cancellation ${cancellationId} by user ${userId}`);
+
+                const appealAdminDocId = bookingId ? `cancel_appeal_${bookingId}` : `cancel_appeal_${cancellationId}`;
+                const appealUserDocId = bookingId ? `cancel_appeal_user_${bookingId}` : `cancel_appeal_user_${cancellationId}`;
+
+                await change.after.ref.update({
+                    appealNotificationSent: true,
+                    appealNotifiedAt: FieldValue.serverTimestamp()
+                });
+
+                // 1. Notify Business Admins
+                await notifyBusinessAdmins(db, businessId, {
+                    title: `Cancellation Request Appealed - ${trailName}`,
+                    body: `${userName} appealed the declined cancellation for ${trailName}.${reasonText}`,
+                    inAppTitle: `Cancellation Request Appealed`,
+                    inAppMessage: `${userName} has submitted an appeal for their declined cancellation on ${trailName}.${reasonText}`,
+                    type: 'cancellation_appealed',
+                    docId: appealAdminDocId,
+                    metadata: {
+                        cancellationId,
+                        bookingId: bookingId || '',
+                        userId: userId || '',
+                        trailName,
+                        reason: reason || '',
+                    },
+                    data: {
+                        cancellationId,
+                        bookingId: String(bookingId || ''),
+                        userId: String(userId || ''),
+                    }
+                });
+
+                // 2. In-app & Push confirmation for the hiker
+                if (userId) {
+                    await notifyUser(db, userId, {
+                        title: "Appeal Submitted",
+                        body: `Your cancellation appeal for ${trailName} has been submitted to ${businessName} for review.`,
+                        inAppTitle: "Appeal Submitted",
+                        inAppMessage: `Your cancellation appeal for ${trailName} has been submitted to ${businessName} for review.`,
+                        type: 'cancellation_appeal_submitted',
+                        docId: appealUserDocId,
+                        metadata: {
+                            cancellationId,
+                            bookingId: bookingId || '',
+                            trailName,
+                            businessName,
+                        },
+                        data: {
+                            cancellationId,
+                            bookingId: String(bookingId || ''),
+                        }
+                    });
+                }
+                return;
+            }
+
+            // ─────────────────────────────────────────────────────────────────
+            // CASE 1: Admin Cancels Hike / Booking -> Notify User (Case 9)
+            // ─────────────────────────────────────────────────────────────────
+            if (isNewDoc && data.cancelledBy === 'admin') {
+                if (!userId) return;
+                if (data.adminCancelNotified) {
+                    console.log(`[onNewCancellationRequest] Admin cancellation ${cancellationId} already processed, skipping.`);
+                    return;
+                }
+
+                await change.after.ref.update({
+                    adminCancelNotified: true,
+                    adminCancelNotifiedAt: FieldValue.serverTimestamp()
+                });
+
+                if (bookingId) {
+                    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+                    const bookingDoc = await bookingRef.get();
+                    if (bookingDoc.exists && bookingDoc.data()?.status !== 'cancelled') {
+                        await bookingRef.update({
+                            status: 'cancelled',
+                            cancelledBy: 'admin',
+                            cancellationReason: reason || 'Cancelled by organizer',
+                            updatedAt: FieldValue.serverTimestamp()
+                        });
+                    }
+                }
+
+                const notifTitle = `Hike Cancelled by Organizer`;
+                const notifMessage = `Your hike for ${trailName} was cancelled by ${businessName}.${reasonText} Go to your booking to choose between a refund or reschedule options.`;
+                const adminCancelDocId = bookingId ? `admin_cancel_${bookingId}` : `admin_cancel_${cancellationId}`;
+
+                await notifyUser(db, userId, {
+                    title: notifTitle,
+                    body: notifMessage,
+                    inAppTitle: notifTitle,
+                    inAppMessage: notifMessage,
+                    type: 'admin_cancellation',
+                    docId: adminCancelDocId,
+                    metadata: {
+                        type: 'admin_cancellation',
+                        cancellationId,
+                        bookingId: bookingId || '',
+                        businessId,
+                        trailName,
+                        reason: reason || '',
+                    },
+                    data: {
+                        cancellationId: String(cancellationId),
+                        bookingId: String(bookingId || ''),
+                        businessId: String(businessId),
+                    }
+                });
+                return;
+            }
+
+            // ─────────────────────────────────────────────────────────────────
+            // CASE 2: User Requests Cancellation -> Notify Admins (Case 7)
+            // ─────────────────────────────────────────────────────────────────
+            if (isNewDoc && data.cancelledBy === 'user') {
+                if (data.notificationSent) {
+                    console.log(`[onNewCancellationRequest] Cancellation ${cancellationId} already processed, skipping.`);
+                    return;
+                }
+
+                // Deterministic doc IDs scoped to bookingId to ensure strict idempotency
+                const adminDocId = bookingId ? `cancel_req_${bookingId}` : `cancel_req_${cancellationId}`;
+                const userDocId = bookingId ? `cancel_req_user_${bookingId}` : `cancel_req_user_${cancellationId}`;
+
+                // Mark document immediately to prevent concurrent duplicate execution
+                await change.after.ref.update({
+                    notificationSent: true,
+                    notifiedAt: FieldValue.serverTimestamp()
+                });
+
+                if (userId && bookingId) {
+                    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+                    const bookingDoc = await bookingRef.get();
+                    if (bookingDoc.exists && bookingDoc.data()?.status !== 'for-cancellation') {
+                        await bookingRef.update({
+                            status: 'for-cancellation',
+                            cancellationReason: reason || 'User cancellation requested',
+                            updatedAt: FieldValue.serverTimestamp()
+                        });
+                    }
+                }
+
+                // Notify Business Admins
+                await notifyBusinessAdmins(db, businessId, {
+                    title: `Cancellation Request - ${trailName}`,
+                    body: `${userName} has requested to cancel their booking for ${trailName}.${reasonText}`,
+                    inAppTitle: `Cancellation Request`,
+                    inAppMessage: `${userName} has requested to cancel their booking for ${trailName}.${reasonText}`,
+                    type: 'cancellation_request',
+                    docId: adminDocId,
+                    metadata: {
+                        cancellationId,
+                        bookingId,
+                        userId,
+                        trailName,
+                        cancellationReason: reason || '',
+                    },
+                    data: {
+                        cancellationId,
+                        bookingId,
+                        userId,
+                    }
+                });
+
+                // In-app & Push confirmation for the user
+                if (userId) {
+                    await notifyUser(db, userId, {
+                        title: "Cancellation Request Submitted",
+                        body: `Your cancellation request for ${trailName} has been submitted to ${businessName} and is awaiting review.`,
+                        inAppTitle: "Cancellation Request Submitted",
+                        inAppMessage: `Your cancellation request for ${trailName} has been submitted to ${businessName} and is awaiting review.`,
+                        type: 'cancellation_request_submitted',
+                        docId: userDocId,
+                        metadata: {
+                            cancellationId,
+                            bookingId,
+                            trailName,
+                        },
+                        data: {
+                            cancellationId,
+                            bookingId,
+                        }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('[onNewCancellationRequest] Error processing cancellation request:', error);
+        }
+    });
 
 exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
     try {
@@ -348,14 +897,14 @@ exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
                 metadata: {
                     type: 'booking_reminder',
                     bookingId: bookingId,
-                }                
+                }
             });
 
-        
+
         const tokenList = userDoc.data()?.fcmTokens || [];
 
         const tokens = tokenList.filter(t => t.platform === 'android' || t.platform === 'ios');
-        
+
         if (!tokens.length) {
             console.log('No tokens found for user:', userId);
             res.status(200).send('No tokens to send reminder');
@@ -401,54 +950,54 @@ exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
 exports.setDefaultUserRole = functions.auth.user().onCreate(async (user) => {
     const account = await admin.auth().getUser(user.uid);
 
-    if(account.customClaims && account.customClaims.role === 'business'){
+    if (account.customClaims && account.customClaims.role === 'business') {
         console.log(`Skip default role attachement for business accounts.`);
         return null;
     }
 
-    try{
-        await admin.auth().setCustomUserClaims(user.uid, {role: 'user'});
+    try {
+        await admin.auth().setCustomUserClaims(user.uid, { role: 'user' });
         console.log(`Default user role assigned to UID: ${user.uid}`);
     } catch (error) {
         console.error('Error setting default role: ', error);
     }
 
     const uid = user.uid;
-    
+
     const userRef = admin.firestore().collection('users').doc(uid);
 
     await userRef.set({
         email: user.email ?? null,
         createdAt: FieldValue.serverTimestamp(),
         role: 'user',
-    },{merge: true});
+    }, { merge: true });
 
     await userRef
         .collection('recommendations')
         .doc('init')
         .set({
             createdAt: FieldValue.serverTimestamp(),
-            trails:[]
-        }, {merge: true});
+            trails: []
+        }, { merge: true });
 
     console.log(`User doc and recommendation collection created for: ${userRef}`);
 });
 
 exports.createAdmin = https.onCall(async (request) => {
-    try{
+    try {
         const { userId, businessId } = request.data;
         const caller = request.auth;
         const db = admin.firestore();
 
-        if(!caller) throw new Error('Authentication required');
-        
-        if(!userId) throw new Error('User ID required');
-        
-        if(!businessId) throw new Error('Business ID required');
-    
-        if(caller.token.role !== 'admin' && caller.token.owner !== businessId) 
+        if (!caller) throw new Error('Authentication required');
+
+        if (!userId) throw new Error('User ID required');
+
+        if (!businessId) throw new Error('Business ID required');
+
+        if (caller.token.role !== 'admin' && caller.token.owner !== businessId)
             throw new Error('Permission denied, only business owners can create admin accounts');
-    
+
         await admin.auth().setCustomUserClaims(userId, {
             role: 'admin',
             businessId
@@ -457,7 +1006,7 @@ exports.createAdmin = https.onCall(async (request) => {
         const userRef = db.collection('users').doc(userId);
         const doc = await userRef.get();
 
-        if(!doc.exists){
+        if (!doc.exists) {
             throw new HttpsError('Not found', 'Business document does not exists');
         }
 
@@ -480,7 +1029,7 @@ exports.createAdmin = https.onCall(async (request) => {
                 username: doc.data().username,
                 email: doc.data().email,
                 businessId,
-            }, {merge: true});
+            }, { merge: true });
 
 
         console.log(`User ${doc.data().uid} made admin for ${businessId}`);
@@ -523,13 +1072,13 @@ exports.createBusiness = https.onCall(async (request) => {
                 throw new Error('Owner user account not found');
             }
 
-            const userData = userSnap.data();    
-            
-            transaction.set(busRef, { 
+            const userData = userSnap.data();
+
+            transaction.set(busRef, {
                 ...data,
                 createdAt: Timestamp.fromDate(new Date(data.createdAt)),
                 establishedOn: Timestamp.fromDate(new Date(data.establishedOn)),
-                updatedAt: FieldValue.serverTimestamp() 
+                updatedAt: FieldValue.serverTimestamp()
             }, { merge: true });
 
             const adminSubRef = busRef.collection('admins').doc('owner');
@@ -566,28 +1115,28 @@ exports.createBusiness = https.onCall(async (request) => {
 exports.deleteUser = https.onCall(async (request) => {
     const { userId } = request.data;
     const caller = request.auth;
-    
-    if(!caller) 
+
+    if (!caller)
         throw new HttpsError('unauthenticated', 'Authentication required');
-    
-    if(caller.token.role !== 'superadmin') 
+
+    if (caller.token.role !== 'superadmin')
         throw new HttpsError('permission-denied', 'Only superadmins can delete accounts');
 
-    if(!userId) 
+    if (!userId)
         throw new HttpsError('invalid-argument', 'Invalid user ID provided');
 
     try {
         const user = await admin.auth().getUser(userId);
         const role = user.customClaims ? user.customClaims.role : 'user'
 
-        if(role !== 'user'){
+        if (role !== 'user') {
             throw new HttpsError(
-                'failed-precondition', 
+                'failed-precondition',
                 'Only user accounts are permitted to be deleted');
         }
 
         await admin.auth().deleteUser(userId);
-         
+
         await admin.firestore().collection('users').doc(userId).delete();
 
         return { success: true };
@@ -598,11 +1147,11 @@ exports.deleteUser = https.onCall(async (request) => {
 
 exports.checkEmail = https.onCall(async (request) => {
     const { email, username } = request.data;
-    
-    if(!email.trim()) throw new HttpsError('invalid-argument', 'No email provided');
-    
-    if(!username.trim()) throw new HttpsError('invalid-argument', 'No username provided');
-    
+
+    if (!email.trim()) throw new HttpsError('invalid-argument', 'No email provided');
+
+    if (!username.trim()) throw new HttpsError('invalid-argument', 'No username provided');
+
     const authPromise = admin.auth().getUserByEmail(email).catch(() => null);
     const firestorePromise = admin.firestore()
         .collection('users')
@@ -612,9 +1161,9 @@ exports.checkEmail = https.onCall(async (request) => {
 
     const [userRecord, userQuery] = await Promise.all([authPromise, firestorePromise])
 
-    return { 
-        usernameAvailable: userQuery.empty, 
-        emailAvailable: !userRecord 
+    return {
+        usernameAvailable: userQuery.empty,
+        emailAvailable: !userRecord
     };
 })
 
@@ -642,7 +1191,7 @@ exports.secureLogin = https.onCall((request) =>
  */
 function handlePaymongoError(err) {
     const rawMessage = err.message || String(err);
-    
+
     // 1. Handle HTTP Auth/Security Failures (401, 403)
     if (rawMessage.includes('Unauthorized') || rawMessage.includes('401') || rawMessage.includes('403')) {
         throw new HttpsError('unavailable', 'Payment service is currently unavailable. Please notify the Thrail administrators.');
@@ -652,7 +1201,7 @@ function handlePaymongoError(err) {
     const paymongoMarker = 'PayMongo Checkout Error:';
     if (rawMessage.includes(paymongoMarker)) {
         const jsonStr = rawMessage.substring(rawMessage.indexOf(paymongoMarker) + paymongoMarker.length).trim();
-        
+
         let errorBody;
         try {
             errorBody = JSON.parse(jsonStr);
@@ -666,7 +1215,7 @@ function handlePaymongoError(err) {
 
         const errors = errorBody.errors || [];
         const mainError = errors[0] || {};
-        
+
         const code = mainError.code;
         const detail = mainError.detail;
         const pointer = mainError.source?.pointer || '';
@@ -776,13 +1325,13 @@ exports.createPaymongoCheckout = https.onCall({ secrets: [paymongoSecret] }, asy
 
     try {
         const session = await PaymentManager.getProvider('paymongo').createCheckout(
-            amount, 
-            type, 
-            redirectUrl, 
+            amount,
+            type,
+            redirectUrl,
             { bookingId, userId: targetUserId },
             customerInfo
         );
-        
+
         // Clean up older pending sessions to 'abandoned'
         const currentPayments = existingBookingData?.payment || [];
         const updatedPayments = currentPayments.map(p => {
@@ -1118,8 +1667,34 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
                 business: bookingData.business,
                 user: bookingData.user
             });
-            
+
             console.log(`[paymentWebhook] Successfully captured payment and generated receipt for booking ${bookingDoc.id}`);
+
+            // Alert business admins of confirmed online payment and secured slot
+            const businessId = bookingData.business?.id;
+            const trailName = bookingData.offer?.trail?.name || bookingData.trail?.name || 'a trail';
+            const hikerName = bookingData.user?.firstname || 'A hiker';
+            const classificationText = newBookingStatus === 'paid' ? 'Full Payment' : 'Downpayment';
+            if (businessId) {
+                await notifyBusinessAdmins(db, businessId, {
+                    title: `Online Payment Received - ${trailName}`,
+                    body: `${hikerName} paid ₱${Number(finalAmount).toLocaleString()} (${classificationText}) via ${(method || 'PayMongo').toUpperCase()}.`,
+                    inAppTitle: `Online Payment Received`,
+                    inAppMessage: `${hikerName} paid ₱${Number(finalAmount).toLocaleString()} (${classificationText}) via ${(method || 'PayMongo').toUpperCase()} for ${trailName}. Slot confirmed.`,
+                    type: 'payment_received_admin',
+                    metadata: {
+                        bookingId: bookingDoc.id,
+                        userId: bookingData.user?.id || userId,
+                        amount: finalAmount,
+                        gateway: 'paymongo',
+                        method: method || '',
+                    },
+                    data: {
+                        bookingId: bookingDoc.id,
+                        userId: bookingData.user?.id || userId,
+                    }
+                });
+            }
         } else {
             // Booking was already cancelled, issue automatic refund!
             try {
@@ -1152,7 +1727,7 @@ exports.paymentWebhook = https.onRequest({ secrets: [paymongoSecret, paymongoWeb
 exports.cancelBooking = https.onCall(async (request) => {
     const { bookingId, userId, reason } = request.data;
     const caller = request.auth;
-    
+
     console.log(`[cancelBooking] Cancellation requested for booking ${bookingId} by user ${caller?.uid}`);
 
     if (!caller) throw new HttpsError('unauthenticated', 'Auth required');
@@ -1169,11 +1744,11 @@ exports.cancelBooking = https.onCall(async (request) => {
     const data = bookingDoc.data();
 
     if (data.status === 'cancelled') return { success: true, message: 'Already cancelled' };
-    
+
     // Only allow pre-payment cancellation
     const payments = data.payment || [];
     const hasCaptured = payments.some(p => p.status === 'captured');
-    
+
     if (hasCaptured || data.status === 'paid') {
         throw new HttpsError('failed-precondition', 'Payment already completed. Please request a refund instead.');
     }
@@ -1302,7 +1877,7 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
         const now = Timestamp.now().toDate();
         const latestCaptured = capturedPayments[capturedPayments.length - 1];
         const refundableUntil = latestCaptured.refundableUntil ? latestCaptured.refundableUntil.toDate() : new Date(0);
-        
+
         if (now > refundableUntil) {
             throw new HttpsError('failed-precondition', 'The automated refund timeframe has expired. Please contact the organizer.');
         }
@@ -1414,9 +1989,9 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
 
             // Phase 1 / T1.4: Execute PayMongo API refund call for this specific payment
             const refundRes = await PaymentManager.getProvider(payment.gateway || 'paymongo').issueRefund(
-                gatewayId, 
-                amountToDrain, 
-                sanitizedReason, 
+                gatewayId,
+                amountToDrain,
+                sanitizedReason,
                 refundNotes
             );
 
@@ -1511,15 +2086,37 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
             console.warn(`[refundBooking] Could not sync to /payments collection:`, paymentsSyncErr.message);
         }
 
-        return { 
-            success: true, 
-            refundResults, 
+        // If self-serve refund by hiker, alert the business admins
+        if (isOwner && !isAdmin && !isSuperAdmin && data.business?.id) {
+            const hikerName = data.user?.firstname || 'A hiker';
+            const trailName = data.trail?.name || 'the hike';
+            await notifyBusinessAdmins(db, data.business.id, {
+                title: `Self-Serve Refund - ${trailName}`,
+                body: `${hikerName} processed an automated refund for ${trailName}. Slot released.`,
+                inAppTitle: `Automated Refund Processed`,
+                inAppMessage: `${hikerName} processed a self-serve refund for ${trailName}. Slot released.`,
+                type: 'self_serve_refund',
+                metadata: {
+                    bookingId,
+                    userId,
+                    refundAmount,
+                },
+                data: {
+                    bookingId,
+                    userId,
+                }
+            });
+        }
+
+        return {
+            success: true,
+            refundResults,
             totalRefunded: refundAmount,
-            message: `Refunded ${refundLabel} successfully` 
+            message: `Refunded ${refundLabel} successfully`
         };
     } catch (error) {
         console.error("[refundBooking] PayMongo Refund Error:", error);
-        
+
         // Rollback lock to 'captured' so the admin can safely retry
         try {
             const freshDoc = await bookingRef.get();
@@ -1533,7 +2130,7 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
                     }
                 });
                 if (modified) {
-                    await bookingRef.update({ 
+                    await bookingRef.update({
                         payment: freshPayments.map(p => ({ ...p })),
                         updatedAt: FieldValue.serverTimestamp()
                     });
@@ -1548,7 +2145,7 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
         if (errorMessage.includes('same_day_partial_refund_not_allowed')) {
             throw new HttpsError('failed-precondition', 'Partial refunds cannot be processed on the same day the payment was made. Please issue a full (100%) refund or try again tomorrow.');
         }
-        
+
         throw new HttpsError('internal', `Payment Gateway Error: ${errorMessage}`);
     }
 });
@@ -1576,17 +2173,17 @@ exports.refundBooking = https.onCall({ secrets: [paymongoSecret] }, async (reque
  * @returns {Promise<Object>} Result receipt.
  */
 exports.processCancellationApproval = https.onCall({ secrets: [paymongoSecret] }, async (request) => {
-    const { 
-        cancellationId, 
-        bookingId, 
-        userId, 
-        businessId: inputBusinessId, 
-        offerId: inputOfferId, 
-        approved, 
-        shouldRefund = true, 
-        refundType = 'full', 
-        customAmount, 
-        adminNote 
+    const {
+        cancellationId,
+        bookingId,
+        userId,
+        businessId: inputBusinessId,
+        offerId: inputOfferId,
+        approved,
+        shouldRefund = true,
+        refundType = 'full',
+        customAmount,
+        adminNote
     } = request.data || {};
 
     const caller = request.auth;
@@ -1647,10 +2244,32 @@ exports.processCancellationApproval = https.onCall({ secrets: [paymongoSecret] }
 
         await batch.commit();
         console.log(`[processCancellationApproval] Declined cancellation for booking ${bookingId}`);
-        return { 
-            success: true, 
-            approved: false, 
-            message: 'Cancellation request declined.' 
+
+        // Notify hiker that their cancellation request was declined
+        const trailName = bookingData.trail?.name || 'your hike';
+        const businessName = bookingData.business?.name || 'the organizer';
+        await notifyUser(db, userId, {
+            title: `Cancellation Request Declined`,
+            body: `Your cancellation request for ${trailName} was declined by ${businessName}. Reason: ${adminNote.trim()}`,
+            inAppTitle: `Cancellation Request Declined`,
+            inAppMessage: `Your cancellation request for ${trailName} has been declined. Organizer note: ${adminNote.trim()}`,
+            type: 'cancellation_declined',
+            metadata: {
+                bookingId,
+                trailName,
+                businessName,
+                adminNote: adminNote.trim(),
+            },
+            data: {
+                bookingId,
+                userId,
+            }
+        });
+
+        return {
+            success: true,
+            approved: false,
+            message: 'Cancellation request declined.'
         };
     }
 
@@ -1825,6 +2444,32 @@ exports.processCancellationApproval = https.onCall({ secrets: [paymongoSecret] }
     await batch.commit();
     console.log(`[processCancellationApproval] Successfully committed atomic batch for booking ${bookingId}`);
 
+    // Notify hiker that their cancellation request was approved
+    const trailName = bookingData.trail?.name || 'your hike';
+    const businessName = bookingData.business?.name || 'the organizer';
+    await notifyUser(db, userId, {
+        title: isRefundIssued ? `Cancellation Approved & Refunded` : `Cancellation Approved`,
+        body: isRefundIssued
+            ? `Your cancellation for ${trailName} was approved and your refund has been processed.`
+            : `Your cancellation request for ${trailName} was approved by ${businessName}.`,
+        inAppTitle: isRefundIssued ? `Cancellation Approved & Refunded` : `Cancellation Approved`,
+        inAppMessage: isRefundIssued
+            ? `Your cancellation request for ${trailName} was approved and your refund has been processed.`
+            : `Your cancellation request for ${trailName} has been approved by ${businessName}.`,
+        type: isRefundIssued ? 'cancellation_refunded' : 'cancellation_approved',
+        metadata: {
+            bookingId,
+            trailName,
+            businessName,
+            refundAmount: actualRefundedAmount,
+            ...(adminNote ? { adminNote: adminNote.trim() } : {}),
+        },
+        data: {
+            bookingId,
+            userId,
+        }
+    });
+
     return {
         success: true,
         approved: true,
@@ -1914,6 +2559,28 @@ exports.verifyManualPayment = https.onCall(async (request) => {
 
         await batch.commit();
         console.log(`[verifyManualPayment] Rejected manual payment for booking ${bookingId}`);
+
+        // Notify hiker that their payment receipt was not approved
+        const trailName = bookingData.trail?.name || 'your booking';
+        const businessName = bookingData.business?.name || 'the organizer';
+        await notifyUser(db, userId, {
+            title: `Payment Receipt Not Approved`,
+            body: `Your payment receipt for ${trailName} was not approved: ${rejectionReason.trim()}. Please submit a valid receipt.`,
+            inAppTitle: `Payment Receipt Not Approved`,
+            inAppMessage: `Your payment receipt for ${trailName} was not approved by ${businessName}. Reason: ${rejectionReason.trim()}. Please upload a valid receipt to secure your slot.`,
+            type: 'payment_rejected',
+            metadata: {
+                bookingId,
+                trailName,
+                businessName,
+                rejectionReason: rejectionReason.trim(),
+            },
+            data: {
+                bookingId,
+                userId,
+            }
+        });
+
         return { success: true, verified: false, message: 'Payment rejected.' };
     }
 
@@ -2162,6 +2829,29 @@ exports.completeManualRefund = https.onCall(async (request) => {
 
     await batch.commit();
     console.log(`[completeManualRefund] Successfully committed atomic manual refund for booking ${bookingId}`);
+
+    // Notify hiker that their manual refund payout has been disbursed with proof
+    const trailName = bookingData.trail?.name || 'your hike';
+    const businessName = bookingData.business?.name || 'the organizer';
+    await notifyUser(db, userId, {
+        title: `Refund Payout Sent`,
+        body: `Your refund for ${trailName} has been disbursed by ${businessName}.`,
+        inAppTitle: `Refund Payout Sent`,
+        inAppMessage: `Your refund for ${trailName} has been disbursed by ${businessName}. Receipt proof is available in your booking details.`,
+        type: 'refund_completed',
+        metadata: {
+            bookingId,
+            trailName,
+            businessName,
+            refundAmount: resolvedRefundAmount,
+            receiptUrl,
+        },
+        data: {
+            bookingId,
+            userId,
+        }
+    });
+
     return {
         success: true,
         refundAmount: resolvedRefundAmount,
@@ -2279,6 +2969,29 @@ exports.acceptAdminCancellation = https.onCall(async (request) => {
 
     await batch.commit();
     console.log(`[acceptAdminCancellation] Hiker ${caller.uid} accepted cancellation for booking ${bookingId}`);
+
+    // Alert business admins that hiker accepted the cancellation
+    if (businessId) {
+        const hikerName = bookingData.user?.firstname || 'The hiker';
+        const trailName = bookingData.trail?.name || 'the hike';
+        await notifyBusinessAdmins(db, businessId, {
+            title: `Cancellation Accepted - ${trailName}`,
+            body: `${hikerName} accepted your hike cancellation for ${trailName}. Ensure proper refund process if necessary.`,
+            inAppTitle: `Cancellation Accepted by Hiker`,
+            inAppMessage: `${hikerName} has accepted your hike cancellation for ${trailName}. Ensure proper refund process if necessary.`,
+            type: 'admin_cancellation_accepted',
+            metadata: {
+                bookingId,
+                userId: caller.uid,
+                cancellationId: cancellationId || resolvedCancellationRef?.id || '',
+            },
+            data: {
+                bookingId,
+                userId: caller.uid,
+            }
+        });
+    }
+
     return {
         success: true,
         message: 'Cancellation accepted successfully.',
@@ -2421,12 +3134,12 @@ function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0, hik
 
     if (status === 'DANGER') {
         headline = `⚠️ Severe Weather Warning: ${trailName} (${phasePrefix})`;
-        message = isSevereCode 
+        message = isSevereCode
             ? `Thunderstorms and heavy downpours forecast at ${trailName}. Please check group chat and coordinate with guides.`
             : `Severe weather conditions (${precipProb}% rain, ${Math.round(windSpeed)} km/h wind) expected. High hazard on exposed terrain.`;
     } else if (status === 'CAUTION') {
         headline = `🌧️ Weather Advisory: ${trailName} (${phasePrefix})`;
-        message = isRain 
+        message = isRain
             ? `Rain expected (${precipProb}% chance) at ${trailName}. Pack waterproof rain covers and traction footwear.`
             : `Breezy winds (${Math.round(windSpeed)} km/h) or high UV index expected. Prepare appropriate sun protection.`;
     }
@@ -2536,10 +3249,10 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
 
                 // If previous alert for current milestone phase was SAFE, sleep until the next milestone phase
                 if (lastAlert.status === 'SAFE') {
-                    return { 
-                        skipped: true, 
-                        reason: `Phase ${currentPhase} conditions are SAFE. Sleeping until next milestone phase. Use force=true to override.`, 
-                        phase: currentPhase 
+                    return {
+                        skipped: true,
+                        reason: `Phase ${currentPhase} conditions are SAFE. Sleeping until next milestone phase. Use force=true to override.`,
+                        phase: currentPhase
                     };
                 }
 
@@ -2548,10 +3261,10 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
                 if (lastAlertTime) {
                     const hoursSinceLastAlert = nowManila.diff(lastAlertTime, 'hours').hours;
                     if (hoursSinceLastAlert < maxRecheckHours) {
-                        return { 
-                            skipped: true, 
-                            reason: `Already issued adverse alert for ${currentPhase} ${Math.round(hoursSinceLastAlert)} hours ago (recheck window is ${maxRecheckHours}h). Use force=true to override.`, 
-                            phase: currentPhase 
+                        return {
+                            skipped: true,
+                            reason: `Already issued adverse alert for ${currentPhase} ${Math.round(hoursSinceLastAlert)} hours ago (recheck window is ${maxRecheckHours}h). Use force=true to override.`,
+                            phase: currentPhase
                         };
                     }
                 }
@@ -2789,7 +3502,7 @@ exports.testGroupWeatherAlert = functions.https.onRequest(async (req, res) => {
         // Direct test by trail & user
         const coords = resolveMountainCoords(trailName, null) || MOUNTAIN_COORDINATES.batulao;
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&daily=precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode&timezone=Asia/Manila&forecast_days=1&models=best_match`;
-        
+
         const weatherRes = await fetch(url);
         const weatherData = await weatherRes.json();
         const evaluation = evaluateWeatherSafety(weatherData, trailName, 'T-24');
@@ -2863,7 +3576,7 @@ exports.onUserOnboardingComplete = functions.firestore
 
         console.log(`[onUserOnboardingComplete] User ${userId} completed onboarding. Calling THARESYS engine for ${monthId}...`);
 
-        const engineBaseUrl = process.env.THARESYS_ENGINE_URL || 
+        const engineBaseUrl = process.env.THARESYS_ENGINE_URL ||
             (process.env.FUNCTIONS_EMULATOR ? "http://127.0.0.1:8000" : "http://localhost:8000");
         const apiKey = process.env.THARESYS_API_KEY || "";
 
