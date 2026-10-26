@@ -218,14 +218,14 @@ Once Cloud Run finishes deployment, it assigns a permanent HTTPS URL:
 #### 4.1 Update Client Environment
 Add the assigned URL to your mobile app configuration:
 
-In `.env`:
+In `.env.local`:
 ```env
-EXPO_PUBLIC_TARS_API_URL=https://tars-recommendation-engine-[hash]-as.a.run.app
-EXPO_PUBLIC_THARESYS_API_KEY=<YOUR_SECRET_KEY>
+EXPO_PUBLIC_TARS_API_URL=https://tars-recommendation-engine-jbbzbkxx7q-as.a.run.app
+EXPO_PUBLIC_THARESYS_API_KEY=THARESYS_20_26_ENGINE_SECRET_KEY
 ```
 
 > [!NOTE]
-> Whenever updating `EXPO_PUBLIC_*` environment variables in `.env`, restart the Expo development server with cache cleared:
+> Whenever updating `EXPO_PUBLIC_*` environment variables in `.env.local`, restart the Expo development server with cache cleared:
 > `npx expo start -c`
 
 In `eas.json` (for remote cloud APK/AAB builds):
@@ -234,8 +234,8 @@ In `eas.json` (for remote cloud APK/AAB builds):
   "build": {
     "production": {
       "env": {
-        "EXPO_PUBLIC_TARS_API_URL": "https://tars-recommendation-engine-[hash]-as.a.run.app",
-        "EXPO_PUBLIC_THARESYS_API_KEY": "<YOUR_SECRET_KEY>"
+        "EXPO_PUBLIC_TARS_API_URL": "https://tars-recommendation-engine-jbbzbkxx7q-as.a.run.app",
+        "EXPO_PUBLIC_THARESYS_API_KEY": "THARESYS_20_26_ENGINE_SECRET_KEY"
       }
     }
   }
