@@ -2,11 +2,13 @@ import getSearchParam from "@/src/core/utility/getSearchParam";
 import { useLocalSearchParams } from "expo-router";
 
 import { CreateReviewFlow } from "@/src/core/flows/CreateReviewFlow";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import WriteReviewScreen from "@/src/features/Navigation/screens/WriteReviewScreen";
 import React from "react";
 
 export default function WriteReview() {
     const { reviewId: rawId, trailId: rawTrail, hikeId: rawHike, distance, duration, elevation } = useLocalSearchParams();
+    const { onProfilePress } = useAppNavigation();
 
     const reviewId = getSearchParam(rawId);
     const trailId = getSearchParam(rawTrail);
@@ -39,7 +41,7 @@ export default function WriteReview() {
             isLoading={isLoading}
             onUpdatePress={onUpdatePress}
             onSaveReview={onSaveReview}
-        // onBackPress={onBackPress}
+            onBackPress={onProfilePress}
         />
     )
 }
