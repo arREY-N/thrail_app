@@ -19,9 +19,15 @@ export interface MountainSelectChipProps {
     options?: string[];
     selectedValues?: string[];
     onToggle: (value: string) => void;
+    allowCustom?: boolean;
 }
 
-const MountainSelectChip = ({ options = [], selectedValues = [], onToggle }: MountainSelectChipProps) => {
+const MountainSelectChip = ({ 
+    options = [], 
+    selectedValues = [], 
+    onToggle, 
+    allowCustom = false 
+}: MountainSelectChipProps) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isScrolledToEnd, setIsScrolledToEnd] = useState(false);
 
@@ -60,7 +66,7 @@ const MountainSelectChip = ({ options = [], selectedValues = [], onToggle }: Mou
         <View style={styles.container}>
             
             <CustomTextInput
-                placeholder="Search or add a mountain..."
+                placeholder={allowCustom ? "Search or add a mountain..." : "Search available trails..."}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 icon="search"
@@ -133,14 +139,16 @@ const MountainSelectChip = ({ options = [], selectedValues = [], onToggle }: Mou
                             );
                         })
                     ) : (
-                        !searchQuery.trim() && (
-                            <View style={styles.emptyContainer}>
-                                <CustomText style={styles.emptyText}>Type to search or add a custom mountain.</CustomText>
-                            </View>
-                        )
+                        <View style={styles.emptyContainer}>
+                            <CustomText style={styles.emptyText}>
+                                {searchQuery.trim()
+                                    ? (allowCustom ? "No options found. Tap below to add." : "No matching trails found.")
+                                    : (options.length === 0 ? "Loading available trails..." : "No trails available.")}
+                            </CustomText>
+                        </View>
                     )}
 
-                    {searchQuery.trim() !== '' && !isExactMatch && (
+                    {allowCustom && searchQuery.trim() !== '' && !isExactMatch && (
                         <TouchableOpacity 
                             style={styles.addCustomItem} 
                             onPress={handleAddCustom}

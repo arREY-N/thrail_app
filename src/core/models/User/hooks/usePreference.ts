@@ -1,9 +1,49 @@
+import { db } from "@/src/core/config/Firebase";
 import { finishOnboarding } from "@/src/core/FirebaseAuthUtil";
 import { useAuthHook } from "@/src/core/models/User/hooks/useAuthHook";
 import { catchError } from "@/src/core/utility/errorFormatter";
 import { generateInitialUserRecommendations } from "@/src/features/SuperAdmin/services/tarsApiService";
 import { router } from "expo-router";
-import { useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+
+/**
+ * Safely extracts an array of trail names from the misc/public document.
+ */
+function extractTrailNames(data: any): string[] {
+    if (!data) return [];
+
+    const candidates = [
+        data.trailNames,
+        data.trails,
+        data.trail_names,
+        data.trailsList,
+        data.mountains,
+        data.mountainNames,
+        data.names,
+    ];
+
+    for (const candidate of candidates) {
+        if (Array.isArray(candidate) && candidate.length > 0) {
+            return candidate
+                .map((item: any) => (typeof item === 'string' ? item.trim() : (item?.name || item?.trailName || '')))
+                .filter(Boolean)
+                .sort((a: string, b: string) => a.localeCompare(b));
+        }
+    }
+
+    for (const key of Object.keys(data)) {
+        const val = data[key];
+        if (Array.isArray(val) && val.length > 0) {
+            return val
+                .map((item: any) => (typeof item === 'string' ? item.trim() : (item?.name || item?.trailName || '')))
+                .filter(Boolean)
+                .sort((a: string, b: string) => a.localeCompare(b));
+        }
+    }
+
+    return [];
+}
 
 const preferenceTemplate = {
     medical: {
@@ -14,54 +54,13 @@ const preferenceTemplate = {
         details: '',
         clearanceUri: '',
     },
-    q1: {
-        question: 'Have you hiked before?',
-        type: 'binary',
-        options: ['Yes', 'No'],
-        answer: null as boolean | null,
-    },
-    q2: {
+    trails: {
         question: 'Which mountain(s) have you hiked?',
         type: 'multi-select',
-        options: [
-            'Mt. Ayaas (Rizal)',
-            'Mt. Banahaw (Quezon)',
-            'Mt. Batulao (Batangas)',
-            'Mt. Binacayan (Rizal)',
-            'Mt. Bira-Bira (Rizal)',
-            'Mt. Cristobal (Laguna/Quezon)',
-            'Mt. Daguldol (Batangas)',
-            'Mt. Daraitan (Rizal)',
-            'Mt. Hapunang Banoi (Rizal)',
-            'Mt. Irid (Rizal)',
-            'Mt. Kalisungan (Laguna)',
-            'Mt. Mabilog (Laguna)',
-            'Mt. Maculot (Batangas)',
-            'Mt. Makiling (Laguna)',
-            'Mt. Marami (Cavite)',
-            'Mt. Pamitinan (Rizal)',
-            'Mt. Parawagan (Rizal)',
-            'Mt. Pico de Loro (Cavite)',
-            'Mt. Romelo (Laguna)',
-            'Mt. Sembrano (Rizal)',
-            'Mt. Sipit Ulang (Rizal)',
-            'Mt. Talamitam (Batangas)'
-        ],
+        options: [] as string[],
         answer: [] as string[],
     },
-    q3: {
-        question: 'What is your hiking experience level?',
-        type: 'select',
-        options: ['Beginner', 'Regular', 'Experienced'],
-        answer: null,
-    },
-    q4: {
-        question: 'How long do you prefer your hikes to be?',
-        type: 'multi-select',
-        options: ['1-3 Hour(s)', 'Half-Day', 'Full-Day', 'Overnight', 'Multi-Day'],
-        answer: [] as string[],
-    },
-    q5: {
+    province: {
         question: 'Which provinces in Region IV-A (CALABARZON) would you like to explore?',
         type: 'multi-select',
         options: ['Cavite', 'Laguna', 'Batangas', 'Rizal', 'Quezon'],
@@ -73,6 +72,40 @@ export function usePreference() {
     const [questions, setQuestions] = useState(preferenceTemplate);
     const [error, setError] = useState<string | null>();
     const { user } = useAuthHook();
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchAvailableTrails = async () => {
+            try {
+                const docRef = doc(db, 'misc', 'public');
+                const docSnap = await getDoc(docRef);
+
+                if (isMounted && docSnap.exists()) {
+                    const data = docSnap.data();
+                    const availableTrails = extractTrailNames(data);
+
+                    if (availableTrails.length > 0) {
+                        setQuestions(prev => ({
+                            ...prev,
+                            trails: {
+                                ...prev.trails,
+                                options: availableTrails,
+                            }
+                        }));
+                    }
+                }
+            } catch (err) {
+                console.warn('[usePreference] Could not load available trails from misc/public:', err);
+            }
+        };
+
+        fetchAvailableTrails();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const setAnswer = (
         question: keyof typeof preferenceTemplate,
@@ -131,23 +164,28 @@ export function usePreference() {
         }));
     };
 
-    const savePreference = () => ({
-        preferences: {
-            hiked: questions['q1'].answer,
-            location: questions['q2']?.answer,
-            experience: questions['q3'].answer,
-            hike_length: questions['q4'].answer,
-            province: questions['q5'].answer,
-        },
-        medicalProfile: {
-            hasCondition: questions['medical'].answer,
-            // Convert onboarding medical conditions string input into a string[] array
-            details: questions['medical'].details
-                ? (questions['medical'].details as string).split(/[,\n]+/).map(s => s.trim()).filter(Boolean)
-                : [],
-            clearanceUri: questions['medical'].clearanceUri,
-        }
-    });
+    const savePreference = () => {
+        const selectedTrails = (questions['trails']?.answer as string[]) || [];
+        const hasHiked = selectedTrails.length > 0;
+
+        return {
+            preferences: {
+                hiked: hasHiked,
+                location: selectedTrails,
+                experience: 'Beginner', // Baseline level; engine determines profile capability from selected hiked trails
+                hike_length: [] as string[],
+                province: (questions['province']?.answer as string[]) || [],
+            },
+            medicalProfile: {
+                hasCondition: questions['medical'].answer,
+                // Convert onboarding medical conditions string input into a string[] array
+                details: questions['medical'].details
+                    ? (questions['medical'].details as string).split(/[,\n]+/).map(s => s.trim()).filter(Boolean)
+                    : [],
+                clearanceUri: questions['medical'].clearanceUri,
+            }
+        };
+    };
 
     const onFinishedPreference = async () => {
         try {
@@ -171,7 +209,15 @@ export function usePreference() {
         }
     };
 
-    const resetPreferences = () => setQuestions(preferenceTemplate)
+    const resetPreferences = () => {
+        setQuestions(prev => ({
+            ...preferenceTemplate,
+            trails: {
+                ...preferenceTemplate.trails,
+                options: prev.trails.options,
+            }
+        }));
+    };
 
     return {
         error,
