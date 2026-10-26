@@ -35,10 +35,10 @@ export default function ViewOffer() {
         if (!offerBookings) return [];
         return offerBookings.map(b => {
             const cancellation = businessCancellations?.find(
-                (c: Cancellation) => c.bookingId === b.id
+                (c: Cancellation) => c.bookingId === b.id && !c.isDeleted
             );
             if (cancellation) {
-                if (cancellation.status === 'approved') {
+                if (cancellation.status === 'approved' && !['refund', 'refunded', 'cancelled'].includes(b.status)) {
                     return {
                         ...b,
                         status: 'cancelled' as const,
@@ -46,21 +46,32 @@ export default function ViewOffer() {
                         cancelledBy: cancellation.cancelledBy,
                     };
                 }
-                if (cancellation.status === 'pending') {
-                    if (cancellation.cancelledBy === 'admin') {
-                        return {
-                            ...b,
-                            status: 'cancelled' as const,
-                            cancellationReason: cancellation.reason || b.cancellationReason,
-                            cancelledBy: 'admin',
-                        };
-                    }
+                if ((cancellation.status as string) === 'for-cancellation' && b.status !== 'for-cancellation') {
                     return {
                         ...b,
                         status: 'for-cancellation' as const,
                         cancellationReason: cancellation.reason || b.cancellationReason,
-                        cancelledBy: 'user',
+                        cancelledBy: cancellation.cancelledBy || 'user',
                     };
+                }
+                if (cancellation.status === 'pending') {
+                    if (cancellation.cancelledBy === 'admin') {
+                        if (b.status !== 'cancelled') {
+                            return {
+                                ...b,
+                                status: 'cancelled' as const,
+                                cancellationReason: cancellation.reason || b.cancellationReason,
+                                cancelledBy: 'admin',
+                            };
+                        }
+                    } else if (b.status !== 'for-cancellation') {
+                        return {
+                            ...b,
+                            status: 'for-cancellation' as const,
+                            cancellationReason: cancellation.reason || b.cancellationReason,
+                            cancelledBy: 'user',
+                        };
+                    }
                 }
             }
 
@@ -94,6 +105,7 @@ export default function ViewOffer() {
                     offerId={offerId}
                     offer={offer}
                     bookings={displayBookings}
+                    cancellations={businessCancellations}
                     onViewBooking={onViewBooking}
                     onBackPress={onBackPress}
                     error={error as string}
