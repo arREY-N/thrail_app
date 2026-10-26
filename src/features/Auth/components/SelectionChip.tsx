@@ -8,7 +8,7 @@ export interface SelectionChipProps {
     label: string;
     selected?: boolean;
     onPress: () => void;
-    variant?: 'primary' | 'danger';
+    variant?: 'primary' | 'danger' | 'warning';
     style?: StyleProp<ViewStyle>;
 }
 
@@ -19,13 +19,25 @@ const SelectionChip = ({
     variant = 'primary',
     style,
 }: SelectionChipProps) => {
-    const isDanger = variant === 'danger';
+    const getActiveChipStyle = () => {
+        if (!selected) return null;
+        if (variant === 'danger') return styles.chipActiveDanger;
+        if (variant === 'warning') return styles.chipActiveWarning;
+        return styles.chipActive;
+    };
+
+    const getActiveTextStyle = () => {
+        if (!selected) return null;
+        if (variant === 'danger') return styles.chipTextActiveDanger;
+        if (variant === 'warning') return styles.chipTextActiveWarning;
+        return styles.chipTextActive;
+    };
 
     return (
         <TouchableOpacity 
             style={[
                 styles.chip, 
-                selected && (isDanger ? styles.chipActiveDanger : styles.chipActive),
+                getActiveChipStyle(),
                 style,
             ]} 
             onPress={onPress}
@@ -35,7 +47,7 @@ const SelectionChip = ({
                 variant="caption" 
                 style={[
                     styles.chipText, 
-                    selected && (isDanger ? styles.chipTextActiveDanger : styles.chipTextActive),
+                    getActiveTextStyle(),
                 ]}
             >
                 {label}
@@ -61,6 +73,10 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.ERROR_BG,
         borderColor: Colors.ERROR,
     },
+    chipActiveWarning: {
+        backgroundColor: Colors.STATUS_WARNING_BG,
+        borderColor: Colors.STATUS_WARNING_TEXT,
+    },
     chipText: {
         color: Colors.TEXT_SECONDARY,
         fontWeight: '500',
@@ -71,6 +87,10 @@ const styles = StyleSheet.create({
     },
     chipTextActiveDanger: {
         color: Colors.ERROR,
+        fontWeight: 'bold',
+    },
+    chipTextActiveWarning: {
+        color: Colors.STATUS_WARNING_TEXT,
         fontWeight: 'bold',
     },
 });

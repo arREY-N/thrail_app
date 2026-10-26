@@ -113,8 +113,6 @@ export const Palette = {
     Emerald600: '#059669',
     Indigo600:  '#4F46E5',
     Orange700:  '#EA580C',
-    Amber700:   '#D97706',
-    Slate700:   '#334155',
 
     // Dark Map Modal Overlays & Translucencies (Neutral Black & Dark Zinc)
     DarkBackdrop94:  'rgba(0, 0, 0, 0.92)',

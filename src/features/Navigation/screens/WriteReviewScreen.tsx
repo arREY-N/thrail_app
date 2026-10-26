@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ScrollView,
@@ -19,7 +18,7 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { Colors } from '@/src/constants/colors';
 import SelectionChip from '@/src/features/Auth/components/SelectionChip';
 
-import { DIFFICULTY_FACTOR_MAPPINGS } from '@/src/recommendation/utilities/FactorWeightsMapper';
+import { DIFFICULTY_FACTOR_MAPPINGS, DifficultyFactorOption } from '@/src/recommendation/utilities/FactorWeightsMapper';
 
 const DIFFICULTY_CARDS = [
     {
@@ -35,8 +34,8 @@ const DIFFICULTY_CARDS = [
         subtitle: 'Strenuous & challenging climb',
         icon: 'trending-up',
         library: 'Feather' as const,
-        activeColor: '#D97706',
-        activeBg: '#FEF3C7',
+        activeColor: Colors.STATUS_WARNING_TEXT,
+        activeBg: Colors.STATUS_WARNING_BG,
     },
 ];
 
@@ -66,23 +65,30 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     isLoading,
     error,
     onUpdatePress,
-    onSaveReview
+    onSaveReview,
+    onBackPress,
 }) => {
     const isEditMode = Boolean(review?.id);
-    const hasInitialMaintenance = Boolean(review?.trailMaintenance && review.trailMaintenance !== 'undefined');
 
     const [stepIndex, setStepIndex] = useState(0);
     const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+    const [showDiscardConfirmation, setShowDiscardConfirmation] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
 
     const STEPS = ['ratings', 'details'];
     const currentStep = STEPS[stepIndex];
     const progressPercentage = ((stepIndex + 1) / STEPS.length) * 100;
 
+    const normalizedDifficulty =
+        review.perceivedDifficulty === 'Easy' || review.perceivedDifficulty === 'Just Right'
+            ? 'Easy'
+            : review.perceivedDifficulty === 'Difficult' || review.perceivedDifficulty === 'Moderate' || review.perceivedDifficulty === 'Hard' || review.perceivedDifficulty === 'Extreme'
+                ? 'Difficult'
+                : undefined;
+
     let hasAnswer = false;
     if (currentStep === 'ratings') {
-        hasAnswer =
-            review.overallRating > 0 &&
-            (!!review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined');
+        hasAnswer = review.overallRating > 0 && !!normalizedDifficulty;
     } else if (currentStep === 'details') {
         hasAnswer = true;
     }
@@ -104,11 +110,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
 
     const handleDiscardPress = () => {
         if (!isDirty) {
-            if (onBackPress) {
-                onBackPress();
-            } else {
-                router.back();
-            }
+            onBackPress?.();
             return;
         }
         setShowDiscardConfirmation(true);
@@ -116,11 +118,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
 
     const handleConfirmDiscard = () => {
         setShowDiscardConfirmation(false);
-        if (onBackPress) {
-            onBackPress();
-        } else {
-            router.back();
-        }
+        onBackPress?.();
     };
 
     const updateReview = (field: string, value: unknown) => {
@@ -128,20 +126,41 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
         onUpdatePress({ section: 'root', id: field, value });
     };
 
-    const toggleArrayItem = (field: keyof DraftReview, item: string) => {
+    const toggleDifficultyFactor = (factor: DifficultyFactorOption, displayLabel: string) => {
         setIsDirty(true);
-        const currentArray = (review[field] as string[]) || [];
-        const newArray = currentArray.includes(item)
-            ? currentArray.filter(i => i !== item)
-            : [...currentArray, item];
-        updateReview(field, newArray);
+        const currentArray = ((review.difficultyFactors || []) as string[]);
+        const isCurrentlySelected =
+            currentArray.includes(displayLabel) ||
+            currentArray.includes(factor.legacyLabel) ||
+            currentArray.includes(factor.easyLabel) ||
+            currentArray.includes(factor.difficultLabel);
+
+        let updatedArray: string[];
+        if (isCurrentlySelected) {
+            updatedArray = currentArray.filter(
+                item =>
+                    item !== displayLabel &&
+                    item !== factor.legacyLabel &&
+                    item !== factor.easyLabel &&
+                    item !== factor.difficultLabel
+            );
+        } else {
+            const cleaned = currentArray.filter(
+                item =>
+                    item !== factor.legacyLabel &&
+                    item !== factor.easyLabel &&
+                    item !== factor.difficultLabel
+            );
+            updatedArray = [...cleaned, displayLabel];
+        }
+        updateReview('difficultyFactors', updatedArray);
     };
 
     const renderStepContent = () => {
         switch (currentStep) {
             case 'ratings':
                 const showDifficulty = review.overallRating > 0;
-                const showFactors = showDifficulty && (!!review.perceivedDifficulty && review.perceivedDifficulty !== 'undefined');
+                const showFactors = showDifficulty && !!normalizedDifficulty;
 
                 return (
                     <View>
@@ -176,12 +195,12 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                                 </CustomText>
                                 <View style={styles.difficultyCardContainer}>
                                     {DIFFICULTY_CARDS.map((card) => {
-                                        const isSelected = review.perceivedDifficulty === card.label;
+                                        const isSelected = normalizedDifficulty === card.label;
                                         return (
                                             <TouchableOpacity
                                                 key={card.label}
                                                 onPress={() => {
-                                                    if (review.perceivedDifficulty !== card.label) {
+                                                    if (normalizedDifficulty !== card.label) {
                                                         updateReview('perceivedDifficulty', card.label);
                                                         updateReview('difficultyFactors', []);
                                                     }
@@ -225,7 +244,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                         {showFactors && (
                             <View style={styles.sectionContainer}>
                                 <CustomText variant="subtitle" style={styles.question}>
-                                    {review.perceivedDifficulty === 'Easy'
+                                    {normalizedDifficulty === 'Easy'
                                         ? 'What made the trail easy?'
                                         : 'What made the trail difficult?'}
                                 </CustomText>
@@ -235,19 +254,24 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
 
                                 <View style={styles.chipWrapper}>
                                     {DIFFICULTY_FACTOR_MAPPINGS.map((factor) => {
-                                        const displayLabel = review.perceivedDifficulty === 'Easy'
+                                        const displayLabel = normalizedDifficulty === 'Easy'
                                             ? factor.easyLabel
                                             : factor.difficultLabel;
 
-                                        const isSelected = (review.difficultyFactors || []).includes(displayLabel) ||
-                                            (review.difficultyFactors || []).includes(factor.legacyLabel);
+                                        const currentFactors = (review.difficultyFactors || []) as string[];
+                                        const isSelected =
+                                            currentFactors.includes(displayLabel) ||
+                                            currentFactors.includes(factor.legacyLabel) ||
+                                            currentFactors.includes(factor.easyLabel) ||
+                                            currentFactors.includes(factor.difficultLabel);
 
                                         return (
                                             <SelectionChip
                                                 key={factor.id}
                                                 label={displayLabel}
                                                 selected={isSelected}
-                                                onPress={() => toggleArrayItem('difficultyFactors', displayLabel)}
+                                                variant={normalizedDifficulty === 'Difficult' ? 'warning' : 'primary'}
+                                                onPress={() => toggleDifficultyFactor(factor, displayLabel)}
                                             />
                                         );
                                     })}
@@ -335,6 +359,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
             <CustomHeader
                 title={review?.trail?.name ? `Review: ${review.trail.name}` : "How Was Your Hike?"}
                 centerTitle={true}
+                onBackPress={handleDiscardPress}
             />
 
             <View style={styles.progressBarBackground}>
@@ -488,7 +513,7 @@ const styles = StyleSheet.create({
     difficultyCard: {
         flex: 1,
         backgroundColor: Colors.WHITE,
-        borderRadius: 16,
+        borderRadius: 24,
         paddingVertical: 18,
         paddingHorizontal: 12,
         alignItems: 'center',
@@ -555,6 +580,15 @@ const styles = StyleSheet.create({
     prevButtonPlaceholder: {
         width: 100,
     },
+    discardButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+    },
+    discardText: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
+        fontSize: 16,
+    },
     prevText: {
         color: Colors.TEXT_SECONDARY,
         fontWeight: '600',
@@ -567,7 +601,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 14,
         paddingHorizontal: 24,
-        borderRadius: 16,
+        borderRadius: 12,
         gap: 8,
     },
     nextText: {

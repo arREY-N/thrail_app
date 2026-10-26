@@ -188,7 +188,7 @@ const ApplyScreen = ({
                                 label="Business Name *"
                                 placeholder="Business Name"
                                 value={application?.name || ''}
-                                onChangeText={(val) => onUpdatePress({ section: 'root', id: 'name', value: val })}
+                                onChangeText={(val: string) => onUpdatePress({ section: 'root', id: 'name', value: val })}
                                 autoCapitalize="words"
                                 style={styles.inputSpacing}
                             />
@@ -198,7 +198,7 @@ const ApplyScreen = ({
                                 label="Date of Establishment *"
                                 placeholder="MM / DD / YYYY"
                                 value={(application?.establishedOn as string) || null}
-                                onChangeText={(val) => onUpdatePress({ section: 'root', id: 'establishedOn', value: val })}
+                                onChangeText={(val: string) => onUpdatePress({ section: 'root', id: 'establishedOn', value: val })}
                                 showTodayButton={true}
                                 allowFutureDates={false}
                                 defaultMode="year"
@@ -209,7 +209,7 @@ const ApplyScreen = ({
                                 label="Owner/Office Address *"
                                 placeholder="Owner/Office Address"
                                 value={application?.address || ''}
-                                onChangeText={(val) => onUpdatePress({ section: 'root', id: 'address', value: val })}
+                                onChangeText={(val: string) => onUpdatePress({ section: 'root', id: 'address', value: val })}
                                 style={styles.inputSpacing}
                             />
 
@@ -244,7 +244,7 @@ const ApplyScreen = ({
                                 label="Name *"
                                 placeholder="Owner Name"
                                 value={application?.owner?.name || ''}
-                                onChangeText={(val) => onUpdatePress({ section: 'owner', id: 'name', value: val })}
+                                onChangeText={(val: string) => onUpdatePress({ section: 'owner', id: 'name', value: val })}
                                 autoCapitalize="words"
                                 style={styles.inputSpacing}
                             />
@@ -253,7 +253,7 @@ const ApplyScreen = ({
                                 label="Email *"
                                 placeholder="e.g. owner@example.com"
                                 value={application?.owner?.email || ''}
-                                onChangeText={(val) => onUpdatePress({ section: 'owner', id: 'email', value: val })}
+                                onChangeText={(val: string) => onUpdatePress({ section: 'owner', id: 'email', value: val })}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 style={styles.inputSpacing}

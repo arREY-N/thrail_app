@@ -135,10 +135,14 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
             const { section, id, value } = payload;
             setReview(prev =>
                 produce(prev, (draft) => {
+                    const recordDraft = draft as unknown as Record<string, unknown>;
                     if (section === 'root') {
-                        draft[id] = value
+                        recordDraft[id] = value;
                     } else {
-                        draft[section][id] = value
+                        const nested = recordDraft[section] as Record<string, unknown> | undefined;
+                        if (nested && typeof nested === 'object') {
+                            nested[id] = value;
+                        }
                     }
                 })
             )
