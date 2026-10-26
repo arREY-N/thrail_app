@@ -178,6 +178,9 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
     const { isMobile } = useBreakpoints();
     const bottomScrollPadding = Math.max(getStickyFooterScrollPadding(insets.bottom, isMobile), 140);
 
+    const hasUploadedReceipt = Boolean(receiptUrl);
+    const isReceiptRejected = bookingData?.paymentVerificationStatus === 'rejected' && !hasUploadedReceipt;
+
     return (
         <ScrollView
             showsVerticalScrollIndicator={false}
@@ -366,11 +369,12 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
                     </CustomText>
 
                     <DocumentUploadCard
-                        docName="Payment Receipt Screenshot"
-                        subtitle="Upload clear screenshot showing amount & reference number"
+                        docName={hasUploadedReceipt ? "Payment Receipt Uploaded" : "Payment Receipt Screenshot"}
+                        subtitle={hasUploadedReceipt ? "Receipt ready — sign below and tap Submit to send for verification" : "Upload clear screenshot showing amount & reference number"}
                         isUploaded={receiptUrl || undefined}
-                        isRejected={bookingData?.paymentVerificationStatus === 'rejected'}
+                        isRejected={isReceiptRejected}
                         rejectionReason={bookingData?.paymentRejectionReason}
+                        contentStyle={hasUploadedReceipt ? styles.receiptUploadedCardGreen : undefined}
                         onUploadSuccess={(url) => setReceiptUrl(url)}
                         onDelete={() => setReceiptUrl('')}
                     />
@@ -707,6 +711,11 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         lineHeight: 16,
+    },
+    receiptUploadedCardGreen: {
+        borderColor: Colors.SUCCESS,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        borderWidth: 1.5,
     },
 });
 
