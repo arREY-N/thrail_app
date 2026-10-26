@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
@@ -27,13 +27,30 @@ const InformationScreen = ({
     const [phoneNumber, setPhoneNumber] = useState('');
     const [firstname, setFirstname] = useState('');
     const [lastname, setLastname] = useState('');
-    const [birthday, setBirthday] = useState('');
+    const [birthday, setBirthday] = useState<string | Date>('');
     const [address, setAddress] = useState('');
+    const [localError, setLocalError] = useState<string | null>(null);
 
-    // const maxAllowedBirthday = new Date();
-    // maxAllowedBirthday.setFullYear(maxAllowedBirthday.getFullYear() - 18);
+    const maxAllowedBirthday = useMemo(() => {
+        const d = new Date();
+        d.setFullYear(d.getFullYear() - 10);
+        return d;
+    }, []);
 
     const handleContinue = () => {
+        setLocalError(null);
+
+        if (!birthday) {
+            setLocalError('Birthday is required');
+            return;
+        }
+
+        const bdayDate = typeof birthday === 'string' ? new Date(birthday) : birthday;
+        if (isNaN(bdayDate.getTime()) || bdayDate > maxAllowedBirthday) {
+            setLocalError('You must be at least 10 years old to register.');
+            return;
+        }
+
         const finalNumber = cleanPhoneNumber(phoneNumber);
         
         onContinuePress(finalNumber, firstname, lastname, birthday, address);
@@ -56,7 +73,7 @@ const InformationScreen = ({
                             Personal Details
                         </CustomText>
 
-                        <ErrorMessage error={error} />
+                        <ErrorMessage error={localError || error} />
 
                         <CustomTextInput
                             label="Phone Number *"
@@ -87,12 +104,15 @@ const InformationScreen = ({
                             label="Birthday *"
                             placeholder="MM/DD/YYYY"
                             value={birthday}
-                            onChangeText={setBirthday}
+                            onChangeText={(val: string | Date) => {
+                                setLocalError(null);
+                                setBirthday(val);
+                            }}
                             type="calendar"
                             showTodayButton={false}
                             allowFutureDates={false}
                             defaultMode="year"
-                            // maximumDate={maxAllowedBirthday}
+                            maximumDate={maxAllowedBirthday}
                         />
 
                         <CustomTextInput
