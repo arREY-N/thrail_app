@@ -9,7 +9,11 @@ export const useBookingsStore = create<BookingState>()(
         immer(bookingStoreCreator),
         {
             name: "booking-storage",
-            storage: createJSONStorage(() => AsyncStorage)
+            storage: createJSONStorage(() => AsyncStorage),
+            partialize: (state) => {
+                const { activeListeners, listenerCounts, ...rest } = state;
+                return rest;
+            },
         }
     )
-)
+);
