@@ -54,6 +54,7 @@ flowchart TD
 * **Environment Variables & Secrets**:
   * `GEMINI_API_KEY`: API key for Gemini reasoning generation.
   * `PROJECT_ID`: `thrail`
+  * `THARESYS_API_KEY`: (Recommended) Shared secret key to protect `/api/admin/*` and `/api/user/*` endpoints.
   * `PORT`: `8080` (automatically supplied by Cloud Run)
 
 ---
@@ -126,32 +127,48 @@ In local environments, `firebase_client.py` uses `serviceAccountKey.json`. On Cl
    * **Cloud Datastore User** (`roles/datastore.user`): Allows reading and writing Firestore documents (`/users`, `/trails`, and `/recommendations`).
    * **Service Usage Consumer** (`roles/serviceusage.serviceUsageConsumer`): Permits API invocations under project quota.
 
+3. **Cloud Build Deployment Permissions (Required for `gcloud run deploy --source .`)**:
+   * Cloud Build service account (`[PROJECT_NUMBER]@cloudbuild.gserviceaccount.com`) must have:
+     * **Cloud Run Admin** (`roles/run.admin`)
+     * **Service Account User** (`roles/iam.serviceAccountUser`) on the Compute Service Account.
+
 ---
 
 ### Phase 3: Deployment Strategy Options
 
-#### Approach A: Google Cloud Console UI (No local CLI needed)
-1. Push the `/engine` updates to GitHub.
-2. Go to [Google Cloud Run Console](https://console.cloud.google.com/run).
-3. Click **Create Service**.
-4. Configure service parameters:
-   * **Service Name**: `tars-recommendation-engine`
-   * **Region**: `asia-southeast1` (Singapore) or `us-central1`
-   * **Deployment type**: "Continuously deploy from a repository".
-   * **Source Directory**: `/engine`
-   * **Build Type**: Dockerfile (`/engine/Dockerfile`)
-5. **Authentication**: Choose **"Allow unauthenticated invocations"** (or use Cloud Endpoints / API gateway if an API key gateway is preferred).
-6. **Container Resource Allocation**:
-   * Memory: `1 GiB` or `2 GiB` (necessary for Scikit-learn feature matrices and Pandas dataframes).
-   * CPU: `1 vCPU`.
-   * Execution environment: Default (Second generation).
-7. **Environment Variables**:
-   * `GEMINI_API_KEY`: `<Your-Gemini-Key>`
-   * `PROJECT_ID`: `thrail`
-8. Click **Create** to trigger Cloud Build and deployment.
+#### Approach A: Automated CI/CD via GitHub Actions (Recommended)
+This repository includes a dedicated workflow at [`.github/workflows/deploy-engine.yml`](file:///.github/workflows/deploy-engine.yml). Whenever commits modifying `engine/**` are pushed to `main`, GitHub Actions automatically builds and deploys the updated engine to Cloud Run.
 
-#### Approach B: Google Cloud CLI (`gcloud`)
-If deploying via command line:
+##### 1. Required GitHub Repository Secrets
+Go to your GitHub repository: **Settings** > **Secrets and variables** > **Actions** > **New repository secret**:
+
+| Secret Name | Description | Example / Source |
+| :--- | :--- | :--- |
+| `GCP_SA_KEY` *(or `FIREBASE_SERVICE_ACCOUNT_THRAIL`)* | JSON Key of GCP Service Account with Cloud Run & Cloud Build permissions. | Generated from GCP Console (**IAM** > **Service Accounts**). |
+| `GEMINI_API_KEY` | Google Gemini AI API Key for mountaineering reasoning generation. | From Google AI Studio or GCP. |
+| `THARESYS_API_KEY` | Shared secret token to secure `/api/admin/*` and `/api/user/*` endpoints. | Any random secure string (e.g. `thrail-secret-...`). |
+
+##### 2. Service Account Roles for Deployment
+The service account in `GCP_SA_KEY` requires the following IAM roles in project `thrail`:
+* **Cloud Run Admin** (`roles/run.admin`)
+* **Cloud Build Editor** (`roles/cloudbuild.builds.editor`)
+* **Artifact Registry Writer** (`roles/artifactregistry.writer`)
+* **Service Account User** (`roles/iam.serviceAccountUser`)
+* **Storage Admin** (`roles/storage.admin`)
+
+##### 3. How to Trigger Deployment
+Simply commit and push your changes:
+```bash
+git add .
+git commit -m "feat(engine): prepare and deploy THARESYS to Cloud Run"
+git push origin main
+```
+Alternatively, open the **Actions** tab on GitHub, click **Deploy THARESYS to Google Cloud Run**, and select **Run workflow**.
+
+---
+
+#### Approach B: Google Cloud CLI (`gcloud`) - Manual Direct Deploy
+If deploying directly from your local terminal:
 
 ```powershell
 # 1. Authenticate and target project
@@ -164,13 +181,32 @@ cd c:\Users\LENOVO\Documents\dev\thrail_app\engine
 gcloud run deploy tars-recommendation-engine `
   --source . `
   --region asia-southeast1 `
-  --platform managed `
   --allow-unauthenticated `
   --memory 1Gi `
   --cpu 1 `
   --timeout 300 `
-  --set-env-vars GEMINI_API_KEY="<YOUR_KEY>",PROJECT_ID="thrail"
+  --set-env-vars GEMINI_API_KEY="<YOUR_KEY>",PROJECT_ID="thrail",THARESYS_API_KEY="<YOUR_SECRET_KEY>"
 ```
+
+---
+
+#### Approach C: Google Cloud Console UI (Manual UI Deploy)
+1. Push the `/engine` updates to GitHub.
+2. Go to [Google Cloud Run Console](https://console.cloud.google.com/run).
+3. Click **Create Service**.
+4. Configure service parameters:
+   * **Service Name**: `tars-recommendation-engine`
+   * **Region**: `asia-southeast1` (Singapore)
+   * **Deployment type**: "Deploy one revision from an existing container image" or "Continuously deploy from a repository".
+   * **Source Directory**: `/engine`
+   * **Build Type**: Dockerfile (`/engine/Dockerfile`)
+5. **Authentication**: Choose **"Allow unauthenticated invocations"**.
+6. **Container Resource Allocation**: Memory: `1 GiB`, CPU: `1 vCPU`.
+7. **Environment Variables**:
+   * `GEMINI_API_KEY`: `<Your-Gemini-Key>`
+   * `PROJECT_ID`: `thrail`
+   * `THARESYS_API_KEY`: `<Your-Secret-Key>`
+8. Click **Create** to trigger deployment.
 
 ---
 
@@ -182,10 +218,15 @@ Once Cloud Run finishes deployment, it assigns a permanent HTTPS URL:
 #### 4.1 Update Client Environment
 Add the assigned URL to your mobile app configuration:
 
-In `.env`:
+In `.env.local`:
 ```env
-EXPO_PUBLIC_TARS_API_URL=https://tars-recommendation-engine-[hash]-as.a.run.app
+EXPO_PUBLIC_TARS_API_URL=https://tars-recommendation-engine-jbbzbkxx7q-as.a.run.app
+EXPO_PUBLIC_THARESYS_API_KEY=THARESYS_20_26_ENGINE_SECRET_KEY
 ```
+
+> [!NOTE]
+> Whenever updating `EXPO_PUBLIC_*` environment variables in `.env.local`, restart the Expo development server with cache cleared:
+> `npx expo start -c`
 
 In `eas.json` (for remote cloud APK/AAB builds):
 ```json
@@ -193,23 +234,16 @@ In `eas.json` (for remote cloud APK/AAB builds):
   "build": {
     "production": {
       "env": {
-        "EXPO_PUBLIC_TARS_API_URL": "https://tars-recommendation-engine-[hash]-as.a.run.app"
+        "EXPO_PUBLIC_TARS_API_URL": "https://tars-recommendation-engine-jbbzbkxx7q-as.a.run.app",
+        "EXPO_PUBLIC_THARESYS_API_KEY": "THARESYS_20_26_ENGINE_SECRET_KEY"
       }
     }
   }
 }
 ```
 
-The app's existing service (`src/features/SuperAdmin/services/tarsApiService.ts`) already parses this variable:
-```typescript
-export const getTarsApiBaseUrl = (): string => {
-    if (process.env.EXPO_PUBLIC_TARS_API_URL) {
-        return process.env.EXPO_PUBLIC_TARS_API_URL.replace(/\/+$/, '');
-    }
-    const host = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-    return `http://${host}:8000`;
-};
-```
+The app's existing service (`src/features/SuperAdmin/services/tarsApiService.ts`) automatically sends this key in the `X-THARESYS-KEY` HTTP header.
+
 
 ---
 
