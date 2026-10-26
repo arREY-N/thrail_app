@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -29,7 +29,7 @@ export interface PreferenceQuestionItem {
     clearanceUri?: string;
 }
 
-export type PreferenceQuestionKey = 'medical' | 'q1' | 'q2' | 'q3' | 'q4' | 'q5';
+export type PreferenceQuestionKey = 'medical' | 'trails' | 'province';
 
 export interface PreferenceScreenProps {
     questions: Record<string, PreferenceQuestionItem>;
@@ -40,26 +40,21 @@ export interface PreferenceScreenProps {
     error?: string | null;
 }
 
-const PreferenceScreen = ({ 
-    questions, 
-    setAnswer, 
+const PreferenceScreen = ({
+    questions,
+    setAnswer,
     setMedicalDetails,
     setMedicalClearance,
-    onFinish, 
-    error 
+    onFinish,
+    error
 }: PreferenceScreenProps) => {
 
     const [stepIndex, setStepIndex] = useState(0);
     const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
-    const FLOW_YES: readonly PreferenceQuestionKey[] = ['medical', 'q1', 'q2', 'q3', 'q4', 'q5'];
-    const FLOW_NO: readonly PreferenceQuestionKey[] = ['medical', 'q1', 'q4', 'q5'];
-
-    const hikedBeforeAnswer = questions['q1']?.answer; 
-    const currentFlow = hikedBeforeAnswer === false ? FLOW_NO : FLOW_YES;
-    const currentStepKey = currentFlow[stepIndex];
+    const FLOW: readonly PreferenceQuestionKey[] = ['medical', 'trails', 'province'];
+    const currentStepKey = FLOW[stepIndex];
     const currentQuestionData = questions[currentStepKey];
-
     const currentAnswer = currentQuestionData?.answer;
 
     let hasAnswer = false;
@@ -67,17 +62,18 @@ const PreferenceScreen = ({
         if (currentAnswer === false) {
             hasAnswer = true;
         } else if (currentAnswer === true && (currentQuestionData?.details?.trim().length ?? 0) > 0) {
-            hasAnswer = true; 
+            hasAnswer = true;
         }
+    } else if (currentStepKey === 'trails') {
+        // Users are allowed to continue even if they selected no trails (have not hiked before)
+        hasAnswer = true;
     } else {
-        hasAnswer = Array.isArray(currentAnswer) 
-            ? currentAnswer.length > 0 
+        hasAnswer = Array.isArray(currentAnswer)
+            ? currentAnswer.length > 0
             : currentAnswer !== null && currentAnswer !== undefined && currentAnswer !== '';
     }
 
-    const progressPercentage = stepIndex === 0 
-        ? (1 / FLOW_YES.length) * 100 
-        : ((stepIndex + 1) / currentFlow.length) * 100;
+    const progressPercentage = ((stepIndex + 1) / FLOW.length) * 100;
 
     const handleSelect = (value: string) => {
         setAnswer(currentStepKey, value);
@@ -86,8 +82,8 @@ const PreferenceScreen = ({
     const handleNext = () => {
         if (!hasAnswer) return;
 
-        if (stepIndex >= currentFlow.length - 1) {
-            setShowSaveConfirmation(true); 
+        if (stepIndex >= FLOW.length - 1) {
+            setShowSaveConfirmation(true);
         } else {
             setStepIndex(prev => prev + 1);
         }
@@ -122,14 +118,14 @@ const PreferenceScreen = ({
     const renderOptions = () => {
         const dynamicOptions = currentQuestionData?.options || [];
 
-        if (currentStepKey === 'q5') {
+        if (currentStepKey === 'province') {
             return (
                 <View style={styles.gridContainer}>
                     {dynamicOptions.map((opt: string) => (
                         <View key={opt} style={styles.gridItem}>
-                            <SelectionOption 
-                                label={opt} 
-                                selected={isSelected(opt)} 
+                            <SelectionOption
+                                label={opt}
+                                selected={isSelected(opt)}
                                 onPress={() => handleSelect(opt)}
                             />
                         </View>
@@ -138,12 +134,13 @@ const PreferenceScreen = ({
             );
         }
 
-        if (currentStepKey === 'q2') {
+        if (currentStepKey === 'trails') {
             return (
                 <MountainSelectChip
                     options={dynamicOptions}
                     selectedValues={Array.isArray(currentAnswer) ? currentAnswer : []}
                     onToggle={handleSelect}
+                    allowCustom={false}
                 />
             );
         }
@@ -152,10 +149,10 @@ const PreferenceScreen = ({
             return (
                 <View style={styles.optionsWrapper}>
                     {dynamicOptions.map((opt: string) => (
-                        <SelectionOption 
+                        <SelectionOption
                             key={opt}
-                            label={opt} 
-                            selected={isSelected(opt)} 
+                            label={opt}
+                            selected={isSelected(opt)}
                             onPress={() => handleSelect(opt)}
                         />
                     ))}
@@ -176,7 +173,7 @@ const PreferenceScreen = ({
                                 ]}
                                 style={styles.medicalInputWrapper}
                             />
-                            
+
                             <DocumentUploadCard
                                 docName="Medical Clearance (Optional)"
                                 docKey="medicalCertificate"
@@ -192,10 +189,10 @@ const PreferenceScreen = ({
         return (
             <View style={styles.optionsWrapper}>
                 {dynamicOptions.map((opt: string) => (
-                    <SelectionOption 
+                    <SelectionOption
                         key={opt}
-                        label={opt} 
-                        selected={isSelected(opt)} 
+                        label={opt}
+                        selected={isSelected(opt)}
                         onPress={() => handleSelect(opt)}
                     />
                 ))}
@@ -203,11 +200,9 @@ const PreferenceScreen = ({
         );
     };
 
-    const isMultiSelect = ['q4', 'q5'].includes(currentStepKey);
-
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            
+
             <ConfirmationModal
                 visible={showSaveConfirmation}
                 title="Save Hiking Preferences"
@@ -218,7 +213,7 @@ const PreferenceScreen = ({
                 confirmText="Save"
                 cancelText="Cancel"
             />
-            
+
             <CustomHeader title="Preference" centerTitle={true} />
 
             <View style={styles.progressBarBackground}>
@@ -227,22 +222,28 @@ const PreferenceScreen = ({
 
             <View style={styles.mainContainer}>
                 <View style={styles.formConstrainer}>
-                    
+
                     <View style={styles.fixedQuestionArea}>
                         <ErrorMessage error={error} />
-                        
+
                         <CustomText variant="subtitle" style={styles.question}>
                             {currentQuestionData?.question}
                         </CustomText>
-                        
-                        {isMultiSelect && (
+
+                        {currentStepKey === 'trails' && (
+                            <CustomText variant="caption" style={styles.subLabel}>
+                                (Select all that apply, or tap Next if you haven&apos;t hiked before)
+                            </CustomText>
+                        )}
+
+                        {currentStepKey === 'province' && (
                             <CustomText variant="caption" style={styles.subLabel}>
                                 (Select all that apply)
                             </CustomText>
                         )}
                     </View>
 
-                    <ScrollView 
+                    <ScrollView
                         style={styles.optionsScrollView}
                         contentContainerStyle={styles.optionsScrollContent}
                         showsVerticalScrollIndicator={false}
@@ -258,11 +259,11 @@ const PreferenceScreen = ({
                 <View style={styles.footerConstrainer}>
                     {stepIndex > 0 ? (
                         <TouchableOpacity onPress={handleBack} style={styles.prevButton}>
-                            <CustomIcon 
-                                library="Feather" 
-                                name="chevron-left" 
-                                size={24} 
-                                color={Colors.TEXT_SECONDARY} 
+                            <CustomIcon
+                                library="Feather"
+                                name="chevron-left"
+                                size={24}
+                                color={Colors.TEXT_SECONDARY}
                             />
                             <CustomText style={styles.prevText}>
                                 Previous
@@ -272,23 +273,23 @@ const PreferenceScreen = ({
                         <View style={styles.prevButtonPlaceholder} />
                     )}
 
-                    <TouchableOpacity 
-                        onPress={handleNext} 
+                    <TouchableOpacity
+                        onPress={handleNext}
                         disabled={!hasAnswer}
                         style={[
                             styles.nextButton,
-                            !hasAnswer && { opacity: 0.5, backgroundColor: Colors.GRAY_MEDIUM } 
+                            !hasAnswer && { opacity: 0.5, backgroundColor: Colors.GRAY_MEDIUM }
                         ]}
                     >
                         <CustomText style={styles.nextText}>
-                            {stepIndex >= currentFlow.length - 1 ? "Finish" : "Next"}
+                            {stepIndex >= FLOW.length - 1 ? "Finish" : "Next"}
                         </CustomText>
-                        
-                        <CustomIcon 
-                            library="Feather" 
-                            name="chevron-right" 
-                            size={24} 
-                            color={Colors.TEXT_INVERSE} 
+
+                        <CustomIcon
+                            library="Feather"
+                            name="chevron-right"
+                            size={24}
+                            color={Colors.TEXT_INVERSE}
                         />
                     </TouchableOpacity>
                 </View>
@@ -311,15 +312,15 @@ const styles = StyleSheet.create({
         borderBottomRightRadius: 2,
     },
 
-    mainContainer: { 
+    mainContainer: {
         flex: 1,
         paddingHorizontal: 16,
     },
-    formConstrainer: { 
-        width: '100%', 
-        maxWidth: 400, 
-        alignSelf: 'center', 
-        flex: 1, 
+    formConstrainer: {
+        width: '100%',
+        maxWidth: 400,
+        alignSelf: 'center',
+        flex: 1,
     },
     fixedQuestionArea: {
         paddingTop: 24,
@@ -331,28 +332,28 @@ const styles = StyleSheet.create({
     optionsScrollContent: {
         paddingBottom: 32,
     },
-    question: { 
-        fontSize: 20, 
-        fontWeight: 'bold', 
-        marginBottom: 8, 
-        color: Colors.TEXT_PRIMARY 
+    question: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 8,
+        color: Colors.TEXT_PRIMARY
     },
-    subLabel: { 
-        fontStyle: 'italic', 
-        marginBottom: 16, 
+    subLabel: {
+        fontStyle: 'italic',
+        marginBottom: 16,
         color: Colors.TEXT_SECONDARY
     },
-    optionsWrapper: { 
-        width: '100%', 
+    optionsWrapper: {
+        width: '100%',
         flexDirection: 'column'
     },
-    gridContainer: { 
-        flexDirection: 'row', 
-        flexWrap: 'wrap', 
-        justifyContent: 'space-between' 
+    gridContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between'
     },
-    gridItem: { 
-        width: '48%' 
+    gridItem: {
+        width: '48%'
     },
 
     medicalDetailsContainer: {
@@ -376,9 +377,9 @@ const styles = StyleSheet.create({
         width: '100%',
         maxWidth: 400,
         alignSelf: 'center',
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     prevButton: {
         flexDirection: 'row',
@@ -388,14 +389,14 @@ const styles = StyleSheet.create({
     prevButtonPlaceholder: {
         width: 100,
     },
-    prevText: { 
-        color: Colors.TEXT_SECONDARY, 
-        fontWeight: '600', 
+    prevText: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '600',
         fontSize: 16,
         marginLeft: 4
     },
     nextButton: {
-        backgroundColor: Colors.PRIMARY, 
+        backgroundColor: Colors.PRIMARY,
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 14,
@@ -403,10 +404,10 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         gap: 8,
     },
-    nextText: { 
-        color: Colors.TEXT_INVERSE, 
-        fontWeight: 'bold', 
-        fontSize: 16 
+    nextText: {
+        color: Colors.TEXT_INVERSE,
+        fontWeight: 'bold',
+        fontSize: 16
     },
 });
 
