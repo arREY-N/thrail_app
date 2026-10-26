@@ -8,6 +8,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    TextStyle,
     ViewStyle
 } from 'react-native';
 
@@ -58,10 +59,12 @@ const CustomCalendarInput: React.FC<CustomCalendarInputProps> = ({
 
     const [showPicker, setShowPicker] = useState<boolean>(false);
     const [mode, setMode] = useState<'date' | 'month' | 'year'>(defaultMode); 
+
+    const effectiveMaxDate: Date | null = maximumDate || (allowFutureDates ? null : new Date());
     
     const [prevValue, setPrevValue] = useState(value);
     const [viewDate, setViewDate] = useState<Date>(
-        value ? safeParseDateString(value as string) : new Date()
+        value ? safeParseDateString(value as string) : (effectiveMaxDate || new Date())
     );
 
     if (value !== prevValue) {
@@ -70,8 +73,6 @@ const CustomCalendarInput: React.FC<CustomCalendarInputProps> = ({
             setViewDate(safeParseDateString(value as string));
         }
     }
-
-    const effectiveMaxDate: Date | null = maximumDate || (allowFutureDates ? null : new Date());
 
     const getDisplayDate = (): string => {
         if (!value) return '';
@@ -105,9 +106,9 @@ const CustomCalendarInput: React.FC<CustomCalendarInputProps> = ({
 
     const isFutureDate = (day: number): boolean => {
         const checkDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return checkDate > today; 
+        const ceilingDate = effectiveMaxDate ? new Date(effectiveMaxDate) : new Date();
+        ceilingDate.setHours(23, 59, 59, 999);
+        return checkDate > ceilingDate; 
     };
 
     const daysInMonth: number = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
@@ -125,6 +126,9 @@ const CustomCalendarInput: React.FC<CustomCalendarInputProps> = ({
 
     const handleOpen = (): void => {
         setMode(defaultMode);
+        if (!value && effectiveMaxDate) {
+            setViewDate(effectiveMaxDate);
+        }
         setShowPicker(true);
     };
 
@@ -143,6 +147,7 @@ const CustomCalendarInput: React.FC<CustomCalendarInputProps> = ({
         
         if (allowFutureDates && selectedDate < today) return; 
         if (!allowFutureDates && selectedDate > today) return; 
+        if (effectiveMaxDate && selectedDate > effectiveMaxDate) return;
         
         onChangeText(selectedDate);
         setShowPicker(false);
@@ -400,7 +405,7 @@ const CustomCalendarInput: React.FC<CustomCalendarInputProps> = ({
                         <View 
                             style={[
                                 styles.footerRow, 
-                                !showTodayButton && styles.footerRowCenter
+                                !(showTodayButton && (!effectiveMaxDate || new Date() <= effectiveMaxDate)) && styles.footerRowCenter
                             ]}
                         >
                             <TouchableOpacity 
@@ -414,7 +419,7 @@ const CustomCalendarInput: React.FC<CustomCalendarInputProps> = ({
                                 </CustomText>
                             </TouchableOpacity>
 
-                            {showTodayButton && (
+                            {showTodayButton && (!effectiveMaxDate || new Date() <= effectiveMaxDate) && (
                                 <TouchableOpacity 
                                     onPress={() => { 
                                         const today = new Date();
@@ -464,7 +469,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY, 
         padding: 0, 
         margin: 0, 
-        outlineStyle: 'none' as any, 
+        outlineStyle: 'none' as unknown as TextStyle['outlineStyle'], 
     },
 
     modalOverlay: { 
