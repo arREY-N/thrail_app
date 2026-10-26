@@ -17,6 +17,8 @@ import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import { formatDate } from '@/src/core/utility/date';
 import { ManualQRVerificationCard } from '../components/ManualQRVerificationCard';
 
+import { SelectedFile } from '@/src/core/repositories/fileRepository';
+
 /**
  * Props for PaymentTab component.
  * @param booking - The booking document being reviewed.
@@ -36,6 +38,7 @@ export interface PaymentTabProps {
     onVerifyManualPayment?: (classification: 'full' | 'downpayment', note?: string, verifiedAmount?: number) => Promise<void>;
     onRejectManualPayment?: (reason: string) => Promise<void>;
     onSettleRemainingBalance?: () => Promise<void>;
+    onUploadOverpaymentProof?: (file: SelectedFile) => Promise<void | string>;
     isProcessing?: boolean;
 }
 
@@ -52,6 +55,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     onVerifyManualPayment,
     onRejectManualPayment,
     onSettleRemainingBalance,
+    onUploadOverpaymentProof,
     isProcessing = false,
 }) => {
     const [previewReceiptUrl, setPreviewReceiptUrl] = useState<string | null>(null);
@@ -150,6 +154,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                     onVerifyPayment={onVerifyManualPayment}
                     onRejectPayment={onRejectManualPayment || (async () => {})}
                     onSettleBalance={onSettleRemainingBalance || (async () => {})}
+                    onUploadOverpaymentProof={onUploadOverpaymentProof}
                     isProcessing={isProcessing}
                 />
             )}
