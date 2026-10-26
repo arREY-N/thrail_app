@@ -3,12 +3,22 @@
  * @description Pure utility functions for validating login and registration inputs, calculating password strength, and formatting authentication error messages.
  */
 
+import { INVISIBLE_CHARS_REGEX } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 
 /**
- * Standard email format regular expression.
+ * Standard RFC-compliant email regular expression enforcing 2+ char TLD.
  */
-export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+/**
+ * Strict username regular expression:
+ * - 6 to 30 characters
+ * - Only alphanumeric characters, periods, and underscores
+ * - Cannot start or end with a period or underscore
+ * - Cannot contain consecutive periods or underscores
+ */
+export const USERNAME_REGEX = /^(?![._])(?!.*[._]{2})[a-zA-Z0-9._]{6,30}(?<![._])$/;
 
 /**
  * Approved special characters required by backend password validation.
@@ -16,37 +26,48 @@ export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const PASSWORD_SPECIAL_REGEX = /[!@#$%^&*]/;
 
 /**
- * Sanitizes username input by removing whitespace while preserving all keyboard
- * alphanumeric and special characters (@, _, ., -, !, #, $, %, etc.).
+ * Sanitizes username input by removing whitespace, zero-width characters,
+ * and characters outside alphanumeric, periods, and underscores.
  *
  * @param text - The raw username input string.
- * @returns {string} The whitespace-stripped username.
+ * @returns {string} The sanitized username.
  */
 export const sanitizeUsername = (text?: string): string => {
     if (!text) return '';
-    return text.replace(/\s/g, '');
+    return text
+        .replace(INVISIBLE_CHARS_REGEX, '')
+        .replace(/\s/g, '')
+        .replace(/[^a-zA-Z0-9._]/g, '');
 };
 
 /**
- * Sanitizes email input by removing whitespace and characters not permissible in standard emails.
+ * Sanitizes email input by removing whitespace, zero-width characters,
+ * and characters not permissible in standard emails.
  *
  * @param text - The raw email input string.
  * @returns {string} The sanitized email string.
  */
 export const sanitizeEmail = (text?: string): string => {
     if (!text) return '';
-    return text.replace(/\s/g, '').replace(/[^a-zA-Z0-9@._+-]/g, '');
+    return text
+        .replace(INVISIBLE_CHARS_REGEX, '')
+        .replace(/\s/g, '')
+        .replace(/[^a-zA-Z0-9@._+-]/g, '');
 };
 
 /**
- * Sanitizes password input by stripping non-printable characters while preserving standard ASCII.
+ * Sanitizes password input by stripping whitespace, zero-width characters,
+ * and non-printable characters while preserving standard ASCII.
  *
  * @param text - The raw password input string.
  * @returns {string} The sanitized password string.
  */
 export const sanitizePassword = (text?: string): string => {
     if (!text) return '';
-    return text.replace(/[^\x20-\x7E]/g, '');
+    return text
+        .replace(INVISIBLE_CHARS_REGEX, '')
+        .replace(/\s/g, '')
+        .replace(/[^\x20-\x7E]/g, '');
 };
 
 /**
@@ -103,18 +124,45 @@ export const validateSignUpFields = (
         return 'Username must be at least 6 characters.';
     }
 
+    if (trimmedUsername.length > 30) {
+        return 'Username cannot exceed 30 characters.';
+    }
+
     if (/\s/.test(trimmedUsername)) {
         return 'Username cannot contain spaces.';
     }
 
-    const hasLength = pass.length >= 8;
+    if (/^[._]/.test(trimmedUsername) || /[._]$/.test(trimmedUsername)) {
+        return 'Username cannot start or end with a period or underscore.';
+    }
+
+    if (/[._]{2}/.test(trimmedUsername)) {
+        return 'Username cannot contain consecutive periods or underscores.';
+    }
+
+    if (!/^[a-zA-Z0-9._]+$/.test(trimmedUsername)) {
+        return 'Username can only contain letters, numbers, periods, and underscores.';
+    }
+
+    if (pass.length < 8) {
+        return 'Password must be at least 8 characters.';
+    }
+
+    if (pass.length > 64) {
+        return 'Password cannot exceed 64 characters.';
+    }
+
+    if (/\s/.test(pass)) {
+        return 'Password cannot contain spaces.';
+    }
+
     const hasUpper = /[A-Z]/.test(pass);
     const hasLower = /[a-z]/.test(pass);
     const hasNumber = /\d/.test(pass);
     const hasSpecial = PASSWORD_SPECIAL_REGEX.test(pass);
 
-    if (!hasLength || !hasUpper || !hasLower || !hasNumber || !hasSpecial) {
-        return 'Password must be at least 8 characters and contain uppercase, lowercase, numerical, and special characters (!@#$%^&*).';
+    if (!hasUpper || !hasLower || !hasNumber || !hasSpecial) {
+        return 'Password must contain uppercase, lowercase, numerical, and special characters (!@#$%^&*).';
     }
 
     if (pass !== confirmPass) {
@@ -138,14 +186,15 @@ export const calculatePasswordStrength = (
         return { strength: 0, color: Colors.STRENGTH_EMPTY };
     }
 
-    const hasLength = pass.length >= 8;
+    const hasLength = pass.length >= 8 && pass.length <= 64;
     const hasUpper = /[A-Z]/.test(pass);
     const hasLower = /[a-z]/.test(pass);
     const hasNumber = /\d/.test(pass);
     const hasSpecial = PASSWORD_SPECIAL_REGEX.test(pass);
+    const noSpaces = !/\s/.test(pass);
 
     let strength = 1;
-    if (hasLength && hasUpper && hasLower && hasNumber && hasSpecial) {
+    if (hasLength && hasUpper && hasLower && hasNumber && hasSpecial && noSpaces) {
         strength = 3;
     } else if (hasLength && (hasNumber || hasSpecial)) {
         strength = 2;
