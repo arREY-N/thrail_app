@@ -42,7 +42,8 @@ export const requestNotificationPermission = async () => {
                 importance: Notifications.AndroidImportance.MAX,
                 vibrationPattern: [0, 250, 250, 250],
                 lightColor: '#2E7D32',
-                sound: 'default',
+                enableLights: true,
+                enableVibrate: true,
             });
         }
 

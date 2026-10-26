@@ -29,7 +29,7 @@ export default function useMaintenance() {
                     setIsMaintenance(data.maintenance ?? false);
                 }
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.warn('Error fetching data:', error);
             } finally {
                 if (isSubscribed) {
                     clearTimeout(timeoutId);

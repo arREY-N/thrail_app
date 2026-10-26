@@ -5,7 +5,9 @@ import { Message } from "@/src/core/models/Message/Message";
 import { IUserSummary } from "@/src/core/models/User/User";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { logger } from "@/src/core/utility/errorFormatter";
+import NetInfo from "@react-native-community/netinfo";
 import { Unsubscribe } from "firebase/auth";
+import { Platform } from "react-native";
 import { StateCreator } from "zustand";
 
 export interface GroupState {
@@ -24,11 +26,12 @@ export interface GroupState {
     subscribeToGroup: (groupId: string) => void;
     unsubscribeFromGroup: (groupId: string) => void;
     loadMoreMessages: (groupId: string) => void;  // Triggers pagination
+    prefetchRecentMessagesForGroups: (groupIds: string[], limitCount?: number) => Promise<void>;
     markGroupAsVisited: (groupId: string, userSummary: IUserSummary) => Promise<void>; // Marks the group as visited for the user
 
     fetchGroupById: (groupId: string) => Promise<Group | void>;
 
-    setGroups: (groups: Group[]) => void;
+    setGroups: (groups: Group[], fromCache?: boolean) => void;
     setMessagesByGroup: (groupId: string, messages: Message[]) => void;
 
     sendMessage: (groupId: string, message: Message) => void;
@@ -64,6 +67,11 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
     },
 
     fetchGroupById: async (groupId: string): Promise<Group | void> => {
+        const existing = get().groups.find(g => g.id === groupId);
+        if (existing) {
+            return existing;
+        }
+
         try {
             set({ isFetching: true, error: null });
 
@@ -85,24 +93,43 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
         // If already listening, do not duplicate
         if (get().activeListeners[groupId]) return;
 
-        // Default to loading the 30 most recent messages
-        const limitCount = get().messageLimits[groupId] || 30;
+        if (Platform.OS !== 'web') {
+            NetInfo.fetch().then((network) => {
+                const isOnline = Boolean(network.isConnected && network.isInternetReachable);
+                if (!isOnline) {
+                    set((state) => ({
+                        hasReachedEndByGroup: {
+                            ...state.hasReachedEndByGroup,
+                            [groupId]: true,
+                        },
+                    }));
+                }
+            });
+        }
+
+        // Default to loading the 15 most recent messages
+        const limitCount = get().messageLimits[groupId] || 15;
 
         const unsubscribe = GroupRepo.listenToMessages(
             groupId,
             limitCount,
-            (messages, fromCache) => set((state) => ({
-                messagesByGroup: { ...state.messagesByGroup, [groupId]: messages },
-                messagePrevCounts: { ...state.messagePrevCounts, [groupId]: messages.length },
-                // Reached end if snapshot returned fewer than what we asked for.
-                // Ignore cache snapshots to prevent premature true detection.
-                hasReachedEndByGroup: {
-                    ...state.hasReachedEndByGroup,
-                    [groupId]: fromCache
-                        ? (state.hasReachedEndByGroup[groupId] ?? false)
-                        : messages.length < limitCount,
-                },
-            }))
+            (messages, fromCache) => set((state) => {
+                const currentGroupMsgs = state.messagesByGroup[groupId] || [];
+                const resolvedMsgs = (messages && messages.length > 0)
+                    ? messages
+                    : (fromCache && currentGroupMsgs.length > 0 ? currentGroupMsgs : messages);
+
+                return {
+                    messagesByGroup: { ...state.messagesByGroup, [groupId]: resolvedMsgs },
+                    messagePrevCounts: { ...state.messagePrevCounts, [groupId]: resolvedMsgs.length },
+                    hasReachedEndByGroup: {
+                        ...state.hasReachedEndByGroup,
+                        [groupId]: fromCache
+                            ? (state.hasReachedEndByGroup[groupId] ?? false)
+                            : messages.length < limitCount,
+                    },
+                };
+            })
         );
 
         set((state) => ({
@@ -118,13 +145,28 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
     },
 
     // Function to paginate older messages — safe: kills old listener before creating new one
-    loadMoreMessages: (groupId) => {
-        const currentLimit = get().messageLimits[groupId] || 30;
+    loadMoreMessages: async (groupId) => {
+        const currentLimit = get().messageLimits[groupId] || 15;
 
         // Do not fetch more if we already know we have everything
         if (get().hasReachedEndByGroup[groupId]) return;
 
-        const newLimit = currentLimit + 30;
+        if (Platform.OS !== 'web') {
+            const network = await NetInfo.fetch();
+            const isOnline = Boolean(network.isConnected && network.isInternetReachable);
+            if (!isOnline) {
+                // When offline, we cannot paginate older messages from the server
+                set((state) => ({
+                    hasReachedEndByGroup: {
+                        ...state.hasReachedEndByGroup,
+                        [groupId]: true,
+                    },
+                }));
+                return;
+            }
+        }
+
+        const newLimit = currentLimit + 15;
 
         // 1. Kill the old listener
         const oldUnsubscribe = get().activeListeners[groupId];
@@ -137,15 +179,18 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
             groupId,
             newLimit,
             (messages, fromCache) => {
-                // True end: Firestore returned fewer messages than we requested.
-                // Ignore cache snapshots to prevent premature true detection before server updates arrive.
+                const currentGroupMsgs = get().messagesByGroup[groupId] || [];
+                const resolvedMsgs = (messages && messages.length > 0)
+                    ? messages
+                    : (fromCache && currentGroupMsgs.length > 0 ? currentGroupMsgs : messages);
+
                 const reachedEnd = fromCache
                     ? (get().hasReachedEndByGroup[groupId] ?? false)
                     : (messages.length < newLimit);
 
                 set((state) => ({
-                    messagesByGroup: { ...state.messagesByGroup, [groupId]: messages },
-                    messagePrevCounts: { ...state.messagePrevCounts, [groupId]: messages.length },
+                    messagesByGroup: { ...state.messagesByGroup, [groupId]: resolvedMsgs },
+                    messagePrevCounts: { ...state.messagePrevCounts, [groupId]: resolvedMsgs.length },
                     hasReachedEndByGroup: {
                         ...state.hasReachedEndByGroup,
                         [groupId]: reachedEnd,
@@ -188,7 +233,53 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
         }
     },
 
-    setGroups: (groups) => set({ groups }),
+    setGroups: (groups, fromCache = false) => {
+        if ((!groups || groups.length === 0) && get().groups.length > 0 && fromCache) {
+            // Do not wipe cached groups if an offline/local cache snapshot is empty
+            return;
+        }
+        if (groups && groups.length > 0) {
+            set({ groups });
+            // When online, retrieve the last 15 messages for each group so offline mode is fully populated
+            if (!fromCache) {
+                const groupIds = groups.map(g => g.id).filter(Boolean);
+                get().prefetchRecentMessagesForGroups(groupIds, 15);
+            }
+        } else if (!fromCache) {
+            set({ groups: [] });
+        }
+    },
+
+    prefetchRecentMessagesForGroups: async (groupIds: string[], limitCount = 15) => {
+        if (!groupIds || groupIds.length === 0) return;
+
+        if (Platform.OS !== 'web') {
+            const network = await NetInfo.fetch();
+            const isOnline = Boolean(network.isConnected && network.isInternetReachable);
+            if (!isOnline) return;
+        }
+
+        try {
+            const results = await Promise.all(
+                groupIds.map(async (id) => {
+                    const msgs = await GroupRepo.fetchRecentMessages(id, limitCount);
+                    return { id, msgs };
+                })
+            );
+
+            set((state) => {
+                const nextMessagesByGroup = { ...state.messagesByGroup };
+                results.forEach(({ id, msgs }) => {
+                    if (msgs && msgs.length > 0) {
+                        nextMessagesByGroup[id] = msgs;
+                    }
+                });
+                return { messagesByGroup: nextMessagesByGroup };
+            });
+        } catch (err) {
+            console.warn('[groupStoreCreator] prefetchRecentMessages error:', err);
+        }
+    },
 
     setMessagesByGroup: (groupId, messages) => set((state) => {
         const current = state.messagesByGroup[groupId];
