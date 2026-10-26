@@ -49,6 +49,7 @@ export default function AdminViewBooking() {
         onVerifyManualPayment,
         onRejectManualPayment,
         onSettleRemainingBalance,
+        onUploadOverpaymentProof,
         error: bookingError,
         isLoading: isBookingLoading,
     } = useBookingAdmin();
@@ -143,6 +144,12 @@ export default function AdminViewBooking() {
                 }}
                 onUploadRefundProof={async (file, req, b) => {
                     await uploadRefundProof(file, req || cancellationRequest, b || booking);
+                }}
+                onUploadOverpaymentProof={async (file, b) => {
+                    const targetBooking = b || booking;
+                    if (targetBooking) {
+                        await onUploadOverpaymentProof(targetBooking, file);
+                    }
                 }}
                 onApproveWithManualRefund={async (amount, req, b) => {
                     await approveWithManualRefund(amount, req || cancellationRequest, b || booking);
