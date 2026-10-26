@@ -69,6 +69,27 @@ export interface IUserBooking<T> extends IUserSummary {
     phoneVerifiedAt?: T | null;
 }
 
+export interface IOverpaymentDetails<T = Date> {
+    excessAmount: number;
+    originalVerifiedAmount: number;
+    hikeAmountCaptured: number;
+    status: 'awaiting_hiker_wallet' | 'awaiting_admin_payout' | 'awaiting_user_confirmation' | 'refund_disputed' | 'completed';
+    userWallet?: {
+        walletType: 'GCash' | 'Maya';
+        accountNumber: string;
+        accountName?: string;
+        submittedAt: T;
+    };
+    adminRefundReceiptUrl?: string;
+    adminRefundReceiptUploadedAt?: T;
+    disputeCount?: number;
+    disputeReason?: string;
+    disputedAt?: T;
+    userConfirmedReceivedAt?: T;
+    createdAt: T;
+    updatedAt: T;
+}
+
 export interface IBookingBase<T> {
     id: string;
     createdAt: T;
@@ -86,9 +107,10 @@ export interface IBookingBase<T> {
 
     // Manual QR tracking fields:
     remainingBalance?: number;
-    paymentVerificationStatus?: 'pending_verification' | 'downpayment' | 'fully_paid' | 'rejected';
+    paymentVerificationStatus?: 'pending_verification' | 'downpayment' | 'fully_paid' | 'rejected' | 'refund_submitted' | 'refund_disputed' | 'refunded';
     paymentRejectionReason?: string;
     refundedAmount?: number;
+    overpayment?: IOverpaymentDetails<T>;
 }
 
 export interface UsePayBookingParams {
