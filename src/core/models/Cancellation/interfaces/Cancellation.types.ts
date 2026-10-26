@@ -6,6 +6,8 @@ export type HandshakeStep =
     | 'awaiting_admin_refund_decision'
     | 'awaiting_user_wallet'
     | 'awaiting_admin_payout'
+    | 'awaiting_user_confirmation'
+    | 'refund_disputed'
     | 'completed';
 
 export interface IUserWalletDetails<T = Date> {
@@ -23,7 +25,7 @@ export interface ICancellationBase<T> {
     offerId: string;
     businessId: string;
     reason: string;
-    status: "pending" | "approved" | "rejected" | "user_accepted" | "refund_pending" | "refund_submitted" | "refund_completed";
+    status: "pending" | "approved" | "rejected" | "user_accepted" | "refund_pending" | "refund_submitted" | "refund_completed" | "refund_disputed";
     adminNote?: string;
     refundAmount?: number;
     refundedAt?: T | null;
@@ -36,6 +38,11 @@ export interface ICancellationBase<T> {
     userWallet?: IUserWalletDetails<T>;
     adminRefundReceiptUrl?: string;
     adminRefundReceiptUploadedAt?: T;
+    disputeCount?: number;
+    disputeReason?: string;
+    disputedAt?: T;
+    userConfirmedReceivedAt?: T;
+    isDeleted?: boolean;
 }
 
 export type Cancellation = ICancellationBase<Date>;
@@ -44,4 +51,6 @@ export type ICancellation = Cancellation;
 export type ICancellationDB = ICancellationBase<Timestamp | FieldValue>;
 export type CancellationDB = ICancellationDB;
 
-export type CancellationRequest = Required<Pick<Cancellation, 'reason' | 'offerId' | 'businessId' | 'bookingId'>>;
+export type CancellationRequest = Required<Pick<Cancellation, 'reason' | 'offerId' | 'businessId' | 'bookingId'>> & {
+    userWallet?: IUserWalletDetails<Date>;
+};
