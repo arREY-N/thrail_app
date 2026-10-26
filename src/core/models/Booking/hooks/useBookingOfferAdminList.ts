@@ -19,12 +19,17 @@ export function useBookingOfferAdminList(offerId: string) {
             console.error("Business ID is required for subscribing to business bookings");
             return;
         }
+
         useBookingsStore.getState().subscribeToBusinessBookings(offerId, businessId);
+
+        return () => {
+            useBookingsStore.getState().unsubscribeFromBusinessBookings(offerId);
+        };
     }, [businessId, offerId]);
 
     const onViewBooking = (bookingId: string, offerId: string) => {
         router.push({
-            pathname: '/(main)/admin/booking/view',
+            pathname: '/(app)/(main)/admin/booking/view',
             params: { bookingId, offerId }
         })
     }
