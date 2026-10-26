@@ -19,7 +19,7 @@ export function useGroupList(userId?: string | null) {
     const onEnterRoom = (groupId: string) => {
         if (groupId) {
             router.push({
-                pathname: '/(main)/group/room',
+                pathname: '/(app)/(main)/group/room',
                 params: { roomId: groupId },
             });
         }
