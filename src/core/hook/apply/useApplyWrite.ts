@@ -1,24 +1,22 @@
 import { OPTIONS } from "@/src/constants/constants";
 import { IBaseWriteHook, TEdit } from "@/src/core/interface/domainHookInterface";
 import { Application, newApplication, useApplicationsStore } from "@/src/core/models/Application/Application";
-import { User } from "@/src/core/models/User/User";
-
-import { useAuthStore } from "@/src/core/models/User/stores/authStore";
+import { User, useAuthStore } from "@/src/core/models/User/User";
 import { validate } from "@/src/core/utility/validate";
-import { ApplicationUIConfig } from "@/src/fields/applicationFields";
-import { router } from "expo-router";
+import { ApplicationUIConfig, IApplicationFormField } from "@/src/fields/applicationFields";
 import { produce } from "immer";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-export interface IApplyWrite extends IBaseWriteHook<Application> {
+export interface IApplyWrite extends Omit<IBaseWriteHook<Application>, 'information'> {
+    information: IApplicationFormField[];
     onApproveApplication: (profile: User) => Promise<void>;
     onRejectApplication: (profile: User) => Promise<void>;
 }
 
 export type UseApplyWriteParams = {
-    applicationId?: string,
-    userId?: string
-}
+    applicationId?: string;
+    userId?: string;
+};
 
 export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyWrite {
     const { applicationId, userId } = params;
@@ -26,10 +24,9 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
 
     const data = useApplicationsStore(s => s.data);
 
-    const error = useApplicationsStore(s => s.error);
     const isLoading = useApplicationsStore(s => s.isLoading);
     const create = useApplicationsStore(s => s.create);
-    const [localError, setLocalError] = useState<string | null>(error);
+    const [localError, setLocalError] = useState<string | null>(null);
     const [application, setApplication] = useState<Application>(() => {
         const existing = data.find(d => d.id === applicationId || d.owner.id === userId);
         return existing
@@ -37,63 +34,81 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
             : newApplication({
                 owner: {
                     id: profile?.id || '',
-                    name: `${profile?.firstname} ${profile?.lastname}`,
+                    name: `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim(),
                     email: profile?.email || '',
-                    validId: profile?.validId || '',
+                    validId: [],
+                    validIdFront: '',
+                    validIdBack: '',
                 }
             });
-    })
-
-    useEffect(() => {
-        setLocalError(null);
-    }, [])
+    });
 
     const information = ApplicationUIConfig;
 
     const options = {
         provinces: [...OPTIONS.provinces],
-    }
+    };
+
     async function onUpdatePress(params: TEdit<Application>) {
         const { section, id, value } = params;
 
         try {
-            if (section !== 'root' && !id)
+            if (section !== 'root' && !id) {
                 throw new Error(`Missing key for ${String(section)}`);
-
+            }
 
             setApplication(prev =>
                 produce(prev, (draft) => {
-
                     if (section === 'root') {
-                        draft[id] = value;
-                    } else {
-                        draft[section][id] = value;
+                        (draft as unknown as Record<string, unknown>)[id] = value;
+                    } else if (section === 'owner') {
+                        (draft.owner as unknown as Record<string, unknown>)[id] = value;
+                        if (id === 'validIdFront' || id === 'validIdBack') {
+                            const front = id === 'validIdFront' ? (value as string) : draft.owner.validIdFront;
+                            const back = id === 'validIdBack' ? (value as string) : draft.owner.validIdBack;
+                            const validList: string[] = [];
+                            if (front) validList.push(front);
+                            if (back) validList.push(back);
+                            draft.owner.validId = validList;
+                        }
+                    } else if (section === 'permits') {
+                        (draft.permits as unknown as Record<string, unknown>)[id] = value;
                     }
                 })
-            )
+            );
         } catch (error) {
-            setLocalError(error instanceof Error ? error.message : 'Failed saving trail');
+            setLocalError(error instanceof Error ? error.message : 'Failed saving application');
         }
-
     }
 
-    async function onSubmitPress() {
+    async function onSubmitPress(): Promise<void> {
         try {
-            console.log(application);
-            if (!profile) throw new Error('Applicant must be logged in to apply for a business account.')
+            if (!profile) throw new Error('Applicant must be logged in to apply for a business account.');
 
-            const errors = validate(application, information)
+            const errors = validate(application, information);
 
-            if (errors.length > 0)
-                throw new Error(`${errors.join(', ')} missing`)
+            if (errors.length > 0) {
+                throw new Error(`${errors.join(', ')} missing`);
+            }
 
-            const submitted = await create(application);
+            const targetOwnerId = application.owner?.id?.trim() || profile?.id || '';
+            const appToSubmit: Application = {
+                ...application,
+                owner: {
+                    ...application.owner,
+                    id: targetOwnerId,
+                    email: application.owner?.email?.trim() || profile?.email || '',
+                    name: application.owner?.name?.trim() || `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim() || '',
+                }
+            };
 
-            if (!submitted) throw new Error('An error occured while submitting application.');
+            const submitted = await create(appToSubmit);
 
-            router.back();
+            if (!submitted) throw new Error('An error occurred while submitting application.');
         } catch (error) {
-            setLocalError(error instanceof Error ? error.message : 'Failed submitting application.')
+            const msg = error instanceof Error ? error.message : 'Failed submitting application.';
+            setLocalError(msg);
+            throw error;
         }
     }
 
@@ -103,26 +118,23 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
 
     async function onRejectApplication(user: User) {
         try {
-            if (user.role !== 'superadmin')
-                throw new Error('Only superadmins are allowed to reject applications')
-
-
-        } catch (error: any) {
-            setLocalError((error as Error).message || 'Failed rejecting application');
+            if (user.role !== 'superadmin') {
+                throw new Error('Only superadmins are allowed to reject applications');
+            }
+        } catch (error) {
+            setLocalError(error instanceof Error ? error.message : 'Failed rejecting application');
         }
     }
 
     async function onApproveApplication(user: User) {
         try {
-            if (user.role !== 'superadmin')
-                throw new Error('Only superadmins are allowed to approve applications')
-
-
-        } catch (error: any) {
-            setLocalError((error as Error).message || 'Failed rejecting application');
+            if (user.role !== 'superadmin') {
+                throw new Error('Only superadmins are allowed to approve applications');
+            }
+        } catch (error) {
+            setLocalError(error instanceof Error ? error.message : 'Failed approving application');
         }
     }
-
 
     return {
         information,
@@ -135,5 +147,5 @@ export default function useApplyWrite(params: UseApplyWriteParams = {}): IApplyW
         onUpdatePress,
         onRejectApplication,
         onApproveApplication,
-    }
-}
+    };
+}

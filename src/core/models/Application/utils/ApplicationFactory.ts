@@ -17,7 +17,9 @@ export const newApplication = (init?: Partial<Application>): Application => {
             id: '',
             name: '',
             email: '',
-            validId: '',
+            validId: [],
+            validIdFront: '',
+            validIdBack: '',
         },
         permits: {
             bir: '',
@@ -29,6 +31,16 @@ export const newApplication = (init?: Partial<Application>): Application => {
 };
 
 const applicationFromFirestore = (id: string, data: IApplicationDB): Application => {
+    const rawOwner = data.owner;
+    const rawValidId = rawOwner?.validId;
+    const validIdList: string[] = Array.isArray(rawValidId)
+        ? rawValidId
+        : typeof rawValidId === 'string' && rawValidId.trim()
+            ? [rawValidId]
+            : [];
+    const validIdFront = rawOwner?.validIdFront || validIdList[0] || '';
+    const validIdBack = rawOwner?.validIdBack || validIdList[1] || '';
+
     return {
         id,
         status: data.status || 'pending',
@@ -36,7 +48,14 @@ const applicationFromFirestore = (id: string, data: IApplicationDB): Application
         name: data.name || '',
         address: data.address || '',
         servicedLocation: data.servicedLocation || [],
-        owner: data.owner || { id: '', name: '', email: '', validId: '' },
+        owner: {
+            id: rawOwner?.id || '',
+            name: rawOwner?.name || '',
+            email: rawOwner?.email || '',
+            validId: validIdList.length > 0 ? validIdList : [validIdFront, validIdBack].filter(Boolean),
+            validIdFront,
+            validIdBack,
+        },
         permits: data.permits || { bir: '', dti: '', denr: '' },
         establishedOn: toDate(data.establishedOn),
         createdAt: toDate(data.createdAt),
@@ -46,6 +65,9 @@ const applicationFromFirestore = (id: string, data: IApplicationDB): Application
 
 const applicationToFirestore = (application: Application): IApplicationDB => {
     const isNew = application.id === '';
+    const validIdArray: string[] = Array.isArray(application.owner?.validId)
+        ? (application.owner.validId as string[])
+        : [application.owner?.validIdFront, application.owner?.validIdBack].filter((item): item is string => Boolean(item));
 
     return {
         id: application.id,
@@ -53,8 +75,17 @@ const applicationToFirestore = (application: Application): IApplicationDB => {
         updatedAt: serverTimestamp(),
         status: application.status,
         message: application.message,
-        owner: application.owner,
-        establishedOn: Timestamp.fromDate(application.establishedOn),
+        owner: {
+            id: application.owner?.id || '',
+            name: application.owner?.name || '',
+            email: application.owner?.email || '',
+            validId: validIdArray,
+            validIdFront: application.owner?.validIdFront || validIdArray[0] || '',
+            validIdBack: application.owner?.validIdBack || validIdArray[1] || '',
+        },
+        establishedOn: application.establishedOn instanceof Date
+            ? Timestamp.fromDate(application.establishedOn)
+            : serverTimestamp(),
         permits: application.permits,
         name: application.name,
         address: application.address,

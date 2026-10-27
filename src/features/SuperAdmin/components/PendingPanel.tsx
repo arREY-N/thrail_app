@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         padding: 20,
         borderWidth: 1,
-        borderColor: Colors.STATUS_PENDING_BORDER,
+        borderColor: Colors.ERROR_BORDER,
         ...GlobalStyles.dropShadow(3),
     },
     alertHeader: {
