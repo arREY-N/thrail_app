@@ -287,7 +287,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 }
 
 
-                {upcomingBookings.length > 0 && (
+                {Platform.OS !== 'web' && upcomingBookings.length > 0 && (
                     <TouchableOpacity
                         style={styles.floatingIconBtn}
                         onPress={() => setUpcomingModalVisible(true)}
