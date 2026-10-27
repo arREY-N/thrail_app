@@ -23,7 +23,7 @@ export const newReview = (init?: Partial<Review>): Review => {
             location: '',
         },
         overallRating: 0,
-        trailMaintenance: 'Easy',
+        trailMaintenance: 'undefined',
         difficultyFactors: [],
         favoredFactors: [],
         review: '',

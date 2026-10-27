@@ -16,6 +16,7 @@ import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import SelectionChip from '@/src/features/Auth/components/SelectionChip';
 
 import { DIFFICULTY_FACTOR_MAPPINGS, DifficultyFactorOption } from '@/src/recommendation/utilities/FactorWeightsMapper';
@@ -119,6 +120,11 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     const handleConfirmDiscard = () => {
         setShowDiscardConfirmation(false);
         onBackPress?.();
+    };
+
+    const handleConfirmSubmit = () => {
+        setShowSaveConfirmation(false);
+        onSaveReview();
     };
 
     const updateReview = (field: string, value: unknown) => {
@@ -337,7 +343,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                 title="Submit Review?"
                 message="Thanks for sharing your thoughts! Your review helps other hikers and improves our trail recommendations."
                 iconName="check-circle"
-                onConfirm={onSaveReview}
+                onConfirm={handleConfirmSubmit}
                 onClose={() => setShowSaveConfirmation(false)}
                 confirmText={isLoading ? "Submitting..." : "Submit"}
                 cancelText="Edit"
@@ -519,11 +525,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 2,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        ...GlobalStyles.dropShadow(2, 0.05, Colors.SHADOW, { radius: 4 }),
     },
     difficultyCardIconWrapper: {
         width: 48,

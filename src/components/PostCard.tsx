@@ -22,7 +22,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
-import { Colors } from '@/src/constants/colors';
+import { Colors, Palette } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { IReview, Review } from '@/src/core/models/Review/Review';
 import { Trail, useTrailStore } from "@/src/core/models/Trail/Trail";
@@ -65,7 +65,7 @@ interface LegacyReviewFields {
  */
 interface TagItem {
     id: string;
-    type: 'difficulty' | 'maintenance' | 'factor-diff' | 'factor-fav';
+    type: 'difficulty' | 'factor-diff';
     value?: string;
     label?: string;
     style?: {
@@ -180,29 +180,11 @@ const PostCard = <T extends IReview = Review>({
         }
     };
 
-    const getMaintenanceStyle = (maint: string) => {
-        switch (maint) {
-            case 'Easy':
-                return { label: 'Well-maintained', bg: Colors.STATUS_APPROVED_BG, border: Colors.STATUS_APPROVED_BORDER, text: Colors.STATUS_APPROVED_TEXT, icon: 'check-circle' };
-            case 'Moderate':
-                return { label: 'Damaged but usable', bg: Colors.STATUS_WARNING_BG, border: Colors.STATUS_WARNING_BORDER, text: Colors.STATUS_WARNING_TEXT, icon: 'alert-triangle' };
-            case 'Extreme':
-                return { label: 'Critical / Unusable', bg: Colors.STATUS_CANCELLED_BG, border: Colors.STATUS_CANCELLED_BORDER, text: Colors.STATUS_CANCELLED_TEXT, icon: 'x-circle' };
-            default:
-                return { label: maint, bg: Colors.STATUS_PENDING_BG, border: Colors.STATUS_PENDING_BORDER, text: Colors.STATUS_PENDING_TEXT, icon: 'info' };
-        }
-    };
-
     const allTags: TagItem[] = [];
     if (review?.perceivedDifficulty && review.perceivedDifficulty !== 'undefined') {
         allTags.push({ id: `diff-main`, type: 'difficulty', value: review.perceivedDifficulty, style: getDifficultyStyle(review.perceivedDifficulty) });
     }
-    if (review?.trailMaintenance && review.trailMaintenance !== 'undefined') {
-        const maintStyle = getMaintenanceStyle(review.trailMaintenance);
-        allTags.push({ id: `maint-main`, type: 'maintenance', value: review.trailMaintenance, label: maintStyle.label, style: maintStyle });
-    }
     review?.difficultyFactors?.forEach((f: string) => allTags.push({ id: `factor-diff-${f}`, type: 'factor-diff', value: f }));
-    review?.favoredFactors?.forEach((f: string) => allTags.push({ id: `factor-fav-${f}`, type: 'factor-fav', value: f }));
 
     const hasTags = allTags.length > 0;
 
@@ -319,7 +301,7 @@ const PostCard = <T extends IReview = Review>({
             >
                 <CustomImage source={getImgSource(displayImage)} style={styles.postImage} resizeMode="cover" />
 
-                <LinearGradient colors={['transparent', `${Colors.BLACK}99`, `${Colors.BLACK}E6`]} style={styles.gradientOverlay}>
+                <LinearGradient colors={['transparent', Palette.BlackAlpha65, Palette.DarkBackdrop94]} style={styles.gradientOverlay}>
                     <View style={styles.headerTextColumn}>
                         <CustomText variant="h2" style={styles.mountainTitleOverlay}>
                             {review.trail?.name || legacy.trailName || "Mountain Name"}
@@ -420,27 +402,11 @@ const PostCard = <T extends IReview = Review>({
                                     </View>
                                 );
                             }
-                            if (tag.type === 'maintenance' && tag.style) {
-                                return (
-                                    <View key={tag.id} style={[styles.statusPill, { backgroundColor: tag.style.bg, borderColor: tag.style.border }]}>
-                                        <CustomIcon library="Feather" name={tag.style.icon} size={12} color={tag.style.text} />
-                                        <CustomText style={[styles.statusPillText, { color: tag.style.text }]}>
-                                            {tag.style.label || tag.value}
-                                        </CustomText>
-                                    </View>
-                                );
-                            }
                             if (tag.type === 'factor-diff') {
+                                const isEasy = review?.perceivedDifficulty === 'Easy' || review?.perceivedDifficulty === 'Just Right';
                                 return (
-                                    <View key={tag.id} style={styles.difficultyChip}>
-                                        <CustomText style={styles.difficultyChipText}>{tag.value}</CustomText>
-                                    </View>
-                                );
-                            }
-                            if (tag.type === 'factor-fav') {
-                                return (
-                                    <View key={tag.id} style={styles.favoredChip}>
-                                        <CustomText style={styles.favoredChipText}>{tag.value}</CustomText>
+                                    <View key={tag.id} style={isEasy ? styles.favoredChip : styles.difficultyChip}>
+                                        <CustomText style={isEasy ? styles.favoredChipText : styles.difficultyChipText}>{tag.value}</CustomText>
                                     </View>
                                 );
                             }
@@ -651,7 +617,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_INVERSE,
         fontWeight: 'bold',
         marginBottom: 2,
-        textShadowColor: `${Colors.BLACK}BF`,
+        textShadowColor: Colors.SHADOW,
         textShadowOffset: {
             width: 0,
             height: 1,
@@ -667,7 +633,7 @@ const styles = StyleSheet.create({
     locationTextOverlay: {
         color: Colors.TEXT_INVERSE,
         fontWeight: '500',
-        textShadowColor: `${Colors.BLACK}BF`,
+        textShadowColor: Colors.SHADOW,
         textShadowOffset: {
             width: 0,
             height: 1,
@@ -676,7 +642,7 @@ const styles = StyleSheet.create({
     },
     imageCountBadge: {
         flexDirection: 'row',
-        backgroundColor: `${Colors.BLACK}A6`,
+        backgroundColor: Colors.IMAGE_PREVIEW_COUNTER_BG,
         paddingHorizontal: 8,
         paddingVertical: 5,
         borderRadius: 12,
