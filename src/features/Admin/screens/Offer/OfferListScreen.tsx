@@ -320,10 +320,10 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         }
     ];
 
-    const handleApplyFilters = (values: Record<string, unknown>) => {
+    const handleApplyFilters = useCallback((values: Record<string, unknown>) => {
         setSortBy(values.sortBy as string);
         setFilterTrailNames((values.filterTrailNames as string[]) || []);
-    };
+    }, [setSortBy, setFilterTrailNames]);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -442,7 +442,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                                                 actionableCount={actionableCountsByOffer[offer.id] ?? 0}
                                                 onViewBookings={onViewOfferBookings}
                                                 onEditPress={handleEditPress}
-                                                style={{ width: '100%' }}
+                                                style={styles.offerCardFullWidth}
                                             />
                                         </View>
                                     ))}
@@ -458,26 +458,30 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                 </ScrollView>
             </View>
 
-            <ConfirmationModal 
-                visible={showEditModal}
-                onClose={() => setShowEditModal(false)}
-                title="Edit Active Offer?"
-                message="Editing this offer will change the details and requirements for all future bookings. Are you sure you want to proceed?"
-                iconName="edit-3"
-                confirmText="Yes, Edit Offer"
-                cancelText="Cancel"
-                onConfirm={confirmEdit}
-            />
+            {showEditModal && (
+                <ConfirmationModal 
+                    visible={showEditModal}
+                    onClose={() => setShowEditModal(false)}
+                    title="Edit Active Offer?"
+                    message="Editing this offer will change the details and requirements for all future bookings. Are you sure you want to proceed?"
+                    iconName="edit-3"
+                    confirmText="Yes, Edit Offer"
+                    cancelText="Cancel"
+                    onConfirm={confirmEdit}
+                />
+            )}
 
-            <CustomFilterModal
-                visible={showFilterModal}
-                onClose={() => setShowFilterModal(false)}
-                title="Sort & Filter Offers"
-                sections={filterSections}
-                initialValues={{ sortBy, filterTrailNames }}
-                defaultValues={{ sortBy: 'date-asc', filterTrailNames: [] }}
-                onApply={handleApplyFilters}
-            />
+            {showFilterModal && (
+                <CustomFilterModal
+                    visible={showFilterModal}
+                    onClose={() => setShowFilterModal(false)}
+                    title="Sort & Filter Offers"
+                    sections={filterSections}
+                    initialValues={{ sortBy, filterTrailNames }}
+                    defaultValues={{ sortBy: 'date-asc', filterTrailNames: [] }}
+                    onApply={handleApplyFilters}
+                />
+            )}
 
             <CustomTutorialModal
                 visible={tutorial.isVisible}
@@ -576,6 +580,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
+    },
+    offerCardFullWidth: {
+        width: '100%',
     },
 });
 
