@@ -280,6 +280,46 @@ export async function getOrDownloadTrailGeoJson(
   }
 }
 
+let webAllMountainsPromise: Promise<string> | null = null;
+
+async function buildWebAllMountainsUrl(forceRefresh: boolean): Promise<string> {
+  const mountainIds = Object.keys(
+    MOUNTAIN_TRAIL_REGISTRY,
+  ) as SupportedMountainId[];
+
+  const results = await Promise.allSettled(
+    mountainIds.map(async mountainId => {
+      const url = await getOrDownloadTrailGeoJson(
+        mountainId,
+        MOUNTAIN_TRAIL_REGISTRY[mountainId].allFile,
+        forceRefresh,
+      );
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${mountainId}`);
+      return (await res.json()) as { features?: IGeoJSONFeature[] };
+    }),
+  );
+
+  const allFeatures: IGeoJSONFeature[] = [];
+  for (const res of results) {
+    if (res.status === "fulfilled" && Array.isArray(res.value?.features)) {
+      allFeatures.push(...res.value.features);
+    } else if (res.status === "rejected") {
+      console.warn("Skipping a mountain GeoJSON on web:", res.reason);
+    }
+  }
+
+  if (allFeatures.length === 0) {
+    throw new Error("No mountain GeoJSON could be loaded on web.");
+  }
+
+  const blob = new Blob(
+    [JSON.stringify({ type: "FeatureCollection", features: allFeatures })],
+    { type: "application/geo+json" },
+  );
+  return URL.createObjectURL(blob);
+}
+
 /**
  * Downloads (or returns from offline cache) a combined GeoJSON containing all 5 mountains
  * (`batulao`, `kulis`, `daraitan`, `tagapo`, `sembrano`) from Firebase `trail_routes/`.
@@ -288,8 +328,17 @@ export async function getOrDownloadTrailGeoJson(
 export async function getOrDownloadAllMountainsGeoJson(
   forceRefresh = false,
 ): Promise<string> {
-  if (Platform.OS === "web" || !FileSystem.documentDirectory) {
-    // On web, return Batulao's download URL as primary fallback if needed
+  if (Platform.OS === "web") {
+    if (forceRefresh || !webAllMountainsPromise) {
+      webAllMountainsPromise = buildWebAllMountainsUrl(forceRefresh).catch(err => {
+        webAllMountainsPromise = null; // allow retry after a failure
+        throw err;
+      });
+    }
+    return webAllMountainsPromise;
+  }
+
+  if (!FileSystem.documentDirectory) {
     return getOrDownloadTrailGeoJson("batulao", undefined, forceRefresh);
   }
 
