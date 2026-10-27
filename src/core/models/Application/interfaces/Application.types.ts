@@ -6,7 +6,9 @@ export interface IOwner {
     id: string;
     name: string;
     email: string;
-    validId: string;
+    validId: string[] | string;
+    validIdFront?: string;
+    validIdBack?: string;
 }
 
 export interface IBusinessInfo<T> {
