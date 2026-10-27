@@ -36,7 +36,7 @@ export default function ViewOffer() {
         const cancellationByBookingId = new Map<string, Cancellation>();
         if (businessCancellations) {
             for (const c of businessCancellations) {
-                if (!c.isDeleted && c.bookingId) {
+                if (!c.isDeleted && c.bookingId && !cancellationByBookingId.has(c.bookingId)) {
                     cancellationByBookingId.set(c.bookingId, c);
                 }
             }

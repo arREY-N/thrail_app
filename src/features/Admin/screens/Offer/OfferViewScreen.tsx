@@ -143,7 +143,7 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
     const cancellationsByBookingId = useMemo(() => {
         const map = new Map<string, Cancellation>();
         (cancellations || []).forEach(c => {
-            if (!c.isDeleted) {
+            if (!c.isDeleted && c.bookingId && !map.has(c.bookingId)) {
                 map.set(c.bookingId, c);
             }
         });
