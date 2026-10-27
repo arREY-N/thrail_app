@@ -615,7 +615,7 @@ const TrailMap = memo(
         },
         centerOnCoordinate: (lon, lat) => {
           isFollowingRef.current = false;
-          mapRef.current?.flyTo({ center: [lon, lat], zoom: 17, duration: 800 });
+          mapRef.current?.flyTo({ center: [lon, lat], zoom: 14, duration: 800 });
         },
         flyTo: (o) => {
           isFollowingRef.current = false;

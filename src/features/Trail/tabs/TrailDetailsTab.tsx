@@ -10,7 +10,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getPinConfig, getStaticMapAsset, IWaypointPoint, StaticTrailMap, TrailMap } from '@/src/features/Map/Map';
 
 import { Layout } from '@/src/constants/layout';
-import { ITrail, ITrailStats } from '@/src/core/models/Trail/Trail';
+import { ITrail, ITrailStats, computeTrailMidpoint } from '@/src/core/models/Trail/Trail';
 import { GlossaryTooltip, SectionHeader, StatItem, StyledListItem, Tag } from '@/src/features/Trail/components/TrailDetailsComponents';
 import { getArray, getClassColor, getDifficultyColor, getStatusColor, getStatusIconInfo, isFeatureEnabled, ROUTE_GLOSSARY } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
@@ -117,8 +117,9 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
     const trailId = trail?.id;
     const trailName = trail?.general?.name;
 
-    const trailLon = trail?.geography?.startLong;
-    const trailLat = trail?.geography?.startLat;
+    const trailMidpoint = useMemo(() => computeTrailMidpoint(trail), [trail]);
+    const trailLon = trailMidpoint?.longitude;
+    const trailLat = trailMidpoint?.latitude;
     const hasValidCoords = Boolean(
         typeof trailLat === 'number' &&
         typeof trailLon === 'number' &&
