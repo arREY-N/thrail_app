@@ -68,6 +68,8 @@ export interface CustomButtonProps {
     title?: string;
     onPress?: (event: GestureResponderEvent) => void;
     variant?: 'primary' | 'secondary' | 'outline' | 'destructive';
+    size?: 'sm' | 'md' | 'lg';
+    autoWidth?: boolean;
     style?: StyleProp<ViewStyle>;
     textStyle?: StyleProp<TextStyle>;
     disabled?: boolean;
@@ -84,6 +86,9 @@ export interface CustomButtonProps {
     validationState?: ButtonValidationState;
     hasError?: boolean;
     isIdleDisabled?: boolean;
+    numberOfLines?: number;
+    adjustsFontSizeToFit?: boolean;
+    minimumFontScale?: number;
 }
 
 /**
@@ -93,6 +98,8 @@ const CustomButton: React.FC<CustomButtonProps> = ({
     title, 
     onPress, 
     variant = 'primary',
+    size = 'lg',
+    autoWidth = false,
     style,
     textStyle,
     disabled,
@@ -102,15 +109,20 @@ const CustomButton: React.FC<CustomButtonProps> = ({
     icon,
     iconLibrary,
     iconPosition = 'left',
-    iconSize = 18,
+    iconSize,
     iconColor,
     disabledToastMessage,
     disabledToastType = 'error',
     validationState,
     hasError = false,
     isIdleDisabled = false,
+    numberOfLines = 1,
+    adjustsFontSizeToFit = true,
+    minimumFontScale = 0.75,
 }) => {
     const toastContext = useContext(ToastContext);
+
+    const resolvedIconSize = iconSize ?? (size === 'sm' ? 14 : size === 'md' ? 16 : 18);
 
     const resolvedValidationState: ButtonValidationState = hasError
         ? 'error'
@@ -182,8 +194,10 @@ const CustomButton: React.FC<CustomButtonProps> = ({
             android_ripple={isInteractionDisabled ? undefined : { color: rippleColor }}
             style={({ pressed }) => [
                 styles.baseButton as StyleProp<ViewStyle>, 
+                styles[`size_${size}`] as StyleProp<ViewStyle>,
+                (autoWidth || size === 'sm') && (styles.autoWidth as StyleProp<ViewStyle>),
                 buttonStyle, 
-                useShadow && !isInteractionDisabled && (styles.shadows as StyleProp<ViewStyle>),
+                useShadow && size === 'lg' && !isInteractionDisabled && (styles.shadows as StyleProp<ViewStyle>),
                 style,
                 pressed && !isInteractionDisabled && (styles.pressed as StyleProp<ViewStyle>),
                 isStandardDisabled && (styles.disabledState as StyleProp<ViewStyle>)
@@ -204,15 +218,19 @@ const CustomButton: React.FC<CustomButtonProps> = ({
                             <CustomIcon 
                                 library={iconLibrary} 
                                 name={icon} 
-                                size={iconSize} 
+                                size={resolvedIconSize} 
                                 color={defaultIconColor} 
                                 style={styles.iconLeft}
                             />
                         )
                     )}
                     <CustomText 
+                        numberOfLines={numberOfLines}
+                        adjustsFontSizeToFit={adjustsFontSizeToFit}
+                        minimumFontScale={minimumFontScale}
                         style={[
                             styles.baseText as StyleProp<TextStyle>, 
+                            styles[`text_${size}`] as StyleProp<TextStyle>,
                             labelStyle, 
                             textStyle
                         ]}
@@ -223,7 +241,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
                         <CustomIcon 
                             library={iconLibrary} 
                             name={icon} 
-                            size={iconSize} 
+                            size={resolvedIconSize} 
                             color={defaultIconColor} 
                             style={styles.iconRight}
                         />
@@ -236,9 +254,6 @@ const CustomButton: React.FC<CustomButtonProps> = ({
 
 const styles = StyleSheet.create({
     baseButton: {
-        paddingVertical: 16,
-        paddingHorizontal: 12,
-        borderRadius: 16,
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
@@ -246,11 +261,42 @@ const styles = StyleSheet.create({
             web: { cursor: 'pointer', userSelect: 'none' } as unknown as ViewStyle,
         }),
     },
+    size_sm: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        minHeight: 32,
+    },
+    size_md: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        minHeight: 42,
+    },
+    size_lg: {
+        paddingVertical: 16,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        minHeight: 52,
+    },
+    autoWidth: {
+        width: 'auto',
+    },
     shadows: GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }) as unknown as ViewStyle,
     baseText: {
-        fontWeight: 'bold',
-        fontSize: 16,
         textAlign: 'center',
+    },
+    text_sm: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    text_md: {
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    text_lg: {
+        fontSize: 16,
+        fontWeight: 'bold',
     },
     pressed: {
         transform: [{ scale: 0.98 }],

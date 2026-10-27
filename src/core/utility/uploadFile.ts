@@ -20,7 +20,7 @@ export default function useFileUpload(){
         try {
             const documentUrl = await uploadDocument();
             if (!documentUrl) {
-                throw new Error(`Failed to upload ${document}`);
+                return null;
             }
             switch (document) {
                 case 'validId':

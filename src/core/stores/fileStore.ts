@@ -2,7 +2,7 @@ import { useAuthStore } from "@/src/core/models/User/User";
 import { FileRepository } from "@/src/core/repositories/fileRepository";
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
@@ -26,10 +26,12 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
 
     uploadDocument: async (): Promise<string> => {
         try {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (Platform.OS !== 'web') {
+                const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-            if (status !== 'granted') {
-                throw new Error('Permission to access media library is required!');
+                if (status !== 'granted') {
+                    throw new Error('Permission to access media library is required!');
+                }
             }
 
             const result = await DocumentPicker.getDocumentAsync({
@@ -70,7 +72,7 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
 
                 return downloadURL;
             } else {
-                throw new Error('Document selection canceled');
+                return '';
             }
         } catch (err) {
             const regex = /\(storage\/quota-exceeded\)/g;

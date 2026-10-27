@@ -32,6 +32,11 @@ export const STATUS_UI_CONFIG = {
         adminLabel: 'AWAITING PAYMENT', adminType: 'WAITING',
         icon: 'credit-card'
     },
+    'verifying-payment': {
+        userLabel: 'VERIFYING PAYMENT', userType: 'INFO',
+        adminLabel: 'VERIFY PAYMENT', adminType: 'ACTION',
+        icon: 'clock'
+    },
     'downpayment': {
         userLabel: 'DOWNPAYMENT', userType: 'WARNING', 
         adminLabel: 'DOWNPAYMENT', adminType: 'WARNING', 
