@@ -1,10 +1,12 @@
 import * as FileSystem from "expo-file-system/legacy";
+import { collection, getDocs } from "firebase/firestore";
 import { getDownloadURL, ref } from "firebase/storage";
 import { Platform } from "react-native";
 
-import { storage } from "@/src/core/config/Firebase";
+import { db, storage } from "@/src/core/config/Firebase";
 
-export type SupportedMountainId =
+export type SupportedMountainId = string;
+export type LegacyMountainId =
   | "batulao"
   | "kulis"
   | "daraitan"
@@ -145,12 +147,17 @@ export function resolveMountainId(
 ): SupportedMountainId | null {
   if (!nameOrId) return null;
   const normalized = nameOrId.toLowerCase().trim();
-  for (const id of Object.keys(MOUNTAIN_TRAIL_REGISTRY) as SupportedMountainId[]) {
+  for (const id of Object.keys(MOUNTAIN_TRAIL_REGISTRY)) {
     if (normalized.includes(id)) {
       return id;
     }
   }
-  return null;
+  // Dynamic fallback: strip 'mount' or 'mt.' prefixes and sanitize to alphanumeric slug
+  const slug = normalized
+    .replace(/^(mount|mt\.?)\s+/i, "")
+    .trim()
+    .replace(/[^a-z0-9_-]/g, "_");
+  return slug.length > 0 ? slug : null;
 }
 
 /**
@@ -203,6 +210,8 @@ export async function readGeoJsonFromUri(
   return JSON.parse(raw) as IGeoJSONFeatureCollection;
 }
 
+const webBlobCache = new Map<string, string>();
+
 /**
  * Returns a local `file://` URI (or remote URL on web) for a mountain's GeoJSON trail file.
  *
@@ -213,20 +222,46 @@ export async function readGeoJsonFromUri(
  *    into a temporary `.tmp` file and moves it atomically into persistent storage.
  */
 export async function getOrDownloadTrailGeoJson(
-  mountainId: SupportedMountainId,
+  mountainIdOrPath: SupportedMountainId,
   fileName?: string,
   forceRefresh = false,
 ): Promise<string> {
-  const targetFile = fileName || `${mountainId}-all.geojson`;
-  const storagePath = `trail_routes/${mountainId}/${targetFile}`;
+  let storagePath: string;
+  let mountainFolder: string;
+  let targetFile: string;
 
-  // Web fallback: expo-file-system documentDirectory is unavailable on web
-  if (Platform.OS === "web" || !FileSystem.documentDirectory) {
-    const fileRef = ref(storage, storagePath);
-    return getDownloadURL(fileRef);
+  if (mountainIdOrPath.includes("/")) {
+    // Direct path provided: e.g. "trail_routes/pulag/pulag-all.geojson" or "pulag/pulag-all.geojson"
+    storagePath = mountainIdOrPath.startsWith("trail_routes/")
+      ? mountainIdOrPath
+      : `trail_routes/${mountainIdOrPath.replace(/^\/+/, "")}`;
+    const parts = storagePath.split("/");
+    mountainFolder = parts.length > 2 ? parts[1] : "custom";
+    targetFile = parts[parts.length - 1];
+  } else {
+    mountainFolder = mountainIdOrPath;
+    targetFile = fileName || `${mountainIdOrPath}-all.geojson`;
+    storagePath = `trail_routes/${mountainFolder}/${targetFile}`;
   }
 
-  const mountainDir = `${OFFLINE_TRAILS_DIR}/${mountainId}`;
+  // Web fallback: expo-file-system documentDirectory is unavailable on web.
+  // We fetch via the main thread and convert to a local blob URL so MapLibre's Web Worker
+  // has zero CORS issues and 100% reliable local rendering for all dynamic trails.
+  if (Platform.OS === "web" || !FileSystem.documentDirectory) {
+    if (!forceRefresh && webBlobCache.has(storagePath)) {
+      return webBlobCache.get(storagePath)!;
+    }
+    const fileRef = ref(storage, storagePath);
+    const downloadUrl = await getDownloadURL(fileRef);
+    const res = await fetch(downloadUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${storagePath}`);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    webBlobCache.set(storagePath, blobUrl);
+    return blobUrl;
+  }
+
+  const mountainDir = `${OFFLINE_TRAILS_DIR}/${mountainFolder}`;
   const localUri = `${mountainDir}/${targetFile}`;
 
   const dirInfo = await FileSystem.getInfoAsync(mountainDir);
@@ -238,7 +273,7 @@ export async function getOrDownloadTrailGeoJson(
     const fileInfo = await FileSystem.getInfoAsync(localUri);
     if (fileInfo.exists && fileInfo.size > 0) {
       console.log(
-        `📂 [TrailOfflineManager] Loaded from OFFLINE cache: ${mountainId}/${targetFile}`,
+        `📂 [TrailOfflineManager] Loaded from OFFLINE cache: ${mountainFolder}/${targetFile}`,
       );
       return localUri;
     }
@@ -267,7 +302,7 @@ export async function getOrDownloadTrailGeoJson(
     await FileSystem.moveAsync({ from: tempUri, to: localUri });
 
     console.log(
-      `✅ [TrailOfflineManager] Saved for offline use: ${mountainId}/${targetFile}`,
+      `✅ [TrailOfflineManager] Saved for offline use: ${mountainFolder}/${targetFile}`,
     );
     return localUri;
   } catch (cloudError) {
@@ -282,23 +317,68 @@ export async function getOrDownloadTrailGeoJson(
 
 let webAllMountainsPromise: Promise<string> | null = null;
 
+/**
+ * Queries all dynamic trail GeoJSON paths registered across trails in Firestore.
+ */
+export async function getDynamicTrailGeoJsonPaths(): Promise<string[]> {
+  try {
+    const snap = await getDocs(collection(db, "trails"));
+    if (snap.empty) return [];
+    const paths = new Set<string>();
+    snap.forEach((doc) => {
+      const geoPath = doc.data()?.geography?.geoJsonPath;
+      if (typeof geoPath === "string" && geoPath.trim().length > 0) {
+        paths.add(geoPath.trim());
+      }
+    });
+    return Array.from(paths);
+  } catch (err) {
+    console.warn("Could not query dynamic trail GeoJSON paths from Firestore:", err);
+    return [];
+  }
+}
+
 async function buildWebAllMountainsUrl(forceRefresh: boolean): Promise<string> {
   const mountainIds = Object.keys(
     MOUNTAIN_TRAIL_REGISTRY,
   ) as SupportedMountainId[];
 
-  const results = await Promise.allSettled(
-    mountainIds.map(async mountainId => {
+  const dynamicPaths = await getDynamicTrailGeoJsonPaths();
+  const registeredFilePaths = new Set(
+    mountainIds.map(
+      (id) =>
+        `trail_routes/${id}/${
+          MOUNTAIN_TRAIL_REGISTRY[id as keyof typeof MOUNTAIN_TRAIL_REGISTRY].allFile
+        }`,
+    ),
+  );
+  const uniqueDynamicPaths = dynamicPaths.filter((path) => {
+    const fullPath = path.startsWith("trail_routes/")
+      ? path
+      : `trail_routes/${path.replace(/^\/+/, "")}`;
+    return !registeredFilePaths.has(fullPath);
+  });
+
+  const fetchTasks = [
+    ...mountainIds.map(async (mountainId) => {
       const url = await getOrDownloadTrailGeoJson(
         mountainId,
-        MOUNTAIN_TRAIL_REGISTRY[mountainId].allFile,
+        MOUNTAIN_TRAIL_REGISTRY[mountainId as keyof typeof MOUNTAIN_TRAIL_REGISTRY].allFile,
         forceRefresh,
       );
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status} for ${mountainId}`);
       return (await res.json()) as { features?: IGeoJSONFeature[] };
     }),
-  );
+    ...uniqueDynamicPaths.map(async (path) => {
+      const url = await getOrDownloadTrailGeoJson(path, undefined, forceRefresh);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${path}`);
+      return (await res.json()) as { features?: IGeoJSONFeature[] };
+    }),
+  ];
+
+  const results = await Promise.allSettled(fetchTasks);
 
   const allFeatures: IGeoJSONFeature[] = [];
   for (const res of results) {
@@ -365,16 +445,38 @@ export async function getOrDownloadAllMountainsGeoJson(
     MOUNTAIN_TRAIL_REGISTRY,
   ) as SupportedMountainId[];
 
-  const results = await Promise.allSettled(
-    mountainIds.map(async mountainId => {
+  const dynamicPaths = await getDynamicTrailGeoJsonPaths();
+  const registeredFilePaths = new Set(
+    mountainIds.map(
+      (id) =>
+        `trail_routes/${id}/${
+          MOUNTAIN_TRAIL_REGISTRY[id as keyof typeof MOUNTAIN_TRAIL_REGISTRY].allFile
+        }`,
+    ),
+  );
+  const uniqueDynamicPaths = dynamicPaths.filter((path) => {
+    const fullPath = path.startsWith("trail_routes/")
+      ? path
+      : `trail_routes/${path.replace(/^\/+/, "")}`;
+    return !registeredFilePaths.has(fullPath);
+  });
+
+  const fetchTasks = [
+    ...mountainIds.map(async (mountainId) => {
       const uri = await getOrDownloadTrailGeoJson(
         mountainId,
-        MOUNTAIN_TRAIL_REGISTRY[mountainId].allFile,
+        MOUNTAIN_TRAIL_REGISTRY[mountainId as keyof typeof MOUNTAIN_TRAIL_REGISTRY].allFile,
         forceRefresh,
       );
       return readGeoJsonFromUri(uri);
     }),
-  );
+    ...uniqueDynamicPaths.map(async (path) => {
+      const uri = await getOrDownloadTrailGeoJson(path, undefined, forceRefresh);
+      return readGeoJsonFromUri(uri);
+    }),
+  ];
+
+  const results = await Promise.allSettled(fetchTasks);
 
   const allFeatures: IGeoJSONFeature[] = [];
   for (const res of results) {

@@ -129,6 +129,18 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     }
 
     const [isOfflineMode, setIsOfflineMode] = useState(true);
+    const [modeToast, setModeToast] = useState<string | null>(null);
+    const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleToggleOffline = () => {
+        const nextMode = !isOfflineMode;
+        setIsOfflineMode(nextMode);
+        mapRef.current?.toggleOffline();
+
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setModeToast(nextMode ? "Offline Map Active · Local Storage" : "Online Map Active · Live Topo Tiles");
+        toastTimeoutRef.current = setTimeout(() => setModeToast(null), 2500);
+    };
     const [showSosMenu, setShowSosMenu] = useState(false);
     const [showCameraPrompt, setShowCameraPrompt] = useState(false);
     const [showTeamStatus, setShowTeamStatus] = useState(false);
@@ -379,7 +391,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         return (
             <View style={styles.container}>
                 <CustomHeader title={hike.trail?.name || "Independent Route"} showDefaultIcons={false} onBackPress={onBackPress} />
-                <TrailMap initialLon={lon} initialLat={lat} bottomInset={0} />
+                <TrailMap initialLon={lon} initialLat={lat} bottomInset={0} isOffline={isOfflineMode} />
             </View>
         );
     }
@@ -388,6 +400,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         <View style={styles.container}>
             <TrailMap
                 ref={mapRef}
+                isOffline={isOfflineMode}
                 initialLon={lon}
                 initialLat={lat}
                 bottomInset={dashboardHeight + 16}
@@ -418,6 +431,22 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 </TouchableOpacity>
             </View>
 
+            {modeToast && (
+                <View style={[styles.modeToastBanner, { top: insets.top + 68 }]} pointerEvents="none">
+                    <View style={[styles.modeToastContent, styles.toastOnline]}>
+                        <CustomIcon
+                            library="Feather"
+                            name={isOfflineMode ? "hard-drive" : "cloud"}
+                            size={14}
+                            color={Colors.PRIMARY}
+                        />
+                        <CustomText style={[styles.modeToastText, styles.textEmerald]}>
+                            {modeToast}
+                        </CustomText>
+                    </View>
+                </View>
+            )}
+
             <View style={[styles.mapControls, { bottom: dashboardHeight + 16 }]}>
                 {booking && (
                     <TouchableOpacity style={styles.fabBtn} onPress={() => setShowTrailInfo(true)}>
@@ -439,8 +468,18 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                         <CustomIcon library="Feather" name="settings" size={20} color={Colors.PRIMARY} />
                     </TouchableOpacity>
                 )}
-                <TouchableOpacity style={styles.fabBtn} onPress={() => { setIsOfflineMode(!isOfflineMode); mapRef.current?.toggleOffline(); }}>
-                    <CustomIcon library="Feather" name={isOfflineMode ? "map" : "layers"} size={20} color={isOfflineMode ? Colors.TEXT_SECONDARY : Colors.PRIMARY} />
+                <TouchableOpacity
+                    style={styles.fabBtn}
+                    onPress={handleToggleOffline}
+                    activeOpacity={0.8}
+                    accessibilityLabel={`Toggle map mode. Currently ${isOfflineMode ? "Offline" : "Online"}`}
+                >
+                    <CustomIcon
+                        library="Feather"
+                        name={isOfflineMode ? "hard-drive" : "cloud"}
+                        size={20}
+                        color={Colors.PRIMARY}
+                    />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.fabBtn} onPress={() => mapRef.current?.centerOnUser()}>
                     <CustomIcon library="Ionicons" name="locate" size={22} color={Colors.TEXT_PRIMARY} />
@@ -1043,6 +1082,49 @@ const styles = StyleSheet.create({
     toggleBtnInactive: { backgroundColor: Colors.WHITE, borderColor: Colors.GRAY_LIGHT },
     toggleTextActive: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 12 },
     toggleTextInactive: { color: Colors.TEXT_SECONDARY, fontWeight: 'bold', fontSize: 12 },
+    bgEmerald: {
+        backgroundColor: '#10B981',
+    },
+    bgAmber: {
+        backgroundColor: '#F59E0B',
+    },
+
+    modeToastBanner: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 60,
+    },
+    modeToastContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: Colors.WHITE,
+        gap: 8,
+        ...GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }),
+        borderWidth: 1,
+    },
+    toastOffline: {
+        borderColor: '#FDE68A',
+        backgroundColor: '#FFFBEB',
+    },
+    toastOnline: {
+        borderColor: '#A7F3D0',
+        backgroundColor: '#ECFDF5',
+    },
+    modeToastText: {
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    textAmber: {
+        color: '#92400E',
+    },
+    textEmerald: {
+        color: '#065F46',
+    },
 });
 
 export default HikeRecordingScreen;

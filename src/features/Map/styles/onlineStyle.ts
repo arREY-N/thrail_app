@@ -5,8 +5,11 @@
 
 const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY?.trim();
 
+export const FREE_OFFLINE_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+
 export const onlineStyle =
   MAPTILER_KEY && MAPTILER_KEY !== "undefined"
     ? `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`
-    : "https://tiles.openfreemap.org/styles/liberty";
+    : FREE_OFFLINE_STYLE;
+
 

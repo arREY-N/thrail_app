@@ -64,22 +64,23 @@ export function HikeTempFlow() {
         Keyboard.dismiss();
     };
 
-    const handleSearchSubmit = () => {
-        if (filteredTrails.length > 0 && !selectedTrail) {
-            handleTrailSelect(filteredTrails[0]);
+    const handleSearchSubmit = (queryOverride?: string) => {
+        const q = (typeof queryOverride === 'string' ? queryOverride : searchQuery).trim().toLowerCase();
+        const matches = q ? trails.filter(t => t.general?.name?.toLowerCase().includes(q)) : filteredTrails;
+        if (matches.length > 0) {
+            handleTrailSelect(matches[0]);
         }
         Keyboard.dismiss();
     };
 
     const handleStartTracking = (bookingContext?: any) => {
         if (bookingContext) {
-            console.log('Booking context provided:', bookingContext);
             const targetGroup = groups?.find(g =>
                 g.members?.some((m: any) => m.id === profile?.id && m.bookingId === bookingContext.id)
             );
 
             router.push({
-                pathname: '/(main)/hike/view',
+                pathname: '/(app)/(main)/hike/view',
                 params: {
                     trailId: bookingContext.trail.id,
                     groupId: targetGroup?.id,
@@ -96,13 +97,12 @@ export function HikeTempFlow() {
     };
 
     const handleDeveloperBypass = (bookingContext: any) => {
-        console.log('handleDeveloperBypass:', bookingContext);
         if (!bookingContext) return;
         const targetGroup = groups?.find(g =>
             g.members?.some((m: any) => m.id === profile?.id && m.bookingId === bookingContext.id)
         );
         router.push({
-            pathname: '/(main)/hike/view',
+            pathname: '/(app)/(main)/hike/view',
             params: {
                 trailId: bookingContext.trail.id,
                 groupId: targetGroup?.id,

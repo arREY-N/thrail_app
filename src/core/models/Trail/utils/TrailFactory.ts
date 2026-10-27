@@ -22,6 +22,7 @@ export const newTrail = (init?: Partial<Trail>): Trail => {
             startLong: 0,
             endLat: 0,
             endLong: 0,
+            geoJsonPath: undefined,
             ...init?.geography,
         },
         general: {
@@ -87,6 +88,7 @@ const trailFromFirestore = (id: string, data: ITrailDB): Trail => {
             startLong: data.geography?.start?.longitude ?? 0,
             endLat: data.geography?.end?.latitude ?? 0,
             endLong: data.geography?.end?.longitude ?? 0,
+            geoJsonPath: data.geography?.geoJsonPath || undefined,
         },
     };
 };
@@ -109,6 +111,7 @@ const trailToFirestore = (trail: Trail): ITrailDB => {
             masl: trail.geography?.masl || 0,
             start: new GeoPoint(trail.geography?.startLat ?? 0, trail.geography?.startLong ?? 0),
             end: new GeoPoint(trail.geography?.endLat ?? 0, trail.geography?.endLong ?? 0),
+            ...(trail.geography?.geoJsonPath ? { geoJsonPath: trail.geography.geoJsonPath } : {}),
         },
         ...(trail.profile ? { profile: trail.profile } : {}),
     };
