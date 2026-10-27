@@ -128,8 +128,6 @@ export const applicationStoreCreator: StateCreator<
                 }
             });
 
-            console.log(application);
-
             const created = await ApplicationRepo.write(application);
 
             set((state) => {

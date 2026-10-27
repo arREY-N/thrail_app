@@ -1,7 +1,7 @@
 import { IFormField } from "@/src/core/interface/formFieldInterface";
 import { Application } from "@/src/core/models/Application/Application";
 
-export interface IApplicationFormField extends IFormField<keyof Application | 'root'> {}
+export type IApplicationFormField = IFormField<keyof Application | 'root'>;
 
 
 export const ApplicationUIConfig: IApplicationFormField[] = [
@@ -50,9 +50,16 @@ export const ApplicationUIConfig: IApplicationFormField[] = [
     },
     {
         section: 'owner',
-        id: 'validId',
-        label: 'Valid Government ID',
-        type: 'text',
+        id: 'validIdFront',
+        label: 'ID Photo (Front)',
+        type: 'file',
+        required: true,
+    },
+    {
+        section: 'owner',
+        id: 'validIdBack',
+        label: 'ID Photo (Back)',
+        type: 'file',
         required: true,
     },
     {

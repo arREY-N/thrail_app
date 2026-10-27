@@ -83,6 +83,8 @@ exports.onNewMessage = functions.firestore
                 priority: 'high',
                 notification: {
                     channelId: 'default',
+                    icon: 'notification_icon',
+                    color: '#2E7D32',
                     clickAction: 'fcm.ACTION.HELLO',
                 }
             },
@@ -254,6 +256,8 @@ async function notifyBusinessAdmins(db, businessId, {
                 priority: 'high',
                 notification: {
                     channelId: 'default',
+                    icon: 'notification_icon',
+                    color: '#2E7D32',
                     sound: 'default',
                     defaultSound: true,
                     defaultVibrateTimings: true,
@@ -363,6 +367,8 @@ async function notifyUser(db, userId, { title, body, inAppTitle, inAppMessage, t
                     priority: 'high',
                     notification: {
                         channelId: 'default',
+                        icon: 'notification_icon',
+                        color: '#2E7D32',
                         sound: 'default',
                         defaultSound: true,
                         defaultVibrateTimings: true,
@@ -891,6 +897,15 @@ exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
             notification: {
                 title: "Booking Reminder",
                 body: `This is a reminder of your booking for ${trailName} on ${reminderDate}. Prepare and plan ahead!`
+            },
+            android: {
+                priority: 'high',
+                notification: {
+                    channelId: 'default',
+                    icon: 'notification_icon',
+                    color: '#2E7D32',
+                    sound: 'default',
+                }
             }
         });
 
@@ -3981,6 +3996,8 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
                 priority: 'high',
                 notification: {
                     channelId: 'default',
+                    icon: 'notification_icon',
+                    color: '#2E7D32',
                     clickAction: 'fcm.ACTION.HELLO',
                 },
             },

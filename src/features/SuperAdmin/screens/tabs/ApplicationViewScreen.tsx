@@ -47,6 +47,11 @@ const ApplicationViewScreen: React.FC<ApplicationViewScreenProps> = ({
 }) => {
     const isPending = application.status === 'pending';
 
+    const idFront = application.owner?.validIdFront ||
+        (Array.isArray(application.owner?.validId) ? application.owner.validId[0] : (typeof application.owner?.validId === 'string' ? application.owner.validId : undefined));
+    const idBack = application.owner?.validIdBack ||
+        (Array.isArray(application.owner?.validId) ? application.owner.validId[1] : undefined);
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'approved': return Colors.STATUS_APPROVED_TEXT;
@@ -173,7 +178,29 @@ const ApplicationViewScreen: React.FC<ApplicationViewScreenProps> = ({
                             </View>
                         </View>
 
-                        {/* 4. Permits Card */}
+                        {/* 4. Government ID Card */}
+                        <View style={styles.card}>
+                            <View style={styles.cardHeader}>
+                                <CustomIcon library="Feather" name="credit-card" size={18} color={Colors.PRIMARY} />
+                                <CustomText variant="h3" style={styles.cardTitle}>Government ID</CustomText>
+                            </View>
+                            <View style={styles.permitsList}>
+                                <DocumentUploadCard
+                                    docName="ID Photo (Front)"
+                                    docKey="validId"
+                                    isUploaded={idFront}
+                                    readOnly={true}
+                                />
+                                <DocumentUploadCard
+                                    docName="ID Photo (Back)"
+                                    docKey="validId"
+                                    isUploaded={idBack}
+                                    readOnly={true}
+                                />
+                            </View>
+                        </View>
+
+                        {/* 5. Permits Card */}
                         <View style={styles.card}>
                             <View style={styles.cardHeader}>
                                 <CustomIcon library="Feather" name="file-text" size={18} color={Colors.PRIMARY} />
