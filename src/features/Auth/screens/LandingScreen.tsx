@@ -11,7 +11,6 @@ import {
     Animated,
     Easing,
     Platform,
-    Pressable,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -22,7 +21,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from "@/src/components/CustomButton";
-import CustomIcon from "@/src/components/CustomIcon";
 import CustomImage from "@/src/components/CustomImage";
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomText from "@/src/components/CustomText";
@@ -59,7 +57,6 @@ export interface LandingScreenProps {
     onPrivacyPress: () => void;
     initialMode?: 'login' | 'signup' | 'forgot';
     onModeChange?: (mode: 'login' | 'signup' | 'forgot') => void;
-    onBrandingLabPress?: () => void;
 }
 
 /**
@@ -73,7 +70,6 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
     onPrivacyPress,
     initialMode,
     onModeChange,
-    onBrandingLabPress,
 }) => {
     const { isLargeScreen } = useBreakpoints();
     const insets = useSafeAreaInsets();
@@ -213,22 +209,6 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
                         resizeMode="cover"
                     />
                     <View style={styles.overlay} />
-                    {__DEV__ && onBrandingLabPress && (
-                        <Pressable
-                            onPress={onBrandingLabPress}
-                            style={[styles.devBrandingButton, { top: insets.top + 16 }]}
-                        >
-                            <CustomIcon
-                                library="Ionicons"
-                                name="color-palette"
-                                size={16}
-                                color={Colors.BACKGROUND}
-                            />
-                            <CustomText variant="caption" style={styles.devBrandingText}>
-                                Branding Lab
-                            </CustomText>
-                        </Pressable>
-                    )}
                     {/* All branding at the absolute bottom-left */}
                     <View style={styles.brandingContainer}>
                         <View style={styles.brandingTitleRow}>
@@ -346,22 +326,6 @@ const LandingScreen: React.FC<LandingScreenProps> = ({
                     style={styles.heroImage}
                     resizeMode="cover"
                 />
-                {__DEV__ && onBrandingLabPress && (
-                    <Pressable
-                        onPress={onBrandingLabPress}
-                        style={[styles.devBrandingButton, { top: insets.top + 16 }]}
-                    >
-                        <CustomIcon
-                            library="Ionicons"
-                            name="color-palette"
-                            size={16}
-                            color={Colors.BACKGROUND}
-                        />
-                        <CustomText variant="caption" style={styles.devBrandingText}>
-                            Branding Lab
-                        </CustomText>
-                    </Pressable>
-                )}
             </View>
 
             <Animated.View style={[
@@ -660,24 +624,6 @@ const styles = StyleSheet.create({
     formWrapper: {
         flex: 1,
         overflow: 'hidden',
-    },
-    devBrandingButton: {
-        position: 'absolute',
-        left: 20,
-        zIndex: 50,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: Colors.PRIMARY,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 20,
-        ...GlobalStyles.dropShadow(3),
-    },
-    devBrandingText: {
-        color: Colors.BACKGROUND,
-        fontWeight: 'bold',
-        fontSize: 11,
     },
 });
 
