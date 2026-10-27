@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 
+import { FilterSection } from '@/src/components/CustomFilterModal';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { TabItem } from '@/src/features/Book/components/BookTabs';
-import { FilterSection } from '@/src/components/CustomFilterModal';
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
@@ -35,11 +35,11 @@ export const getBookingEffectiveStatus = (
     const isNoRefund =
         cancellationDoc?.refundDecision === 'no_refund' ||
         (cancellationDoc?.status === 'approved' &&
-         booking?.status === 'cancelled' &&
-         cancellationDoc?.refundAmount === 0 &&
-         cancellationDoc?.handshakeStep !== 'awaiting_user_wallet' &&
-         cancellationDoc?.handshakeStep !== 'awaiting_admin_payout' &&
-         !cancellationDoc?.adminRefundReceiptUrl);
+            booking?.status === 'cancelled' &&
+            cancellationDoc?.refundAmount === 0 &&
+            cancellationDoc?.handshakeStep !== 'awaiting_user_wallet' &&
+            cancellationDoc?.handshakeStep !== 'awaiting_admin_payout' &&
+            !cancellationDoc?.adminRefundReceiptUrl);
 
     if (isNoRefund) {
         return 'cancelled';
@@ -74,8 +74,8 @@ export const getBookingEffectiveStatus = (
         const isManualRefundPending =
             !isPayMongo &&
             ((cancellationDoc.handshakeStep && cancellationDoc.handshakeStep !== 'completed') ||
-             payments.some(p => p.gateway === 'manual_qr') ||
-             PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+                payments.some(p => p.gateway === 'manual_qr') ||
+                PAYMENT_CONFIG.PROVIDER === 'manual_qr');
 
         if (isManualRefundPending && (hasCapturedPayments || cancellationDoc.refundAmount)) {
             return 'refund';
@@ -84,14 +84,6 @@ export const getBookingEffectiveStatus = (
     }
     if (cancellationDoc?.status === 'pending') {
         return 'for-cancellation';
-    }
-    if (
-        cancellationDoc?.status === 'rejected' &&
-        booking.status !== 'cancelled' &&
-        booking.status !== 'refund' &&
-        booking.status !== 'refunded'
-    ) {
-        return 'cancellation-rejected';
     }
     if (booking.status === 'refund') {
         const hasCapturedPayments = payments.some(p => p.status === 'captured');
@@ -118,11 +110,11 @@ export const isActionNeededStatus = (
     const isNoRefund =
         cancellation?.refundDecision === 'no_refund' ||
         (cancellation?.status === 'approved' &&
-         booking?.status === 'cancelled' &&
-         cancellation?.refundAmount === 0 &&
-         cancellation?.handshakeStep !== 'awaiting_user_wallet' &&
-         cancellation?.handshakeStep !== 'awaiting_admin_payout' &&
-         !cancellation?.adminRefundReceiptUrl);
+            booking?.status === 'cancelled' &&
+            cancellation?.refundAmount === 0 &&
+            cancellation?.handshakeStep !== 'awaiting_user_wallet' &&
+            cancellation?.handshakeStep !== 'awaiting_admin_payout' &&
+            !cancellation?.adminRefundReceiptUrl);
 
     if (isNoRefund) {
         return false;
