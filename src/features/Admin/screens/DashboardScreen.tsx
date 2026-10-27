@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomInfoRow from '@/src/components/CustomInfoRow';
 import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -149,16 +150,6 @@ const DashboardScreen = ({
         action();
     };
 
-    const InfoRow = ({ label, value, noMargin }: { label: string, value: string | undefined | null, noMargin?: boolean }) => {
-        const displayValue = value || 'N/A';
-        return (
-            <View style={[styles.inlineRow, noMargin && styles.noMargin]}>
-                <CustomText style={styles.inlineLabel} numberOfLines={1} adjustsFontSizeToFit>{label}</CustomText>
-                <CustomText style={styles.inlineValue} numberOfLines={2} adjustsFontSizeToFit>{displayValue}</CustomText>
-            </View>
-        );
-    };
-
     const formatAdminName = () => {
         if (!adminProfile) return '--';
         const fullName = `${adminProfile.firstname || ''} ${adminProfile.lastname || ''}`.trim();
@@ -196,26 +187,31 @@ const DashboardScreen = ({
             </View>
             
             <View style={styles.cardBody}>
-                <InfoRow 
+                <CustomInfoRow 
                     label="Business Name" 
                     value={businessAccount?.name} 
+                    compact={true}
                 />
-                <InfoRow 
+                <CustomInfoRow 
                     label="Address" 
                     value={businessAccount?.address} 
+                    compact={true}
                 />
-                <InfoRow 
+                <CustomInfoRow 
                     label="Serviced Location" 
                     value={formatLocation(businessAccount?.servicedLocation)}
+                    compact={true}
                 />
-                <InfoRow 
+                <CustomInfoRow 
                     label="Established" 
                     value={businessAccount?.establishedOn ? formatDate(businessAccount.establishedOn) : 'N/A'} 
+                    compact={true}
                 />
-                <InfoRow 
+                <CustomInfoRow 
                     label="Approved" 
                     value={businessAccount?.createdAt ? formatDate(businessAccount.createdAt) : 'N/A'} 
-                    noMargin={!isOwner}
+                    compact={true}
+                    isLast={!isOwner}
                 />
 
                 {isOwner && (
@@ -262,22 +258,27 @@ const DashboardScreen = ({
             </View>
             
             <View style={styles.cardBody}>
-                <InfoRow 
+                <CustomInfoRow 
                     label="Name" 
                     value={formatAdminName()} 
+                    compact={true}
                 />
-                <InfoRow 
+                <CustomInfoRow 
                     label="Username" 
                     value={adminProfile?.username} 
+                    compact={true}
                 />
-                <InfoRow 
+                <CustomInfoRow 
                     label="Email" 
                     value={adminProfile?.email} 
+                    enableCopy={Boolean(adminProfile?.email)}
+                    compact={true}
                 />
-                <InfoRow 
+                <CustomInfoRow 
                     label="Address" 
                     value={adminProfile?.address} 
-                    noMargin={true}
+                    compact={true}
+                    isLast={true}
                 />
             </View>
         </View>
@@ -728,17 +729,20 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: 8,
         marginBottom: 4,
     },
     paymentConfigTitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
+        flex: 1,
     },
     paymentConfigTitle: {
         fontSize: 13,
         fontWeight: '700',
         color: Colors.TEXT_PRIMARY,
+        flexShrink: 1,
     },
     paymentConfigEditBtn: {
         flexDirection: 'row',
