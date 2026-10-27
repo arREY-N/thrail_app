@@ -1,6 +1,7 @@
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { CancellationRepo } from "@/src/core/models/Cancellation/repositories/CancellationRepository";
 import { upsertItem } from "@/src/core/models/utils/upsert";
+import { deepEqual } from "@/src/core/utility/deepEqual";
 import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
 
@@ -13,8 +14,7 @@ export interface CancellationState {
     isFetching: boolean;
     isWriting: boolean;
 
-    activeListeners: Record<string, Unsubscribe>;
-    listenerCounts: Record<string, number>;
+    reset: () => void;
 
     write: (writeData: WriteCancellationParams) => Promise<void>;
     delete: (businessId: string, cancellation: Cancellation, userId?: string) => Promise<void>;
@@ -37,9 +37,6 @@ const init = {
     error: null,
     isFetching: false,
     isWriting: false,
-
-    activeListeners: {},
-    listenerCounts: {},
 };
 
 export type WriteCancellationParams = {
@@ -52,6 +49,13 @@ export type WriteCancellationParams = {
 const activeBusinessCancellationsListeners = new Map<string, Unsubscribe>();
 const businessCancellationsListenerCounts = new Map<string, number>();
 
+export function _getCancellationListenersForTesting() {
+    return {
+        activeListeners: activeBusinessCancellationsListeners,
+        listenerCounts: businessCancellationsListenerCounts,
+    };
+}
+
 function areCancellationsEqual(a?: Cancellation[], b?: Cancellation[]): boolean {
     if (a === b) return true;
     if (!a || !b) return false;
@@ -59,14 +63,9 @@ function areCancellationsEqual(a?: Cancellation[], b?: Cancellation[]): boolean 
     for (let i = 0; i < a.length; i++) {
         const itemA = a[i];
         const itemB = b[i];
-        if (
-            itemA.id !== itemB.id ||
-            itemA.status !== itemB.status ||
-            itemA.handshakeStep !== itemB.handshakeStep ||
-            itemA.refundDecision !== itemB.refundDecision ||
-            itemA.isDeleted !== itemB.isDeleted ||
-            itemA.updatedAt?.toString() !== itemB.updatedAt?.toString()
-        ) {
+        if (itemA === itemB) continue;
+        if (!itemA || !itemB || itemA.id !== itemB.id) return false;
+        if (!deepEqual(itemA, itemB)) {
             return false;
         }
     }
@@ -75,6 +74,19 @@ function areCancellationsEqual(a?: Cancellation[], b?: Cancellation[]): boolean 
 
 export const cancellationStoreCreator: StateCreator<CancellationState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
+
+    reset: () => {
+        activeBusinessCancellationsListeners.forEach((unsub) => {
+            try {
+                unsub();
+            } catch (e) {
+                console.error("Error unsubscribing cancellation listener on reset:", e);
+            }
+        });
+        activeBusinessCancellationsListeners.clear();
+        businessCancellationsListenerCounts.clear();
+        set(init);
+    },
 
     subscribeToBusinessCancellations(businessId: string): Unsubscribe {
         if (!businessId) {
