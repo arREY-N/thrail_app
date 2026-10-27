@@ -60,6 +60,7 @@
     "firebase": "^12.7.0",
     "firebase-admin": "^12.1.0",
     "immer": "^11.1.4",
+    "maplibre-gl": "^6.16.0",
     "pmtiles": "^4.4.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
