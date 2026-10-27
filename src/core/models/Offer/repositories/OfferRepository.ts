@@ -23,7 +23,6 @@ export const OfferRepository = (db: any) => ({
 
             if (snapshot.empty) return [];
 
-            console.log('Sucessfully fetched all offers');
             return snapshot.docs.map(docsnap => docsnap.data());
         } catch (err: unknown) {
             if (err instanceof Error) throw err;
@@ -43,7 +42,6 @@ export const OfferRepository = (db: any) => ({
 
             if (snapshot.empty) return [];
 
-            console.log('Sucessfully fetched offers for business: ', businessId);
             return snapshot.docs.map(docsnap => docsnap.data());
         } catch (err: unknown) {
             if (err instanceof Error) throw err;
@@ -67,10 +65,8 @@ export const OfferRepository = (db: any) => ({
 
             if (querySnapshot.empty) return [];
 
-            console.log('Sucessfully fetched offers for trail: ', trailId);
             return querySnapshot.docs.map(docsnap => docsnap.data() as Offer);
         } catch (err: any) {
-            console.error(err.message);
             throw new Error(err.message || 'Failed fetching offer for')
         }
     },
@@ -88,11 +84,9 @@ export const OfferRepository = (db: any) => ({
 
             if (!snap.exists()) return null;
 
-            console.log('Sucessfully fetched offer: ', snap.id);
             return snap.data();
-        } catch (err: any) {
-            console.error(err.message);
-            throw new Error('Failed to fetch offer')
+        } catch (err) {
+            throw new Error((err as Error).message || 'Failed to fetch offer');
         }
     },
 
@@ -112,10 +106,9 @@ export const OfferRepository = (db: any) => ({
                 return null
             };
 
-            console.log('Sucessfully fetched offer: ', snap.docs[0].id);
             return snap.docs[0].data();
         } catch (err: any) {
-            console.error(err.message);
+            console.warn(err.message);
             throw new Error('Failed to fetch offer')
         }
     },
@@ -141,14 +134,9 @@ export const OfferRepository = (db: any) => ({
 
             await setDoc(businessOfferRef, offer, { merge: true });
 
-            if (!create) {
-                // TODO: implement notification to reserved users about the changes in the offer
-                alert('notify reserved users about the changes');
-            }
-            console.log('Created offer: ', offer)
             return offer;
         } catch (err: any) {
-            console.error(err.message);
+            console.warn(err.message);
             throw new Error(err.message ?? 'Failed creating offer')
         }
     },
@@ -192,10 +180,10 @@ export const OfferRepository = (db: any) => ({
 
             await deleteDoc(docRef);
         } catch (err: any) {
-            console.error(err.message);
+            console.warn(err.message);
             throw new Error(err.message ?? 'Failed deleting');
         }
     }
 });
 
-export const OfferRepo = OfferRepository(db);
+export const OfferRepo = OfferRepository(db);

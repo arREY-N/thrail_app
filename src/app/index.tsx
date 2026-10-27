@@ -3,7 +3,7 @@ import { useAuthHook } from "@/src/core/models/User/User";
 
 import LandingScreen from "@/src/features/Auth/screens/LandingScreen";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
-import { Href, Redirect, router, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import React from "react";
 import SplashScreenView from "@/src/components/SplashScreenView";
 
@@ -43,9 +43,6 @@ export default function Index() {
 			initialMode={mode}
 			onModeChange={(newMode) => {
 				router.setParams({ mode: newMode });
-			}}
-			onBrandingLabPress={() => {
-				router.push('/branding-preview' as Href);
 			}}
 		/>
 	);

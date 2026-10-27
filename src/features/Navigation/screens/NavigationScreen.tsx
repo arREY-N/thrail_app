@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -11,7 +11,7 @@ import CustomText from "@/src/components/CustomText";
 import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
-import { Trail } from "@/src/core/models/Trail/Trail";
+import { Trail, computeTrailMidpoint } from "@/src/core/models/Trail/Trail";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
@@ -95,14 +95,20 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         }
     }
 
+    const trailCenter = useMemo(() => {
+        return computeTrailMidpoint(selectedTrail);
+    }, [selectedTrail]);
+
     useEffect(() => {
-        if (prevTrailRef.current !== null && selectedTrail === null) {
+        if (selectedTrail && trailCenter) {
+            mapRef.current?.centerOnCoordinate(trailCenter.longitude, trailCenter.latitude);
+        } else if (prevTrailRef.current !== null && selectedTrail === null) {
             setTimeout(() => {
                 mapRef.current?.centerOnUser();
             }, 150);
         }
         prevTrailRef.current = selectedTrail;
-    }, [selectedTrail]);
+    }, [selectedTrail, trailCenter]);
 
     const handleToggleOffline = () => {
         setIsOfflineMode(!isOfflineMode);
@@ -143,8 +149,8 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         <View style={styles.container}>
             <TrailMap
                 ref={mapRef}
-                initialLon={selectedTrail?.geography?.startLong}
-                initialLat={selectedTrail?.geography?.startLat}
+                initialLon={trailCenter?.longitude}
+                initialLat={trailCenter?.latitude}
                 bottomInset={controlsHeight + 20}
             />
 
@@ -165,23 +171,37 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                     styles.floatingSearchWrapper,
                     { top: Platform.OS === 'web' ? 0 : searchTopPadding },
                     responsiveStyle,
-                    Platform.OS === 'web' && (
-                        isLargeScreen
-                            ? { paddingLeft: 48, paddingRight: 60 }
-                            : { paddingLeft: 50, paddingRight: 40 }
-                    ),
                 ]}
             >
-                <CustomSearchBar
-                    searchPlaceholder="Search mountains or trails..."
-                    searchValue={searchQuery}
-                    onSearchChange={onSearchChange}
-                    activeTab={undefined}
-                    onTabSelect={undefined}
-                />
+                <View
+                    style={
+                        Platform.OS === 'web'
+                            ? (isLargeScreen
+                                ? { paddingLeft: 48, paddingRight: 60 }
+                                : { paddingLeft: 50, paddingRight: 40 })
+                            : undefined
+                    }
+                >
+                    <CustomSearchBar
+                        searchPlaceholder="Search mountains or trails..."
+                        searchValue={searchQuery}
+                        onSearchChange={onSearchChange}
+                        activeTab={undefined}
+                        onTabSelect={undefined}
+                    />
+                </View>
 
                 {showDropdown && (
-                    <View style={styles.dropdownContainer}>
+                    <View
+                        style={[
+                            styles.dropdownContainer,
+                            Platform.OS === 'web' && (
+                                isLargeScreen
+                                    ? { marginHorizontal: 16 }
+                                    : { marginHorizontal: 12 }
+                            ),
+                        ]}
+                    >
                         <FlatList
                             data={filteredTrails}
                             keyExtractor={(item) => item.id}
@@ -193,7 +213,11 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
 
                                 return (
                                     <TouchableOpacity
-                                        style={[styles.dropdownItem, index === filteredTrails.length - 1 && { borderBottomWidth: 0 }]}
+                                        style={[
+                                            styles.dropdownItem,
+                                            index === filteredTrails.length - 1 && { borderBottomWidth: 0 },
+                                            Platform.OS === 'web' && !isLargeScreen && { paddingHorizontal: 14, gap: 12 },
+                                        ]}
                                         onPress={() => onTrailSelect(item)}
                                     >
                                         <View style={styles.dropdownIconBox}>
@@ -204,7 +228,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                                 <CustomText style={styles.dropdownItemText} numberOfLines={1}>{item.general?.name}</CustomText>
                                                 <CustomText variant="caption" style={styles.dropdownLocation}>{locationName}</CustomText>
                                             </View>
-                                            <CustomText variant="caption" style={styles.dropdownSubText}>{dist} • {elev} • {route}</CustomText>
+                                            <CustomText variant="caption" style={styles.dropdownSubText} numberOfLines={1}>{dist} • {elev} • {route}</CustomText>
                                         </View>
                                         <CustomIcon library="Feather" name="arrow-up-left" size={16} color={Colors.GRAY_MEDIUM} />
                                     </TouchableOpacity>
@@ -440,7 +464,7 @@ const styles = StyleSheet.create({
     mapControlsColumn: { position: 'absolute', right: 16, gap: 12, zIndex: 45 },
     floatingIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: "center", justifyContent: "center", ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
 
-    dropdownContainer: { marginHorizontal: 16, marginTop: 4, backgroundColor: Colors.WHITE, borderRadius: 16, maxHeight: 220, overflow: "hidden", ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
+    dropdownContainer: { marginHorizontal: 16, marginTop: -14, backgroundColor: Colors.WHITE, borderRadius: 16, maxHeight: 220, overflow: "hidden", ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     dropdownList: { paddingVertical: 4 },
     dropdownItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.GRAY_ULTRALIGHT, gap: 12 },
     dropdownIconBox: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.BACKGROUND, alignItems: 'center', justifyContent: 'center' },

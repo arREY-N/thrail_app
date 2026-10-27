@@ -1,5 +1,4 @@
 import { storage } from '@/src/core/config/Firebase';
-import { logger } from '@/src/core/utility/errorFormatter';
 import { getAuth } from 'firebase/auth';
 import { getDownloadURL, ref, uploadBytes, UploadResult } from 'firebase/storage';
 
@@ -54,14 +53,11 @@ class FileRepositoryImpl {
 
             const blob: Blob = await response.blob();
 
-            logger('fileRepository', 'File data: ', file);
             const storageRef = ref(storage, `users/${user.uid}/documents/${Date.now()}_${file.name}`);
 
             const snapshot: UploadResult = await uploadBytes(storageRef, blob, { contentType })
-            logger('fileRepository', 'snapshot: ', snapshot)
 
             const downloadURL = await getDownloadURL(snapshot.ref);
-            logger('fileRepository', 'downloadUrl: ', downloadURL)
 
             if (!downloadURL)
                 throw new Error('Failed to retrieve download URL after upload');
