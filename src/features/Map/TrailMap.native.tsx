@@ -856,9 +856,9 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
       <Map
         style={styles.map}
         logo={false}
-        attribution={true}
+        attribution={showControls}
         attributionPosition={resolvedAttributionPosition}
-        compass={true}
+        compass={showControls}
         compassPosition={resolvedCompassPosition}
         compassHiddenFacingNorth={true}
         mapStyle={activeStyle}

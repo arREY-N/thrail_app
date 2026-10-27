@@ -1,4 +1,4 @@
-import { ICoordinate, ITrailStats } from "@/src/core/models/Trail/interfaces/Trail.types";
+import { ICoordinate, ITrailStats, Trail } from "@/src/core/models/Trail/interfaces/Trail.types";
 
 const toRad = (deg: number) => deg * (Math.PI / 180);
 
@@ -89,4 +89,26 @@ export function geoJSONToCoordinate(coord: number[]): ICoordinate {
         latitude: coord[1],
         altitude: coord[2] ?? 0,
     };
+}
+
+/**
+ * Computes the midpoint coordinate between the start and end point of a trail.
+ * Falls back to start coordinate if end point is missing or invalid.
+ */
+export function computeTrailMidpoint(trail?: Trail | null): { latitude: number; longitude: number } | null {
+    if (!trail?.geography) return null;
+    const { startLat, startLong, endLat, endLong } = trail.geography;
+    const hasValidStart = typeof startLat === 'number' && typeof startLong === 'number' && !isNaN(startLat) && !isNaN(startLong) && (startLat !== 0 || startLong !== 0);
+    const hasValidEnd = typeof endLat === 'number' && typeof endLong === 'number' && !isNaN(endLat) && !isNaN(endLong) && (endLat !== 0 || endLong !== 0);
+
+    if (hasValidStart && hasValidEnd) {
+        return {
+            latitude: (startLat + endLat) / 2,
+            longitude: (startLong + endLong) / 2,
+        };
+    }
+    if (hasValidStart) {
+        return { latitude: startLat, longitude: startLong };
+    }
+    return null;
 }

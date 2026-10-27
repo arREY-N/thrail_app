@@ -18,6 +18,7 @@ export {
 } from "@/src/core/models/Trail/utils/GetTrailImage";
 export { TrailLogic } from "@/src/core/models/Trail/utils/Trail.logic";
 export {
+    computeTrailMidpoint,
     default as computeTotalLength,
     geoJSONToCoordinate
 } from "@/src/core/models/Trail/utils/TrailComputation";

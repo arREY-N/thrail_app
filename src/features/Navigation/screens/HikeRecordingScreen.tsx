@@ -92,7 +92,7 @@ interface HikeRecordingScreenProps {
     isLoading: boolean;
     lon?: string | string[];
     lat?: string | string[];
-    onStartHike: () => void;
+    onStartHike: () => void | Promise<void>;
     onPauseHike: () => void;
     onResumeHike: () => void;
     onCompleteHike: () => void;
@@ -144,7 +144,22 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [isDiscarding, setIsDiscarding] = useState(false);
+    const [isStarting, setIsStarting] = useState(false);
     const [dashboardHeight, setDashboardHeight] = useState(250);
+
+    const isStartLoading = isStarting || (isLoading && hike.status === "unhiked");
+
+    const handleStartHike = async () => {
+        if (isStartLoading) return;
+        try {
+            setIsStarting(true);
+            await onStartHike();
+        } catch (err) {
+            console.error("Failed to start hike:", err);
+        } finally {
+            setIsStarting(false);
+        }
+    };
 
     const handleDiscardPrompt = () => {
         setShowDiscardConfirm(true);
@@ -432,7 +447,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 </TouchableOpacity>
             </View>
 
-            <View 
+            <View
                 style={[styles.dashboardWrapper, { paddingBottom: insets.bottom + 16 }]}
                 onLayout={(e) => {
                     const h = Math.round(e.nativeEvent.layout.height);
@@ -471,9 +486,22 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
                 <View style={styles.actionRow}>
                     {hike.status === "unhiked" && (
-                        <TouchableOpacity style={styles.lightGreenBtn} onPress={onStartHike}>
-                            <CustomIcon library="Feather" name="play" size={20} color={Colors.PRIMARY} />
-                            <CustomText style={styles.lightGreenBtnText}>Start Recording</CustomText>
+                        <TouchableOpacity
+                            style={[styles.lightGreenBtn, isStartLoading && { opacity: 0.7 }]}
+                            onPress={handleStartHike}
+                            disabled={isStartLoading}
+                        >
+                            {isStartLoading ? (
+                                <>
+                                    <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                                    <CustomText style={styles.lightGreenBtnText}>Starting Recording...</CustomText>
+                                </>
+                            ) : (
+                                <>
+                                    <CustomIcon library="Feather" name="play" size={20} color={Colors.PRIMARY} />
+                                    <CustomText style={styles.lightGreenBtnText}>Start Recording</CustomText>
+                                </>
+                            )}
                         </TouchableOpacity>
                     )}
 
@@ -782,11 +810,11 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                                     onPress={() => handleHikerLocationPress(member, locData)}
                                                     activeOpacity={0.8}
                                                 >
-                                                    <CustomIcon 
-                                                        library="Feather" 
-                                                        name={isLost ? "alert-triangle" : "map-pin"} 
-                                                        size={11} 
-                                                        color={isLost ? '#E65100' : Colors.PRIMARY} 
+                                                    <CustomIcon
+                                                        library="Feather"
+                                                        name={isLost ? "alert-triangle" : "map-pin"}
+                                                        size={11}
+                                                        color={isLost ? '#E65100' : Colors.PRIMARY}
                                                     />
                                                     <CustomText style={[styles.trackHikerBtnText, isLost && styles.trackHikerBtnTextLost]}>
                                                         {isLost ? "Track Last Known" : "Track Hiker"}

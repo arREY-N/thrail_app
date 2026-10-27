@@ -65,7 +65,8 @@ export const ROUTE_GLOSSARY: Record<string, string> = {
     "Out-and-Back": "You will hike to the destination and return using the exact same path.",
     "Point-to-Point": "The hike starts at one location and ends at a completely different location.",
     "Circular": "The trail forms a loop, returning to the start without repeating the exact same path.",
-    "Loop": "The trail forms a loop, returning to the start without repeating the exact same path."
+    "Loop": "The trail forms a loop, returning to the start without repeating the exact same path.",
+    "Traverse": "The hikers starts from one location, reaches the summit, then finishes in a different location."
 };
 
 export const getClassColor = (classification?: string | null): string => {

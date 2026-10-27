@@ -38,7 +38,7 @@ export const catchError = (error: Error, errorState: string = 'error state', hoo
 export const logger = (location: string, message: string, object?: any) => {
     if (!__DEV__) return;
 
-    console.log(`[${location}] ${message}`, object ?? ``);
+    // console.log(`[${location}] ${message}`, object ?? ``);
 }
 
 export const refactorCatcher = (message: string) => {
