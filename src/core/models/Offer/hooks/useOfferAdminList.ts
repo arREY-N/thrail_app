@@ -14,11 +14,6 @@ export function useOfferAdminList() {
         const fetch = async () => {
             if (!profile?.id || !businessId) return;
 
-            const currentOffers = useOfferStore.getState().businessOffers;
-            if (currentOffers && currentOffers.length > 0 && currentOffers.every(o => o.business?.id === businessId)) {
-                return;
-            }
-
             await Promise.all([
                 useOfferStore.getState().fetchOfferByBusiness(businessId),
             ])

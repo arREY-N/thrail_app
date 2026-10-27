@@ -164,11 +164,6 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
     fetchOfferByBusiness: async (id: string) => {
         if (!id) return;
 
-        const cached = get().businessOffers.filter(o => o.business?.id === id);
-        if (cached.length > 0) {
-            return;
-        }
-
         try {
             set({ isLoading: true, error: null });
 
