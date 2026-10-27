@@ -1,12 +1,13 @@
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
-import { useOfferAdminList } from "@/src/core/models/Offer/Offer";
+import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { useEffect, useMemo } from "react";
 
-export function useBookingListenerAdminList() {
+export function useBookingListenerAdminList(passedBusinessOffers?: Offer[]) {
     const { businessId } = useAuthHook();
 
-    const { businessOffers } = useOfferAdminList();
+    const storeBusinessOffers = useOfferStore(s => s.businessOffers);
+    const businessOffers = passedBusinessOffers ?? storeBusinessOffers;
 
     const bookingByOffer = useBookingsStore(s => s.bookingByOffer);
     const subscribeToBusinessBookings = useBookingsStore(s => s.subscribeToBusinessBookings);

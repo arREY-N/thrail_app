@@ -1,7 +1,7 @@
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { router } from "expo-router";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
 
 export function useBookingOfferAdminList(offerId: string) {
@@ -27,12 +27,12 @@ export function useBookingOfferAdminList(offerId: string) {
         };
     }, [businessId, offerId]);
 
-    const onViewBooking = (bookingId: string, offerId: string) => {
+    const onViewBooking = useCallback((bookingId: string, offerId: string) => {
         router.push({
             pathname: '/(app)/(main)/admin/booking/view',
             params: { bookingId, offerId }
-        })
-    }
+        });
+    }, []);
 
     return {
         offerBookings,

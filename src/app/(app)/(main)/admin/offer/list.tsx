@@ -32,7 +32,7 @@ export default function AdminOfferList(): React.JSX.Element {
     } = useOfferAdminList();
 
     const { businessCancellations } = useCancellationAdminList();
-    const { bookingByOffer } = useBookingListenerAdminList();
+    const { bookingByOffer } = useBookingListenerAdminList(businessOffers);
 
     return (
         <>

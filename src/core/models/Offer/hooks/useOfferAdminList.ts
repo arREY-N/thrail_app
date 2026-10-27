@@ -14,6 +14,11 @@ export function useOfferAdminList() {
         const fetch = async () => {
             if (!profile?.id || !businessId) return;
 
+            const currentOffers = useOfferStore.getState().businessOffers;
+            if (currentOffers && currentOffers.length > 0 && currentOffers.every(o => o.business?.id === businessId)) {
+                return;
+            }
+
             await Promise.all([
                 useOfferStore.getState().fetchOfferByBusiness(businessId),
             ])
@@ -30,12 +35,12 @@ export function useOfferAdminList() {
         ])
     }, [profile?.id, businessId])
 
-    const onViewOfferBookings = (offerId: string) => {
+    const onViewOfferBookings = useCallback((offerId: string) => {
         router.push({
-            pathname: '/(main)/admin/offer/view',
+            pathname: '/(app)/(main)/admin/offer/view',
             params: { offerId }
         });
-    }
+    }, []);
 
     return useMemo(() => ({
         onRefresh,
@@ -46,5 +51,5 @@ export function useOfferAdminList() {
         error,
         businessId,
         isLoading,
-    }), [onRefresh, error, businessOffers, profile, role, businessId, isLoading])
+    }), [onRefresh, onViewOfferBookings, error, businessOffers, profile, role, businessId, isLoading])
 }
