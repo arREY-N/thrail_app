@@ -102,15 +102,12 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                 if (!get().user) {
                     set({ isLoading: true });
                 }
-                logger("authStoreCreator", "init");
                 const currentUnsub = get()._unsubscribe;
 
                 if (currentUnsub) {
                     currentUnsub();
                     set({ _unsubscribe: null });
                 }
-
-                logger("authStoreCreator", 'line 90')
 
                 if (firebaseUser) {
                     if (lastCheckedUid !== firebaseUser.uid) {
@@ -119,11 +116,7 @@ export const authStoreCreator: StateCreator<AuthState, [["zustand/immer", never]
                     }
 
                     try {
-                        logger("authStoreCreator", "with user");
-
                         let idTokenResult = await firebaseUser.getIdTokenResult(false);
-
-                        logger("authStoreCreator", 'worked');
 
                         const initialBusinessId =
                             (idTokenResult.claims as CustomClaims).businessId ||

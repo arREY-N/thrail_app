@@ -67,7 +67,7 @@ export const businessStoreCreator: StateCreator<
                 isLoading: false,
             });
         } catch (err) {
-            console.error((err as Error).message);
+            console.warn((err as Error).message);
             set({
                 error: (err as Error).message,
                 isLoading: false,
@@ -81,7 +81,6 @@ export const businessStoreCreator: StateCreator<
         const COOLDOWN_MS = 2000;
 
         if (now - lastFetchedAt < COOLDOWN_MS && get().data.length > 0) {
-            console.log('Throttled refresh: reusing in-memory cache to save Firestore reads.');
             return;
         }
 
@@ -96,7 +95,7 @@ export const businessStoreCreator: StateCreator<
                 isLoading: false,
             });
         } catch (err) {
-            console.error((err as Error).message);
+            console.warn((err as Error).message);
             set({
                 error: (err as Error).message,
                 isLoading: false,
@@ -122,7 +121,6 @@ export const businessStoreCreator: StateCreator<
             }
 
             if (!business) {
-                console.log('calling repo');
                 business = await BusinessRepo.fetchById(id);
             }
 
@@ -146,7 +144,7 @@ export const businessStoreCreator: StateCreator<
                 };
             });
         } catch (err) {
-            console.error((err as Error).message);
+            console.warn((err as Error).message);
             set({
                 error: (err as Error).message,
                 isLoading: false,
@@ -169,7 +167,7 @@ export const businessStoreCreator: StateCreator<
             });
             return true;
         } catch (err) {
-            console.error((err as Error).message);
+            console.warn((err as Error).message);
             set({
                 error: (err as Error).message ?? 'Failed adding business',
                 isLoading: false,
@@ -198,7 +196,7 @@ export const businessStoreCreator: StateCreator<
             });
             return true;
         } catch (err) {
-            console.error((err as Error).message);
+            console.warn((err as Error).message);
             set({
                 error: (err as Error).message ?? 'Failed to update payment config',
                 isLoading: false,
@@ -220,7 +218,7 @@ export const businessStoreCreator: StateCreator<
                 };
             });
         } catch (err) {
-            console.error((err as Error).message);
+            console.warn((err as Error).message);
             set({
                 error: (err as Error).message ?? 'Failed deleting business',
                 isLoading: false,
@@ -237,7 +235,6 @@ export const businessStoreCreator: StateCreator<
 
         try {
             const targetID = providedBusinessId || get().current?.id;
-            console.log('Target ID: ', targetID);
             if (!targetID) throw new Error('Missing Business ID');
 
             const businessAdmins = await BusinessRepo.fetchBusinessAdmins(targetID);
@@ -247,7 +244,7 @@ export const businessStoreCreator: StateCreator<
                 isLoading: false,
             });
         } catch (err) {
-            console.error((err as Error).message);
+            console.warn((err as Error).message);
             set({
                 isLoading: false,
                 error: (err as Error).message ?? 'Failed loading admins',
@@ -260,7 +257,6 @@ export const businessStoreCreator: StateCreator<
 
         try {
             const targetID = providedBusinessId || get().current?.id;
-            console.log('Target ID: ', targetID);
             if (!targetID) throw new Error('Missing Business ID');
 
             const businessAdmins = await BusinessRepo.fetchBusinessAdmins(targetID);
@@ -270,7 +266,7 @@ export const businessStoreCreator: StateCreator<
                 isLoading: false,
             });
         } catch (err) {
-            console.error((err as Error).message);
+            console.warn((err as Error).message);
             set({
                 isLoading: false,
                 error: (err as Error).message ?? 'Failed loading admins',

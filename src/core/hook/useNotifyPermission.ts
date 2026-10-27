@@ -1,5 +1,6 @@
 import { requestNotificationPermission } from '@/src/core/models/Notification/Notification';
 import { NotificationToken, useAuthHook, useUserStore } from '@/src/core/models/User/User';
+import { logger } from '@/src/core/utility/errorFormatter';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
@@ -19,11 +20,10 @@ export function useNotifyPermission() {
             }
 
             const result = await requestNotificationPermission();
-            console.log("Notification Permission Token:", result);
             setToken(result);
 
             if (!result) {
-                console.warn("No notification token obtained. User may have denied permission or an error occurred.");
+                logger('UseNotifyPermission', "No notification token obtained. User may have denied permission or an error occurred.");
                 return;
             }
 
@@ -38,7 +38,7 @@ export function useNotifyPermission() {
             }
 
             if (!platform) {
-                console.warn("Unsupported platform for notifications:", Platform.OS);
+                logger('UseNotifyPermission', "Unsupported platform for notifications:", Platform.OS);
                 return;
             }
 
@@ -49,18 +49,16 @@ export function useNotifyPermission() {
             }
 
             if (!profile) {
-                console.warn("No user profile found. Cannot associate notification token.");
+                logger('UseNotifyPermission', "No user profile found. Cannot associate notification token.");
                 return;
             }
 
             if (profile.fcmTokens.some(t => t.token === newToken.token)) {
-                console.log("Notification token already exists for user profile.");
                 return;
             }
 
             await addUserNotificationToken(newToken, profile);
 
-            console.log('Notification token added to user profile:', newToken);
             hasRun.current = true;
         };
 
