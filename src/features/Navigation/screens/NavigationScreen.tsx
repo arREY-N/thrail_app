@@ -16,6 +16,7 @@ import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
 
+import { useWebDrawer } from "@/src/core/context/WebDrawerContext";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
@@ -72,6 +73,8 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const { isDesktop, isTablet } = useBreakpoints();
     const isLargeScreen = isDesktop || isTablet;
 
+    const { toggleDrawer } = useWebDrawer();
+
     const mapRef = useRef<TrailMapRef | null>(null);
     const [isOfflineMode, setIsOfflineMode] = useState(true);
     const [isDevBypassModalVisible, setDevBypassModalVisible] = useState(false);
@@ -123,16 +126,6 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         }
     };
 
-    // if (Platform.OS === 'web') {
-    //     return (
-    //         <View style={styles.container}>
-    //             <CustomHeader title="Hike" showDefaultIcons={true} />
-    //             <TrailMap ref={mapRef} bottomInset={0} />
-    //             <CustomFAB onPress={onGroupPress} />
-    //         </View>
-    //     );
-    // }
-
     const showDropdown = filteredTrails.length > 0 && selectedTrail?.general?.name !== searchQuery;
 
     const responsiveStyle = isLargeScreen ? {
@@ -155,14 +148,34 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 bottomInset={controlsHeight + 20}
             />
 
-            <View style={[styles.floatingSearchWrapper, { top: searchTopPadding }, responsiveStyle]}>
+            {Platform.OS === 'web' && (
+                <TouchableOpacity
+                    style={[styles.floatingTopLeftMenuBtn, { top: 10 }]}
+                    onPress={toggleDrawer}
+                    activeOpacity={0.8}
+                    accessibilityLabel="Open Navigation Menu"
+                    accessibilityRole="button"
+                >
+                    <CustomIcon library="Feather" name="menu" size={24} color={Colors.PRIMARY} />
+                </TouchableOpacity>
+            )}
+
+            <View
+                style={[
+                    styles.floatingSearchWrapper,
+                    { top: Platform.OS === 'web' ? 0 : searchTopPadding },
+                    responsiveStyle,
+                    Platform.OS === 'web' && (
+                        isLargeScreen
+                            ? { paddingLeft: 48, paddingRight: 60 }
+                            : { paddingLeft: 50, paddingRight: 40 }
+                    ),
+                ]}
+            >
                 <CustomSearchBar
                     searchPlaceholder="Search mountains or trails..."
                     searchValue={searchQuery}
                     onSearchChange={onSearchChange}
-                    rightIconLibrary="FontAwesome5"
-                    rightIconName="location-arrow"
-                    onRightButtonPress={onSearchSubmit}
                     activeTab={undefined}
                     onTabSelect={undefined}
                 />
@@ -409,6 +422,20 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.BACKGROUND },
 
     floatingSearchWrapper: { position: "absolute", zIndex: 50 },
+    floatingTopLeftMenuBtn: {
+        position: 'absolute',
+        left: 10,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.WHITE,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 60,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
+        ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }),
+    },
     floatingControlsContainer: { position: "absolute", bottom: 24, zIndex: 40, paddingHorizontal: 16 },
     mapControlsColumn: { position: 'absolute', right: 16, gap: 12, zIndex: 45 },
     floatingIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: "center", justifyContent: "center", ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
