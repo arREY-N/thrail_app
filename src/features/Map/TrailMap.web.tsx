@@ -134,12 +134,28 @@ function computeBounds(geojson: unknown): maplibregl.LngLatBounds | null {
 
 function ensureMapLibreCss() {
   const id = "maplibre-gl-css";
-  if (typeof document === "undefined" || document.getElementById(id)) return;
-  const link = document.createElement("link");
-  link.id = id;
-  link.rel = "stylesheet";
-  link.href = `https://unpkg.com/maplibre-gl@${maplibregl.getVersion()}/dist/maplibre-gl.css`;
-  document.head.appendChild(link);
+  if (typeof document === "undefined") return;
+  if (!document.getElementById(id)) {
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = `https://unpkg.com/maplibre-gl@${maplibregl.getVersion()}/dist/maplibre-gl.css`;
+    document.head.appendChild(link);
+  }
+  const customStyleId = "maplibre-custom-css";
+  if (!document.getElementById(customStyleId)) {
+    const style = document.createElement("style");
+    style.id = customStyleId;
+    style.textContent = `
+      .hide-maplibre-controls .maplibregl-ctrl-top-right,
+      .hide-maplibre-controls .maplibregl-ctrl-bottom-left,
+      .hide-maplibre-controls .maplibregl-ctrl-top-left,
+      .hide-maplibre-controls .maplibregl-ctrl-bottom-right {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
 }
 
 function ensureMapLibreWorker() {
@@ -298,7 +314,7 @@ const TRAIL_MAIN = "trail-main";
 
 const TrailMap = memo(
   forwardRef<TrailMapRef, TrailMapProps>(
-    ({ initialLon, initialLat, mountainId, trailFileName, bottomInset = 24, hikerLocations = [], currentUserId }, ref) => {
+    ({ initialLon, initialLat, mountainId, trailFileName, showControls = true, bottomInset = 24, hikerLocations = [], currentUserId }, ref) => {
       const containerRef = useRef<HTMLDivElement | null>(null);
       const mapRef = useRef<maplibregl.Map | null>(null);
       const hikerEntriesRef = useRef<Map<string, HikerEntry>>(new Map());
@@ -652,7 +668,11 @@ const TrailMap = memo(
       return (
         <View style={styles.page}>
           {/* Plain DOM node: maplibre-gl needs a real HTMLElement (valid because this file is web-only) */}
-          <div ref={containerRef} style={{ width: "100%", height: "100%", position: "absolute", inset: 0 }} />
+          <div
+            ref={containerRef}
+            className={!showControls ? "hide-maplibre-controls" : undefined}
+            style={{ width: "100%", height: "100%", position: "absolute", inset: 0 }}
+          />
 
           {notice && (
             <View style={styles.notice} pointerEvents="none">
