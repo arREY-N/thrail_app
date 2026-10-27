@@ -88,10 +88,11 @@ describe('Booking Store Ref-Counting & Listener Bookkeeping', () => {
 
         await store.getState().subscribeToBusinessBookings('offer_2', 'biz_1');
 
+        const fixedDate = new Date('2026-01-01T00:00:00.000Z');
         const mockBookings: Booking[] = [
             {
                 id: 'booking_1',
-                offer: { id: 'offer_2', date: new Date(), price: 100 },
+                offer: { id: 'offer_2', date: fixedDate, price: 100 },
                 business: { id: 'biz_1', name: 'Biz' } as any,
                 trail: { id: 'trail_1', name: 'Trail' } as any,
                 status: 'approved-docs',
@@ -99,8 +100,8 @@ describe('Booking Store Ref-Counting & Listener Bookkeeping', () => {
                 payment: [],
                 emergencyContact: {} as any,
                 documents: [],
-                createdAt: new Date('2026-01-01'),
-                updatedAt: new Date('2026-01-02'),
+                createdAt: fixedDate,
+                updatedAt: fixedDate,
             } as Booking,
         ];
 
@@ -118,7 +119,7 @@ describe('Booking Store Ref-Counting & Listener Bookkeeping', () => {
         const identicalBookings: Booking[] = [
             {
                 id: 'booking_1',
-                offer: { id: 'offer_2', date: new Date(), price: 100 },
+                offer: { id: 'offer_2', date: fixedDate, price: 100 },
                 business: { id: 'biz_1', name: 'Biz' } as any,
                 trail: { id: 'trail_1', name: 'Trail' } as any,
                 status: 'approved-docs',
@@ -126,8 +127,8 @@ describe('Booking Store Ref-Counting & Listener Bookkeeping', () => {
                 payment: [],
                 emergencyContact: {} as any,
                 documents: [],
-                createdAt: new Date('2026-01-01'),
-                updatedAt: new Date('2026-01-02'),
+                createdAt: fixedDate,
+                updatedAt: fixedDate,
             } as Booking,
         ];
 
@@ -136,6 +137,53 @@ describe('Booking Store Ref-Counting & Listener Bookkeeping', () => {
         // State update must be skipped, retaining original reference
         expect(setFired).toBe(false);
         expect(store.getState().bookingByOffer['offer_2']).toBe(savedReference);
+    });
+
+    it('updates bookingByOffer when a non-status field changes (e.g. document validity) even with the same updatedAt', async () => {
+        let snapshotCallback: ((bookings: Booking[]) => void) | undefined;
+        (BookingRepo.listenToBusinessBookings as jest.Mock).mockImplementation((_offerId, _bizId, cb) => {
+            snapshotCallback = cb;
+            return mockUnsubscribe;
+        });
+
+        await store.getState().subscribeToBusinessBookings('offer_deep', 'biz_1');
+
+        const initialDate = new Date('2026-01-01');
+        const initialBooking: Booking = {
+            id: 'booking_deep_1',
+            offer: { id: 'offer_deep', date: new Date(), price: 100 },
+            business: { id: 'biz_1', name: 'Biz' } as any,
+            trail: { id: 'trail_1', name: 'Trail' } as any,
+            status: 'approved-docs',
+            user: { id: 'user_1' } as any,
+            payment: [],
+            emergencyContact: {} as any,
+            documents: [{ name: 'ID', file: 'id.jpg', valid: 'pending' }],
+            createdAt: initialDate,
+            updatedAt: initialDate,
+        } as Booking;
+
+        // Initial snapshot
+        snapshotCallback!([initialBooking]);
+        expect(store.getState().bookingByOffer['offer_deep'][0].documents[0].valid).toBe('pending');
+
+        let setFired = false;
+        store.subscribe(() => {
+            setFired = true;
+        });
+
+        // Snapshot with document validity approved, but identical updatedAt
+        const updatedBooking: Booking = {
+            ...initialBooking,
+            documents: [{ name: 'ID', file: 'id.jpg', valid: 'approved' }],
+            updatedAt: initialDate,
+        };
+
+        snapshotCallback!([updatedBooking]);
+
+        // Must NOT drop the update!
+        expect(setFired).toBe(true);
+        expect(store.getState().bookingByOffer['offer_deep'][0].documents[0].valid).toBe('approved');
     });
 
     it('unsubscribes all active listeners on reset()', async () => {

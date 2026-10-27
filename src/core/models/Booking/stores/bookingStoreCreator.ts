@@ -2,6 +2,7 @@ import { Booking } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { BookingRepo } from "@/src/core/models/Booking/repositories/BookingRepository";
 import { BookingLogic } from "@/src/core/models/Booking/utils/Booking.logic";
 import { upsertItem } from "@/src/core/models/utils/upsert";
+import { deepEqual } from "@/src/core/utility/deepEqual";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
 import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
@@ -41,6 +42,7 @@ const businessBookingListenerCounts = new Map<string, number>();
 
 /**
  * Compares two arrays of bookings to skip redundant store sets on no-op snapshots.
+ * Performs cheap checks first, then uses full deep equality so no real field updates are dropped.
  */
 function areBookingsEqual(a?: Booking[], b?: Booking[]): boolean {
     if (a === b) return true;
@@ -49,13 +51,11 @@ function areBookingsEqual(a?: Booking[], b?: Booking[]): boolean {
     for (let i = 0; i < a.length; i++) {
         const itemA = a[i];
         const itemB = b[i];
-        if (itemA.id !== itemB.id) return false;
-        if (itemA.status !== itemB.status) return false;
-        if (itemA.paymentVerificationStatus !== itemB.paymentVerificationStatus) return false;
-        if (itemA.user?.id !== itemB.user?.id) return false;
-        const timeA = itemA.updatedAt ? new Date(itemA.updatedAt as unknown as string).getTime() : 0;
-        const timeB = itemB.updatedAt ? new Date(itemB.updatedAt as unknown as string).getTime() : 0;
-        if (timeA !== timeB) return false;
+        if (itemA === itemB) continue;
+        if (!itemA || !itemB || itemA.id !== itemB.id) return false;
+        if (!deepEqual(itemA, itemB)) {
+            return false;
+        }
     }
     return true;
 }
