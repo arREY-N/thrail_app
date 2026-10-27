@@ -34,12 +34,13 @@ import { IOffer } from "@/src/core/models/Offer/Offer";
 import { IEmergencyContact, User } from '@/src/core/models/User/User';
 import { logger } from '@/src/core/utility/errorFormatter';
 
-import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
+import { Cancellation, IUserWalletDetails } from '@/src/core/models/Cancellation/Cancellation';
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem';
 import BookingActionMenuModal from '@/src/features/Book/screens/MyBookings/components/BookingActionMenuModal';
 import BookingStatusComponent from '@/src/features/Book/screens/MyBookings/components/BookingStatus';
 import CancelBookingModal from '@/src/features/Book/screens/MyBookings/components/CancelBookingModal';
 import CancellationCard from '@/src/features/Book/screens/MyBookings/components/CancellationCard';
+import OverpaymentRefundCard from '@/src/features/Book/screens/MyBookings/components/OverpaymentRefundCard';
 import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHeader';
 import ItinerarySection from '@/src/features/Book/screens/MyBookings/components/ItinerarySection';
 import PaymentSummaryCard from '@/src/features/Book/screens/MyBookings/components/PaymentSummaryCard';
@@ -66,9 +67,9 @@ export interface BookingDetailsScreenProps {
     /** Callback to view receipt */
     onViewReceipt: (booking: Booking) => void;
     /** Callback for cancellation confirmation */
-    onCancelConfirm: (booking: Booking, reason: string) => Promise<void> | void;
+    onCancelConfirm: (booking: Booking, reason: string, userWallet?: IUserWalletDetails<Date>) => Promise<void> | void;
     /** Callback for refund confirmation */
-    onRefundConfirm: (booking: Booking, reason: string) => Promise<void> | void;
+    onRefundConfirm: (booking: Booking, reason: string, userWallet?: IUserWalletDetails<Date>) => Promise<void> | void;
     /** Callback when re-uploading all rejected documents and/or updating contacts on rejected bookings */
     onResubmitDocuments?: (
         booking: Booking,
@@ -206,33 +207,56 @@ const BookingDetailsScreen = ({
     const isPayMongo = payments.some(p => p.gateway === 'paymongo');
     const hasRefundedPayment = payments.some(p => p.status === 'refunded' || (p.refundedAmount || 0) > 0);
     const isAllRefunded = payments.length > 0 && payments.every(p => p.status === 'refunded');
-    const hasRefundReceipt = Boolean(cancellation?.adminRefundReceiptUrl);
+
+    const isNoRefund =
+        cancellation?.refundDecision === 'no_refund' ||
+        (cancellation?.status === 'approved' &&
+         booking?.status === 'cancelled' &&
+         cancellation?.refundAmount === 0 &&
+         cancellation?.handshakeStep !== 'awaiting_user_wallet' &&
+         cancellation?.handshakeStep !== 'awaiting_admin_payout' &&
+         !cancellation?.adminRefundReceiptUrl);
 
     const isRefundComplete =
-        localStatus === 'refunded' ||
-        hasRefundReceipt ||
-        cancellation?.handshakeStep === 'completed' ||
-        isAllRefunded ||
-        (isPayMongo && hasRefundedPayment);
+        !isNoRefund &&
+        (localStatus === 'refunded' ||
+         cancellation?.status === 'refund_completed' ||
+         cancellation?.handshakeStep === 'completed' ||
+         (isPayMongo && (isAllRefunded || hasRefundedPayment)));
 
     let displayStatus: BookingStatus | undefined = localStatus;
 
-    if (cancellation?.status === 'pending') {
+    if (isNoRefund) {
+        displayStatus = 'cancelled';
+    } else if (cancellation?.status === 'pending') {
         displayStatus = 'for-cancellation';
-    } else if (cancellation?.status === 'approved') {
-        const hasCapturedPayments = payments.some(p => p.status === 'captured');
-        const isManualRefundPending =
-            !isPayMongo &&
-            ((cancellation.handshakeStep && cancellation.handshakeStep !== 'completed') ||
-             payments.some(p => p.gateway === 'manual_qr') ||
-             PAYMENT_CONFIG.PROVIDER === 'manual_qr');
-
-        if (isRefundComplete) {
-            displayStatus = 'refunded';
-        } else if (isManualRefundPending && (hasCapturedPayments || cancellation?.refundAmount)) {
-            displayStatus = 'refund';
-        } else {
+    } else if (
+        cancellation?.status === 'approved' ||
+        cancellation?.status === 'refund_submitted' ||
+        cancellation?.status === 'refund_disputed'
+    ) {
+        if (
+            cancellation?.status === 'approved' &&
+            booking?.status === 'cancelled' &&
+            typeof cancellation?.refundAmount === 'number' &&
+            cancellation.refundAmount === 0
+        ) {
             displayStatus = 'cancelled';
+        } else {
+            const hasCapturedPayments = payments.some(p => p.status === 'captured');
+            const isManualRefundPending =
+                !isPayMongo &&
+                ((cancellation.handshakeStep && cancellation.handshakeStep !== 'completed') ||
+                 payments.some(p => p.gateway === 'manual_qr') ||
+                 PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
+            if (isRefundComplete) {
+                displayStatus = 'refunded';
+            } else if (isManualRefundPending && (hasCapturedPayments || cancellation?.refundAmount)) {
+                displayStatus = 'refund';
+            } else {
+                displayStatus = 'cancelled';
+            }
         }
     } else if (
         cancellation?.status === 'rejected' &&
@@ -243,7 +267,7 @@ const BookingDetailsScreen = ({
         displayStatus = localStatus;
     }
 
-    if (displayStatus === 'cancelled' || displayStatus === 'for-cancellation' || displayStatus === 'refund') {
+    if (!isNoRefund && (displayStatus === 'cancelled' || displayStatus === 'for-cancellation' || displayStatus === 'refund')) {
         if (isRefundComplete) {
             displayStatus = 'refunded';
         }
@@ -256,8 +280,10 @@ const BookingDetailsScreen = ({
     const isPaymentVerifying = booking?.paymentVerificationStatus === 'pending_verification' ||
         Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
 
-    const isPaymentRejected = booking?.paymentVerificationStatus === 'rejected' ||
-        (displayStatus === 'for-payment' && Boolean(booking?.payment?.length && booking.payment[booking.payment.length - 1].status === 'rejected'));
+    const isPaymentRejected = !isPaymentVerifying && (
+        booking?.paymentVerificationStatus === 'rejected' ||
+        (displayStatus === 'for-payment' && Boolean(booking?.payment?.length && booking.payment[booking.payment.length - 1].status === 'rejected'))
+    );
 
     const user = booking?.user;
 
@@ -628,7 +654,7 @@ const BookingDetailsScreen = ({
                             <View style={styles.paymentPendingBanner}>
                                 <View style={styles.paymentPendingHeader}>
                                     <View style={styles.paymentPendingIconCircle}>
-                                        <CustomIcon library="Feather" name="clock" size={18} color={Colors.PRIMARY} />
+                                        <CustomIcon library="Feather" name="clock" size={18} color={Colors.SUCCESS} />
                                     </View>
                                     <View style={styles.paymentPendingTitleContainer}>
                                         <CustomText style={styles.paymentPendingTitle}>
@@ -695,6 +721,20 @@ const BookingDetailsScreen = ({
                                     <CustomIcon library="Feather" name="x" size={16} color={Colors.TEXT_SECONDARY} />
                                 </TouchableOpacity>
                             </View>
+                        </View>
+                    )}
+
+                    {/* Overpayment Refund Card (Case A: Excess Payment Without Cancelling Booking) */}
+                    {booking?.overpayment && (
+                        <View style={styles.paddingHorizontal}>
+                            <OverpaymentRefundCard
+                                booking={booking}
+                                onRefresh={async () => {
+                                    if (onSyncBookingVerification) {
+                                        await onSyncBookingVerification(booking);
+                                    }
+                                }}
+                            />
                         </View>
                     )}
 
@@ -892,21 +932,22 @@ const BookingDetailsScreen = ({
                 previousReason={activeCancelModal === 'update' ? modalInitialReason : undefined}
                 isSubmitting={isSubmittingCancellation}
                 errorMessage={modalErrorMessage}
+                isPaidBooking={['paid', 'downpayment', 'completed'].includes(booking.status) || (booking.payment || []).some(p => p.status === 'captured')}
                 onClose={() => {
                     setActiveCancelModal(null);
                     setModalInitialReason('');
                     setModalErrorMessage(null);
                 }}
-                onConfirm={async (reason: string) => {
+                onConfirm={async (reason: string, userWallet?: IUserWalletDetails<Date>) => {
                     setIsSubmittingCancellation(true);
                     setModalErrorMessage(null);
                     try {
                         if (activeCancelModal === 'cancel') {
-                            await onCancelConfirm(booking, reason);
+                            await onCancelConfirm(booking, reason, userWallet);
                             setActiveCancelModal(null);
                             showToast.success('Cancellation request submitted successfully.');
                         } else if (activeCancelModal === 'refund') {
-                            await onRefundConfirm(booking, reason);
+                            await onRefundConfirm(booking, reason, userWallet);
                             setActiveCancelModal(null);
                             const isPaid = ['paid', 'downpayment'].includes(booking.status);
                             showToast.success(
@@ -1204,11 +1245,11 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
     paymentPendingBanner: {
-        backgroundColor: Colors.STATUS_PENDING_BG,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
         borderRadius: 12,
         padding: 16,
         borderWidth: 1.5,
-        borderColor: Colors.PRIMARY,
+        borderColor: Colors.SUCCESS,
         gap: 12,
     },
     paymentPendingHeader: {
@@ -1224,7 +1265,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: Colors.PRIMARY,
+        borderColor: Colors.SUCCESS,
     },
     paymentPendingTitleContainer: {
         flex: 1,
@@ -1233,7 +1274,7 @@ const styles = StyleSheet.create({
     paymentPendingTitle: {
         fontWeight: 'bold',
         fontSize: 15,
-        color: Colors.PRIMARY,
+        color: Colors.SUCCESS,
     },
     paymentPendingSubtitle: {
         color: Colors.TEXT_PRIMARY,

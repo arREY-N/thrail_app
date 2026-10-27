@@ -89,31 +89,53 @@ const BookingCard: React.FC<BookingCardProps> = ({
     const isPayMongo = payments.some(p => p.gateway === 'paymongo');
     const hasRefundedPayment = payments.some(p => p.status === 'refunded' || (p.refundedAmount || 0) > 0);
     const isAllRefunded = payments.length > 0 && payments.every(p => p.status === 'refunded');
-    const hasRefundReceipt = Boolean(cancellation?.adminRefundReceiptUrl);
+    const isNoRefund =
+        cancellation?.refundDecision === 'no_refund' ||
+        (cancellation?.status === 'approved' &&
+         booking?.status === 'cancelled' &&
+         cancellation?.refundAmount === 0 &&
+         cancellation?.handshakeStep !== 'awaiting_user_wallet' &&
+         cancellation?.handshakeStep !== 'awaiting_admin_payout' &&
+         !cancellation?.adminRefundReceiptUrl);
 
     const isRefundComplete =
-        booking?.status === 'refunded' ||
-        hasRefundReceipt ||
-        cancellation?.handshakeStep === 'completed' ||
-        isAllRefunded ||
-        (isPayMongo && hasRefundedPayment);
+        !isNoRefund &&
+        (booking?.status === 'refunded' ||
+         cancellation?.status === 'refund_completed' ||
+         cancellation?.handshakeStep === 'completed' ||
+         (isPayMongo && (isAllRefunded || hasRefundedPayment)));
 
-    if (cancellation?.status === 'pending') {
+    if (isNoRefund) {
+        displayStatus = 'cancelled';
+    } else if (cancellation?.status === 'pending') {
         displayStatus = 'for-cancellation';
-    } else if (cancellation?.status === 'approved') {
-        const hasCapturedPayments = payments.some(p => p.status === 'captured');
-        const isManualRefundPending =
-            !isPayMongo &&
-            ((cancellation.handshakeStep && cancellation.handshakeStep !== 'completed') ||
-             payments.some(p => p.gateway === 'manual_qr') ||
-             PAYMENT_CONFIG.PROVIDER === 'manual_qr');
-
-        if (isRefundComplete) {
-            displayStatus = 'refunded';
-        } else if (isManualRefundPending && (hasCapturedPayments || cancellation.refundAmount)) {
-            displayStatus = 'refund';
-        } else {
+    } else if (
+        cancellation?.status === 'approved' ||
+        cancellation?.status === 'refund_submitted' ||
+        cancellation?.status === 'refund_disputed'
+    ) {
+        if (
+            cancellation?.status === 'approved' &&
+            booking?.status === 'cancelled' &&
+            typeof cancellation?.refundAmount === 'number' &&
+            cancellation.refundAmount === 0
+        ) {
             displayStatus = 'cancelled';
+        } else {
+            const hasCapturedPayments = payments.some(p => p.status === 'captured');
+            const isManualRefundPending =
+                !isPayMongo &&
+                ((cancellation.handshakeStep && cancellation.handshakeStep !== 'completed') ||
+                 payments.some(p => p.gateway === 'manual_qr') ||
+                 PAYMENT_CONFIG.PROVIDER === 'manual_qr');
+
+            if (isRefundComplete) {
+                displayStatus = 'refunded';
+            } else if (isManualRefundPending && (hasCapturedPayments || cancellation.refundAmount)) {
+                displayStatus = 'refund';
+            } else {
+                displayStatus = 'cancelled';
+            }
         }
     } else if (
         cancellation?.status === 'rejected' &&
@@ -124,7 +146,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
         displayStatus = 'cancellation-rejected';
     }
 
-    if (displayStatus === 'cancelled' || displayStatus === 'for-cancellation' || displayStatus === 'refund') {
+    if (!isNoRefund && (displayStatus === 'cancelled' || displayStatus === 'for-cancellation' || displayStatus === 'refund')) {
         if (isRefundComplete) {
             displayStatus = 'refunded';
         }
@@ -153,8 +175,10 @@ const BookingCard: React.FC<BookingCardProps> = ({
     const isPaymentVerifying = booking?.paymentVerificationStatus === 'pending_verification' ||
         Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
 
-    const isPaymentRejected = booking?.paymentVerificationStatus === 'rejected' ||
-        (displayStatus === 'for-payment' && Boolean(booking?.payment?.length && booking.payment[booking.payment.length - 1].status === 'rejected'));
+    const isPaymentRejected = !isPaymentVerifying && (
+        booking?.paymentVerificationStatus === 'rejected' ||
+        (displayStatus === 'for-payment' && Boolean(booking?.payment?.length && booking.payment[booking.payment.length - 1].status === 'rejected'))
+    );
 
     let actionLabel = "View Details";
     let actionColor: string = Colors.PRIMARY;
@@ -166,6 +190,12 @@ const BookingCard: React.FC<BookingCardProps> = ({
             if (isAwaitingDecision) {
                 actionLabel = "Awaiting Decision";
                 actionColor = Colors.STATUS_PENDING_TEXT;
+            } else if (!isPayMongo && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')) {
+                actionLabel = "Confirm Receipt";
+                actionColor = Colors.WARNING;
+            } else if (!isPayMongo && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')) {
+                actionLabel = "Dispute Under Review";
+                actionColor = Colors.ERROR;
             } else if (!isPayMongo && !cancellation?.userWallet?.accountNumber) {
                 actionLabel = "Submit Wallet";
                 actionColor = Colors.WARNING;
@@ -199,12 +229,14 @@ const BookingCard: React.FC<BookingCardProps> = ({
     const isRejection = ['reservation-rejected', 'cancellation-rejected', 'reschedule-rejected'].includes(displayStatus || '') || isPaymentRejected;
     const isPaymentNeeded = ['for-payment', 'approved-docs'].includes(displayStatus || '') && !isPaymentVerifying;
     const isWalletNeeded = displayStatus === 'refund' && !isPayMongo && !cancellation?.userWallet?.accountNumber;
+    const isConfirmReceiptNeeded = displayStatus === 'refund' && !isPayMongo && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted');
+    const isOverpaymentActionNeeded = booking?.overpayment?.status === 'awaiting_hiker_wallet' || booking?.overpayment?.status === 'awaiting_user_confirmation';
     const isDownpayment = displayStatus === 'downpayment';
 
     const borderHighlightStyle = !isPast && !isDead
-        ? isRejection
+        ? isRejection || (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed'))
             ? styles.rejectionBorder
-            : (isPaymentNeeded || isWalletNeeded)
+            : (isPaymentNeeded || isWalletNeeded || isConfirmReceiptNeeded || isOverpaymentActionNeeded)
               ? styles.paymentBorder
               : isDownpayment
                 ? styles.downpaymentBorder
@@ -257,15 +289,37 @@ const BookingCard: React.FC<BookingCardProps> = ({
                         {
                             backgroundColor: isPaymentRejected
                                 ? Colors.ERROR_BG
-                                : (isPaymentVerifying ? Colors.STATUS_PENDING_BG : statusConfig.bgColor)
+                                : (isPaymentVerifying 
+                                    ? Colors.STATUS_PENDING_BG 
+                                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                                        ? '#FEF3C7'
+                                        : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                                            ? Colors.ERROR_BG
+                                            : statusConfig.bgColor)))
                         }
                     ]}
                 >
                     <CustomIcon 
                         library="Feather" 
-                        name={isPaymentRejected ? "alert-triangle" : (isPaymentVerifying ? "clock" : statusConfig.icon)} 
+                        name={isPaymentRejected 
+                            ? "alert-triangle" 
+                            : (isPaymentVerifying 
+                                ? "clock" 
+                                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                                    ? "alert-circle"
+                                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                                        ? "alert-triangle"
+                                        : statusConfig.icon)))} 
                         size={12} 
-                        color={isPaymentRejected ? Colors.ERROR : (isPaymentVerifying ? Colors.PRIMARY : statusConfig.textColor)} 
+                        color={isPaymentRejected 
+                            ? Colors.ERROR 
+                            : (isPaymentVerifying 
+                                ? Colors.PRIMARY 
+                                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                                    ? '#B45309'
+                                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                                        ? Colors.ERROR
+                                        : statusConfig.textColor)))} 
                     />
                     <CustomText 
                         style={[
@@ -273,13 +327,25 @@ const BookingCard: React.FC<BookingCardProps> = ({
                             {
                                 color: isPaymentRejected
                                     ? Colors.ERROR
-                                    : (isPaymentVerifying ? Colors.PRIMARY : statusConfig.textColor)
+                                    : (isPaymentVerifying 
+                                        ? Colors.PRIMARY 
+                                        : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                                            ? '#B45309'
+                                            : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                                                ? Colors.ERROR
+                                                : statusConfig.textColor)))
                             }
                         ]}
                     >
                         {isPaymentRejected
                             ? "PAYMENT REJECTED"
-                            : (isPaymentVerifying ? "VERIFYING PAYMENT" : statusConfig.label)}
+                            : (isPaymentVerifying 
+                                ? "VERIFYING PAYMENT" 
+                                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                                    ? "ACTION REQUIRED: CONFIRM RECEIPT"
+                                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                                        ? "REFUND DISPUTED"
+                                        : statusConfig.label)))}
                     </CustomText>
                 </View>
             </View>

@@ -7,12 +7,13 @@ import ListScreen from "@/src/features/Community/screens/Group/ListScreen";
 
 
 export default function GroupList() {
-    const { profile } = useAuthHook();
+    const { profile, user } = useAuthHook();
     const { onBackPress } = useAppNavigation();
+    const userId = profile?.id || user?.uid || '';
     const {
         groups,
         onEnterRoom
-    } = useGroupList(profile?.id || '');
+    } = useGroupList(userId);
 
     return (
         <>

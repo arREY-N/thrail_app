@@ -879,6 +879,87 @@ When a hiker pays in multiple installments (such as an initial 50% downpayment f
 4. **Refund Proof Payout Documentation**:
    - If `paymentRecord.refundProofUrl` is attached (for refunded or partially refunded transactions), renders a dedicated **Refund Payout Proof** block allowing full-screen verification of the organizer's payout transfer.
 
+---
+
+## 21. Removal of "Reported Amount" in Manual QR Verification Card
+
+### 🎯 Feature Overview & Rationale
+In [`ManualQRVerificationCard.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/components/ManualQRVerificationCard.tsx), the receipt thumbnail metadata previously displayed a line labeled **"Reported Amount: ₱XXXX.XX"**.
+
+### 🔍 Issue Identified
+When hikers submit their payment proof via Manual QR:
+- The hiker only uploads their payment receipt screenshot and enters an optional reference number; they do not type a payment amount.
+- Displaying a "Reported Amount" was misleading because it gave the false impression that the hiker explicitly claimed a specific figure, rather than the system simply pulling the booking's remaining package balance.
+- The business requirement is for the organizer/admin to inspect the uploaded receipt image directly and enter the actual verified amount in the **"Verified Amount Received"** field.
+
+### 🛠️ Resolution
+- Removed the `Reported Amount:` row from the receipt details section in [`ManualQRVerificationCard.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/components/ManualQRVerificationCard.tsx).
+- The thumbnail header now cleanly displays only the **Reference No.** and **Submitted At** date/time, directing the organizer's focus directly to verifying the receipt image against the verification input field below.
+
+---
+
+## 22. Streamlined Cancellation Payout, Hiker Two-Way Handshake, Dispute Limits & Tour Chat Retention
+
+### 🎯 Feature Overview & Business Logic
+The cancellation and refund workflow has been overhauled into an end-to-end, streamlined payout process that ensures trust, auditability, and clear communication between hikers and organizers:
+1. **Upfront E-Wallet Collection (Zero Auto-Fill)**:
+   - When a hiker requests cancellation for a paid booking (`['paid', 'downpayment', 'completed'].includes(booking.status)` or captured payment exists), they are prompted immediately for their refund destination: e-wallet provider (`GCash` or `Maya`), 11-digit mobile number, and account holder name.
+   - **Zero Pre-fill Rule**: The input fields start completely blank. The user's registered profile phone number and name are NEVER auto-filled, ensuring deliberate and accurate payout details.
+   - Validates Philippine 11-digit mobile format (`09XXXXXXXXX`) and registered account name.
+
+2. **Admin Single-Screen Review & Payout**:
+   - The organizer reviews the cancellation in [`AdminCancellationCard.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/components/AdminCancellationCard.tsx).
+   - The hiker's GCash/Maya details are displayed prominently alongside a one-tap **Copy** clipboard button.
+   - The organizer specifies/adjusts the refund amount, performs the external e-wallet transfer, uploads the transaction receipt proof screenshot, and submits the payout in a single action.
+
+3. **Hiker Two-Way Handshake Verification**:
+   - When the organizer uploads payout proof, the cancellation transitions to `handshakeStep: 'awaiting_user_confirmation'`.
+   - The hiker inspects the organizer's receipt proof via an interactive pinch-and-zoom modal.
+   - **Action 1: Confirm Received** (Green button): Marks the refund as completed (`handshakeStep: 'completed'`, `status: 'refund_completed'`).
+   - **Action 2: Not Received / Appeal** (Outlined destructive button): Opens a dispute modal where the hiker explains why the funds were not received or points out an issue with the receipt proof.
+
+4. **Dispute Attempt Limit (Max 3 Attempts)**:
+   - The hiker is allowed up to **3 dispute attempts** (`disputeCount <= 3`).
+   - Once `disputeCount >= 3`, automated dispute submission is disabled in the UI and blocked in Cloud Functions.
+   - The hiker is instructed: *"Maximum disputes reached (3/3). Please message the organizer directly in the tour group chat to resolve remaining payment issues."*
+
+5. **Tour Group Chat Retention Rule**:
+   - **Crucial Rule**: The hiker **MUST NOT be removed from the tour group chat** (`groups/{offerId}`) while a refund is ongoing or disputed.
+   - Previously, `completeManualRefund` immediately removed the hiker from the tour group chat. This has been removed.
+   - Hiker removal from the tour group chat occurs **exclusively upon confirmed resolution** via `confirmRefundReceived`.
+   - During active disputes, the hiker remains in the group chat and can communicate directly with the organizer until the refund is settled.
+
+6. **Admin Re-Initiate Flow**:
+   - When a refund is disputed, the organizer's card displays an alert banner showing the attempt number (e.g., `Attempt 1 of 3`) and the hiker's submitted reason.
+   - The organizer is given an action button: **"Upload Corrected Refund Proof"**, allowing them to re-verify the transfer and upload a new receipt proof.
+
+### 🛠️ Architecture & File Modifications
+1. **Firestore Models & Types ([`Cancellation.types.ts`](file:///d:/thrail_app/src/core/models/Cancellation/interfaces/Cancellation.types.ts) & [`CancellationFactory.ts`](file:///d:/thrail_app/src/core/models/Cancellation/utils/CancellationFactory.ts))**:
+   - Added `'awaiting_user_confirmation'` and `'refund_disputed'` to `CancellationHandshakeStep`.
+   - Added `userWallet`, `disputeCount`, `disputeReason`, `disputedAt`, and `userConfirmedReceivedAt` to `CancellationRequest` and `Cancellation` class.
+2. **Hiker Cancellation Modal ([`CancelBookingModal.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/CancelBookingModal.tsx))**:
+   - Added e-wallet chips (`GCash` / `Maya`), 11-digit mobile input, and account name input.
+   - Enforces blank initial state (no auto-fill).
+   - Validates inputs before proceeding.
+3. **Workflow Routing ([`BookingDetailsScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/BookingDetailsScreen.tsx), [`useMyBookingsWorkflow.ts`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/hooks/useMyBookingsWorkflow.ts), [`MyBookingsScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/MyBookingsScreen.tsx))**:
+   - Propagated `userWallet` through the cancellation and refund submission pipelines.
+4. **Cloud Functions ([`functions/index.js`](file:///d:/thrail_app/functions/index.js))**:
+   - `completeManualRefund`: Sets `handshakeStep: 'awaiting_user_confirmation'`. Retains hiker in `groups/{offerId}` (removed immediate group chat departure).
+   - `confirmRefundReceived`: Callable function for hikers. Finalizes refund, marks booking `'refunded'`, and atomically removes hiker from `groups/{offerId}`.
+   - `disputeRefundPayout`: Callable function for hikers. Increments `disputeCount` (capped at 3), records `disputeReason`, updates status to `'refund_disputed'`, and alerts the organizer while retaining the hiker in the group chat.
+5. **Client Hook ([`useCancellationUser.ts`](file:///d:/thrail_app/src/core/models/Cancellation/hooks/useCancellationUser.ts))**:
+   - Added callable wrappers `confirmRefundReceived` and `disputeRefundPayout`.
+   - Updated `cancelBooking` and `onRefundBooking` to accept `userWallet` upfront.
+6. **Admin Review UI ([`AdminCancellationCard.tsx`](file:///d:/thrail_app/src/features/Admin/screens/Booking/components/AdminCancellationCard.tsx))**:
+   - Added clipboard copying for hiker e-wallet number.
+   - Added dispute alert banner with attempt counter and hiker's explanation.
+   - Added "Upload Corrected Refund Proof" re-initiation button.
+7. **Hiker UI Components ([`CancellationCard.tsx`](file:///d:/thrail_app/src/features/Book/screens/MyBookings/components/CancellationCard.tsx) & [`UserRefundScreen.tsx`](file:///d:/thrail_app/src/features/Book/screens/Refund/UserRefundScreen.tsx))**:
+   - Integrated "Confirm Received" (green) and "Not Received / Appeal" (outlined red) actions.
+   - Added confirmation modal and dispute explanation modal with attempt counter.
+   - Displayed active dispute status banner and group chat retention guidance.
+
+
 
 
 

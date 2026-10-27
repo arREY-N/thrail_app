@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Platform } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 
 import { safeParseDateString } from '@/src/utils/dateFormatter';
 
@@ -180,9 +181,20 @@ export const useRoomScreen = ({
      * Triggers loading of earlier messages. Uses a ref so the FlatList onEndReached
      * callback never closes over stale state.
      */
-    const handleLoadEarlier = useCallback(() => {
+    const handleLoadEarlier = useCallback(async () => {
         const { hasReachedEnd: atEnd, isLoadingEarlier: loading, fn } = loadMoreRef.current;
         if (atEnd || loading) return;
+
+        if (Platform.OS !== 'web') {
+            const network = await NetInfo.fetch();
+            const isOnline = Boolean(network.isConnected && network.isInternetReachable);
+            if (!isOnline) {
+                // Cannot load earlier messages from server while offline
+                setIsLoadingEarlier(false);
+                return;
+            }
+        }
+
         setIsLoadingEarlier(true);
         // 600ms visual delay so the spinner is visible before messages appear
         setTimeout(() => {

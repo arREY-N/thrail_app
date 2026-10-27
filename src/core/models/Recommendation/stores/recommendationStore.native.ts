@@ -10,6 +10,10 @@ export const useRecommendationsStore = create<RecommendationState>()(
         {
             name: "recommendation-storage",
             storage: createJSONStorage(() => AsyncStorage),
+            partialize: (state) => ({
+                data: state.data,
+                current: state.current,
+            }),
         }
     )
 );

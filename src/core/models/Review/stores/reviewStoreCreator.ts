@@ -1,7 +1,9 @@
 import { Review } from "@/src/core/models/Review/interfaces/Review.types";
 import { ReviewRepo } from "@/src/core/models/Review/repositories/ReviewRepository";
 import { upsertItem } from "@/src/core/models/utils/upsert";
+import NetInfo from "@react-native-community/netinfo";
 import { Unsubscribe } from "firebase/firestore";
+import { Platform } from "react-native";
 import { StateCreator } from "zustand";
 
 export interface ReviewState {
@@ -48,13 +50,40 @@ export const reviewStoreCreator: StateCreator<
             activeReviewsUnsubscribe = null;
         }
 
-        set({ isLoading: true });
+        const hasCached = get().reviews.length > 0;
+        if (!hasCached) {
+            set({ isLoading: true });
+        }
+        set({ error: null });
+
+        if (Platform.OS !== 'web') {
+            NetInfo.fetch().then((network) => {
+                const isOnline = Boolean(network.isConnected && network.isInternetReachable);
+                if (!isOnline) {
+                    set({ isLoading: false });
+                }
+            });
+        }
+
         try {
             const unsubscribe = ReviewRepo.listenToReviews(
-                (reviews) => set({
-                    reviews,
-                    isLoading: false,
-                })
+                (reviews) => {
+                    if (reviews && reviews.length > 0) {
+                        set({
+                            reviews,
+                            isLoading: false,
+                        });
+                    } else {
+                        set({ isLoading: false });
+                    }
+                },
+                (error) => {
+                    console.error('Error in listenToReviews: ', error);
+                    set({
+                        isLoading: false,
+                        error: get().reviews.length === 0 ? error.message : null,
+                    });
+                }
             );
 
             activeReviewsUnsubscribe = unsubscribe;
@@ -69,7 +98,7 @@ export const reviewStoreCreator: StateCreator<
         } catch (error) {
             console.error('Error subscribing to reviews: ', error);
             set({ isLoading: false });
-            throw error;
+            return null;
         }
     },
 
@@ -81,31 +110,62 @@ export const reviewStoreCreator: StateCreator<
     },
 
     fetchAll: async () => {
-        set({ isLoading: true, error: null });
-
-        try {
-            if (get().reviews.length > 0) {
+        if (Platform.OS !== 'web') {
+            const network = await NetInfo.fetch();
+            const isOnline = Boolean(network.isConnected && network.isInternetReachable);
+            if (!isOnline) {
                 set({ isLoading: false });
                 return;
             }
+        }
 
+        const isCacheEmpty = get().reviews.length === 0;
+        if (isCacheEmpty) {
+            set({ isLoading: true });
+        }
+        set({ error: null });
+
+        try {
             const reviews = await ReviewRepo.fetchAll(true);
-            set({ reviews, isLoading: false });
+            if (reviews && reviews.length > 0) {
+                set({ reviews, isLoading: false });
+            } else {
+                set({ isLoading: false });
+            }
         } catch (err) {
             console.error(err);
-            set({ error: (err as Error).message ?? 'Failed to load reviews', isLoading: false });
+            set({
+                error: get().reviews.length === 0 ? ((err as Error).message ?? 'Failed to load reviews') : null,
+                isLoading: false,
+            });
         }
     },
 
     refresh: async () => {
+        if (Platform.OS !== 'web') {
+            const network = await NetInfo.fetch();
+            const isOnline = Boolean(network.isConnected && network.isInternetReachable);
+            if (!isOnline) {
+                set({ isLoading: false });
+                return;
+            }
+        }
+
         set({ isLoading: true, error: null });
 
         try {
             const reviews = await ReviewRepo.fetchAll(true);
-            set({ reviews, isLoading: false });
+            if (reviews && reviews.length > 0) {
+                set({ reviews, isLoading: false });
+            } else {
+                set({ isLoading: false });
+            }
         } catch (err) {
             console.error(err);
-            set({ error: (err as Error).message ?? 'Failed to load reviews', isLoading: false });
+            set({
+                error: get().reviews.length === 0 ? ((err as Error).message ?? 'Failed to load reviews') : null,
+                isLoading: false,
+            });
         }
     },
 
@@ -187,7 +247,9 @@ export const reviewStoreCreator: StateCreator<
         try {
             const newReviewItem = await ReviewRepo.write(review);
             set({
-                reviews: upsertItem(get().reviews, newReviewItem).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+                reviews: upsertItem(get().reviews, newReviewItem).sort(
+                    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                ),
                 isLoading: false,
             })
         } catch (err) {

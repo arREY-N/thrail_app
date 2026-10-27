@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useRef, useState } from 'react';
 import {
     Platform,
     StyleProp,
@@ -78,12 +78,28 @@ export const formatCoordinate = (text?: string): string => {
 export const EMOJI_REGEX = /(?:\p{Extended_Pictographic}|\p{Regional_Indicator})[\u{1F3FB}-\u{1F3FF}\u{E0020}-\u{E007F}\uFE00-\uFE0F\u200D\u20E3]*|[#*0-9]\uFE0F?\u20E3|[\uFE0E\uFE0F\u200D\u20E3]/gu;
 
 /**
- * Strips all emoji characters, compound emoji sequences, and variation selectors from a string.
+ * Matches zero-width spaces, joiners, non-printing format characters,
+ * and directional isolation markers often bundled with emojis or mobile keyboards.
+ */
+export const INVISIBLE_CHARS_REGEX = /[\u200B-\u200D\uFEFF\u200E\u200F\u202A-\u202E\u2060-\u206F\uFFF0-\uFFFF]/gu;
+
+/**
+ * Strips all emoji characters, compound emoji sequences, variation selectors,
+ * zero-width invisible characters, and keyboard-inserted ghost spaces from a string.
  *
  * @param text - The raw input text.
- * @returns {string} The text stripped of emojis.
+ * @returns {string} The text stripped of emojis, zero-width characters, and ghost spaces.
  */
-export const stripEmojis = (text: string): string => text.replace(EMOJI_REGEX, '');
+export const stripEmojis = (text: string): string => {
+    if (!text) return '';
+    return text
+        .replace(/(?:[ \t]*(?:(?:\p{Extended_Pictographic}|\p{Regional_Indicator})[\u{1F3FB}-\u{1F3FF}\u{E0020}-\u{E007F}\uFE00-\uFE0F\u200D\u20E3]*|[#*0-9]\uFE0F?\u20E3|[\uFE0E\uFE0F\u200D\u20E3])[ \t]*)/gu, (match, offset, fullStr) => {
+            const hasPrev = offset > 0 && !/\s/.test(fullStr[offset - 1]);
+            const hasNext = offset + match.length < fullStr.length && !/\s/.test(fullStr[offset + match.length]);
+            return hasPrev && hasNext ? ' ' : '';
+        })
+        .replace(INVISIBLE_CHARS_REGEX, '');
+};
 
 /**
  * A highly customizable text input component that supports passwords, numbers, coordinates, dates, and calendars.
@@ -116,6 +132,8 @@ interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeT
     innerRightElement?: ReactNode;
     suffix?: string;
     allowEmojis?: boolean;
+    disableEmojiKeyboard?: boolean;
+    sanitizeText?: (text: string) => string;
     containerStyle?: StyleProp<ViewStyle>;
     hasError?: boolean;
 }
@@ -150,10 +168,14 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     onFocus,
     onBlur,
     allowEmojis = false,
+    disableEmojiKeyboard,
+    sanitizeText,
+    autoCorrect,
     containerStyle,
     hasError = false,
     ...props
 }) => {
+    const inputRef = useRef<TextInput>(null);
     const [isFocused, setIsFocused] = useState(false);
     const [internalShowPassword, setInternalShowPassword] = useState(false);
 
@@ -162,6 +184,9 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
         let str = String(value);
         if (!allowEmojis) {
             str = stripEmojis(str);
+        }
+        if (sanitizeText) {
+            str = sanitizeText(str);
         }
         return type === 'phone' ? formatLocalPhoneNumber(str) : str;
     });
@@ -172,6 +197,9 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
         let incomingStr = value !== null && value !== undefined ? String(value) : '';
         if (!allowEmojis) {
             incomingStr = stripEmojis(incomingStr);
+        }
+        if (sanitizeText) {
+            incomingStr = sanitizeText(incomingStr);
         }
         if (type === 'coordinate' || type === 'numerical') {
             const isMidDecimal = localValue.endsWith('.') && parseFloat(incomingStr) === parseFloat(localValue);
@@ -195,6 +223,10 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             processedText = stripEmojis(processedText);
         }
 
+        if (sanitizeText) {
+            processedText = sanitizeText(processedText);
+        }
+
         if (type === 'phone') {
             processedText = formatLocalPhoneNumber(processedText);
         } else if (type === 'coordinate') {
@@ -212,11 +244,29 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             }
         }
 
+        if (processedText !== text) {
+            if (Platform.OS === 'web') {
+                const node = inputRef.current as unknown as HTMLInputElement | null;
+                if (node && typeof node === 'object' && 'value' in node && node.value !== processedText) {
+                    const cursor = node.selectionStart;
+                    const diff = text.length - processedText.length;
+                    node.value = processedText;
+                    if (typeof cursor === 'number') {
+                        const nextCursor = Math.max(0, cursor - diff);
+                        node.setSelectionRange(nextCursor, nextCursor);
+                    }
+                }
+            }
+            inputRef.current?.setNativeProps?.({ text: processedText });
+        }
+
         setLocalValue(processedText);
         if (onChangeText) {
             (onChangeText as (val: string) => void)(processedText);
         }
     };
+
+    const shouldDisableEmoji = !allowEmojis || disableEmojiKeyboard;
 
     const finalKeyboardType = keyboardType 
         || (type === 'phone' 
@@ -225,7 +275,11 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             ? (Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'decimal-pad')
             : type === 'numerical' 
             ? 'decimal-pad' 
-            : 'default');
+            : (shouldDisableEmoji && Platform.OS === 'ios' ? 'ascii-capable' : 'default'));
+
+    const finalAutoCorrect = autoCorrect !== undefined
+        ? autoCorrect
+        : ((secureTextEntry || shouldDisableEmoji) ? false : undefined);
 
     const finalInputMode = (keyboardType === 'number-pad' || keyboardType === 'numeric')
         ? 'numeric'
@@ -290,7 +344,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                     borderColor: hasError ? Colors.ERROR : (isFocused ? Colors.PRIMARY : Colors.GRAY_LIGHT),
                     backgroundColor: isFocused ? Colors.WHITE : Colors.BACKGROUND,
                 },
-                multiline && { height: 'auto', alignItems: 'flex-start' },
+                multiline && { height: 'auto', minHeight: 96, alignItems: 'flex-start', paddingVertical: 10 },
                 containerStyle,
             ]}>
                 
@@ -315,9 +369,10 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                 )}
 
                 <TextInput 
+                    ref={inputRef}
                     style={[
                         styles.input,
-                        multiline && { height: 'auto', textAlignVertical: 'top' },
+                        multiline && { height: 'auto', minHeight: 72, textAlignVertical: 'top', paddingTop: 0, paddingBottom: 0 },
                         inputStyle
                     ]}
                     placeholder={placeholder}
@@ -327,7 +382,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                     secureTextEntry={secureTextEntry && !showPassword}
                     keyboardType={finalKeyboardType} 
                     inputMode={finalInputMode}
-                    autoCorrect={secureTextEntry ? false : undefined}
+                    autoCorrect={finalAutoCorrect}
                     onFocus={(e) => {
                         setIsFocused(true);
                         onFocus?.(e);
@@ -337,7 +392,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                         onBlur?.(e);
                     }}
                     multiline={Boolean(multiline)}
-                    numberOfLines={multiline ? undefined : 1}
+                    numberOfLines={multiline ? (props.numberOfLines || 3) : 1}
                     {...props} 
                 />
 

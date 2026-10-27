@@ -75,7 +75,11 @@ const recommendationToFirestore = (recommendation: Recommendation): IRecommendat
 
     return {
         id: recommendation.id,
-        createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(recommendation.createdAt),
+        createdAt: isNew 
+            ? serverTimestamp() 
+            : (recommendation.createdAt instanceof Date 
+                ? Timestamp.fromDate(recommendation.createdAt) 
+                : (recommendation.createdAt ? Timestamp.fromDate(new Date(recommendation.createdAt)) : serverTimestamp())),
         updatedAt: serverTimestamp(),
         profile: recommendation.profile || { easy: null, difficult: null },
         easy: recommendation.easy || [],

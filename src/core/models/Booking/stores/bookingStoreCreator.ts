@@ -20,6 +20,7 @@ export interface BookingState {
     subscribeToUserBookings: (userId: string) => Unsubscribe;
     deleteBooking: (bookingId: string) => Promise<void>;
     fetchAllBusinessBookings: (businessId: string) => Promise<void>;
+    refreshBookingItem: (bookingId: string, offerId?: string) => Promise<Booking | null>;
 
     data: Booking[];
     subscriptionError: string | null;
@@ -33,6 +34,7 @@ export interface BookingState {
 
     bookingByOffer: Record<string, Booking[]>;
     activeListeners: Record<string, Unsubscribe>;
+    listenerCounts: Record<string, number>;
 }
 
 const init = {
@@ -47,6 +49,7 @@ const init = {
     isFetching: false,
     bookingByOffer: {},
     activeListeners: {},
+    listenerCounts: {},
 };
 
 export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", never]]> = (set, get) => ({
@@ -70,8 +73,18 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
 
     subscribeToBusinessBookings: async (offerId: string, businessId: string) => {
         try {
-            set({ isFetching: true, error: null })
+            set({ isFetching: true, error: null });
 
+            // Increment reference count for this offerId listener
+            const currentCount = get().listenerCounts[offerId] || 0;
+            set((state) => ({
+                listenerCounts: {
+                    ...state.listenerCounts,
+                    [offerId]: currentCount + 1,
+                },
+            }));
+
+            // If listener is already active, keep existing listener and return
             if (get().activeListeners[offerId]) {
                 return;
             }
@@ -155,19 +168,35 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
     },
 
     unsubscribeFromBusinessBookings: (offerId: string) => {
-        const unsubscribe = get().activeListeners[offerId];
+        const currentCount = get().listenerCounts[offerId] || 0;
+        const newCount = currentCount - 1;
 
+        if (newCount > 0) {
+            set((state) => ({
+                listenerCounts: {
+                    ...state.listenerCounts,
+                    [offerId]: newCount,
+                },
+            }));
+            return;
+        }
+
+        const unsubscribe = get().activeListeners[offerId];
         if (unsubscribe) {
             unsubscribe();
-            set((state) => {
-                const newListeners = { ...state.activeListeners };
-                delete newListeners[offerId];
-                return {
-                    ...state,
-                    activeListeners: newListeners,
-                };
-            });
         }
+
+        set((state) => {
+            const newListeners = { ...state.activeListeners };
+            delete newListeners[offerId];
+            const newCounts = { ...state.listenerCounts };
+            delete newCounts[offerId];
+            return {
+                ...state,
+                activeListeners: newListeners,
+                listenerCounts: newCounts,
+            };
+        });
     },
 
     loadAll: async (role: string) => {
@@ -320,13 +349,19 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
 
             set((state) => {
                 if (isAdmin) {
+                    const offerId = result.offer?.id;
                     return {
-                        offerBookings: upsertItem(state.offerBookings, result)
-                    }
+                        offerBookings: upsertItem(state.offerBookings, result),
+                        businessBookings: upsertItem(state.businessBookings, result),
+                        bookingByOffer: offerId ? {
+                            ...state.bookingByOffer,
+                            [offerId]: upsertItem(state.bookingByOffer[offerId] ?? [], result),
+                        } : state.bookingByOffer,
+                    };
                 } else {
                     return {
                         userBookings: upsertItem(state.userBookings, result),
-                    }
+                    };
                 }
             });
 
@@ -336,6 +371,34 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
             throw error;
         } finally {
             set({ isLoading: false });
+        }
+    },
+
+    refreshBookingItem: async (bookingId: string, offerId?: string) => {
+        try {
+            const updated = await BookingRepo.fetchById(bookingId);
+            if (!updated) return null;
+
+            const targetOfferId = offerId || updated.offer?.id;
+
+            set((state) => ({
+                businessBookings: upsertItem(state.businessBookings, updated),
+                offerBookings: targetOfferId && state.offerBookings.some((b) => b.offer?.id === targetOfferId)
+                    ? upsertItem(state.offerBookings, updated)
+                    : state.offerBookings,
+                bookingByOffer: targetOfferId
+                    ? {
+                          ...state.bookingByOffer,
+                          [targetOfferId]: upsertItem(state.bookingByOffer[targetOfferId] ?? [], updated),
+                      }
+                    : state.bookingByOffer,
+                data: upsertItem(state.data, updated),
+            }));
+
+            return updated;
+        } catch (error) {
+            console.error("Error refreshing booking item:", error);
+            return null;
         }
     },
 

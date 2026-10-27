@@ -17,10 +17,12 @@ import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import CustomTextInput from '@/src/components/CustomTextInput';
 import { CustomToast } from '@/src/components/Toast/Toast';
 import ExpandableText from '@/src/components/ExpandableText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IUserWalletDetails } from '@/src/core/models/Cancellation/Cancellation';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -30,8 +32,8 @@ export interface CancelBookingModalProps {
     visible: boolean;
     /** Callback to close the modal */
     onClose: () => void;
-    /** Callback when user confirms reason */
-    onConfirm: (reason: string) => Promise<void> | void;
+    /** Callback when user confirms reason and optional refund wallet details */
+    onConfirm: (reason: string, userWallet?: IUserWalletDetails<Date>) => Promise<void> | void;
     /** Type of action being performed */
     actionType: 'cancel' | 'refund' | 'update' | null | string;
     /** Pre-filled reason if editing or appealing */
@@ -42,6 +44,8 @@ export interface CancelBookingModalProps {
     isSubmitting?: boolean;
     /** Error message to display, if any */
     errorMessage?: string | null;
+    /** Whether the booking has captured payments (requires wallet details for refund) */
+    isPaidBooking?: boolean;
 }
 
 /**
@@ -58,6 +62,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     previousReason = '',
     isSubmitting = false,
     errorMessage = null,
+    isPaidBooking = false,
 }) => {
     const insets = useSafeAreaInsets();
     const { isDesktop, isTablet } = useBreakpoints();
@@ -71,6 +76,11 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     }
 
     const [reason, setReason] = useState<string>(isUpdate ? '' : (initialReason || ''));
+    // E-wallet states for refunds (never auto-filled, starts blank)
+    const [walletType, setWalletType] = useState<'GCash' | 'Maya'>('GCash');
+    const [accountNumber, setAccountNumber] = useState<string>('');
+    const [accountName, setAccountName] = useState<string>('');
+
     const [animValue] = useState(() => new Animated.Value(0));
     const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
 
@@ -96,6 +106,10 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
         if (visible) {
             setRenderModal(true);
             setReason(isUpdate ? '' : (initialReason || ''));
+            // Explicitly reset wallet inputs to blank (do not auto-fill registered user number)
+            setWalletType('GCash');
+            setAccountNumber('');
+            setAccountName('');
             setToastConfig({ message: null, type: 'error' });
             setHasAttemptedSubmit(false);
         }
@@ -212,6 +226,14 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     }
 
     const isReasonValid = reason.trim().length >= 5;
+    const shouldPromptWallet = (isPaidBooking || actionType === 'refund') && !isUpdate;
+    const cleanedNumber = accountNumber.replace(/\D/g, '');
+    const isWalletValid = !shouldPromptWallet || (
+        cleanedNumber.length === 11 &&
+        cleanedNumber.startsWith('09') &&
+        accountName.trim().length >= 2
+    );
+    const isOverallValid = isReasonValid && isWalletValid;
 
     const handleConfirm = async () => {
         if (isSubmittingRef.current || isSubmitting) return;
@@ -222,9 +244,31 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
             return;
         }
 
+        if (shouldPromptWallet) {
+            if (cleanedNumber.length !== 11 || !cleanedNumber.startsWith('09')) {
+                setHasAttemptedSubmit(true);
+                showModalToast('Please enter a valid 11-digit mobile number starting with 09.', 'error');
+                return;
+            }
+            if (accountName.trim().length < 2) {
+                setHasAttemptedSubmit(true);
+                showModalToast('Please enter the registered account holder full name.', 'error');
+                return;
+            }
+        }
+
         isSubmittingRef.current = true;
         try {
-            await onConfirm(reason.trim());
+            const userWallet: IUserWalletDetails<Date> | undefined = shouldPromptWallet
+                ? {
+                    walletType,
+                    accountNumber: cleanedNumber,
+                    accountName: accountName.trim(),
+                    submittedAt: new Date(),
+                }
+                : undefined;
+
+            await onConfirm(reason.trim(), userWallet);
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Failed to submit request. Please try again.';
             showModalToast(msg, 'error');
@@ -365,6 +409,90 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                                 {reason.length} / 300 characters
                             </CustomText>
                         </View>
+
+                        {shouldPromptWallet && (
+                            <View style={styles.walletSection}>
+                                <View style={styles.walletHeader}>
+                                    <CustomIcon library="Feather" name="credit-card" size={16} color={Colors.PRIMARY} />
+                                    <CustomText style={styles.walletHeaderTitle}>Refund E-Wallet Details</CustomText>
+                                </View>
+                                <CustomText variant="caption" style={styles.walletHeaderSubtitle}>
+                                    Enter your GCash or Maya details where approved refunds will be sent.
+                                </CustomText>
+
+                                <View style={styles.walletTypeRow}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.walletTypeBtn,
+                                            walletType === 'GCash' && styles.walletTypeBtnActive,
+                                        ]}
+                                        onPress={() => setWalletType('GCash')}
+                                        activeOpacity={0.8}
+                                    >
+                                        <CustomIcon
+                                            library="Feather"
+                                            name="smartphone"
+                                            size={16}
+                                            color={walletType === 'GCash' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
+                                        />
+                                        <CustomText
+                                            style={[
+                                                styles.walletTypeText,
+                                                walletType === 'GCash' && styles.walletTypeTextActive,
+                                            ]}
+                                        >
+                                            GCash
+                                        </CustomText>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.walletTypeBtn,
+                                            walletType === 'Maya' && styles.walletTypeBtnActive,
+                                        ]}
+                                        onPress={() => setWalletType('Maya')}
+                                        activeOpacity={0.8}
+                                    >
+                                        <CustomIcon
+                                            library="Feather"
+                                            name="activity"
+                                            size={16}
+                                            color={walletType === 'Maya' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
+                                        />
+                                        <CustomText
+                                            style={[
+                                                styles.walletTypeText,
+                                                walletType === 'Maya' && styles.walletTypeTextActive,
+                                            ]}
+                                        >
+                                            Maya
+                                        </CustomText>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <CustomTextInput
+                                    label="Mobile Number (11-Digits) *"
+                                    placeholder="0917 123 4567"
+                                    keyboardType="phone-pad"
+                                    maxLength={11}
+                                    value={accountNumber}
+                                    onChangeText={(t: string) => setAccountNumber(t.replace(/\D/g, '').slice(0, 11))}
+                                    icon="phone"
+                                    iconLibrary="Feather"
+                                    containerStyle={{ marginBottom: 12 }}
+                                />
+
+                                <CustomTextInput
+                                    label="Account Full Name *"
+                                    placeholder="e.g. Juan Dela Cruz"
+                                    value={accountName}
+                                    onChangeText={setAccountName}
+                                    icon="user"
+                                    iconLibrary="Feather"
+                                    containerStyle={{ marginBottom: 4 }}
+                                />
+                            </View>
+                        )}
                     </ScrollView>
 
                     <View style={styles.footer}>
@@ -383,7 +511,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                             isLoading={isSubmitting}
                             disabled={isSubmitting}
                             validationState={
-                                isReasonValid
+                                isOverallValid
                                     ? 'valid'
                                     : (hasAttemptedSubmit ? 'error' : 'idle')
                             }
@@ -532,6 +660,59 @@ const styles = StyleSheet.create({
     counterText: {
         fontSize: 11,
         color: Colors.TEXT_SECONDARY,
+    },
+    walletSection: {
+        marginTop: 16,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_LIGHT,
+    },
+    walletHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 4,
+    },
+    walletHeaderTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+    },
+    walletHeaderSubtitle: {
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 12,
+        marginBottom: 12,
+        lineHeight: 16,
+    },
+    walletTypeRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 14,
+    },
+    walletTypeBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 10,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        backgroundColor: Colors.WHITE,
+    },
+    walletTypeBtnActive: {
+        borderColor: Colors.PRIMARY,
+        backgroundColor: Colors.PRIMARY_LIGHT,
+    },
+    walletTypeText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: Colors.TEXT_SECONDARY,
+    },
+    walletTypeTextActive: {
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
     },
     footer: {
         flexDirection: 'row',

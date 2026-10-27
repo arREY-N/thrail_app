@@ -27,26 +27,49 @@ export const getBookingEffectiveStatus = (
     const isPayMongo = payments.some(p => p.gateway === 'paymongo');
     const hasRefundedPayment = payments.some(p => p.status === 'refunded' || (p.refundedAmount || 0) > 0);
     const isAllRefunded = payments.length > 0 && payments.every(p => p.status === 'refunded');
-    const hasRefundReceipt = Boolean(cancellationDoc?.adminRefundReceiptUrl);
-
     // A refund is fully completed if:
     // 1. Booking status is already 'refunded'
-    // 2. Admin uploaded refund receipt proof (manual QR)
+    // 2. Cancellation status is 'refund_completed'
     // 3. Handshake is marked 'completed'
     // 4. PayMongo payment was already refunded
+    const isNoRefund =
+        cancellationDoc?.refundDecision === 'no_refund' ||
+        (cancellationDoc?.status === 'approved' &&
+         booking?.status === 'cancelled' &&
+         cancellationDoc?.refundAmount === 0 &&
+         cancellationDoc?.handshakeStep !== 'awaiting_user_wallet' &&
+         cancellationDoc?.handshakeStep !== 'awaiting_admin_payout' &&
+         !cancellationDoc?.adminRefundReceiptUrl);
+
+    if (isNoRefund) {
+        return 'cancelled';
+    }
+
     // 5. All payments are marked 'refunded'
     const isFullyRefunded =
         booking.status === 'refunded' ||
-        hasRefundReceipt ||
+        cancellationDoc?.status === 'refund_completed' ||
         cancellationDoc?.handshakeStep === 'completed' ||
-        isAllRefunded ||
-        (isPayMongo && hasRefundedPayment);
+        (isPayMongo && (isAllRefunded || hasRefundedPayment));
 
     if (isFullyRefunded) {
         return 'refunded';
     }
 
-    if (cancellationDoc?.status === 'approved') {
+    if (
+        cancellationDoc?.status === 'approved' ||
+        cancellationDoc?.status === 'refund_submitted' ||
+        cancellationDoc?.status === 'refund_disputed'
+    ) {
+        if (
+            cancellationDoc?.status === 'approved' &&
+            booking?.status === 'cancelled' &&
+            typeof cancellationDoc?.refundAmount === 'number' &&
+            cancellationDoc.refundAmount === 0
+        ) {
+            return 'cancelled';
+        }
+
         const hasCapturedPayments = payments.some(p => p.status === 'captured');
         const isManualRefundPending =
             !isPayMongo &&
@@ -87,9 +110,31 @@ export const getBookingEffectiveStatus = (
 /**
  * Checks whether a booking status requires user action or attention.
  */
-export const isActionNeededStatus = (status: string, cancellation?: Cancellation | null): boolean => {
+export const isActionNeededStatus = (
+    status: string,
+    cancellation?: Cancellation | null,
+    booking?: Booking
+): boolean => {
+    const isNoRefund =
+        cancellation?.refundDecision === 'no_refund' ||
+        (cancellation?.status === 'approved' &&
+         booking?.status === 'cancelled' &&
+         cancellation?.refundAmount === 0 &&
+         cancellation?.handshakeStep !== 'awaiting_user_wallet' &&
+         cancellation?.handshakeStep !== 'awaiting_admin_payout' &&
+         !cancellation?.adminRefundReceiptUrl);
+
+    if (isNoRefund) {
+        return false;
+    }
+
     if (status === 'refund') {
-        return !cancellation?.userWallet?.accountNumber;
+        return !cancellation?.userWallet?.accountNumber ||
+            cancellation?.handshakeStep === 'awaiting_user_confirmation' ||
+            cancellation?.status === 'refund_submitted';
+    }
+    if (booking?.overpayment?.status === 'awaiting_hiker_wallet' || booking?.overpayment?.status === 'awaiting_user_confirmation') {
+        return true;
     }
     return [
         'reservation-rejected',
@@ -134,7 +179,7 @@ export const computeOptimalTab = (
         const st = getBookingEffectiveStatus(b, cancellations);
         const hikeDate = safeParseDateString(b.offer?.date);
         const isPast = hikeDate.getTime() < today.getTime();
-        return !isPast && isActionNeededStatus(st, cancelDoc) && [
+        return !isPast && isActionNeededStatus(st, cancelDoc, b) && [
             'for-reservation',
             'reservation-rejected',
             'approved-docs',
@@ -265,7 +310,7 @@ export default function useBookingFilters(
             }
 
             const cancelDoc = userCancellations?.find(c => c.bookingId === booking.id);
-            if (isActionNeededStatus(status, cancelDoc)) {
+            if (isActionNeededStatus(status, cancelDoc, booking)) {
                 counts[tab] += 1;
             }
         });
@@ -339,7 +384,7 @@ export default function useBookingFilters(
         if (filterBy === 'action-needed') {
             filtered = filtered.filter(b => {
                 const cancelDoc = userCancellations?.find(c => c.bookingId === b.id);
-                return isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations), cancelDoc);
+                return isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations), cancelDoc, b);
             });
         } else if (filterBy === 'waiting') {
             filtered = filtered.filter(b => [
@@ -357,8 +402,8 @@ export default function useBookingFilters(
             if (activeTab === 'pending' || activeTab === 'upcoming') {
                 const aCancel = userCancellations?.find(c => c.bookingId === a.id);
                 const bCancel = userCancellations?.find(c => c.bookingId === b.id);
-                const aAction = isActionNeededStatus(getBookingEffectiveStatus(a, userCancellations), aCancel);
-                const bAction = isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations), bCancel);
+                const aAction = isActionNeededStatus(getBookingEffectiveStatus(a, userCancellations), aCancel, a);
+                const bAction = isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations), bCancel, b);
                 if (aAction !== bAction) {
                     return aAction ? -1 : 1;
                 }

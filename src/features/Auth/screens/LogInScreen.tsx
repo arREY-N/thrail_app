@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { ScrollView, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
@@ -98,11 +98,15 @@ const LogInScreen: React.FC<LogInScreenProps> = ({
                 placeholder="name@example.com"
                 value={email}
                 onChangeText={(text: string) => {
-                    setEmail(sanitizeEmail(text));
+                    setEmail(text);
                     if (activeError) clearError();
                 }}
+                sanitizeText={sanitizeEmail}
                 keyboardType="email-address"
+                textContentType="emailAddress"
+                autoComplete="email"
                 autoCapitalize="none"
+                autoCorrect={false}
             />
 
             <CustomTextInput
@@ -110,10 +114,17 @@ const LogInScreen: React.FC<LogInScreenProps> = ({
                 placeholder="Enter your password"
                 value={password}
                 onChangeText={(text: string) => {
-                    setPassword(sanitizePassword(text));
+                    setPassword(text);
                     if (activeError) clearError();
                 }}
+                sanitizeText={sanitizePassword}
                 secureTextEntry
+                keyboardType={Platform.OS === 'ios' ? 'ascii-capable' : 'default'}
+                textContentType="password"
+                autoComplete="password"
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={64}
                 rightElement={
                     <TouchableOpacity
                         onPress={() => {

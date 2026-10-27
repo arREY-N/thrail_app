@@ -39,7 +39,7 @@ const TermsSignature = ({
     isMinor = false, 
     minorName = '',
     showTitle = true,
-    requireReadToAgree = true,
+    requireReadToAgree = false,
     onValidChange,
     onTermsPress,
     onPrivacyPress,

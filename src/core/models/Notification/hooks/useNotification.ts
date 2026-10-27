@@ -24,8 +24,29 @@ export const useNotifications = () => {
     };
 };
 
+// Configure foreground notification handling (shows banner & plays sound when app is in foreground)
+Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+    }),
+});
+
 export const requestNotificationPermission = async () => {
     if (Platform.OS === 'android' || Platform.OS === 'ios') {
+        if (Platform.OS === 'android') {
+            await Notifications.setNotificationChannelAsync('default', {
+                name: 'Default',
+                importance: Notifications.AndroidImportance.MAX,
+                vibrationPattern: [0, 250, 250, 250],
+                lightColor: '#2E7D32',
+                enableLights: true,
+                enableVibrate: true,
+            });
+        }
+
         const { status } = await Notifications.requestPermissionsAsync();
 
         if (status === 'granted') {

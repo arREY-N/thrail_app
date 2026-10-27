@@ -2,7 +2,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+    
+    match /misc/{miscId} {
+        allow read: if true;
+    }
+
     match /deployment/{deploymentId} {
         allow read: if true;
     }

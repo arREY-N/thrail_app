@@ -10,6 +10,7 @@ import React, { useState } from 'react';
 import {
     ActivityIndicator,
     LayoutAnimation,
+    Linking,
     Platform,
     ScrollView,
     StyleProp,
@@ -20,6 +21,7 @@ import {
     ViewStyle
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import NetInfo from '@react-native-community/netinfo';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
@@ -33,6 +35,21 @@ import useFileUpload from '@/src/core/utility/uploadFile';
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+/**
+ * Checks device network connectivity before initiating upload requests.
+ */
+const checkNetworkConnectivity = async (): Promise<boolean> => {
+    try {
+        if (Platform.OS === 'web') {
+            return typeof navigator !== 'undefined' ? (navigator.onLine ?? true) : true;
+        }
+        const state = await NetInfo.fetch();
+        return Boolean(state.isConnected && (state.isInternetReachable ?? true));
+    } catch {
+        return true;
+    }
+};
 
 const MAX_DOCUMENT_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic'];
@@ -145,6 +162,7 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     
     const [isUploading, setIsUploading] = useState(false);
     const [isError, setIsError] = useState(false);
+    const [isPermissionBlocked, setIsPermissionBlocked] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [isPreviewVisible, setIsPreviewVisible] = useState(false);
     const [previewIndex, setPreviewIndex] = useState(0);
@@ -161,6 +179,23 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     const isLimitReached = imagesList.length >= maxAllowed;
 
     const handleUploadPress = async () => {
+        if (isPermissionBlocked && Platform.OS !== 'web') {
+            try {
+                const { status: currentStatus } = await ImagePicker.getMediaLibraryPermissionsAsync();
+                if (currentStatus === 'granted') {
+                    setIsPermissionBlocked(false);
+                    setIsError(false);
+                    setErrorMessage('');
+                } else {
+                    await Linking.openSettings();
+                    return;
+                }
+            } catch {
+                await Linking.openSettings();
+                return;
+            }
+        }
+
         if (onUploadPress) {
             await onUploadPress();
             return;
@@ -176,6 +211,11 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         setIsError(false);
         setErrorMessage('');
         try {
+            const isOnline = await checkNetworkConnectivity();
+            if (!isOnline) {
+                throw new Error('No internet connection. Please check your signal and try again.');
+            }
+
             const safeDocKey: UploadDocumentType = (
                 docKey === 'medicalCertificate' || docKey === 'bir' || docKey === 'dti' || docKey === 'denr'
                     ? docKey
@@ -193,10 +233,16 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
             } else {
                 // Mobile and Web gallery image picker
                 if (Platform.OS !== 'web') {
-                    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                    const { status, canAskAgain } = await ImagePicker.requestMediaLibraryPermissionsAsync();
                     if (status !== 'granted') {
+                        if (!canAskAgain) {
+                            setIsPermissionBlocked(true);
+                            throw new Error('Photo gallery permission is disabled. Please enable photo access in Settings to upload.');
+                        }
+                        setIsPermissionBlocked(false);
                         throw new Error('Permission to access photo gallery is required.');
                     }
+                    setIsPermissionBlocked(false);
                 }
 
                 const result = await ImagePicker.launchImageLibraryAsync({
@@ -275,6 +321,7 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
             if (isCanceled) {
                 setIsError(false);
                 setErrorMessage('');
+                setIsPermissionBlocked(false);
             } else {
                 console.error(`Upload failed for ${docKey}:`, error);
                 setIsError(true);
@@ -310,7 +357,7 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         btnStyle = styles.uploadedBtn;
         btnText = allowMultiple ? "Add More" : "Change";
         btnTextStyle = styles.uploadedBtnText;
-        spinnerColor = Colors.TEXT_SECONDARY;
+        spinnerColor = Colors.SUCCESS;
     } else if (isRejected) {
         iconName = "x-circle";
         iconColor = Colors.ERROR;
@@ -323,8 +370,8 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         iconName = "alert-circle";
         iconColor = Colors.ERROR;     
         wrapperStyle = styles.iconWrapperError;
-        btnStyle = styles.errorBtn;
-        btnText = "Retry";            
+        btnStyle = isPermissionBlocked ? styles.settingsBtn : styles.errorBtn;
+        btnText = isPermissionBlocked ? "Settings" : "Retry";            
         btnTextStyle = styles.errorBtnText;
         spinnerColor = Colors.WHITE;
     }
@@ -608,7 +655,7 @@ const styles = StyleSheet.create({
     uploadedBtn: { 
         backgroundColor: Colors.WHITE, 
         borderWidth: 1, 
-        borderColor: Colors.GRAY_MEDIUM, 
+        borderColor: Colors.SUCCESS, 
         paddingVertical: 8, 
         paddingHorizontal: 16, 
         borderRadius: 20, 
@@ -616,7 +663,7 @@ const styles = StyleSheet.create({
         alignItems: 'center', 
     },
     uploadedBtnText: { 
-        color: Colors.TEXT_SECONDARY, 
+        color: Colors.SUCCESS, 
         fontWeight: 'bold', 
     },
     errorBtn: { 
@@ -630,6 +677,14 @@ const styles = StyleSheet.create({
     errorBtnText: { 
         color: Colors.WHITE, 
         fontWeight: 'bold', 
+    },
+    settingsBtn: {
+        backgroundColor: Colors.PRIMARY,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        minWidth: 80,
+        alignItems: 'center',
     },
     viewBtn: { 
         paddingVertical: 8, 
