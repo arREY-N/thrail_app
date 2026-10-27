@@ -5,6 +5,7 @@ import CustomIcon from '@/src/components/CustomIcon';
 // import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
+import PaymentBreakdownPanel from '@/src/components/PaymentBreakdownPanel';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
@@ -45,21 +46,14 @@ const ReceiptScreen = ({
     
     const latestPayment: IPayment<Date> = capturedPayments[capturedPayments.length - 1] || refundedPayments[refundedPayments.length - 1] || payments[0];
     
-    // Prioritize official Payment ID (pay_...) over internal ledger ID (bal_...) or checkout sessionId (cs_...)
-    const transactionRef = 
-        (latestPayment?.gatewayId?.startsWith('pay_') ? latestPayment.gatewayId : null) ||
-        (latestPayment?.referenceCode?.startsWith('pay_') ? latestPayment.referenceCode : null) ||
-        latestPayment?.gatewayId ||
-        latestPayment?.referenceCode ||
-        latestPayment?.sessionId ||
-        `TRX-${bookingData?.id?.substring(0, 8).toUpperCase() || 'N/A'}`;
-
-    // Clean payment channel display (GCash / Maya / Card)
+    // Clean payment channel display (GCash / Maya / Card / Manual QR / Cash)
     const formatMethod = (method?: string, gateway?: string) => {
         const m = (method || '').toLowerCase();
         if (m === 'gcash') return 'GCash';
         if (m === 'maya' || m === 'paymaya') return 'Maya';
         if (m === 'card') return 'Credit / Debit Card';
+        if (m === 'manual_qr') return 'Manual QR';
+        if (m === 'cash') return 'Cash';
         if (gateway?.toLowerCase() === 'paymongo') return 'PayMongo';
         return method || gateway || 'Online Payment';
     };
@@ -72,6 +66,10 @@ const ReceiptScreen = ({
     const totalPaid = capturedPayments.length > 0 
         ? capturedPayments.reduce((sum: number, p: IPayment<Date>) => sum + (p.amount || 0), 0) 
         : (isRefunded ? 0 : totalAmount);
+    
+    const remainingBalance = typeof bookingData?.remainingBalance === 'number'
+        ? bookingData.remainingBalance
+        : Math.max(0, totalAmount - totalPaid);
         
     const hasUnrecordedRefund = refundedPayments.some((p: IPayment<Date>) => p.refundedAmount === undefined || p.refundedAmount === null);
 
@@ -140,11 +138,21 @@ const ReceiptScreen = ({
                             <CustomText variant="h3" style={styles.trailName}>
                                 {bookingData?.trail?.name || 'Trail Hike'}
                             </CustomText>
-                            <CustomText variant="caption" style={styles.guideName}>
-                                Reference: {transactionRef}
-                            </CustomText>
                         </View>
                         
+                        <View style={styles.dottedDivider} />
+
+                        {/* Top Financial Breakdown: Total Price, Amount Already Paid, Remaining Balance */}
+                        <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+                            <PaymentBreakdownPanel
+                                totalPrice={totalAmount}
+                                amountPaid={totalPaid}
+                                remainingBalance={remainingBalance}
+                                refundedAmount={totalRefunded}
+                                variant="receipt"
+                            />
+                        </View>
+
                         <View style={styles.dottedDivider} />
                         
                         <View style={styles.infoSection}>
@@ -185,7 +193,7 @@ const ReceiptScreen = ({
                                     {capturedPayments.map((cp, cIdx) => (
                                         <View key={cIdx} style={styles.dataRow}>
                                             <CustomText variant="caption" color={Colors.TEXT_SECONDARY}>
-                                                {cIdx === 0 ? "Deposit (50%)" : "Remaining Balance"} ({formatMethod(cp.method, cp.gateway)})
+                                                {cIdx === 0 ? "Deposit" : "Remaining Balance"} ({formatMethod(cp.method, cp.gateway)})
                                             </CustomText>
                                             <CustomText variant="body" style={styles.value}>
                                                 ₱{(cp.amount || 0).toFixed(2)}

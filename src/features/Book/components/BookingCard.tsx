@@ -108,7 +108,18 @@ const BookingCard: React.FC<BookingCardProps> = ({
     if (isNoRefund) {
         displayStatus = 'cancelled';
     } else if (cancellation?.status === 'pending') {
-        displayStatus = 'for-cancellation';
+        if (cancellation?.cancelledBy === 'admin') {
+            const hasCapturedPayments = payments.some(p => p.status === 'captured');
+            if (isRefundComplete) {
+                displayStatus = 'refunded';
+            } else if (hasCapturedPayments || (cancellation?.refundAmount ?? 0) > 0) {
+                displayStatus = 'refund';
+            } else {
+                displayStatus = 'cancelled';
+            }
+        } else {
+            displayStatus = 'for-cancellation';
+        }
     } else if (
         cancellation?.status === 'approved' ||
         cancellation?.status === 'refund_submitted' ||
@@ -172,8 +183,17 @@ const BookingCard: React.FC<BookingCardProps> = ({
     const configRole = (role === 'admin' || role === 'superadmin') ? 'admin' : 'user';
     const statusConfig = getStatusConfig(displayStatus, configRole);
 
-    const isPaymentVerifying = booking?.paymentVerificationStatus === 'pending_verification' ||
-        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+    const isCompletedOrFullyPaid = 
+        displayStatus === 'completed' || 
+        booking?.status === 'completed' || 
+        booking?.paymentVerificationStatus === 'fully_paid' ||
+        displayStatus === 'cancelled' || 
+        displayStatus === 'refunded';
+
+    const isPaymentVerifying = !isCompletedOrFullyPaid && (
+        booking?.paymentVerificationStatus === 'pending_verification' ||
+        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'))
+    );
 
     const isPaymentRejected = !isPaymentVerifying && (
         booking?.paymentVerificationStatus === 'rejected' ||
@@ -266,7 +286,6 @@ const BookingCard: React.FC<BookingCardProps> = ({
     const remainingBalance = booking?.remainingBalance !== undefined 
         ? booking.remainingBalance 
         : Math.max(0, price - capturedAmount);
-    const amountPaid = capturedAmount > 0 ? capturedAmount : Math.max(0, price - remainingBalance);
 
     return (
         <TouchableOpacity 
@@ -404,42 +423,28 @@ const BookingCard: React.FC<BookingCardProps> = ({
 
             <View style={styles.bottomRow}>
                 {displayStatus === 'downpayment' ? (
-                    <View style={styles.priceColumnContainer}>
-                        <View style={styles.flexCol}>
-                            <CustomText variant="caption" style={styles.dataLabel}>
-                                Deposit Paid
-                            </CustomText>
-                            <CustomText 
-                                variant="h2" 
-                                style={[
-                                    styles.dataValue, 
-                                    { color: Colors.SUCCESS }
-                                ]}
-                            >
-                                ₱{amountPaid.toFixed(2)}
-                            </CustomText>
-                        </View>
-                        <View style={styles.flexCol}>
-                            <CustomText variant="caption" style={styles.dataLabel}>
-                                Balance
-                            </CustomText>
-                            <CustomText 
-                                variant="h2" 
-                                style={[
-                                    styles.dataValue, 
-                                    { color: Colors.WARNING }
-                                ]}
-                            >
-                                ₱{remainingBalance.toFixed(2)}
-                            </CustomText>
-                        </View>
+                    <View style={styles.flexCol}>
+                        <CustomText variant="caption" style={styles.dataLabel} numberOfLines={1}>
+                            Balance
+                        </CustomText>
+                        <CustomText 
+                            variant="h2" 
+                            style={[
+                                styles.dataValue, 
+                                { color: Colors.WARNING }
+                            ]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit={true}
+                        >
+                            ₱{remainingBalance.toFixed(2)}
+                        </CustomText>
                     </View>
                 ) : (
                     <View style={styles.flexCol}>
-                        <CustomText variant="caption" style={styles.dataLabel}>
+                        <CustomText variant="caption" style={styles.dataLabel} numberOfLines={1}>
                             Total Amount
                         </CustomText>
-                        <CustomText variant="h2" style={styles.dataValue}>
+                        <CustomText variant="h2" style={styles.dataValue} numberOfLines={1} adjustsFontSizeToFit={true}>
                             ₱{price.toFixed(2)}
                         </CustomText>
                     </View>
@@ -551,11 +556,14 @@ const styles = StyleSheet.create({
         gap: 16 
     },
     flexCol: { 
-        justifyContent: 'space-between' 
+        justifyContent: 'space-between',
+        flexShrink: 1,
+        marginRight: 8,
     },
     actionCol: { 
         justifyContent: 'space-between', 
-        alignItems: 'flex-end'
+        alignItems: 'flex-end',
+        flexShrink: 0,
     },
     dataLabel: { 
         color: Colors.TEXT_PLACEHOLDER, 
