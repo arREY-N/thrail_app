@@ -429,10 +429,10 @@ exports.onBookingStatusChange = functions.firestore
                 after.paymentVerificationStatus === 'pending_verification' &&
                 before.paymentVerificationStatus !== 'pending_verification'
             ) || (
-                (after.payment?.length || 0) > (before.payment?.length || 0) &&
-                after.payment?.some(p => (p.gateway === 'manual_qr' || p.receiptUrl) && p.status === 'pending') &&
-                !before.payment?.some(p => (p.gateway === 'manual_qr' || p.receiptUrl) && p.status === 'pending')
-            );
+                    (after.payment?.length || 0) > (before.payment?.length || 0) &&
+                    after.payment?.some(p => (p.gateway === 'manual_qr' || p.receiptUrl) && p.status === 'pending') &&
+                    !before.payment?.some(p => (p.gateway === 'manual_qr' || p.receiptUrl) && p.status === 'pending')
+                );
 
             if (before.status === after.status && !isDocResubmission && !isPaymentSubmitted) return;
 
@@ -754,19 +754,6 @@ exports.onNewCancellationRequest = functions.firestore
                     adminCancelNotifiedAt: FieldValue.serverTimestamp()
                 });
 
-                if (bookingId) {
-                    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
-                    const bookingDoc = await bookingRef.get();
-                    if (bookingDoc.exists && bookingDoc.data()?.status !== 'cancelled') {
-                        await bookingRef.update({
-                            status: 'cancelled',
-                            cancelledBy: 'admin',
-                            cancellationReason: reason || 'Cancelled by organizer',
-                            updatedAt: FieldValue.serverTimestamp()
-                        });
-                    }
-                }
-
                 const notifTitle = `Hike Cancelled by Organizer`;
                 const notifMessage = `Your hike for ${trailName} was cancelled by ${businessName}.${reasonText} Go to your booking to choose between a refund or reschedule options.`;
                 const adminCancelDocId = bookingId ? `admin_cancel_${bookingId}` : `admin_cancel_${cancellationId}`;
@@ -813,18 +800,6 @@ exports.onNewCancellationRequest = functions.firestore
                     notificationSent: true,
                     notifiedAt: FieldValue.serverTimestamp()
                 });
-
-                if (userId && bookingId) {
-                    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
-                    const bookingDoc = await bookingRef.get();
-                    if (bookingDoc.exists && bookingDoc.data()?.status !== 'for-cancellation') {
-                        await bookingRef.update({
-                            status: 'for-cancellation',
-                            cancellationReason: reason || 'User cancellation requested',
-                            updatedAt: FieldValue.serverTimestamp()
-                        });
-                    }
-                }
 
                 // Notify Business Admins
                 await notifyBusinessAdmins(db, businessId, {
@@ -2735,8 +2710,8 @@ exports.verifyManualPayment = https.onCall(async (request) => {
         remainingBalance: remaining,
         isOverpaid,
         excessAmount,
-        message: isOverpaid 
-            ? `Full payment verified and excess of ₱${excessAmount.toFixed(2)} marked for refund.` 
+        message: isOverpaid
+            ? `Full payment verified and excess of ₱${excessAmount.toFixed(2)} marked for refund.`
             : (isFull ? 'Full payment verified.' : 'Downpayment verified.'),
     };
 });
