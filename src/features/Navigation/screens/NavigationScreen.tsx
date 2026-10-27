@@ -34,7 +34,7 @@ interface NavigationScreenProps {
     isLoading: boolean;
 
     onSearchChange: (text: string) => void;
-    onSearchSubmit: () => void;
+    onSearchSubmit: (query?: string) => void;
     onTrailSelect: (trail: Trail) => void;
     onGroupPress: () => void;
     onBookingPress: () => void;
@@ -110,9 +110,17 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         prevTrailRef.current = selectedTrail;
     }, [selectedTrail, trailCenter]);
 
+    const [modeToast, setModeToast] = useState<string | null>(null);
+    const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     const handleToggleOffline = () => {
-        setIsOfflineMode(!isOfflineMode);
+        const nextMode = !isOfflineMode;
+        setIsOfflineMode(nextMode);
         mapRef.current?.toggleOffline();
+
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setModeToast(nextMode ? "Offline Map Active · Local Storage" : "Online Map Active · Live Topo Tiles");
+        toastTimeoutRef.current = setTimeout(() => setModeToast(null), 2500);
     };
 
     const handleDisabledPress = () => {
@@ -149,8 +157,11 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         <View style={styles.container}>
             <TrailMap
                 ref={mapRef}
+                isOffline={isOfflineMode}
                 initialLon={trailCenter?.longitude}
                 initialLat={trailCenter?.latitude}
+                geoJsonPath={selectedTrail?.geography?.geoJsonPath}
+                mountainId={Array.isArray(selectedTrail?.general?.mountain) ? selectedTrail?.general?.mountain[0] : (selectedTrail?.general?.mountain || selectedTrail?.general?.name)}
                 bottomInset={controlsHeight + 20}
             />
 
@@ -186,6 +197,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                         searchPlaceholder="Search mountains or trails..."
                         searchValue={searchQuery}
                         onSearchChange={onSearchChange}
+                        onSubmitEditing={onSearchSubmit}
                         activeTab={undefined}
                         onTabSelect={undefined}
                     />
@@ -239,6 +251,22 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 )}
             </View>
 
+            {modeToast && (
+                <View style={[styles.modeToastBanner, { top: Platform.OS === 'web' ? 70 : searchTopPadding + 56 }]} pointerEvents="none">
+                    <View style={[styles.modeToastContent, styles.toastOnline]}>
+                        <CustomIcon
+                            library="Feather"
+                            name={isOfflineMode ? "hard-drive" : "cloud"}
+                            size={14}
+                            color={Colors.PRIMARY}
+                        />
+                        <CustomText style={[styles.modeToastText, styles.textEmerald]}>
+                            {modeToast}
+                        </CustomText>
+                    </View>
+                </View>
+            )}
+
             <View style={[styles.mapControlsColumn, { bottom: controlsHeight + 36 }]}>
                 {Platform.OS !== 'web' &&
                     <TouchableOpacity
@@ -273,8 +301,18 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                     <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.floatingIconBtn} onPress={handleToggleOffline} activeOpacity={0.8}>
-                    <CustomIcon library="Feather" name={isOfflineMode ? "map" : "layers"} size={20} color={isOfflineMode ? Colors.TEXT_SECONDARY : Colors.PRIMARY} />
+                <TouchableOpacity
+                    style={styles.floatingIconBtn}
+                    onPress={handleToggleOffline}
+                    activeOpacity={0.8}
+                    accessibilityLabel={`Toggle map mode. Currently ${isOfflineMode ? "Offline" : "Online"}`}
+                >
+                    <CustomIcon
+                        library="Feather"
+                        name={isOfflineMode ? "hard-drive" : "cloud"}
+                        size={20}
+                        color={Colors.PRIMARY}
+                    />
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.floatingIconBtn} onPress={() => mapRef.current?.centerOnUser()} activeOpacity={0.8}>
@@ -569,6 +607,44 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
         color: Colors.PRIMARY,
+    },
+
+
+    modeToastBanner: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 60,
+    },
+    modeToastContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: Colors.WHITE,
+        gap: 8,
+        ...GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }),
+        borderWidth: 1,
+    },
+    toastOffline: {
+        borderColor: '#FDE68A',
+        backgroundColor: '#FFFBEB',
+    },
+    toastOnline: {
+        borderColor: '#A7F3D0',
+        backgroundColor: '#ECFDF5',
+    },
+    modeToastText: {
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    textAmber: {
+        color: '#92400E',
+    },
+    textEmerald: {
+        color: '#065F46',
     },
 });
 

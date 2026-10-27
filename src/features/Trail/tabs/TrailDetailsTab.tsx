@@ -344,6 +344,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                             <TrailMap
                                 initialLon={trailLon}
                                 initialLat={trailLat}
+                                geoJsonPath={trail?.geography?.geoJsonPath}
                                 mountainId={mountainName}
                                 showControls={false}
                                 showRecenter={false}
@@ -480,6 +481,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                             <TrailMap
                                 initialLon={trailLon}
                                 initialLat={trailLat}
+                                geoJsonPath={trail?.geography?.geoJsonPath}
                                 mountainId={mountainName}
                                 showControls={true}
                                 showRecenter={true}
