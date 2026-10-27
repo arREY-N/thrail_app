@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import { useToast } from '@/src/components/Toast/Toast';
 import ExpandableText from '@/src/components/ExpandableText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
@@ -14,6 +15,7 @@ import { IPayment } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { SelectedFile } from '@/src/core/repositories/fileRepository';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
+import * as Clipboard from 'expo-clipboard';
 
 /**
  * Props for AdminCancellationCard.
@@ -69,6 +71,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
     payments,
     isPayMongo,
 }) => {
+    const { showToast } = useToast();
     const [previewAdminProof, setPreviewAdminProof] = useState<string | null>(null);
 
     const handlePickReceipt = async () => {
@@ -106,15 +109,24 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
 
     const resolvedIsPayMongo = isPayMongo ?? payments?.some(p => p.gateway === 'paymongo');
     const isManualRefund = !resolvedIsPayMongo && (PAYMENT_CONFIG.PROVIDER === 'manual_qr' || payments?.some(p => p.gateway === 'manual_qr'));
+
+    const isRefundDisputed = isManualRefund && (
+        cancellation?.handshakeStep === 'refund_disputed' ||
+        cancellation?.status === 'refund_disputed'
+    );
+    const isAwaitingUserConfirmation = isManualRefund && (
+        cancellation?.handshakeStep === 'awaiting_user_confirmation' ||
+        (Boolean(cancellation?.adminRefundReceiptUrl) && cancellation?.handshakeStep !== 'completed' && status !== 'refunded' && !isRefundDisputed)
+    );
     const isRefundComplete = resolvedIsPayMongo
         ? (totalRefundedAmount > 0 || status === 'refunded')
-        : (Boolean(cancellation?.adminRefundReceiptUrl) || cancellation?.handshakeStep === 'completed' || status === 'refunded');
+        : (!isAwaitingUserConfirmation && !isRefundDisputed && (cancellation?.handshakeStep === 'completed' || cancellation?.status === 'refund_completed' || status === 'refunded'));
 
     const isCancelled =
         (status === 'cancelled' && totalRefundedAmount === 0) ||
         (cancellation?.status === 'approved' && totalRefundedAmount === 0 && !cancellation?.refundAmount);
 
-    if (!isPending && !isDeclined && !isRefundComplete && !isCancelled && !cancellation?.refundAmount) {
+    if (!isPending && !isDeclined && !isRefundComplete && !isCancelled && !cancellation?.refundAmount && !isRefundDisputed && !isAwaitingUserConfirmation) {
         return null;
     }
 
@@ -128,9 +140,9 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
         status === 'refunded'
     );
 
-    const isAwaitingRefundDecision = isManualRefund && isApproved && isPaid && !isRefundComplete && (cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || (!cancellation?.handshakeStep && !cancellation?.refundDecision));
-    const isAwaitingWallet = isManualRefund && isApproved && isPaid && !isRefundComplete && (cancellation?.handshakeStep === 'awaiting_user_wallet' || (!cancellation?.userWallet && !isAwaitingRefundDecision));
-    const isAwaitingPayout = isManualRefund && isApproved && isPaid && !isRefundComplete && Boolean(cancellation?.userWallet) && !cancellation?.adminRefundReceiptUrl;
+    const isAwaitingRefundDecision = isManualRefund && isApproved && isPaid && !isRefundComplete && !isRefundDisputed && !isAwaitingUserConfirmation && (cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || (!cancellation?.handshakeStep && !cancellation?.refundDecision));
+    const isAwaitingWallet = isManualRefund && isApproved && isPaid && !isRefundComplete && !isRefundDisputed && !isAwaitingUserConfirmation && (cancellation?.handshakeStep === 'awaiting_user_wallet' || (!cancellation?.userWallet && !isAwaitingRefundDecision));
+    const isAwaitingPayout = isManualRefund && isApproved && isPaid && !isRefundComplete && Boolean(cancellation?.userWallet) && (!cancellation?.adminRefundReceiptUrl || isRefundDisputed);
 
     const headerTitle = isDirectCancellation
         ? 'Reservation Cancelled'
@@ -138,6 +150,10 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
         ? 'Hike Cancelled by Organizer'
         : isDeclined
         ? 'Cancellation Request Declined'
+        : isRefundDisputed
+        ? `Refund Disputed by Hiker (Attempt ${cancellation?.disputeCount || 1}/3)`
+        : isAwaitingUserConfirmation
+        ? 'Payout Proof Uploaded — Awaiting Hiker Confirmation'
         : isApproved
         ? (isRefundComplete
             ? 'Cancellation Approved & Refunded'
@@ -154,16 +170,24 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
         ? 'slash'
         : isDeclined
         ? 'x-circle'
+        : isRefundDisputed
+        ? 'alert-triangle'
+        : isAwaitingUserConfirmation
+        ? 'clock'
         : isApproved
         ? (isRefundComplete ? 'check-circle' : 'clock')
         : 'alert-triangle';
 
-    const iconColor = isDirectCancellation || isCancelledByAdmin || isDeclined || isPending
+    const iconColor = isDirectCancellation || isCancelledByAdmin || isDeclined || isPending || isRefundDisputed
         ? Colors.ERROR
         : (isRefundComplete ? Colors.SUCCESS : '#B45309');
 
     const subtitleText = isDirectCancellation
         ? 'Booking cancelled by Hiker. Reserved slot released.'
+        : isRefundDisputed
+        ? `Hiker reported not receiving the refund payout (Attempt ${cancellation?.disputeCount || 1}/3). Please check the recipient number below, send payment, and upload a new receipt proof.`
+        : isAwaitingUserConfirmation
+        ? 'Payout receipt proof uploaded. Waiting for hiker to inspect and confirm receipt.'
         : isCancelledByAdmin
         ? (isPending
             ? 'You cancelled this reservation. Hiker has been notified.'
@@ -335,17 +359,72 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                 );
             })()}
 
-            {/* Manual QR Handshake: Uploaded Proof Display */}
-            {isManualRefund && cancellation?.adminRefundReceiptUrl && (
+            {/* Manual QR Handshake: Dispute Alert Banner */}
+            {isManualRefund && isRefundDisputed && (
+                <View style={styles.disputeAlertBox}>
+                    <View style={styles.disputeAlertHeader}>
+                        <CustomIcon library="Feather" name="alert-triangle" size={18} color={Colors.ERROR} />
+                        <CustomText style={styles.disputeAlertTitle}>
+                            Refund Disputed by Hiker (Attempt {cancellation?.disputeCount || 1}/3)
+                        </CustomText>
+                    </View>
+                    <CustomText style={styles.disputeAlertSubtitle}>
+                        The hiker reported that they did not receive the refund payout.
+                    </CustomText>
+
+                    {Boolean(cancellation?.disputeReason) && (
+                        <View style={styles.disputeReasonBox}>
+                            <CustomText variant="caption" style={styles.disputeReasonLabel}>
+                                HIKER&apos;S DISPUTE REASON
+                            </CustomText>
+                            <CustomText style={styles.disputeReasonText}>
+                                &ldquo;{cancellation?.disputeReason}&rdquo;
+                            </CustomText>
+                        </View>
+                    )}
+
+                    <CustomText style={styles.disputeInstructions}>
+                        Please verify the hiker&apos;s GCash/Maya number below, transfer the funds if needed, and upload a new receipt proof to re-initiate confirmation. The hiker is kept in the tour group chat so you can also message them directly.
+                    </CustomText>
+                </View>
+            )}
+
+            {/* Manual QR Handshake: Uploaded Proof Display (Awaiting User Confirmation) */}
+            {isManualRefund && isAwaitingUserConfirmation && !isRefundDisputed && (
+                <View style={styles.awaitingConfirmationBox}>
+                    <View style={styles.awaitingConfirmationHeader}>
+                        <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_PENDING_TEXT} />
+                        <CustomText style={styles.awaitingConfirmationTitle}>
+                            Payout Proof Uploaded — Awaiting Hiker Confirmation
+                        </CustomText>
+                    </View>
+                    <CustomText variant="caption" style={styles.awaitingConfirmationSubtitle}>
+                        Refund payout receipt of ₱{(cancellation?.refundAmount || totalAmountPaid).toFixed(2)} was uploaded. Waiting for the hiker to inspect and confirm receipt.
+                    </CustomText>
+                    {cancellation?.adminRefundReceiptUrl && (
+                        <TouchableOpacity
+                            style={styles.viewProofBtn}
+                            onPress={() => setPreviewAdminProof(cancellation.adminRefundReceiptUrl || null)}
+                            activeOpacity={0.8}
+                        >
+                            <CustomIcon library="Feather" name="eye" size={14} color={Colors.PRIMARY} />
+                            <CustomText style={styles.viewProofBtnText}>View Uploaded Receipt Proof</CustomText>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            )}
+
+            {/* Manual QR Handshake: Refund Completed & Confirmed Display */}
+            {isManualRefund && isRefundComplete && cancellation?.adminRefundReceiptUrl && (
                 <View style={styles.manualRefundAdminBox}>
                     <View style={styles.manualRefundHeader}>
                         <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
                         <CustomText style={styles.manualRefundSuccessTitle}>
-                            Refund Payout Proof Uploaded
+                            Refund Completed & Confirmed by Hiker
                         </CustomText>
                     </View>
                     <CustomText variant="caption" style={styles.manualRefundSubtitle}>
-                        Payout receipt proof has been verified and stored.
+                        Hiker confirmed receipt of ₱{(cancellation.refundAmount || totalAmountPaid).toFixed(2)}. Resolution complete.
                     </CustomText>
                     <TouchableOpacity
                         style={styles.viewProofBtn}
@@ -358,8 +437,8 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                 </View>
             )}
 
-            {/* Manual QR Handshake: Hiker Wallet Submitted Display & Upload Action */}
-            {isManualRefund && cancellation?.userWallet && !cancellation?.adminRefundReceiptUrl && (
+            {/* Manual QR Handshake: Hiker Wallet Details & Upload Action */}
+            {isManualRefund && cancellation?.userWallet && (!cancellation?.adminRefundReceiptUrl || isRefundDisputed) && (
                 <View style={styles.walletDetailsAdminBox}>
                     <View style={styles.manualRefundHeader}>
                         <CustomIcon library="Feather" name="credit-card" size={16} color={Colors.PRIMARY} />
@@ -373,7 +452,21 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                     </View>
                     <View style={styles.walletFieldRow}>
                         <CustomText style={styles.walletLabel}>Mobile Number:</CustomText>
-                        <CustomText style={styles.walletValue} selectable={true}>{cancellation.userWallet.accountNumber}</CustomText>
+                        <View style={styles.numberCopyRow}>
+                            <CustomText style={styles.walletValue} selectable={true}>{cancellation.userWallet.accountNumber}</CustomText>
+                            <TouchableOpacity
+                                onPress={async () => {
+                                    if (cancellation?.userWallet?.accountNumber) {
+                                        await Clipboard.setStringAsync(cancellation.userWallet.accountNumber);
+                                        showToast.success('Mobile number copied to clipboard');
+                                    }
+                                }}
+                                style={styles.copyIconBtn}
+                                activeOpacity={0.7}
+                            >
+                                <CustomIcon library="Feather" name="copy" size={14} color={Colors.PRIMARY} />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                     <View style={styles.walletFieldRow}>
                         <CustomText style={styles.walletLabel}>Account Name:</CustomText>
@@ -385,8 +478,8 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                     </View>
 
                     <CustomButton
-                        title={isUploadingProof ? "Uploading Proof..." : "Upload Proof of Refund Receipt"}
-                        variant="primary"
+                        title={isUploadingProof ? "Uploading Proof..." : (isRefundDisputed ? "Re-Initiate & Upload New Receipt" : "Upload Proof of Refund Receipt")}
+                        variant={isRefundDisputed ? "destructive" : "primary"}
                         icon="upload"
                         iconLibrary="Feather"
                         onPress={handlePickReceipt}
@@ -858,6 +951,93 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: 'bold',
         color: Colors.PRIMARY,
+    },
+    numberCopyRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    copyIconBtn: {
+        padding: 4,
+        borderRadius: 4,
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    disputeAlertBox: {
+        backgroundColor: '#FEF2F2',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#FECACA',
+        padding: 12,
+        marginTop: 10,
+        gap: 6,
+    },
+    disputeAlertHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    disputeAlertTitle: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: Colors.ERROR,
+    },
+    disputeAlertSubtitle: {
+        fontSize: 12,
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 16,
+    },
+    disputeReasonBox: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#FCA5A5',
+        padding: 10,
+        marginVertical: 4,
+    },
+    disputeReasonLabel: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: Colors.ERROR,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 2,
+    },
+    disputeReasonText: {
+        fontSize: 12,
+        color: Colors.TEXT_PRIMARY,
+        fontStyle: 'italic',
+        lineHeight: 16,
+    },
+    disputeInstructions: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 15,
+    },
+    awaitingConfirmationBox: {
+        backgroundColor: '#FFFBEB',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#FDE68A',
+        padding: 12,
+        marginTop: 10,
+        gap: 6,
+    },
+    awaitingConfirmationHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    awaitingConfirmationTitle: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#92400E',
+    },
+    awaitingConfirmationSubtitle: {
+        fontSize: 12,
+        color: '#B45309',
+        lineHeight: 16,
     },
 });
 

@@ -51,6 +51,13 @@ const BASE_NAV_SECTIONS: NavSection[] = [
         route: "/(app)/(tabs)/explore",
       },
       {
+        id: "navigate",
+        label: "Navigate",
+        icon: "map",
+        library: "Feather",
+        route: "/(app)/(tabs)/hike",
+      },
+      {
         id: "community",
         label: "Community",
         icon: "users",

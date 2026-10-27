@@ -2415,6 +2415,8 @@ exports.processCancellationApproval = https.onCall({ secrets: [paymongoSecret] }
             status: 'approved',
             adminNote: adminNote || null,
             refundAmount: actualRefundedAmount,
+            refundDecision: isRefundIssued ? 'issue_refund' : 'no_refund',
+            handshakeStep: 'completed',
             refundedAt: isRefundIssued ? FieldValue.serverTimestamp() : null,
             updatedAt: FieldValue.serverTimestamp()
         });
@@ -2591,12 +2593,17 @@ exports.verifyManualPayment = https.onCall(async (request) => {
         ? bookingData.remainingBalance
         : Math.max(0, totalPrice - previouslyCaptured);
 
-    const approvedAmount = typeof verifiedAmount === 'number' && verifiedAmount > 0
-        ? verifiedAmount
-        : (classification === 'full' ? currentRemaining : Math.min(currentRemaining, currentRemaining / 2));
+    const isOverpaid = typeof verifiedAmount === 'number' && verifiedAmount > currentRemaining;
+    const excessAmount = isOverpaid ? (verifiedAmount - currentRemaining) : 0;
 
-    const remaining = Math.max(0, currentRemaining - approvedAmount);
-    const isFull = remaining === 0 || (classification === 'full' && approvedAmount >= currentRemaining);
+    const approvedAmount = isOverpaid
+        ? currentRemaining
+        : (typeof verifiedAmount === 'number' && verifiedAmount > 0
+            ? verifiedAmount
+            : (classification === 'full' ? currentRemaining : Math.min(currentRemaining, currentRemaining / 2)));
+
+    const remaining = isOverpaid ? 0 : Math.max(0, currentRemaining - approvedAmount);
+    const isFull = isOverpaid || remaining === 0 || (classification === 'full' && approvedAmount >= currentRemaining);
     const effectiveClassification = isFull ? 'full' : 'downpayment';
 
     let refundableDeadline = null;
@@ -2643,14 +2650,27 @@ exports.verifyManualPayment = https.onCall(async (request) => {
         });
     }
 
-    batch.update(bookingRef, {
+    const bookingUpdates = {
         status: isFull ? 'paid' : 'downpayment',
         remainingBalance: remaining,
         paymentVerificationStatus: isFull ? 'fully_paid' : 'downpayment',
         paymentRejectionReason: FieldValue.delete(),
         payment: updatedPayments,
         updatedAt: FieldValue.serverTimestamp(),
-    });
+    };
+
+    if (isOverpaid) {
+        bookingUpdates.overpayment = {
+            excessAmount: excessAmount,
+            originalVerifiedAmount: verifiedAmount,
+            hikeAmountCaptured: approvedAmount,
+            status: 'awaiting_hiker_wallet',
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+        };
+    }
+
+    batch.update(bookingRef, bookingUpdates);
 
     // Atomically add hiker to tour group chat
     if (offerId) {
@@ -2686,13 +2706,38 @@ exports.verifyManualPayment = https.onCall(async (request) => {
     }
 
     await batch.commit();
-    console.log(`[verifyManualPayment] Successfully verified ${classification} payment for booking ${bookingId}`);
+    console.log(`[verifyManualPayment] Successfully verified ${effectiveClassification} payment for booking ${bookingId}${isOverpaid ? ` (Overpayment excess: ₱${excessAmount.toFixed(2)})` : ''}`);
+
+    if (isOverpaid) {
+        const trailName = bookingData.trail?.name || 'your hike';
+        await notifyUser(db, userId, {
+            title: `Hike Confirmed · Overpayment Detected`,
+            body: `Your payment was verified and your hike is confirmed! You overpaid by ₱${excessAmount.toFixed(2)}. Please submit your GCash/Maya details in your booking details so the organizer can refund the excess amount.`,
+            inAppTitle: `Hike Confirmed · Excess Refund Pending`,
+            inAppMessage: `Your booking for ${trailName} is 100% confirmed! An excess payment of ₱${excessAmount.toFixed(2)} was detected. Please provide your e-wallet details in your booking details to receive your refund.`,
+            type: 'overpayment_detected',
+            metadata: {
+                bookingId,
+                excessAmount,
+                originalVerifiedAmount: verifiedAmount,
+            },
+            data: {
+                bookingId,
+                userId,
+            }
+        });
+    }
+
     return {
         success: true,
         verified: true,
-        classification,
+        classification: effectiveClassification,
         remainingBalance: remaining,
-        message: isFull ? 'Full payment verified.' : 'Downpayment verified.',
+        isOverpaid,
+        excessAmount,
+        message: isOverpaid 
+            ? `Full payment verified and excess of ₱${excessAmount.toFixed(2)} marked for refund.` 
+            : (isFull ? 'Full payment verified.' : 'Downpayment verified.'),
     };
 });
 
@@ -2757,11 +2802,123 @@ exports.completeManualRefund = https.onCall(async (request) => {
 
     if (resolvedCancellationRef) {
         batch.update(resolvedCancellationRef, {
-            status: 'approved',
+            status: 'refund_submitted',
             adminRefundReceiptUrl: receiptUrl,
             adminRefundReceiptUploadedAt: FieldValue.serverTimestamp(),
-            handshakeStep: 'completed',
+            handshakeStep: 'awaiting_user_confirmation',
             refundAmount: resolvedRefundAmount,
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+    }
+
+    // 2. Booking Document Update
+    batch.update(bookingRef, {
+        status: 'refund',
+        paymentVerificationStatus: 'refund_submitted',
+        refundedAmount: resolvedRefundAmount,
+        updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    // NOTE: DO NOT release tour slot or remove hiker from group chat here!
+    // Hiker must remain in the tour chat and slot is retained until the refund is confirmed as received/resolved.
+
+    await batch.commit();
+    console.log(`[completeManualRefund] Successfully committed manual refund submission for booking ${bookingId}`);
+
+    // Notify hiker that their manual refund payout has been disbursed with proof
+    const trailName = bookingData.trail?.name || 'your hike';
+    const businessName = bookingData.business?.name || 'the organizer';
+    try {
+        await notifyUser(db, userId, {
+            title: `Refund Payout Sent`,
+            body: `Your refund of ₱${resolvedRefundAmount.toFixed(2)} for ${trailName} has been disbursed by ${businessName}. Please inspect the receipt and confirm receipt in your booking details.`,
+            inAppTitle: `Refund Payout Sent`,
+            inAppMessage: `Your refund of ₱${resolvedRefundAmount.toFixed(2)} for ${trailName} has been disbursed by ${businessName}. Please inspect the receipt and confirm receipt in your booking details.`,
+            type: 'refund_submitted',
+            metadata: {
+                bookingId,
+                offerId,
+                trailName,
+                businessName,
+                refundAmount: resolvedRefundAmount,
+                receiptUrl,
+            },
+            data: {
+                bookingId,
+                offerId,
+                userId,
+            }
+        });
+    } catch (notifyErr) {
+        console.warn(`[completeManualRefund] Notification failed after commit:`, notifyErr.message);
+    }
+
+    return {
+        success: true,
+        refundAmount: resolvedRefundAmount,
+        handshakeStep: 'awaiting_user_confirmation',
+        message: 'Refund payout proof uploaded. Awaiting hiker confirmation.',
+    };
+});
+
+/**
+ * Hiker confirms that they received the refund payout.
+ * Atomically marks the cancellation and booking as completed/refunded,
+ * and removes the hiker from the tour group chat.
+ */
+exports.confirmRefundReceived = https.onCall(async (request) => {
+    const {
+        bookingId,
+        userId,
+        businessId: inputBusinessId,
+        offerId: inputOfferId,
+        cancellationId
+    } = request.data || {};
+
+    const caller = request.auth;
+    if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
+    if (!bookingId || !userId) throw new HttpsError('invalid-argument', 'bookingId and userId are required.');
+    if (caller.uid !== userId) throw new HttpsError('permission-denied', 'Only the booking owner can confirm refund receipt.');
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+    if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+    const bookingData = bookingSnap.data();
+
+    const businessId = inputBusinessId || bookingData.business?.id;
+    const offerId = inputOfferId || bookingData.offer?.id;
+
+    const batch = db.batch();
+
+    // 1. Cancellation Document Update
+    let resolvedCancellationRef = null;
+    let cancellationData = null;
+    if (cancellationId && businessId) {
+        resolvedCancellationRef = db.collection('businesses').doc(businessId).collection('cancellations').doc(cancellationId);
+        const cSnap = await resolvedCancellationRef.get();
+        if (cSnap.exists) cancellationData = cSnap.data();
+    } else if (businessId) {
+        const cSnap = await db.collection('businesses').doc(businessId).collection('cancellations')
+            .where('bookingId', '==', bookingId).limit(1).get();
+        if (!cSnap.empty) {
+            resolvedCancellationRef = cSnap.docs[0].ref;
+            cancellationData = cSnap.docs[0].data();
+        }
+    }
+
+    // Idempotency check: prevent duplicate slot release or payment drain if already completed
+    if (bookingData.status === 'refunded' || cancellationData?.status === 'refund_completed') {
+        return { success: true, message: 'Refund receipt already confirmed.' };
+    }
+
+    const resolvedRefundAmount = cancellationData?.refundAmount || bookingData.refundedAmount || 0;
+
+    if (resolvedCancellationRef) {
+        batch.update(resolvedCancellationRef, {
+            status: 'refund_completed',
+            handshakeStep: 'completed',
+            userConfirmedReceivedAt: FieldValue.serverTimestamp(),
             refundedAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
         });
@@ -2778,7 +2935,7 @@ exports.completeManualRefund = https.onCall(async (request) => {
                 status: thisRefund >= p.amount ? 'refunded' : 'captured',
                 refundedAmount: thisRefund,
                 refundedAt: Timestamp.now(),
-                refundReason: 'Manual payout receipt verified',
+                refundReason: 'Hiker confirmed refund received',
             };
         }
         return p;
@@ -2787,31 +2944,15 @@ exports.completeManualRefund = https.onCall(async (request) => {
     batch.update(bookingRef, {
         status: 'refunded',
         paymentVerificationStatus: 'refunded',
-        refundedAmount: resolvedRefundAmount,
         payment: updatedPayments,
         updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // 3. Release 1 Tour Slot in Offer
-    if (businessId && offerId) {
+    // 3. Atomically remove hiker from Group Chat NOW since refund is resolved
+    const resolvedOfferId = offerId || bookingData.offer?.id || cancellationData?.offerId;
+    if (resolvedOfferId) {
         try {
-            const offerRef = db.collection('businesses').doc(businessId).collection('offers').doc(offerId);
-            const offerSnap = await offerRef.get();
-            if (offerSnap.exists && (offerSnap.data()?.reservedPax || 0) > 0) {
-                batch.update(offerRef, {
-                    reservedPax: FieldValue.increment(-1),
-                    updatedAt: FieldValue.serverTimestamp(),
-                });
-            }
-        } catch (offerErr) {
-            console.warn(`[completeManualRefund] Could not update offer slot:`, offerErr.message);
-        }
-    }
-
-    // 4. Remove Hiker from Group Chat
-    if (offerId) {
-        try {
-            const groupRef = db.collection('groups').doc(offerId);
+            const groupRef = db.collection('groups').doc(resolvedOfferId);
             const groupSnap = await groupRef.get();
             if (groupSnap.exists) {
                 const groupData = groupSnap.data();
@@ -2823,39 +2964,516 @@ exports.completeManualRefund = https.onCall(async (request) => {
                 });
             }
         } catch (groupErr) {
-            console.warn(`[completeManualRefund] Could not update group chat:`, groupErr.message);
+            console.warn(`[confirmRefundReceived] Could not update group chat:`, groupErr.message);
+        }
+    }
+
+    // 4. Release 1 Tour Slot in Offer NOW since refund is confirmed
+    if (businessId && resolvedOfferId) {
+        try {
+            const offerRef = db.collection('businesses').doc(businessId).collection('offers').doc(resolvedOfferId);
+            const offerSnap = await offerRef.get();
+            if (offerSnap.exists && (offerSnap.data()?.reservedPax || 0) > 0) {
+                batch.update(offerRef, {
+                    reservedPax: FieldValue.increment(-1),
+                    updatedAt: FieldValue.serverTimestamp(),
+                });
+            }
+        } catch (offerErr) {
+            console.warn(`[confirmRefundReceived] Could not update offer slot:`, offerErr.message);
         }
     }
 
     await batch.commit();
-    console.log(`[completeManualRefund] Successfully committed atomic manual refund for booking ${bookingId}`);
+    console.log(`[confirmRefundReceived] Successfully confirmed refund and completed resolution for booking ${bookingId}`);
 
-    // Notify hiker that their manual refund payout has been disbursed with proof
-    const trailName = bookingData.trail?.name || 'your hike';
-    const businessName = bookingData.business?.name || 'the organizer';
-    await notifyUser(db, userId, {
-        title: `Refund Payout Sent`,
-        body: `Your refund for ${trailName} has been disbursed by ${businessName}.`,
-        inAppTitle: `Refund Payout Sent`,
-        inAppMessage: `Your refund for ${trailName} has been disbursed by ${businessName}. Receipt proof is available in your booking details.`,
-        type: 'refund_completed',
-        metadata: {
-            bookingId,
-            trailName,
-            businessName,
-            refundAmount: resolvedRefundAmount,
-            receiptUrl,
-        },
-        data: {
-            bookingId,
-            userId,
+    // Notify business admins
+    const trailName = bookingData.trail?.name || 'the hike';
+    const hikerName = bookingData.user?.displayName || bookingData.user?.name || 'Hiker';
+    if (businessId) {
+        try {
+            await notifyBusinessAdmins(db, businessId, {
+                title: `Refund Confirmed by Hiker`,
+                body: `${hikerName} confirmed receipt of the refund payout for ${trailName}.`,
+                inAppTitle: `Refund Confirmed by Hiker`,
+                inAppMessage: `${hikerName} confirmed receipt of the refund payout for ${trailName}. Resolution complete.`,
+                type: 'refund_confirmed',
+                metadata: {
+                    bookingId,
+                    userId,
+                    trailName,
+                    refundAmount: resolvedRefundAmount,
+                },
+                data: {
+                    bookingId,
+                    businessId,
+                }
+            });
+        } catch (notifyErr) {
+            console.warn(`[confirmRefundReceived] Notification failed after commit:`, notifyErr.message);
         }
-    });
+    }
 
     return {
         success: true,
-        refundAmount: resolvedRefundAmount,
-        message: 'Refund payout proof uploaded and booking marked refunded.',
+        message: 'Refund received confirmed successfully.',
+    };
+});
+
+/**
+ * Hiker reports that they did NOT receive the refund payout or disputes payout proof.
+ * Capped at 3 dispute attempts.
+ * Retains hiker in group chat so they can coordinate directly with the organizer.
+ */
+exports.disputeRefundPayout = https.onCall(async (request) => {
+    const {
+        bookingId,
+        userId,
+        businessId: inputBusinessId,
+        cancellationId,
+        disputeReason
+    } = request.data || {};
+
+    const caller = request.auth;
+    if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
+    if (!bookingId || !userId) throw new HttpsError('invalid-argument', 'bookingId and userId are required.');
+    if (caller.uid !== userId) throw new HttpsError('permission-denied', 'Only the booking owner can dispute refund receipt.');
+    if (!disputeReason || !disputeReason.trim()) throw new HttpsError('invalid-argument', 'Dispute reason is required.');
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+    if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+    const bookingData = bookingSnap.data();
+
+    const businessId = inputBusinessId || bookingData.business?.id;
+
+    // 1. Resolve Cancellation Document & Check Dispute Count Limit (Max 3)
+    let resolvedCancellationRef = null;
+    let cancellationData = null;
+    if (cancellationId && businessId) {
+        resolvedCancellationRef = db.collection('businesses').doc(businessId).collection('cancellations').doc(cancellationId);
+        const cSnap = await resolvedCancellationRef.get();
+        if (cSnap.exists) cancellationData = cSnap.data();
+    } else if (businessId) {
+        const cSnap = await db.collection('businesses').doc(businessId).collection('cancellations')
+            .where('bookingId', '==', bookingId).limit(1).get();
+        if (!cSnap.empty) {
+            resolvedCancellationRef = cSnap.docs[0].ref;
+            cancellationData = cSnap.docs[0].data();
+        }
+    }
+
+    if (bookingData.status === 'refunded' || cancellationData?.status === 'refund_completed') {
+        throw new HttpsError('failed-precondition', 'Cannot dispute an already completed refund.');
+    }
+
+    if (cancellationData?.status === 'refund_disputed') {
+        throw new HttpsError(
+            'failed-precondition',
+            'A dispute is already pending admin review. Please wait for the organizer to upload new payout proof.'
+        );
+    }
+
+    const currentDisputeCount = cancellationData?.disputeCount || 0;
+    if (currentDisputeCount >= 3) {
+        throw new HttpsError(
+            'failed-precondition',
+            'Maximum dispute limit (3 attempts) reached. Please coordinate directly with the tour organizer in your tour chat.'
+        );
+    }
+
+    const nextDisputeCount = currentDisputeCount + 1;
+    const batch = db.batch();
+
+    if (resolvedCancellationRef) {
+        batch.update(resolvedCancellationRef, {
+            status: 'refund_disputed',
+            handshakeStep: 'refund_disputed',
+            disputeCount: nextDisputeCount,
+            disputeReason: disputeReason.trim(),
+            disputedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+    }
+
+    // 2. Booking Document Update
+    batch.update(bookingRef, {
+        status: 'refund',
+        paymentVerificationStatus: 'refund_disputed',
+        updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    // NOTE: DO NOT remove user from group chat! Hiker remains in tour chat.
+
+    await batch.commit();
+    console.log(`[disputeRefundPayout] Booking ${bookingId} refund disputed (attempt ${nextDisputeCount}/3)`);
+
+    // Notify business admins about the dispute
+    const trailName = bookingData.trail?.name || 'the hike';
+    const hikerName = bookingData.user?.displayName || bookingData.user?.name || 'Hiker';
+    if (businessId) {
+        try {
+            await notifyBusinessAdmins(db, businessId, {
+                title: `Refund Disputed by Hiker (Attempt ${nextDisputeCount}/3)`,
+                body: `${hikerName} reported not receiving funds for ${trailName}: "${disputeReason.trim()}"`,
+                inAppTitle: `Refund Disputed by Hiker (Attempt ${nextDisputeCount}/3)`,
+                inAppMessage: `${hikerName} reported not receiving funds for ${trailName}: "${disputeReason.trim()}". Please review and re-initiate payout.`,
+                type: 'refund_disputed',
+                metadata: {
+                    bookingId,
+                    userId,
+                    trailName,
+                    disputeCount: nextDisputeCount,
+                    disputeReason: disputeReason.trim(),
+                },
+                data: {
+                    bookingId,
+                    businessId,
+                }
+            });
+        } catch (notifyErr) {
+            console.warn(`[disputeRefundPayout] Notification failed after commit:`, notifyErr.message);
+        }
+    }
+
+    return {
+        success: true,
+        disputeCount: nextDisputeCount,
+        message: 'Refund dispute submitted to organizer.',
+    };
+});
+
+/**
+ * Hiker submits their e-wallet details for an excess overpayment refund.
+ * Strict zero auto-fill rule: hiker inputs walletType, accountNumber (11-digit starting with 09), and accountName.
+ */
+exports.submitOverpaymentWallet = https.onCall(async (request) => {
+    const { bookingId, userId, userWallet } = request.data || {};
+    const caller = request.auth;
+
+    if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
+    if (!bookingId || !userId) throw new HttpsError('invalid-argument', 'bookingId and userId are required.');
+    if (caller.uid !== userId) throw new HttpsError('permission-denied', 'Only the booking owner can submit wallet details.');
+
+    if (!userWallet || !userWallet.accountNumber) {
+        throw new HttpsError('invalid-argument', 'Wallet details are required.');
+    }
+
+    if (!userWallet.accountName || !String(userWallet.accountName).trim()) {
+        throw new HttpsError('invalid-argument', 'Account holder name is required.');
+    }
+
+    const cleanNumber = String(userWallet.accountNumber).replace(/\D/g, '');
+    if (cleanNumber.length !== 11 || !cleanNumber.startsWith('09')) {
+        throw new HttpsError('invalid-argument', 'Mobile number must be 11 digits starting with 09.');
+    }
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+    if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+    const bookingData = bookingSnap.data();
+
+    if (!bookingData.overpayment) {
+        throw new HttpsError('failed-precondition', 'No overpayment refund active for this booking.');
+    }
+
+    const opStatus = bookingData.overpayment.status;
+    if (opStatus !== 'awaiting_hiker_wallet' && opStatus !== 'awaiting_admin_payout') {
+        throw new HttpsError('failed-precondition', 'Cannot modify wallet details once refund payout has been initiated or completed.');
+    }
+
+    const businessId = bookingData.business?.id;
+
+    await bookingRef.update({
+        'overpayment.userWallet': {
+            walletType: userWallet.walletType || 'GCash',
+            accountNumber: cleanNumber,
+            accountName: String(userWallet.accountName).trim(),
+            submittedAt: Timestamp.now(),
+        },
+        'overpayment.status': 'awaiting_admin_payout',
+        'overpayment.updatedAt': FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log(`[submitOverpaymentWallet] Hiker ${userId} submitted wallet for booking ${bookingId}`);
+
+    if (businessId) {
+        try {
+            const hikerName = bookingData.user?.displayName || bookingData.user?.firstname || 'A hiker';
+            const trailName = bookingData.trail?.name || 'the tour';
+            await notifyBusinessAdmins(db, businessId, {
+                title: `Excess Refund Wallet Submitted`,
+                body: `${hikerName} provided their ${userWallet.walletType || 'GCash'} wallet for the ₱${(bookingData.overpayment.excessAmount || 0).toFixed(2)} excess refund on ${trailName}.`,
+                inAppTitle: `Excess Refund Wallet Submitted`,
+                inAppMessage: `${hikerName} submitted their wallet details for the ₱${(bookingData.overpayment.excessAmount || 0).toFixed(2)} overpayment refund on ${trailName}. Please disburse funds.`,
+                type: 'overpayment_wallet_submitted',
+                metadata: {
+                    bookingId,
+                    userId,
+                    excessAmount: bookingData.overpayment.excessAmount || 0,
+                },
+                data: {
+                    bookingId,
+                    userId,
+                }
+            });
+        } catch (notifyErr) {
+            console.warn(`[submitOverpaymentWallet] Notification failed after commit:`, notifyErr.message);
+        }
+    }
+
+    return {
+        success: true,
+        message: 'Wallet submitted. Awaiting organizer payout.',
+    };
+});
+
+/**
+ * Admin uploads proof of payout for an excess overpayment refund.
+ * Updates overpayment.status to 'awaiting_user_confirmation'.
+ */
+exports.completeOverpaymentRefund = https.onCall(async (request) => {
+    const { bookingId, userId, businessId: inputBusinessId, receiptUrl } = request.data || {};
+    const caller = request.auth;
+
+    if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
+    if (!bookingId || !userId || !receiptUrl) {
+        throw new HttpsError('invalid-argument', 'bookingId, userId, and receiptUrl are required.');
+    }
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+    if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+    const bookingData = bookingSnap.data();
+
+    const businessId = inputBusinessId || bookingData.business?.id;
+
+    // Check authorization
+    const adminBusinessId = caller.token.businessId || caller.token.owner;
+    const isAdmin = caller.token.role === 'admin' && (!businessId || adminBusinessId === businessId);
+    const isOwner = caller.token.role === 'owner' && (!businessId || adminBusinessId === businessId);
+    const isSuperAdmin = caller.token.role === 'superadmin';
+
+    if (!isAdmin && !isOwner && !isSuperAdmin) {
+        throw new HttpsError('permission-denied', 'Only administrators can disburse overpayment refunds.');
+    }
+
+    if (!bookingData.overpayment) {
+        throw new HttpsError('failed-precondition', 'No overpayment found on this booking.');
+    }
+
+    if (bookingData.overpayment.status === 'completed') {
+        throw new HttpsError('failed-precondition', 'Overpayment refund is already completed.');
+    }
+
+    if (!bookingData.overpayment.userWallet?.accountNumber) {
+        throw new HttpsError('failed-precondition', 'Hiker has not submitted their wallet details yet.');
+    }
+
+    await bookingRef.update({
+        'overpayment.adminRefundReceiptUrl': receiptUrl,
+        'overpayment.adminRefundReceiptUploadedAt': FieldValue.serverTimestamp(),
+        'overpayment.status': 'awaiting_user_confirmation',
+        'overpayment.updatedAt': FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log(`[completeOverpaymentRefund] Admin uploaded overpayment refund proof for booking ${bookingId}`);
+
+    const trailName = bookingData.trail?.name || 'your hike';
+    const excess = bookingData.overpayment.excessAmount || 0;
+    try {
+        await notifyUser(db, userId, {
+            title: `Excess Refund Sent`,
+            body: `The organizer has sent your ₱${excess.toFixed(2)} excess refund for ${trailName}. Please review the receipt proof and confirm receipt in your booking details.`,
+            inAppTitle: `Excess Refund Sent`,
+            inAppMessage: `The organizer has sent your ₱${excess.toFixed(2)} excess refund for ${trailName}. Please check your wallet and tap 'Confirm Received'.`,
+            type: 'overpayment_refund_sent',
+            metadata: {
+                bookingId,
+                excessAmount: excess,
+                receiptUrl,
+            },
+            data: {
+                bookingId,
+                userId,
+            }
+        });
+    } catch (notifyErr) {
+        console.warn(`[completeOverpaymentRefund] Notification failed after commit:`, notifyErr.message);
+    }
+
+    return {
+        success: true,
+        message: 'Overpayment refund proof uploaded. Awaiting hiker confirmation.',
+    };
+});
+
+/**
+ * Hiker confirms receiving the excess overpayment refund.
+ * Marks overpayment.status as 'completed'. Booking remains active & paid!
+ */
+exports.confirmOverpaymentReceived = https.onCall(async (request) => {
+    const { bookingId, userId } = request.data || {};
+    const caller = request.auth;
+
+    if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
+    if (!bookingId || !userId) throw new HttpsError('invalid-argument', 'bookingId and userId are required.');
+    if (caller.uid !== userId) throw new HttpsError('permission-denied', 'Only the booking owner can confirm receipt.');
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+    if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+    const bookingData = bookingSnap.data();
+
+    if (!bookingData.overpayment) {
+        throw new HttpsError('failed-precondition', 'No overpayment found on this booking.');
+    }
+
+    if (bookingData.overpayment.status === 'completed') {
+        return { success: true, message: 'Excess refund already confirmed.' };
+    }
+
+    if (
+        bookingData.overpayment.status !== 'awaiting_user_confirmation' &&
+        bookingData.overpayment.status !== 'refund_disputed'
+    ) {
+        throw new HttpsError('failed-precondition', 'Cannot confirm refund receipt at this time.');
+    }
+
+    await bookingRef.update({
+        'overpayment.status': 'completed',
+        'overpayment.userConfirmedReceivedAt': FieldValue.serverTimestamp(),
+        'overpayment.updatedAt': FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log(`[confirmOverpaymentReceived] Hiker ${userId} confirmed excess refund for booking ${bookingId}`);
+
+    const businessId = bookingData.business?.id;
+    if (businessId) {
+        try {
+            const hikerName = bookingData.user?.displayName || bookingData.user?.firstname || 'Hiker';
+            const trailName = bookingData.trail?.name || 'the tour';
+            await notifyBusinessAdmins(db, businessId, {
+                title: `Excess Refund Confirmed`,
+                body: `${hikerName} confirmed receiving the ₱${(bookingData.overpayment.excessAmount || 0).toFixed(2)} excess refund for ${trailName}. Loop closed!`,
+                inAppTitle: `Excess Refund Confirmed by Hiker`,
+                inAppMessage: `${hikerName} confirmed receipt of their excess refund for ${trailName}.`,
+                type: 'overpayment_confirmed',
+                metadata: {
+                    bookingId,
+                    userId,
+                },
+                data: {
+                    bookingId,
+                    userId,
+                }
+            });
+        } catch (notifyErr) {
+            console.warn(`[confirmOverpaymentReceived] Notification failed after commit:`, notifyErr.message);
+        }
+    }
+
+    return {
+        success: true,
+        message: 'Excess refund confirmed. Thank you!',
+    };
+});
+
+/**
+ * Hiker reports that they did NOT receive the excess overpayment refund payout.
+ * Capped at 3 dispute attempts.
+ */
+exports.disputeOverpaymentRefund = https.onCall(async (request) => {
+    const { bookingId, userId, disputeReason } = request.data || {};
+    const caller = request.auth;
+
+    if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
+    if (!bookingId || !userId) throw new HttpsError('invalid-argument', 'bookingId and userId are required.');
+    if (caller.uid !== userId) throw new HttpsError('permission-denied', 'Only the booking owner can dispute receipt.');
+    if (!disputeReason || !disputeReason.trim()) throw new HttpsError('invalid-argument', 'Dispute reason is required.');
+
+    const db = admin.firestore();
+    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+    const bookingSnap = await bookingRef.get();
+    if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+    const bookingData = bookingSnap.data();
+
+    if (!bookingData.overpayment) {
+        throw new HttpsError('failed-precondition', 'No overpayment found on this booking.');
+    }
+
+    if (bookingData.overpayment.status === 'completed') {
+        throw new HttpsError('failed-precondition', 'Cannot dispute an already completed excess refund.');
+    }
+
+    if (bookingData.overpayment.status === 'refund_disputed') {
+        throw new HttpsError(
+            'failed-precondition',
+            'A dispute is already pending admin review. Please wait for the organizer to upload new payout proof.'
+        );
+    }
+
+    if (bookingData.overpayment.status !== 'awaiting_user_confirmation') {
+        throw new HttpsError('failed-precondition', 'Cannot dispute until payout receipt is uploaded.');
+    }
+
+    const currentDisputeCount = bookingData.overpayment.disputeCount || 0;
+    if (currentDisputeCount >= 3) {
+        throw new HttpsError(
+            'failed-precondition',
+            'Maximum dispute limit (3 attempts) reached. Please coordinate directly with the tour organizer in your tour chat.'
+        );
+    }
+
+    const nextDisputeCount = currentDisputeCount + 1;
+
+    await bookingRef.update({
+        'overpayment.status': 'refund_disputed',
+        'overpayment.disputeCount': nextDisputeCount,
+        'overpayment.disputeReason': disputeReason.trim(),
+        'overpayment.disputedAt': FieldValue.serverTimestamp(),
+        'overpayment.updatedAt': FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log(`[disputeOverpaymentRefund] Booking ${bookingId} excess refund disputed (attempt ${nextDisputeCount}/3)`);
+
+    const businessId = bookingData.business?.id;
+    if (businessId) {
+        try {
+            const hikerName = bookingData.user?.displayName || bookingData.user?.firstname || 'Hiker';
+            const trailName = bookingData.trail?.name || 'the hike';
+            await notifyBusinessAdmins(db, businessId, {
+                title: `Excess Refund Disputed (Attempt ${nextDisputeCount}/3)`,
+                body: `${hikerName} reported not receiving the excess refund for ${trailName}: "${disputeReason.trim()}"`,
+                inAppTitle: `Excess Refund Disputed by Hiker (Attempt ${nextDisputeCount}/3)`,
+                inAppMessage: `${hikerName} reported not receiving their excess refund for ${trailName}: "${disputeReason.trim()}". Please review and re-initiate.`,
+                type: 'overpayment_disputed',
+                metadata: {
+                    bookingId,
+                    userId,
+                    disputeReason: disputeReason.trim(),
+                },
+                data: {
+                    bookingId,
+                    userId,
+                }
+            });
+        } catch (notifyErr) {
+            console.warn(`[disputeOverpaymentRefund] Notification failed after commit:`, notifyErr.message);
+        }
+    }
+
+    return {
+        success: true,
+        message: 'Dispute submitted. The organizer has been notified.',
     };
 });
 
@@ -2887,7 +3505,13 @@ exports.settleManualBalance = https.onCall(async (request) => {
         throw new HttpsError('permission-denied', 'Only administrators can settle balances.');
     }
 
-    const balAmount = bookingData.remainingBalance || (bookingData.offer?.price ? bookingData.offer.price / 2 : 0);
+    if (bookingData.status === 'paid' || bookingData.remainingBalance === 0) {
+        throw new HttpsError('failed-precondition', 'Remaining balance is already settled.');
+    }
+
+    const balAmount = typeof bookingData.remainingBalance === 'number'
+        ? bookingData.remainingBalance
+        : (bookingData.offer?.price ? bookingData.offer.price / 2 : 0);
 
     const balancePayment = {
         gateway: 'manual_qr',
@@ -2974,22 +3598,26 @@ exports.acceptAdminCancellation = https.onCall(async (request) => {
     if (businessId) {
         const hikerName = bookingData.user?.firstname || 'The hiker';
         const trailName = bookingData.trail?.name || 'the hike';
-        await notifyBusinessAdmins(db, businessId, {
-            title: `Cancellation Accepted - ${trailName}`,
-            body: `${hikerName} accepted your hike cancellation for ${trailName}. Ensure proper refund process if necessary.`,
-            inAppTitle: `Cancellation Accepted by Hiker`,
-            inAppMessage: `${hikerName} has accepted your hike cancellation for ${trailName}. Ensure proper refund process if necessary.`,
-            type: 'admin_cancellation_accepted',
-            metadata: {
-                bookingId,
-                userId: caller.uid,
-                cancellationId: cancellationId || resolvedCancellationRef?.id || '',
-            },
-            data: {
-                bookingId,
-                userId: caller.uid,
-            }
-        });
+        try {
+            await notifyBusinessAdmins(db, businessId, {
+                title: `Cancellation Accepted - ${trailName}`,
+                body: `${hikerName} accepted your hike cancellation for ${trailName}. Ensure proper refund process if necessary.`,
+                inAppTitle: `Cancellation Accepted by Hiker`,
+                inAppMessage: `${hikerName} has accepted your hike cancellation for ${trailName}. Ensure proper refund process if necessary.`,
+                type: 'admin_cancellation_accepted',
+                metadata: {
+                    bookingId,
+                    userId: caller.uid,
+                    cancellationId: cancellationId || resolvedCancellationRef?.id || '',
+                },
+                data: {
+                    bookingId,
+                    userId: caller.uid,
+                }
+            });
+        } catch (notifyErr) {
+            console.warn(`[acceptAdminCancellation] Notification failed after commit:`, notifyErr.message);
+        }
     }
 
     return {

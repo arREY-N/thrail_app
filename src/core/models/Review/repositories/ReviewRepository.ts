@@ -75,7 +75,7 @@ export const ReviewRepository = (db: Firestore) => {
             }
         },
 
-        listenToReviews(onUpdate: (reviews: Review[]) => void): Unsubscribe {
+        listenToReviews(onUpdate: (reviews: Review[]) => void, onError?: (error: Error) => void): Unsubscribe {
             try {
                 const reviewCollection = createReviewsCollection();
                 const q = query(
@@ -88,9 +88,11 @@ export const ReviewRepository = (db: Firestore) => {
                     onUpdate(snapshot.docs.map((docSnap) => docSnap.data()));
                 }, (error) => {
                     console.error('Error in listenToReviews: ', error);
+                    onError?.(error);
                 });
             } catch (error: unknown) {
                 console.error('Error fetching reviews: ', error);
+                onError?.(error as Error);
                 throw new Error('Failed to fetch reviews');
             }
         },

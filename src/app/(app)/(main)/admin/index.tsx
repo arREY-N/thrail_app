@@ -46,7 +46,6 @@ export default function AdminHome() {
     const isBusinessOwner = Boolean(
         isOwner ||
         role === 'owner' ||
-        role === 'admin' ||
         (businessAccount?.owner?.id && profile?.id && businessAccount.owner.id === profile.id)
     );
 

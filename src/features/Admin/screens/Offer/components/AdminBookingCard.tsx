@@ -8,12 +8,15 @@ import { getStatusConfig } from '@/src/constants/statusConfig';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
+import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
+
 export interface AdminBookingCardProps {
     booking: Booking;
     offerId: string;
     onViewBooking: (bookingId: string, offerId: string) => void;
     isOfferLocked?: boolean;
     style?: StyleProp<ViewStyle>;
+    cancellation?: Cancellation;
 }
 
 /**
@@ -25,9 +28,14 @@ const AdminBookingCard = ({
     onViewBooking,
     isOfferLocked = false,
     style,
+    cancellation,
 }: AdminBookingCardProps) => {
     const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
-    const displayStatus = (hasRefundedPayment || booking.status === 'refund' || booking.status === 'refunded') ? 'refunded' : booking.status;
+    const displayStatus = (hasRefundedPayment || booking.status === 'refund' || booking.status === 'refunded')
+        ? 'refunded'
+        : (cancellation && cancellation.status === 'pending' && cancellation.cancelledBy === 'user' && booking.status !== 'cancelled'
+            ? 'for-cancellation'
+            : booking.status);
 
     const statusConfig = getStatusConfig(displayStatus, 'admin');
     

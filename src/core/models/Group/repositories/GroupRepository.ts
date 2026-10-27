@@ -9,6 +9,7 @@ import {
     doc,
     Firestore,
     getDoc,
+    getDocs,
     limit,
     onSnapshot,
     orderBy,
@@ -36,7 +37,11 @@ export const GroupRepository = (db: Firestore) => ({
         }
     },
 
-    listenToUserGroups(userId: string, onUpdate: (groups: Group[]) => void): Unsubscribe {
+    listenToUserGroups(
+        userId: string, 
+        onUpdate: (groups: Group[], fromCache: boolean) => void,
+        onError?: (error: Error) => void
+    ): Unsubscribe {
         const q = query(
             collection(db, 'groups'),
             where('participantsIds', 'array-contains', userId)
@@ -45,13 +50,14 @@ export const GroupRepository = (db: Firestore) => ({
         return onSnapshot(q, (snapshot) => {
             const list = snapshot.docs.map(d => d.data());
             list.sort((a, b) => {
-                const bTime = b.updatedAt instanceof Date ? b.updatedAt.getTime() : 0;
-                const aTime = a.updatedAt instanceof Date ? a.updatedAt.getTime() : 0;
+                const bTime = b.updatedAt ? new Date(b.updatedAt as unknown as string | number).getTime() : 0;
+                const aTime = a.updatedAt ? new Date(a.updatedAt as unknown as string | number).getTime() : 0;
                 return bTime - aTime;
             });
-            onUpdate(list);
+            onUpdate(list, snapshot.metadata.fromCache);
         }, (error) => {
             console.error('Error in listenToUserGroups: ', error);
+            onError?.(error);
         });
     },
 
@@ -67,6 +73,21 @@ export const GroupRepository = (db: Firestore) => ({
         }, (error) => {
             console.error('Error in listenToMessages: ', error);
         });
+    },
+
+    async fetchRecentMessages(groupId: string, limitCount: number = 15): Promise<Message[]> {
+        try {
+            const q = query(
+                collection(db, 'groups', groupId, 'messages'),
+                orderBy('timesent', 'desc'),
+                limit(limitCount)
+            ).withConverter(messageConverter);
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(d => d.data());
+        } catch (error) {
+            console.warn(`Error fetching recent messages for group ${groupId}:`, error);
+            return [];
+        }
     },
 
     async writeGroup(group: Group): Promise<void> {

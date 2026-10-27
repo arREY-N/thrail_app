@@ -1,0 +1,13 @@
+[
+    {
+        "origin": [
+            "http://localhost:8081",
+            "https://thrail.web.app"
+        ],
+        "method": [
+            "GET",
+            "HEAD"
+        ],
+        "maxAgeSeconds": 3600
+    }
+]

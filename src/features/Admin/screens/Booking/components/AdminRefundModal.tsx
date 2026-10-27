@@ -3,7 +3,7 @@
  * @description An adaptive, responsive modal allowing admins to select between 100% full refund, 10% partial refund, or a custom refund amount.
  */
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
@@ -24,6 +24,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { toDateOrNull } from '@/src/core/utility/date';
+import { sanitizeCurrencyInput } from './ManualQRVerificationCard';
 
 export type RefundType = 'full' | 'partial' | 'custom' | 'none';
 
@@ -66,6 +67,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768 || Platform.OS === 'web';
     const scrollViewRef = useRef<ScrollView>(null);
+    const customAmountInputRef = useRef<TextInput>(null);
 
     const [selectedType, setSelectedType] = useState<RefundType>('full');
     const [customAmountText, setCustomAmountText] = useState<string>('');
@@ -106,17 +108,43 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
         }
     }
 
+    // Synchronize Web DOM input when modal opens (inside effect to avoid accessing ref during render)
+    useEffect(() => {
+        if (visible && Platform.OS === 'web' && customAmountInputRef.current) {
+            const node = customAmountInputRef.current as unknown as HTMLInputElement | null;
+            if (node && typeof node === 'object' && 'value' in node) {
+                node.value = '';
+            }
+        }
+    }, [visible]);
+
     const parsedCustomAmount = parseFloat(customAmountText) || 0;
 
     const handleCustomAmountChange = (text: string) => {
-        // Allow only digits and a single decimal point
-        const sanitized = text.replace(/[^0-9.]/g, '');
-        const parts = sanitized.split('.');
-        const clean = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : sanitized;
-        setCustomAmountText(clean);
+        // Enforce max 7 whole digits and max 2 decimal places, normalizing leading zeros
+        const sanitized = sanitizeCurrencyInput(text, 7);
 
-        const val = parseFloat(clean);
-        if (!clean) {
+        // Web DOM synchronization safeguard: forcibly reset native DOM element value when React skips re-render
+        if (sanitized !== text) {
+            if (Platform.OS === 'web') {
+                const node = customAmountInputRef.current as unknown as HTMLInputElement | null;
+                if (node && typeof node === 'object' && 'value' in node && node.value !== sanitized) {
+                    const cursor = node.selectionStart;
+                    const diff = text.length - sanitized.length;
+                    node.value = sanitized;
+                    if (typeof cursor === 'number') {
+                        const nextCursor = Math.max(0, cursor - diff);
+                        node.setSelectionRange(nextCursor, nextCursor);
+                    }
+                }
+            }
+            customAmountInputRef.current?.setNativeProps?.({ text: sanitized });
+        }
+
+        setCustomAmountText(sanitized);
+
+        const val = parseFloat(sanitized);
+        if (!sanitized) {
             setInputError(null);
         } else if (isNaN(val) || val < 1.00) {
             setInputError('Minimum refund amount is ₱1.00');
@@ -131,7 +159,15 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
 
     const handlePresetChip = (percentage: number) => {
         const val = Math.round((amountPaid * (percentage / 100)) * 100) / 100;
-        setCustomAmountText(val.toFixed(2));
+        const formatted = val.toFixed(2);
+        if (Platform.OS === 'web' && customAmountInputRef.current) {
+            const node = customAmountInputRef.current as unknown as HTMLInputElement | null;
+            if (node && typeof node === 'object' && 'value' in node) {
+                node.value = formatted;
+            }
+        }
+        customAmountInputRef.current?.setNativeProps?.({ text: formatted });
+        setCustomAmountText(formatted);
         if (isPayMongoSameDay && val < amountPaid) {
             setInputError(`PayMongo Policy: Same-day payments cannot be partially refunded. You can issue a 100% full refund today (₱${amountPaid.toFixed(2)}) or wait until tomorrow.`);
         } else {
@@ -402,12 +438,34 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                         <View style={[styles.inputWrapper, inputError ? styles.inputWrapperError : null]}>
                                             <CustomText style={styles.currencyPrefix}>₱</CustomText>
                                             <TextInput
+                                                ref={customAmountInputRef}
                                                 style={styles.textInput}
                                                 value={customAmountText}
                                                 onChangeText={handleCustomAmountChange}
                                                 placeholder="0.00"
                                                 placeholderTextColor={Colors.TEXT_SECONDARY}
                                                 keyboardType="decimal-pad"
+                                                maxLength={10}
+                                                onKeyPress={(e) => {
+                                                    if (Platform.OS === 'web') {
+                                                        const key = e.nativeEvent.key;
+                                                        if (['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(key)) {
+                                                            return;
+                                                        }
+                                                        const webEvt = e as unknown as { ctrlKey?: boolean; metaKey?: boolean; preventDefault?: () => void };
+                                                        if (webEvt.ctrlKey || webEvt.metaKey) {
+                                                            return;
+                                                        }
+                                                        if (!/[0-9.]/.test(key)) {
+                                                            webEvt.preventDefault?.();
+                                                            return;
+                                                        }
+                                                        if (key === '.' && customAmountText.includes('.')) {
+                                                            webEvt.preventDefault?.();
+                                                            return;
+                                                        }
+                                                    }
+                                                }}
                                                 editable={!isSubmitting && !isLoading}
                                                 onFocus={() => {
                                                     setTimeout(() => {
@@ -535,6 +593,7 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                             placeholderTextColor={Colors.TEXT_SECONDARY}
                                             multiline={true}
                                             numberOfLines={3}
+                                            maxLength={300}
                                             editable={!isSubmitting && !isLoading}
                                             onFocus={() => {
                                                 setTimeout(() => {
@@ -542,6 +601,9 @@ const AdminRefundModal: React.FC<AdminRefundModalProps> = ({
                                                 }, Platform.OS === 'android' ? 200 : 100);
                                             }}
                                         />
+                                        <CustomText style={styles.charCounterText}>
+                                            {adminNoteText.length} / 300
+                                        </CustomText>
 
                                         {inputError ? (
                                             <CustomText style={styles.errorText}>
@@ -859,6 +921,12 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
         minHeight: 70,
         textAlignVertical: 'top',
+    },
+    charCounterText: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'right',
+        marginTop: 4,
     },
     confirmNoneBtn: {
         backgroundColor: Colors.ERROR,

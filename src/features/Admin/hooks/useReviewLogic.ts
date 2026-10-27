@@ -51,7 +51,11 @@ export default function useReviewLogic(
     const isOfferExpired = offerDate ? offerDate.getTime() < new Date().setHours(0, 0, 0, 0) : false;
     const isTerminalStatus = ['completed', 'cancelled', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(booking?.status ?? '');
 
-    const hasRefundedPayment = booking?.payment?.some((p) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0)) || booking?.status === 'refund' || booking?.status === 'refunded';
+    const hasRefundedPayment =
+        booking?.payment?.some((p) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0)) ||
+        booking?.status === 'refunded' ||
+        cancellationRequest?.status === 'refund_completed' ||
+        cancellationRequest?.handshakeStep === 'completed';
     
     const currentStatus = hasRefundedPayment 
         ? 'refunded' 
@@ -129,7 +133,26 @@ export default function useReviewLogic(
             : getStatusConfig(currentStatus, 'admin'));
     const isMinor = checkIfMinor(booking?.user?.birthday);
 
-    const currentSyncKey = `${booking?.id || ''}_${booking?.status || ''}_${cancellationRequest?.id || ''}_${cancellationRequest?.status || ''}_${booking?.user?.phoneNumber || ''}_${booking?.emergencyContact?.contactNumber || ''}_${booking?.updatedAt ? new Date(booking.updatedAt).getTime() : 0}`;
+    const currentSyncKey = [
+        booking?.id || '',
+        booking?.status || '',
+        booking?.paymentVerificationStatus || '',
+        booking?.remainingBalance ?? '',
+        booking?.overpayment?.status || '',
+        booking?.overpayment?.adminRefundReceiptUrl || '',
+        booking?.overpayment?.disputeCount ?? 0,
+        cancellationRequest?.id || '',
+        cancellationRequest?.status || '',
+        cancellationRequest?.handshakeStep || '',
+        cancellationRequest?.refundDecision || '',
+        cancellationRequest?.refundAmount ?? '',
+        cancellationRequest?.adminRefundReceiptUrl || '',
+        cancellationRequest?.disputeCount ?? 0,
+        booking?.user?.phoneNumber || '',
+        booking?.emergencyContact?.contactNumber || '',
+        booking?.updatedAt ? new Date(booking.updatedAt).getTime() : 0,
+        cancellationRequest?.updatedAt ? new Date(cancellationRequest.updatedAt).getTime() : 0,
+    ].join('_');
     const [prevSyncKey, setPrevSyncKey] = useState(currentSyncKey);
     if (currentSyncKey !== prevSyncKey) {
         setPrevSyncKey(currentSyncKey);

@@ -9,6 +9,7 @@ import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { toDateOrNull } from "@/src/core/utility/date";
 import { catchError, logger, refactorCatcher } from "@/src/core/utility/errorFormatter";
+import { FileRepository, SelectedFile } from "@/src/core/repositories/fileRepository";
 import { functions } from "@/src/core/config/Firebase";
 import { httpsCallable } from "firebase/functions";
 import { useState } from "react";
@@ -159,6 +160,8 @@ export function useBookingAdmin() {
                 verifiedAmount,
             });
 
+            await useBookingsStore.getState().refreshBookingItem(booking.id, booking.offer?.id);
+
             return true;
         } catch (error) {
             catchError(error as Error, 'writingError', 'onVerifyManualPayment()');
@@ -182,6 +185,8 @@ export function useBookingAdmin() {
                 rejectionReason: reason.trim(),
             });
 
+            await useBookingsStore.getState().refreshBookingItem(booking.id, booking.offer?.id);
+
             return true;
         } catch (error) {
             catchError(error as Error, 'writingError', 'onRejectManualPayment()');
@@ -201,10 +206,38 @@ export function useBookingAdmin() {
                 businessId: booking.business?.id,
             });
 
+            await useBookingsStore.getState().refreshBookingItem(booking.id, booking.offer?.id);
+
             return true;
         } catch (error) {
             catchError(error as Error, 'writingError', 'onSettleRemainingBalance()');
             setLocalError((error as Error).message || 'Failed to settle remaining balance');
+            throw error;
+        }
+    };
+
+    const onUploadOverpaymentProof = async (booking: Booking, file: SelectedFile) => {
+        try {
+            if (!booking) throw new Error('Missing booking information');
+            const businessId = booking.business?.id;
+            if (!businessId) throw new Error('Business ID is required');
+
+            const downloadUrl = await FileRepository.uploadBusinessFile(businessId, 'refunds', file);
+
+            const completeOverpaymentRefundFn = httpsCallable(functions, 'completeOverpaymentRefund');
+            await completeOverpaymentRefundFn({
+                bookingId: booking.id,
+                userId: booking.user?.id,
+                businessId: businessId,
+                receiptUrl: downloadUrl,
+            });
+
+            await useBookingsStore.getState().refreshBookingItem(booking.id, booking.offer?.id);
+
+            return downloadUrl;
+        } catch (error) {
+            catchError(error as Error, 'writingError', 'onUploadOverpaymentProof()');
+            setLocalError((error as Error).message || 'Failed to upload excess refund proof');
             throw error;
         }
     };
@@ -304,6 +337,7 @@ export function useBookingAdmin() {
         onVerifyManualPayment,
         onRejectManualPayment,
         onSettleRemainingBalance,
+        onUploadOverpaymentProof,
         error: localError || error,
         isLoading
     }

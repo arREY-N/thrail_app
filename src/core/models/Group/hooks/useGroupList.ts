@@ -3,6 +3,9 @@ import { useGroupStore } from "@/src/core/models/Group/stores/groupStore";
 import { router } from "expo-router";
 import { useEffect } from "react";
 
+import NetInfo from "@react-native-community/netinfo";
+import { Platform } from "react-native";
+
 export function useGroupList(userId?: string | null) {
     const groups = useGroupStore(s => s.groups);
     const setGroups = useGroupStore(s => s.setGroups);
@@ -12,14 +15,47 @@ export function useGroupList(userId?: string | null) {
 
     useEffect(() => {
         if (!userId) return;
-        const unsubscribe = GroupRepo.listenToUserGroups(userId, setGroups);
-        return () => unsubscribe();
+
+        let isMounted = true;
+        let unsubscribe: (() => void) | null = null;
+
+        const setupListener = async () => {
+            if (Platform.OS !== 'web') {
+                const network = await NetInfo.fetch();
+                const isOnline = Boolean(network.isConnected && network.isInternetReachable);
+                if (!isOnline) {
+                    // Offline: rely on cached groups already rehydrated in useGroupStore
+                    return;
+                }
+            }
+
+            if (!isMounted) return;
+
+            unsubscribe = GroupRepo.listenToUserGroups(
+                userId,
+                (newGroups, fromCache) => {
+                    if (isMounted) {
+                        setGroups(newGroups, fromCache);
+                    }
+                },
+                (err) => {
+                    console.warn('[useGroupList] listenToUserGroups error:', err);
+                }
+            );
+        };
+
+        setupListener();
+
+        return () => {
+            isMounted = false;
+            unsubscribe?.();
+        };
     }, [userId, setGroups]);
 
     const onEnterRoom = (groupId: string) => {
         if (groupId) {
             router.push({
-                pathname: '/(main)/group/room',
+                pathname: '/(app)/(main)/group/room',
                 params: { roomId: groupId },
             });
         }

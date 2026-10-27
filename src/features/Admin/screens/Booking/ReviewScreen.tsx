@@ -107,6 +107,7 @@ export interface ReviewScreenProps {
     onRejectManualPayment?: (reason: string, booking?: Booking) => Promise<void>;
     onSettleRemainingBalance?: (booking?: Booking) => Promise<void>;
     onUploadRefundProof?: (file: SelectedFile, request?: Cancellation | null, booking?: Booking | null) => Promise<void | string>;
+    onUploadOverpaymentProof?: (file: SelectedFile, booking?: Booking | null) => Promise<void | string>;
     onApproveWithManualRefund?: (amount: number, request?: Cancellation | null, booking?: Booking | null) => Promise<void | Cancellation>;
 }
 
@@ -135,6 +136,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     onRejectManualPayment,
     onSettleRemainingBalance,
     onUploadRefundProof,
+    onUploadOverpaymentProof,
     onApproveWithManualRefund,
 }) => {
     const { width } = useWindowDimensions();
@@ -290,7 +292,12 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         setIsProcessingAction(true);
         try {
             await onApproveWithManualRefund(amount, cancellationRequest, booking);
-            showToast.success(`Refund of ₱${amount.toFixed(2)} approved. Awaiting hiker wallet.`);
+            const hasWalletUpfront = Boolean(cancellationRequest?.userWallet?.accountNumber);
+            showToast.success(
+                hasWalletUpfront
+                    ? `Refund of ₱${amount.toFixed(2)} approved. Ready for payout.`
+                    : `Refund of ₱${amount.toFixed(2)} approved. Awaiting hiker wallet.`
+            );
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : "Failed to approve refund";
             showToast.error(errorMessage);
@@ -851,6 +858,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                             setIsProcessingAction(false);
                                         }
                                     } : undefined}
+                                    onUploadOverpaymentProof={onUploadOverpaymentProof ? async (file) => {
+                                        setIsProcessingAction(true);
+                                        try {
+                                            await onUploadOverpaymentProof(file, booking);
+                                        } finally {
+                                            setIsProcessingAction(false);
+                                        }
+                                    } : undefined}
                                     isProcessing={isProcessingAction}
                                 />
                             )}
@@ -1067,7 +1082,12 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                         ? (customAmount || totalAmountPaid)
                                         : (refundType === 'partial' ? Math.round(totalAmountPaid * 0.10 * 100) / 100 : totalAmountPaid);
                                     await onApproveWithManualRefund(resolvedAmount, cancellationRequest, booking);
-                                    showToast.success(`Cancellation approved. Refund of ₱${resolvedAmount.toFixed(2)} set. Awaiting hiker wallet.`);
+                                    const hasWalletUpfront = Boolean(cancellationRequest?.userWallet?.accountNumber);
+                                    showToast.success(
+                                        hasWalletUpfront
+                                            ? `Cancellation approved. Refund of ₱${resolvedAmount.toFixed(2)} set. Ready for payout.`
+                                            : `Cancellation approved. Refund of ₱${resolvedAmount.toFixed(2)} set. Awaiting hiker wallet.`
+                                    );
                                 } else if (onApproveCancellation) {
                                     await onApproveCancellation(cancellationRequest, booking, refundType, customAmount, adminNote);
                                     showToast.success('Cancellation approved and refund processed successfully.');

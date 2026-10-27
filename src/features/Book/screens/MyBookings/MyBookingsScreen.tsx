@@ -38,7 +38,7 @@ import ReceiptScreen from '@/src/features/Book/screens/Payment/ReceiptScreen';
 
 import { UserSearchResult } from '@/src/components/EmergencyModal';
 import { Booking, Requirements } from '@/src/core/models/Booking/Booking';
-import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
+import { Cancellation, IUserWalletDetails } from '@/src/core/models/Cancellation/Cancellation';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import { IEmergencyContact, User } from '@/src/core/models/User/User';
 
@@ -52,9 +52,9 @@ export interface MyBookingsScreenProps {
     /** Back button handler */
     onBackPress: () => void;
     /** Callback when cancel is pressed */
-    onCancelBookingPress: (booking: Booking, reason: string) => Promise<void> | void;
+    onCancelBookingPress: (booking: Booking, reason: string, userWallet?: IUserWalletDetails<Date>) => Promise<void> | void;
     /** Callback for refund confirmation */
-    onRefundBookingPress?: (booking: Booking, reason: string) => Promise<void> | void;
+    onRefundBookingPress?: (booking: Booking, reason: string, userWallet?: IUserWalletDetails<Date>) => Promise<void> | void;
     /** Callback when re-uploading all rejected documents and/or updating contacts on rejected bookings */
     onResubmitDocuments?: (
         booking: Booking,

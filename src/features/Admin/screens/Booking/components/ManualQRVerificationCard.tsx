@@ -11,23 +11,56 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as ImagePicker from 'expo-image-picker';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomTextInput from '@/src/components/CustomTextInput';
+import CustomTextInput, { stripEmojis } from '@/src/components/CustomTextInput';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
+import { useToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
+import { SelectedFile } from '@/src/core/repositories/fileRepository';
 import { formatDate } from '@/src/core/utility/date';
+
+/**
+ * Sanitizes currency input:
+ * 1. Strips all characters except digits and decimal point.
+ * 2. Preserves only the first decimal point.
+ * 3. Strips leading zeros before whole numbers (e.g. 005 -> 5, preserving 0.).
+ * 4. Caps decimal precision to 2 decimal places and whole digits to max 7 digits (max 9999999.99).
+ */
+export const sanitizeCurrencyInput = (text: string, maxWholeDigits = 7): string => {
+    let cleaned = text.replace(/[^0-9.]/g, '');
+    const dotIndex = cleaned.indexOf('.');
+    if (dotIndex !== -1) {
+        cleaned = cleaned.slice(0, dotIndex + 1) + cleaned.slice(dotIndex + 1).replace(/\./g, '');
+    }
+    const parts = cleaned.split('.');
+    let integerPart = parts[0];
+    if (integerPart.length > 1 && integerPart.startsWith('0')) {
+        integerPart = integerPart.replace(/^0+/, '');
+        if (integerPart === '') integerPart = '0';
+    }
+    if (maxWholeDigits > 0) {
+        integerPart = integerPart.slice(0, maxWholeDigits);
+    }
+    if (parts.length > 1) {
+        return `${integerPart}.${parts[1].slice(0, 2)}`;
+    }
+    return dotIndex !== -1 ? `${integerPart}.` : integerPart;
+};
 
 export interface ManualQRVerificationCardProps {
     booking: Booking;
     onVerifyPayment: (classification: 'full' | 'downpayment', note?: string, verifiedAmount?: number) => Promise<void>;
     onRejectPayment: (reason: string) => Promise<void>;
     onSettleBalance: () => Promise<void>;
+    onUploadOverpaymentProof?: (file: SelectedFile) => Promise<void | string>;
     isProcessing?: boolean;
 }
 
@@ -44,11 +77,43 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
     onVerifyPayment,
     onRejectPayment,
     onSettleBalance,
+    onUploadOverpaymentProof,
     isProcessing = false,
 }) => {
+    const { showToast } = useToast();
     const [previewVisible, setPreviewVisible] = useState(false);
     const [isRejecting, setIsRejecting] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
+    const [isUploadingOverpaymentProof, setIsUploadingOverpaymentProof] = useState(false);
+    const [overpaymentProofPreview, setOverpaymentProofPreview] = useState(false);
+
+    const handlePickOverpaymentProof = async () => {
+        if (!onUploadOverpaymentProof) return;
+        try {
+            const res = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: false,
+                quality: 0.8,
+            });
+            if (!res.canceled && res.assets && res.assets.length > 0) {
+                const asset = res.assets[0];
+                const fileName = asset.fileName || `excess_refund_${Date.now()}.jpg`;
+                setIsUploadingOverpaymentProof(true);
+                await onUploadOverpaymentProof({
+                    uri: asset.uri,
+                    name: fileName,
+                    mimeType: asset.mimeType || 'image/jpeg',
+                    size: asset.fileSize,
+                });
+                showToast.success('Excess refund proof uploaded successfully.');
+            }
+        } catch (err) {
+            console.error('Image picker error:', err);
+            showToast.error('Failed to upload excess refund proof.');
+        } finally {
+            setIsUploadingOverpaymentProof(false);
+        }
+    };
 
     const payments = booking?.payment || [];
     const manualPayment: IPayment<Date> | undefined = [...payments]
@@ -73,13 +138,34 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
         ? String(manualPayment.amount)
         : String(remainingBal);
 
-    const [verifiedAmountInput, setVerifiedAmountInput] = useState<string>(defaultAmount);
+    const [verifiedAmountInput, setVerifiedAmountInput] = useState<string>(sanitizeCurrencyInput(defaultAmount));
     const [adminNote, setAdminNote] = useState<string>('');
 
     const parsedAmount = parseFloat(verifiedAmountInput);
     const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0;
+    const isOverpaid = isValidAmount && parsedAmount > remainingBal;
+    const excessAmount = isOverpaid ? parsedAmount - remainingBal : 0;
     const isFullSettlement = isValidAmount && parsedAmount >= remainingBal;
     const remainingAfterVerification = isValidAmount ? Math.max(0, remainingBal - parsedAmount) : remainingBal;
+
+    const handleVerifySubmit = () => {
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+            showToast.error('Please enter a valid amount.');
+            return;
+        }
+
+        const maxAllowedLimit = Math.max(totalPrice * 10, 100000);
+        if (parsedAmount > maxAllowedLimit) {
+            showToast.error('Entered amount exceeds maximum allowed limit. Please check for extra zeros.');
+            return;
+        }
+
+        onVerifyPayment(
+            isFullSettlement ? 'full' : 'downpayment',
+            adminNote.trim() || undefined,
+            parsedAmount
+        );
+    };
 
     const renderStatusBadge = () => {
         let label = 'Pending Verification';
@@ -146,13 +232,6 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
 
                     <View style={styles.detailsList}>
                         <View style={styles.detailRow}>
-                            <CustomText style={styles.detailLabel}>Reported Amount:</CustomText>
-                            <CustomText style={styles.detailAmount}>
-                                ₱{(manualPayment?.amount || booking.offer?.price || 0).toFixed(2)}
-                            </CustomText>
-                        </View>
-
-                        <View style={styles.detailRow}>
                             <CustomText style={styles.detailLabel}>Reference No.:</CustomText>
                             <CustomText style={styles.detailValue} selectable={true}>
                                 {manualPayment?.referenceCode || manualPayment?.sessionId || 'N/A'}
@@ -188,6 +267,96 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                             {booking.paymentRejectionReason}
                         </CustomText>
                     </View>
+                </View>
+            )}
+
+            {/* Overpayment callout if booking has an active overpayment */}
+            {booking.overpayment && (
+                <View style={styles.overpaymentCallout}>
+                    <View style={styles.overpaymentCalloutHeader}>
+                        <CustomIcon library="Feather" name="alert-circle" size={16} color="#D97706" />
+                        <CustomText style={styles.overpaymentCalloutTitle}>
+                            Excess Payment Refund (₱{booking.overpayment.excessAmount.toFixed(2)})
+                        </CustomText>
+                    </View>
+                    <CustomText style={styles.overpaymentCalloutText}>
+                        {booking.overpayment.status === 'awaiting_hiker_wallet' && "Hiker has been notified to submit their GCash/Maya wallet details."}
+                        {booking.overpayment.status === 'awaiting_admin_payout' && `Hiker submitted wallet details. Please disburse ₱${booking.overpayment.excessAmount.toFixed(2)} and upload receipt proof below.`}
+                        {booking.overpayment.status === 'awaiting_user_confirmation' && "Refund payout uploaded. Awaiting hiker receipt confirmation."}
+                        {booking.overpayment.status === 'refund_disputed' && `⚠️ Hiker disputed payout (Attempt ${booking.overpayment.disputeCount || 1}/3): "${booking.overpayment.disputeReason || 'No reason provided'}". Please review and upload corrected proof.`}
+                        {booking.overpayment.status === 'completed' && "✅ Excess refund successfully received and confirmed by hiker."}
+                    </CustomText>
+
+                    {/* Hiker submitted wallet details with Copy button */}
+                    {booking.overpayment.userWallet && (
+                        <View style={styles.walletDetailsCard}>
+                            <View style={styles.walletDetailsRow}>
+                                <View style={styles.walletInfo}>
+                                    <CustomText style={styles.walletLabel}>
+                                        {booking.overpayment.userWallet.walletType.toUpperCase()} WALLET
+                                    </CustomText>
+                                    <CustomText style={styles.walletNumber} selectable={true}>
+                                        {booking.overpayment.userWallet.accountNumber}
+                                    </CustomText>
+                                    {Boolean(booking.overpayment.userWallet.accountName) && (
+                                        <CustomText style={styles.walletName}>
+                                            {booking.overpayment.userWallet.accountName}
+                                        </CustomText>
+                                    )}
+                                </View>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    style={styles.copyBtn}
+                                    onPress={async () => {
+                                        if (booking.overpayment?.userWallet?.accountNumber) {
+                                            await Clipboard.setStringAsync(booking.overpayment.userWallet.accountNumber);
+                                            showToast.success('Phone number copied to clipboard.');
+                                        }
+                                    }}
+                                >
+                                    <CustomIcon library="Feather" name="copy" size={14} color={Colors.PRIMARY} />
+                                    <CustomText style={styles.copyBtnText}>Copy</CustomText>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Admin Payout Proof Preview if uploaded */}
+                    {booking.overpayment.adminRefundReceiptUrl && (
+                        <TouchableOpacity
+                            activeOpacity={0.85}
+                            onPress={() => setOverpaymentProofPreview(true)}
+                            style={styles.proofPreviewRow}
+                        >
+                            <Image
+                                source={{ uri: booking.overpayment.adminRefundReceiptUrl }}
+                                style={styles.proofThumbnail}
+                                resizeMode="cover"
+                            />
+                            <View style={{ flex: 1 }}>
+                                <CustomText style={styles.proofLabel}>Uploaded Payout Proof</CustomText>
+                                <CustomText style={styles.proofSubtext}>Tap to inspect receipt screenshot</CustomText>
+                            </View>
+                            <CustomIcon library="Feather" name="maximize-2" size={16} color={Colors.TEXT_SECONDARY} />
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Upload button for admin when awaiting payout or disputed */}
+                    {(booking.overpayment.status === 'awaiting_admin_payout' || booking.overpayment.status === 'refund_disputed') && onUploadOverpaymentProof && (
+                        <CustomButton
+                            title={
+                                booking.overpayment.status === 'refund_disputed'
+                                    ? `Upload Corrected Proof (₱${booking.overpayment.excessAmount.toFixed(2)})`
+                                    : `Upload Refund Receipt Proof (₱${booking.overpayment.excessAmount.toFixed(2)})`
+                            }
+                            variant="primary"
+                            icon="upload"
+                            iconLibrary="Feather"
+                            onPress={handlePickOverpaymentProof}
+                            isLoading={isUploadingOverpaymentProof}
+                            style={styles.uploadProofBtn}
+                        />
+                    )}
                 </View>
             )}
 
@@ -252,8 +421,10 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                             placeholder="e.g. 200, 500, 1000"
                             type="numerical"
                             prefix="₱ "
+                            maxLength={10}
+                            sanitizeText={sanitizeCurrencyInput}
                             value={verifiedAmountInput}
-                            onChangeText={(val: string | Date | null) => setVerifiedAmountInput(String(val || ''))}
+                            onChangeText={(val: string | Date | null) => setVerifiedAmountInput(sanitizeCurrencyInput(String(val || '')))}
                         />
                     </View>
 
@@ -261,21 +432,25 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                     {isValidAmount && (
                         <View style={[
                             styles.calcFeedbackBox, 
-                            isFullSettlement ? styles.calcFeedbackFull : styles.calcFeedbackPartial
+                            isOverpaid 
+                                ? styles.calcFeedbackOverpaid
+                                : (isFullSettlement ? styles.calcFeedbackFull : styles.calcFeedbackPartial)
                         ]}>
                             <CustomIcon 
                                 library="Feather" 
-                                name={isFullSettlement ? "check-circle" : "info"} 
+                                name={isOverpaid ? "alert-triangle" : (isFullSettlement ? "check-circle" : "info")} 
                                 size={14} 
-                                color={isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT} 
+                                color={isOverpaid ? '#D97706' : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT)} 
                             />
                             <CustomText style={[
                                 styles.calcFeedbackText, 
-                                { color: isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT }
+                                { color: isOverpaid ? '#D97706' : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT) }
                             ]}>
-                                {isFullSettlement 
-                                    ? `Full payment verified. Booking will be marked as Fully Paid (₱0.00 balance).` 
-                                    : `Downpayment / Partial payment. New balance to collect: ₱${remainingAfterVerification.toFixed(2)}`}
+                                {isOverpaid 
+                                    ? `Overpayment Detected: Hiker sent ₱${parsedAmount.toFixed(2)} for a ₱${remainingBal.toFixed(2)} balance. ₱${remainingBal.toFixed(2)} will settle the hike in full, and an excess refund of ₱${excessAmount.toFixed(2)} will be initiated for the hiker.`
+                                    : (isFullSettlement 
+                                        ? `Full payment verified. Booking will be marked as Fully Paid (₱0.00 balance).` 
+                                        : `Downpayment / Partial payment. New balance to collect: ₱${remainingAfterVerification.toFixed(2)}`)}
                             </CustomText>
                         </View>
                     )}
@@ -286,7 +461,9 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                             label="Admin Note / Ref No. (Optional)"
                             placeholder="e.g. Verified GCash ref #123456"
                             value={adminNote}
-                            onChangeText={(val: string | Date | null) => setAdminNote(String(val || ''))}
+                            maxLength={120}
+                            sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
+                            onChangeText={(val: string | Date | null) => setAdminNote(stripEmojis(String(val || '')).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 120))}
                         />
                     </View>
 
@@ -295,21 +472,16 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                         title={
                             !isValidAmount 
                                 ? "Enter Valid Amount"
-                                : (isFullSettlement 
-                                    ? `Verify Full Payment (₱${parsedAmount.toFixed(2)})`
-                                    : `Verify Downpayment (₱${parsedAmount.toFixed(2)})`)
+                                : (isOverpaid
+                                    ? `Verify Full (₱${remainingBal.toFixed(2)}) & Refund Excess (₱${excessAmount.toFixed(2)})`
+                                    : (isFullSettlement 
+                                        ? `Verify Full Payment (₱${parsedAmount.toFixed(2)})`
+                                        : `Verify Downpayment (₱${parsedAmount.toFixed(2)})`))
                         }
                         variant="primary"
                         icon="check-circle"
                         iconLibrary="Feather"
-                        onPress={() => {
-                            if (!isValidAmount) return;
-                            onVerifyPayment(
-                                isFullSettlement ? 'full' : 'downpayment',
-                                adminNote.trim() || undefined,
-                                parsedAmount
-                            );
-                        }}
+                        onPress={handleVerifySubmit}
                         isLoading={isProcessing}
                         disabled={!isValidAmount}
                     />
@@ -368,6 +540,14 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                     visible={previewVisible}
                     imageUrl={receiptUrl}
                     onClose={() => setPreviewVisible(false)}
+                />
+            )}
+
+            {booking.overpayment?.adminRefundReceiptUrl && (
+                <ImagePreviewModal
+                    visible={overpaymentProofPreview}
+                    imageUrl={booking.overpayment.adminRefundReceiptUrl}
+                    onClose={() => setOverpaymentProofPreview(false)}
                 />
             )}
         </View>
@@ -575,6 +755,9 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
         marginTop: 2,
     },
+    inputWrapper: {
+        marginTop: 4,
+    },
     calcFeedbackBox: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -588,29 +771,127 @@ const styles = StyleSheet.create({
     calcFeedbackPartial: {
         backgroundColor: Colors.STATUS_DOWNPAYMENT_BG,
     },
+    calcFeedbackOverpaid: {
+        backgroundColor: '#FEF3C7',
+        borderColor: '#FCD34D',
+        borderWidth: 1,
+    },
     calcFeedbackText: {
         fontSize: 12,
         fontWeight: '600',
         flex: 1,
-    },
-    inputWrapper: {
-        width: '100%',
-    },
-    actionButtonsRow: {
-        flexDirection: 'row',
-        gap: 10,
+        lineHeight: 16,
     },
     rejectOutlineBtn: {
         borderColor: Colors.ERROR,
-        borderWidth: 1,
+        marginTop: 2,
     },
     rejectionSection: {
-        gap: 12,
-        paddingTop: 8,
+        marginTop: 8,
+        gap: 8,
     },
     rejectionButtonsRow: {
         flexDirection: 'row',
+        gap: 8,
+        marginTop: 4,
+    },
+    overpaymentCallout: {
+        backgroundColor: '#FEF3C7',
+        borderColor: '#F59E0B',
+        borderWidth: 1,
+        padding: 14,
+        borderRadius: 12,
+        gap: 6,
+    },
+    overpaymentCalloutHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    overpaymentCalloutTitle: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#B45309',
+    },
+    overpaymentCalloutText: {
+        fontSize: 12,
+        color: '#92400E',
+        lineHeight: 16,
+    },
+    walletDetailsCard: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 8,
+        padding: 10,
+        borderWidth: 1,
+        borderColor: '#FDE68A',
+        marginTop: 6,
+    },
+    walletDetailsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    walletInfo: {
+        flex: 1,
+    },
+    walletLabel: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#B45309',
+        letterSpacing: 0.5,
+    },
+    walletNumber: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+        marginTop: 2,
+    },
+    walletName: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        marginTop: 1,
+    },
+    copyBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        backgroundColor: Colors.PRIMARY_LIGHT || '#E0E7FF',
+        borderRadius: 6,
+    },
+    copyBtnText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.PRIMARY,
+    },
+    proofPreviewRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
         gap: 10,
+        backgroundColor: Colors.WHITE,
+        borderRadius: 8,
+        padding: 8,
+        borderWidth: 1,
+        borderColor: '#FDE68A',
+        marginTop: 6,
+    },
+    proofThumbnail: {
+        width: 44,
+        height: 44,
+        borderRadius: 6,
+    },
+    proofLabel: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+    },
+    proofSubtext: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+    },
+    uploadProofBtn: {
+        marginTop: 6,
     },
 });
 

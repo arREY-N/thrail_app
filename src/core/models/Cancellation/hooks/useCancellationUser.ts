@@ -1,5 +1,5 @@
 import { Booking, newBooking, useBookingDelete, useBookingsStore } from "@/src/core/models/Booking/Booking";
-import { Cancellation, CancellationRequest } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
+import { Cancellation, CancellationRequest, IUserWalletDetails } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
 import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
 import { Offer } from "@/src/core/models/Offer/Offer";
@@ -37,16 +37,22 @@ export function useCancellationUser() {
      * request, including the booking ID, offer ID, business ID, and reason 
      * for cancellation. This object is used to create a new cancellation 
      * request in the system.
-     * @param offerDate - The date of the offer associated with the booking 
-     * that the user 
+     * @param booking - The booking object to cancel.
+     * @param reason - The reason for cancellation.
+     * @param userWallet - Optional refund wallet details (GCash / Maya).
      */
-    const cancelBooking = async (booking: Booking, reason: string) => {
+    const cancelBooking = async (
+        booking: Booking,
+        reason: string,
+        userWallet?: IUserWalletDetails<Date>
+    ) => {
         
         const request: CancellationRequest = {
             bookingId: booking.id,
             offerId: booking.offer.id,
             businessId: booking.business.id,
             reason: reason,
+            userWallet: userWallet,
         }
 
         const offerDate = booking.offer.date;
@@ -80,11 +86,17 @@ export function useCancellationUser() {
 
                 await createBooking(updatedBooking);
             } else {
-                const cancellationRequest = createCancellationRequest({ 
-                    ...request, 
-                    cancelledBy: "user", 
-                    userId: profile.id 
-                }); 
+                const cancellationRequest = createCancellationRequest(
+                    { 
+                        ...request, 
+                        cancelledBy: "user", 
+                        userId: profile.id 
+                    },
+                    {
+                        userWallet: userWallet,
+                        handshakeStep: userWallet ? 'awaiting_admin_payout' : 'awaiting_admin_approval',
+                    }
+                ); 
     
                 await write({
                     cancellation: cancellationRequest,
@@ -241,10 +253,80 @@ export function useCancellationUser() {
      * 
      * @param {Booking} booking - The booking object to request a refund for.
      * @param {string} reason - The user's reason for requesting a refund.
+     * @param {IUserWalletDetails<Date>} [userWallet] - The user's GCash or Maya wallet details.
      * @returns {Promise<void>}
      */
-    const onRefundBooking = async (booking: Booking, reason: string): Promise<void> => {
-        await cancelBooking(booking, reason);
+    const onRefundBooking = async (
+        booking: Booking,
+        reason: string,
+        userWallet?: IUserWalletDetails<Date>
+    ): Promise<void> => {
+        await cancelBooking(booking, reason, userWallet);
+    };
+
+    /**
+     * Allows a hiker to confirm that they received the refund payout sent by the organizer.
+     * Atomically finalizes the refund and removes the hiker from the tour group chat.
+     */
+    const confirmRefundReceived = async (params: {
+        bookingId: string;
+        cancellationId?: string;
+        businessId: string;
+        offerId?: string;
+    }) => {
+        try {
+            setWritingError(null);
+            if (!profile || !profile.id) {
+                throw new Error("User profile is not available.");
+            }
+            const confirmFn = httpsCallable(functions, 'confirmRefundReceived');
+            await confirmFn({
+                bookingId: params.bookingId,
+                userId: profile.id,
+                businessId: params.businessId,
+                offerId: params.offerId,
+                cancellationId: params.cancellationId,
+            });
+        } catch (error) {
+            catchError(error as Error, 'writingError', 'confirmRefundReceived');
+            setWritingError((error as Error).message || "Failed to confirm refund receipt.");
+            throw error;
+        }
+    };
+
+    /**
+     * Allows a hiker to report that they did NOT receive the refund money or dispute the payout proof.
+     * Increments the dispute count (up to 3 times) and retains the hiker in the tour group chat.
+     */
+    const disputeRefundPayout = async (params: {
+        bookingId: string;
+        cancellationId?: string;
+        businessId: string;
+        offerId?: string;
+        disputeReason: string;
+    }) => {
+        try {
+            setWritingError(null);
+            if (!profile || !profile.id) {
+                throw new Error("User profile is not available.");
+            }
+            if (!params.disputeReason || params.disputeReason.trim().length === 0) {
+                throw new Error("Please provide a reason for the refund dispute.");
+            }
+            const disputeFn = httpsCallable(functions, 'disputeRefundPayout');
+            await disputeFn({
+                bookingId: params.bookingId,
+                userId: profile.id,
+                businessId: params.businessId,
+                offerId: params.offerId,
+                cancellationId: params.cancellationId,
+                disputeReason: params.disputeReason.trim(),
+            });
+        } catch (error) {
+            catchError(error as Error, 'writingError', 'disputeRefundPayout');
+            setWritingError((error as Error).message || "Failed to submit dispute.");
+            throw error;
+        }
     };
 
     return {
@@ -254,6 +336,8 @@ export function useCancellationUser() {
         proceedToAdminCancellation,
         proceedToAdminReschedule,
         onRefundBooking,
+        confirmRefundReceived,
+        disputeRefundPayout,
         writingError,
         isWriting
     }

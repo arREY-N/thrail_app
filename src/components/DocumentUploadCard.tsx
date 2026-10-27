@@ -357,7 +357,7 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         btnStyle = styles.uploadedBtn;
         btnText = allowMultiple ? "Add More" : "Change";
         btnTextStyle = styles.uploadedBtnText;
-        spinnerColor = Colors.TEXT_SECONDARY;
+        spinnerColor = Colors.SUCCESS;
     } else if (isRejected) {
         iconName = "x-circle";
         iconColor = Colors.ERROR;
@@ -655,7 +655,7 @@ const styles = StyleSheet.create({
     uploadedBtn: { 
         backgroundColor: Colors.WHITE, 
         borderWidth: 1, 
-        borderColor: Colors.GRAY_MEDIUM, 
+        borderColor: Colors.SUCCESS, 
         paddingVertical: 8, 
         paddingHorizontal: 16, 
         borderRadius: 20, 
@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
         alignItems: 'center', 
     },
     uploadedBtnText: { 
-        color: Colors.TEXT_SECONDARY, 
+        color: Colors.SUCCESS, 
         fontWeight: 'bold', 
     },
     errorBtn: { 

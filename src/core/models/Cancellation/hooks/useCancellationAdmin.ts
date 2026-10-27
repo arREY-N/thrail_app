@@ -6,7 +6,7 @@ import { useAuthHook } from "@/src/core/models/User/User";
 import { catchError, logger } from "@/src/core/utility/errorFormatter";
 import { useState } from "react";
 
-import { Booking } from "@/src/core/models/Booking/Booking";
+import { Booking, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useCancellationAdminList } from "@/src/core/models/Cancellation/hooks/useCancellationAdminList";
 import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
@@ -93,6 +93,14 @@ export function useCancellationAdmin(bookingId: string) {
             const result = await processCancellationApprovalFn(payload);
             const responseData = result.data as { success: boolean; message: string; isRefundIssued?: boolean; refundAmount?: number };
 
+            const resolvedBizId = businessId || request?.businessId || booking?.business?.id;
+            if (resolvedBizId) {
+                await useCancellationStore.getState().fetchAllBusinessCancellations(resolvedBizId, true);
+            }
+            if (bookingId) {
+                await useBookingsStore.getState().refreshBookingItem(bookingId, offerId);
+            }
+
             const notificationMessage = responseData.message || (approved
                 ? "Your cancellation request has been approved."
                 : "Your cancellation request has been rejected. As noted by the admin: " + (adminNote || "No additional information provided."));
@@ -140,6 +148,12 @@ export function useCancellationAdmin(bookingId: string) {
                 isAdmin: true
             });
 
+            const resolvedBizId = businessId || booking.business?.id;
+            if (resolvedBizId) {
+                await useCancellationStore.getState().fetchAllBusinessCancellations(resolvedBizId, true);
+            }
+            await useBookingsStore.getState().refreshBookingItem(booking.id, booking.offer?.id);
+
         } catch (error) {
             catchError(error as Error, 'writingError', 'cancelUserBooking()');
             setWritingError((error as Error).message || "An unexpected error occurred.");
@@ -169,7 +183,7 @@ export function useCancellationAdmin(bookingId: string) {
                 status: "approved",
                 refundAmount: amount,
                 refundDecision: "issue_refund",
-                handshakeStep: "awaiting_user_wallet",
+                handshakeStep: target.userWallet?.accountNumber ? "awaiting_admin_payout" : "awaiting_user_wallet",
                 updatedAt: new Date(),
             };
 
@@ -177,6 +191,14 @@ export function useCancellationAdmin(bookingId: string) {
                 cancellation: updatedCancellation,
                 isAdmin: true,
             });
+
+            if (resolvedBusinessId) {
+                await useCancellationStore.getState().fetchAllBusinessCancellations(resolvedBusinessId, true);
+            }
+            const targetBookingId = target.bookingId || targetBooking?.id;
+            if (targetBookingId) {
+                await useBookingsStore.getState().refreshBookingItem(targetBookingId, target.offerId || targetBooking?.offer?.id);
+            }
 
             return updatedCancellation;
         } catch (error) {
@@ -218,6 +240,15 @@ export function useCancellationAdmin(bookingId: string) {
                 refundAmount: target.refundAmount || targetBooking?.offer?.price,
             });
 
+            const resolvedBizId = target.businessId || businessId;
+            if (resolvedBizId) {
+                await useCancellationStore.getState().fetchAllBusinessCancellations(resolvedBizId, true);
+            }
+            const targetBookingId = target.bookingId || targetBooking?.id;
+            if (targetBookingId) {
+                await useBookingsStore.getState().refreshBookingItem(targetBookingId, target.offerId || targetBooking?.offer?.id);
+            }
+
             return downloadUrl;
         } catch (error) {
             catchError(error as Error, 'writingError', 'uploadRefundProof()');
@@ -255,6 +286,13 @@ export function useCancellationAdmin(bookingId: string) {
             }
 
             await revertAdminCancellation(businessId, cancellationRequest);
+
+            if (businessId) {
+                await useCancellationStore.getState().fetchAllBusinessCancellations(businessId, true);
+            }
+            if (cancellationRequest.bookingId) {
+                await useBookingsStore.getState().refreshBookingItem(cancellationRequest.bookingId, cancellationRequest.offerId);
+            }
 
         } catch (error) {
             catchError(error as Error, 'writingError', 'revertCancellationRequest()');
