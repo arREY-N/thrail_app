@@ -33,8 +33,38 @@ export interface BookingState {
     businessBookings: Booking[];
 
     bookingByOffer: Record<string, Booking[]>;
-    activeListeners: Record<string, Unsubscribe>;
-    listenerCounts: Record<string, number>;
+}
+
+// Module-level non-reactive listener bookkeeping
+const activeBusinessBookingListeners = new Map<string, Unsubscribe>();
+const businessBookingListenerCounts = new Map<string, number>();
+
+/**
+ * Compares two arrays of bookings to skip redundant store sets on no-op snapshots.
+ */
+function areBookingsEqual(a?: Booking[], b?: Booking[]): boolean {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+        const itemA = a[i];
+        const itemB = b[i];
+        if (itemA.id !== itemB.id) return false;
+        if (itemA.status !== itemB.status) return false;
+        if (itemA.paymentVerificationStatus !== itemB.paymentVerificationStatus) return false;
+        if (itemA.user?.id !== itemB.user?.id) return false;
+        const timeA = itemA.updatedAt ? new Date(itemA.updatedAt as unknown as string).getTime() : 0;
+        const timeB = itemB.updatedAt ? new Date(itemB.updatedAt as unknown as string).getTime() : 0;
+        if (timeA !== timeB) return false;
+    }
+    return true;
+}
+
+export function _getBookingListenersForTesting() {
+    return {
+        activeListeners: activeBusinessBookingListeners,
+        listenerCounts: businessBookingListenerCounts,
+    };
 }
 
 const init = {
@@ -48,14 +78,23 @@ const init = {
     isWriting: false,
     isFetching: false,
     bookingByOffer: {},
-    activeListeners: {},
-    listenerCounts: {},
 };
 
 export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
 
-    reset: () => set(init),
+    reset: () => {
+        activeBusinessBookingListeners.forEach((unsub) => {
+            try {
+                unsub();
+            } catch (e) {
+                console.error("Error unsubscribing booking listener on reset:", e);
+            }
+        });
+        activeBusinessBookingListeners.clear();
+        businessBookingListenerCounts.clear();
+        set(init);
+    },
 
     subscribeToUserBookings: (userId: string): Unsubscribe => {
         try {
@@ -72,46 +111,39 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
     },
 
     subscribeToBusinessBookings: async (offerId: string, businessId: string) => {
+        if (!offerId || !businessId) {
+            return;
+        }
+
+        // If listener is already active, increment reference count and return immediately without calling set()
+        if (activeBusinessBookingListeners.has(offerId)) {
+            const currentCount = businessBookingListenerCounts.get(offerId) || 0;
+            businessBookingListenerCounts.set(offerId, currentCount + 1);
+            return;
+        }
+
         try {
             set({ isFetching: true, error: null });
 
-            // Increment reference count for this offerId listener
-            const currentCount = get().listenerCounts[offerId] || 0;
-            set((state) => ({
-                listenerCounts: {
-                    ...state.listenerCounts,
-                    [offerId]: currentCount + 1,
-                },
-            }));
-
-            // If listener is already active, keep existing listener and return
-            if (get().activeListeners[offerId]) {
-                return;
-            }
-
-            if (!businessId) {
-                throw new Error("Business ID is required for subscribing to business bookings");
-            }
-            const unsubscribe = BookingRepo.listenToBusinessBookings(offerId, businessId, (bookings) =>
+            const unsubscribe = BookingRepo.listenToBusinessBookings(offerId, businessId, (bookings) => {
+                const currentBookings = get().bookingByOffer[offerId];
+                if (areBookingsEqual(currentBookings, bookings)) {
+                    return;
+                }
                 set((state) => ({
                     bookingByOffer: {
                         ...state.bookingByOffer,
                         [offerId]: bookings,
                     },
-                })),
-            );
+                }));
+            });
 
-            set((state) => ({
-                activeListeners: {
-                    ...state.activeListeners,
-                    [offerId]: unsubscribe,
-                },
-            }));
+            activeBusinessBookingListeners.set(offerId, unsubscribe);
+            businessBookingListenerCounts.set(offerId, 1);
+            set({ isFetching: false });
         } catch (error) {
             console.error("Error subscribing to business bookings: ", error);
-            set({ error: (error as Error).message });
-        } finally {
-            set({ isFetching: false });
+            set({ error: (error as Error).message, isFetching: false });
         }
     },
 
@@ -168,35 +200,24 @@ export const bookingStoreCreator: StateCreator<BookingState, [["zustand/immer", 
     },
 
     unsubscribeFromBusinessBookings: (offerId: string) => {
-        const currentCount = get().listenerCounts[offerId] || 0;
+        const currentCount = businessBookingListenerCounts.get(offerId) || 0;
         const newCount = currentCount - 1;
 
         if (newCount > 0) {
-            set((state) => ({
-                listenerCounts: {
-                    ...state.listenerCounts,
-                    [offerId]: newCount,
-                },
-            }));
+            businessBookingListenerCounts.set(offerId, newCount);
             return;
         }
 
-        const unsubscribe = get().activeListeners[offerId];
+        businessBookingListenerCounts.delete(offerId);
+        const unsubscribe = activeBusinessBookingListeners.get(offerId);
         if (unsubscribe) {
-            unsubscribe();
+            try {
+                unsubscribe();
+            } catch (e) {
+                console.error("Error unsubscribing from business bookings:", e);
+            }
+            activeBusinessBookingListeners.delete(offerId);
         }
-
-        set((state) => {
-            const newListeners = { ...state.activeListeners };
-            delete newListeners[offerId];
-            const newCounts = { ...state.listenerCounts };
-            delete newCounts[offerId];
-            return {
-                ...state,
-                activeListeners: newListeners,
-                listenerCounts: newCounts,
-            };
-        });
     },
 
     loadAll: async (role: string) => {

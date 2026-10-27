@@ -13,6 +13,9 @@ export interface CancellationState {
     isFetching: boolean;
     isWriting: boolean;
 
+    activeListeners: Record<string, Unsubscribe>;
+    listenerCounts: Record<string, number>;
+
     write: (writeData: WriteCancellationParams) => Promise<void>;
     delete: (businessId: string, cancellation: Cancellation, userId?: string) => Promise<void>;
 
@@ -34,6 +37,9 @@ const init = {
     error: null,
     isFetching: false,
     isWriting: false,
+
+    activeListeners: {},
+    listenerCounts: {},
 };
 
 export type WriteCancellationParams = {
@@ -42,20 +48,89 @@ export type WriteCancellationParams = {
     isAdmin: boolean;
 };
 
+// Module-level listener bookkeeping to prevent reactive re-renders and persist thrashing
+const activeBusinessCancellationsListeners = new Map<string, Unsubscribe>();
+const businessCancellationsListenerCounts = new Map<string, number>();
+
+function areCancellationsEqual(a?: Cancellation[], b?: Cancellation[]): boolean {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+        const itemA = a[i];
+        const itemB = b[i];
+        if (
+            itemA.id !== itemB.id ||
+            itemA.status !== itemB.status ||
+            itemA.handshakeStep !== itemB.handshakeStep ||
+            itemA.refundDecision !== itemB.refundDecision ||
+            itemA.isDeleted !== itemB.isDeleted ||
+            itemA.updatedAt?.toString() !== itemB.updatedAt?.toString()
+        ) {
+            return false;
+        }
+    }
+    return true;
+}
+
 export const cancellationStoreCreator: StateCreator<CancellationState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
 
     subscribeToBusinessCancellations(businessId: string): Unsubscribe {
+        if (!businessId) {
+            return () => {};
+        }
+
+        const currentCount = businessCancellationsListenerCounts.get(businessId) || 0;
+
+        // If listener is already active, increment reference count and return unregister function without calling set()
+        if (activeBusinessCancellationsListeners.has(businessId)) {
+            businessCancellationsListenerCounts.set(businessId, currentCount + 1);
+
+            return () => {
+                const count = businessCancellationsListenerCounts.get(businessId) || 0;
+                const newCount = count - 1;
+                if (newCount > 0) {
+                    businessCancellationsListenerCounts.set(businessId, newCount);
+                } else {
+                    businessCancellationsListenerCounts.delete(businessId);
+                    const unsub = activeBusinessCancellationsListeners.get(businessId);
+                    activeBusinessCancellationsListeners.delete(businessId);
+                    if (unsub) unsub();
+                }
+            };
+        }
+
         try {
-            return CancellationRepo.listenToBusinessCancellations(
+            const unsub = CancellationRepo.listenToBusinessCancellations(
                 businessId,
-                (cancellations) =>
-                    set({
-                        businessCancellations: cancellations,
-                    }),
-            )
+                (cancellations) => {
+                    const current = get().businessCancellations;
+                    if (!areCancellationsEqual(current, cancellations)) {
+                        set({
+                            businessCancellations: cancellations,
+                        });
+                    }
+                },
+            );
+
+            activeBusinessCancellationsListeners.set(businessId, unsub);
+            businessCancellationsListenerCounts.set(businessId, currentCount + 1);
+
+            return () => {
+                const count = businessCancellationsListenerCounts.get(businessId) || 0;
+                const newCount = count - 1;
+                if (newCount > 0) {
+                    businessCancellationsListenerCounts.set(businessId, newCount);
+                } else {
+                    businessCancellationsListenerCounts.delete(businessId);
+                    const activeUnsub = activeBusinessCancellationsListeners.get(businessId);
+                    activeBusinessCancellationsListeners.delete(businessId);
+                    if (activeUnsub) activeUnsub();
+                }
+            };
         } catch (error) {
-            set({ error: (error as Error).message })
+            set({ error: (error as Error).message });
             throw error;
         }
     },
@@ -64,13 +139,17 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
         try {
             return CancellationRepo.listenToUserCancellations(
                 userId,
-                (cancellations) =>
-                    set({
-                        userCancellations: cancellations,
-                    }),
-            )
+                (cancellations) => {
+                    const current = get().userCancellations;
+                    if (!areCancellationsEqual(current, cancellations)) {
+                        set({
+                            userCancellations: cancellations,
+                        });
+                    }
+                },
+            );
         } catch (error) {
-            set({ error: (error as Error).message })
+            set({ error: (error as Error).message });
             throw error;
         }
     },
