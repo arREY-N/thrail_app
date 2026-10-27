@@ -8,8 +8,11 @@ import React, { useState } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomInfoRow from '@/src/components/CustomInfoRow';
+import CustomStatusBadge from '@/src/components/CustomStatusBadge';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
+import PaymentBreakdownPanel from '@/src/components/PaymentBreakdownPanel';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
@@ -37,7 +40,7 @@ export interface PaymentTabProps {
     onConfirmPaymentClick?: () => void;
     onVerifyManualPayment?: (classification: 'full' | 'downpayment', note?: string, verifiedAmount?: number) => Promise<void>;
     onRejectManualPayment?: (reason: string) => Promise<void>;
-    onSettleRemainingBalance?: () => Promise<void>;
+    onSettleRemainingBalance?: (options?: { method?: 'cash' | 'manual_qr'; referenceCode?: string; adminNote?: string }) => Promise<void>;
     onUploadOverpaymentProof?: (file: SelectedFile) => Promise<void | string>;
     isProcessing?: boolean;
 }
@@ -180,47 +183,13 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                     {/* Payment Summary Header & Integrated Status Badge */}
                     <View style={styles.breakdownHeaderRow}>
                         <CustomText style={styles.breakdownTitle}>Payment Summary</CustomText>
-                        {(() => {
-                            let badgeLabel = "Unpaid";
-                            let badgeBg = Colors.GRAY_ULTRALIGHT;
-                            let badgeText = Colors.TEXT_SECONDARY;
-                            let badgeIcon = "clock";
-
-                            const dbStatus = booking?.status;
-                            const isPaid = dbStatus === 'paid' || netPaid >= price;
-                            const isDown = dbStatus === 'downpayment' || (netPaid > 0 && netPaid < price);
-
-                            if (dbStatus === 'completed') {
-                                badgeLabel = "Completed";
-                                badgeBg = Colors.STATUS_APPROVED_BG;
-                                badgeText = Colors.SUCCESS;
-                                badgeIcon = "check-circle";
-                            } else if (dbStatus === 'refunded' || dbStatus === 'refund' || hasRefundedPayment) {
-                                badgeLabel = "Refunded";
-                                badgeBg = Colors.STATUS_CANCELLED_BG;
-                                badgeText = Colors.STATUS_CANCELLED_TEXT;
-                                badgeIcon = "refresh-ccw";
-                            } else if (isPaid) {
-                                badgeLabel = "Fully Paid";
-                                badgeBg = Colors.STATUS_FULLY_PAID_BG;
-                                badgeText = Colors.STATUS_FULLY_PAID_TEXT;
-                                badgeIcon = "check-circle";
-                            } else if (isDown) {
-                                badgeLabel = "Downpayment";
-                                badgeBg = Colors.STATUS_DOWNPAYMENT_BG;
-                                badgeText = Colors.STATUS_DOWNPAYMENT_TEXT;
-                                badgeIcon = "pie-chart";
-                            }
-
-                            return (
-                                <View style={[styles.paymentStatusBadge, { backgroundColor: badgeBg }]}>
-                                    <CustomIcon library="Feather" name={badgeIcon} size={12} color={badgeText} />
-                                    <CustomText style={[styles.paymentStatusBadgeText, { color: badgeText }]}>
-                                        {badgeLabel.toUpperCase()}
-                                    </CustomText>
-                                </View>
-                            );
-                        })()}
+                        <CustomStatusBadge
+                            status={booking?.status || currentStatus}
+                            isApproved={isApprovedStatus}
+                            isRejected={isRejectedStatus}
+                            isCancelled={isCancelledStatus}
+                            size="md"
+                        />
                     </View>
                     
                     <View style={styles.breakdownDivider} />
@@ -243,43 +212,13 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                     
                     <View style={styles.breakdownDivider} />
                     
-                    <View style={styles.breakdownColumns}>
-                        <View style={styles.breakdownCol}>
-                            <CustomText style={styles.breakdownColLabel}>
-                                {totalRefunded > 0 ? "Gross Collected" : (currentStatus === 'downpayment' ? "Downpayment Paid" : "Paid Amount")}
-                            </CustomText>
-                            <CustomText style={styles.breakdownColPaid}>₱{grossPaid.toFixed(2)}</CustomText>
-                        </View>
-                        {totalRefunded > 0 && (
-                            <>
-                                <View style={styles.breakdownCol}>
-                                    <CustomText style={[styles.breakdownColLabel, { color: Colors.ERROR }]}>
-                                        Amount Refunded
-                                    </CustomText>
-                                    <CustomText style={[styles.breakdownColPaid, { color: Colors.ERROR }]}>
-                                        -₱{totalRefunded.toFixed(2)}
-                                    </CustomText>
-                                </View>
-                                <View style={styles.breakdownCol}>
-                                    <CustomText style={[styles.breakdownColLabel, { color: Colors.PRIMARY }]}>
-                                        Net Collected
-                                    </CustomText>
-                                    <CustomText style={[styles.breakdownColPaid, { color: Colors.PRIMARY }]}>
-                                        ₱{netPaid.toFixed(2)}
-                                    </CustomText>
-                                </View>
-                            </>
-                        )}
-                        <View style={styles.breakdownCol}>
-                            <CustomText style={styles.breakdownColLabel}>To Collect (Remaining)</CustomText>
-                            <CustomText style={[
-                                styles.breakdownColBalance,
-                                remainingBalance <= 0 && { color: Colors.SUCCESS }
-                            ]}>
-                                ₱{remainingBalance.toFixed(2)}
-                            </CustomText>
-                        </View>
-                    </View>
+                    <PaymentBreakdownPanel
+                        totalPrice={price}
+                        amountPaid={netPaid}
+                        remainingBalance={remainingBalance}
+                        refundedAmount={totalRefunded}
+                        variant="compact"
+                    />
 
                     <CustomText variant="h3" style={styles.summaryTitle}>
                         Transaction Summary
@@ -391,12 +330,13 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                 )}
 
                                 {/* Reference Code (stacked row - prioritizes pay_ ID) */}
-                                <View style={[styles.paymentRowStacked, (!paymentRecord.receiptUrl && !paymentRecord.refundProofUrl) && styles.noBorder]}>
-                                    <CustomText style={styles.paymentLabelStacked}>Reference No.</CustomText>
-                                    <CustomText style={styles.paymentValueStacked} selectable={true}>
-                                        {paymentRecord.gatewayId || paymentRecord.referenceCode || paymentRecord.sessionId || 'N/A'}
-                                    </CustomText>
-                                </View>
+                                <CustomInfoRow
+                                    label="Reference No."
+                                    value={paymentRecord.gatewayId || paymentRecord.referenceCode || paymentRecord.sessionId || 'N/A'}
+                                    enableCopy={Boolean(paymentRecord.gatewayId || paymentRecord.referenceCode || paymentRecord.sessionId)}
+                                    stacked={true}
+                                    containerStyle={{ marginHorizontal: 12, marginVertical: 4 }}
+                                />
 
                                 {/* User Payment Receipt Screenshot (Documented for Audit) */}
                                 {paymentRecord.receiptUrl && (

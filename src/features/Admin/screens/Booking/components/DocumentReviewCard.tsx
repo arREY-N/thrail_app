@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomStatusBadge from '@/src/components/CustomStatusBadge';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
@@ -66,34 +67,11 @@ const DocumentReviewCard = ({
                     {doc.name}
                 </CustomText>
                 
-                <View 
-                    style={[
-                        styles.badge, 
-                        { 
-                            backgroundColor: doc.valid === 'approved' 
-                                ? Colors.STATUS_APPROVED_BG 
-                                : doc.valid === 'rejected'
-                                  ? Colors.ERROR_BG 
-                                  : Colors.STATUS_PENDING_BG,
-                        }
-                    ]}
-                >
-                    <CustomText 
-                        variant="caption" 
-                        style={[
-                            styles.badgeText, 
-                            { 
-                                color: doc.valid === 'approved' 
-                                    ? Colors.SUCCESS 
-                                    : doc.valid === 'rejected'
-                                      ? Colors.ERROR 
-                                      : Colors.STATUS_PENDING_TEXT,
-                            }
-                        ]}
-                    >
-                        {doc.valid === 'approved' ? "APPROVED" : doc.valid === 'rejected' ? "REJECTED" : "PENDING REVIEW"}
-                    </CustomText>
-                </View>
+                <CustomStatusBadge
+                    status={doc.valid === 'approved' ? 'completed' : doc.valid === 'rejected' ? 'reservation-rejected' : 'for-reservation'}
+                    label={doc.valid === 'approved' ? "APPROVED" : doc.valid === 'rejected' ? "REJECTED" : "PENDING REVIEW"}
+                    size="sm"
+                />
             </View>
             
             {/* VIEW ATTACHMENT BUTTON (ALWAYS VISIBLE & CLUTTER-FREE) */}
@@ -200,7 +178,8 @@ const styles = StyleSheet.create({
     docHeader: { 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
-        alignItems: 'center', 
+        alignItems: 'flex-start', 
+        gap: 8,
         marginBottom: 12 
     },
     docName: { 

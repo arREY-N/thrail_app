@@ -40,10 +40,10 @@ export default function useBookingFilters(bookings: Booking[], cancellations?: C
         if (activeFilter !== 'All') {
             result = result.filter(b => {
                 const status = getEffectiveStatus(b);
-                const isNeedsReview = status === 'for-reservation' || status === 'for-cancellation' || status === 'for-reschedule';
+                const isNeedsReview = status === 'for-reservation' || status === 'for-cancellation' || status === 'for-reschedule' || status === 'refund';
                 
                 if (activeFilter === 'Needs Review') return isNeedsReview;
-                if (activeFilter === 'Rejected') return ['reservation-rejected', 'cancelled', 'refund', 'refunded', 'expired', 'cancellation-rejected', 'reschedule-rejected'].includes(status);
+                if (activeFilter === 'Rejected') return ['reservation-rejected', 'cancelled', 'refunded', 'expired', 'cancellation-rejected', 'reschedule-rejected'].includes(status);
                 if (activeFilter === 'For Payment') return status === 'for-payment' || status === 'approved-docs';
                 if (activeFilter === 'Downpayment') return status === 'downpayment';
                 if (activeFilter === 'Fully Paid') return status === 'paid';

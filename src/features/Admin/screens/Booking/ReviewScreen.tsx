@@ -15,6 +15,7 @@ import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomLoading from '@/src/components/CustomLoading';
+import CustomSegmentedTabs from '@/src/components/CustomSegmentedTabs';
 import CustomSelectionModal from '@/src/components/CustomSelectionModal';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
@@ -102,10 +103,10 @@ export interface ReviewScreenProps {
     onApproveCancellation?: (request?: Cancellation | null, booking?: Booking, refundType?: RefundType, customAmount?: number, adminNote?: string) => Promise<void>;
     onDeclineCancellation?: (reason: string, request?: Cancellation | null, booking?: Booking) => Promise<void>;
     onRevertCancellation?: (request?: Cancellation | null) => Promise<void>;
-    onAdminCancelBooking?: (booking: Booking, reason: string) => Promise<void>;
+    onAdminCancelBooking?: (booking: Booking, reason: string, refundType?: 'full' | 'partial' | 'none', refundAmount?: number) => Promise<void>;
     onVerifyManualPayment?: (classification: 'full' | 'downpayment', note?: string, booking?: Booking, verifiedAmount?: number) => Promise<void>;
     onRejectManualPayment?: (reason: string, booking?: Booking) => Promise<void>;
-    onSettleRemainingBalance?: (booking?: Booking) => Promise<void>;
+    onSettleRemainingBalance?: (booking?: Booking, options?: { method?: 'cash' | 'manual_qr'; referenceCode?: string; adminNote?: string }) => Promise<void>;
     onUploadRefundProof?: (file: SelectedFile, request?: Cancellation | null, booking?: Booking | null) => Promise<void | string>;
     onUploadOverpaymentProof?: (file: SelectedFile, booking?: Booking | null) => Promise<void | string>;
     onApproveWithManualRefund?: (amount: number, request?: Cancellation | null, booking?: Booking | null) => Promise<void | Cancellation>;
@@ -752,29 +753,16 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 onLayout={() => {
                                     if (isTutorialMeasurementActive()) measureTabsNow();
                                 }}
-                                style={styles.tabContainer}
+                                style={{ marginBottom: 16 }}
                             >
-                                <TouchableOpacity
-                                    style={[styles.tabBtn, activeTab === 'documents' && styles.tabBtnActive]}
-                                    onPress={() => setActiveTab('documents')}
-                                    activeOpacity={0.7}
-                                >
-                                    <CustomIcon library="Feather" name="file-text" size={16} color={activeTab === 'documents' ? Colors.WHITE : Colors.TEXT_SECONDARY} />
-                                    <CustomText style={[styles.tabText, activeTab === 'documents' && { color: Colors.WHITE }]}>
-                                        Documents
-                                    </CustomText>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={[styles.tabBtn, activeTab === 'payment' && styles.tabBtnActive]}
-                                    onPress={() => setActiveTab('payment')}
-                                    activeOpacity={0.7}
-                                >
-                                    <CustomIcon library="Feather" name="credit-card" size={16} color={activeTab === 'payment' ? Colors.WHITE : Colors.TEXT_SECONDARY} />
-                                    <CustomText style={[styles.tabText, activeTab === 'payment' && { color: Colors.WHITE }]}>
-                                        Payment
-                                    </CustomText>
-                                </TouchableOpacity>
+                                <CustomSegmentedTabs
+                                    tabs={[
+                                        { id: 'documents', label: 'Documents', icon: 'file-text' },
+                                        { id: 'payment', label: 'Payment', icon: 'credit-card' },
+                                    ]}
+                                    activeTab={activeTab}
+                                    onTabSelect={(id) => setActiveTab(id as 'documents' | 'payment')}
+                                />
                             </View>
 
                             <View
@@ -829,7 +817,10 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                         setIsProcessingAction(true);
                                         try {
                                             await onVerifyManualPayment(classification, note, booking, verifiedAmount);
-                                            showToast.success(classification === 'full' ? 'Full payment verified!' : 'Payment verified and balance updated!');
+                                            if (classification === 'downpayment') {
+                                                showToast.success('Downpayment verified and balance updated!');
+                                            }
+                                            // Complete payment toast removed per requirements
                                         } catch (err: unknown) {
                                             showToast.error(err instanceof Error ? err.message : 'Failed to verify payment');
                                         } finally {
@@ -847,11 +838,11 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                             setIsProcessingAction(false);
                                         }
                                     } : undefined}
-                                    onSettleRemainingBalance={onSettleRemainingBalance ? async () => {
+                                    onSettleRemainingBalance={onSettleRemainingBalance ? async (options) => {
                                         setIsProcessingAction(true);
                                         try {
-                                            await onSettleRemainingBalance(booking);
-                                            showToast.success('Remaining balance settled in full!');
+                                            await onSettleRemainingBalance(booking, options);
+                                            // Complete payment toast removed per requirements
                                         } catch (err: unknown) {
                                             showToast.error(err instanceof Error ? err.message : 'Failed to settle balance');
                                         } finally {
@@ -898,257 +889,278 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 />
             ) : null}
 
-            <ConfirmationModal
-                visible={isConfirmVisible}
-                onClose={() => setIsConfirmVisible(false)}
-                onConfirm={handleFinalDecision}
-                title={confirmModalConfig.title}
-                message={confirmModalConfig.message}
-                confirmText={confirmModalConfig.confirmText}
-                cancelText={confirmModalConfig.cancelText}
-                iconName={confirmModalConfig.iconName}
-                isDestructive={confirmModalConfig.isDestructive}
-            />
+            {isConfirmVisible && (
+                <ConfirmationModal
+                    visible={isConfirmVisible}
+                    onClose={() => setIsConfirmVisible(false)}
+                    onConfirm={handleFinalDecision}
+                    title={confirmModalConfig.title}
+                    message={confirmModalConfig.message}
+                    confirmText={confirmModalConfig.confirmText}
+                    cancelText={confirmModalConfig.cancelText}
+                    iconName={confirmModalConfig.iconName}
+                    isDestructive={confirmModalConfig.isDestructive}
+                />
+            )}
 
-            <ConfirmationModal
-                visible={isConfirmPaymentVisible}
-                onClose={() => setIsConfirmPaymentVisible(false)}
-                onConfirm={async () => {
-                    setIsConfirmPaymentVisible(false);
-                    setIsProcessingAction(true);
-                    try {
-                        await onConfirmPayment(booking);
-                    } finally {
-                        setIsProcessingAction(false);
-                    }
-                }}
-                title={REVIEW_MODALS.CONFIRM_PAYMENT.title}
-                message={REVIEW_MODALS.CONFIRM_PAYMENT.message}
-                confirmText={REVIEW_MODALS.CONFIRM_PAYMENT.confirmText}
-                cancelText={REVIEW_MODALS.CONFIRM_PAYMENT.cancelText}
-                iconName="check-circle"
-            />
-
-            <AdminCancelBookingModal
-                visible={showCancelUnpaidModal}
-                onClose={() => setShowCancelUnpaidModal(false)}
-                isSubmitting={isProcessingAction}
-                onConfirm={async (selectedReason: string) => {
-                    setShowCancelUnpaidModal(false);
-                    if (onAdminCancelBooking) {
+            {isConfirmPaymentVisible && (
+                <ConfirmationModal
+                    visible={isConfirmPaymentVisible}
+                    onClose={() => setIsConfirmPaymentVisible(false)}
+                    onConfirm={async () => {
+                        setIsConfirmPaymentVisible(false);
                         setIsProcessingAction(true);
                         try {
-                            await onAdminCancelBooking(booking, selectedReason);
-                            showToast.success(REVIEW_TOASTS.ORGANIZER_CANCELLED);
-                        } catch (err: unknown) {
-                            showToast.error(err instanceof Error ? err.message : "Failed to cancel booking");
+                            await onConfirmPayment(booking);
                         } finally {
                             setIsProcessingAction(false);
                         }
-                    } else if (onCancelUnpaid) {
-                        setIsProcessingAction(true);
-                        try {
-                            await onCancelUnpaid(booking);
-                        } finally {
-                            setIsProcessingAction(false);
-                        }
-                    }
-                }}
-            />
+                    }}
+                    title={REVIEW_MODALS.CONFIRM_PAYMENT.title}
+                    message={REVIEW_MODALS.CONFIRM_PAYMENT.message}
+                    confirmText={REVIEW_MODALS.CONFIRM_PAYMENT.confirmText}
+                    cancelText={REVIEW_MODALS.CONFIRM_PAYMENT.cancelText}
+                    iconName="check-circle"
+                />
+            )}
 
-            <ConfirmationModal
-                visible={isConfirmCancellationVisible}
-                onClose={() => setIsConfirmCancellationVisible(false)}
-                onConfirm={async () => {
-                    setIsConfirmCancellationVisible(false);
-                    if (onApproveCancellation) {
-                        setIsProcessingAction(true);
-                        try {
-                            await onApproveCancellation(cancellationRequest, booking);
-                            showToast.success(REVIEW_TOASTS.CANCELLATION_APPROVED);
-                        } catch (err: unknown) {
-                            showToast.error(err instanceof Error ? err.message : 'Failed to approve cancellation.');
-                        } finally {
-                            setIsProcessingAction(false);
-                        }
-                    }
-                }}
-                title={REVIEW_MODALS.APPROVE_CANCELLATION.title}
-                message={REVIEW_MODALS.APPROVE_CANCELLATION.message(totalAmountPaid > 0, totalAmountPaid)}
-                confirmText={REVIEW_MODALS.APPROVE_CANCELLATION.confirmText}
-                cancelText={REVIEW_MODALS.APPROVE_CANCELLATION.cancelText}
-                iconName="alert-triangle"
-                isDestructive={true}
-            />
-
-            <ConfirmationModal
-                visible={isConfirmDeclineVisible}
-                onClose={() => setIsConfirmDeclineVisible(false)}
-                onConfirm={async () => {
-                    setIsConfirmDeclineVisible(false);
-                    if (onDeclineCancellation) {
-                        setIsProcessingAction(true);
-                        try {
-                            await onDeclineCancellation(cancellationDeclineReason, cancellationRequest, booking);
-                            setIsDecliningCancellation(false);
-                            setCancellationDeclineReason('');
-                            showToast.success(REVIEW_TOASTS.CANCELLATION_DECLINED);
-                        } catch (err: unknown) {
-                            showToast.error(err instanceof Error ? err.message : 'Failed to decline cancellation.');
-                        } finally {
-                            setIsProcessingAction(false);
-                        }
-                    }
-                }}
-                title={REVIEW_MODALS.DECLINE_CANCELLATION.title}
-                message={REVIEW_MODALS.DECLINE_CANCELLATION.message}
-                confirmText={REVIEW_MODALS.DECLINE_CANCELLATION.confirmText}
-                cancelText={REVIEW_MODALS.DECLINE_CANCELLATION.cancelText}
-                iconName="alert-triangle"
-                isDestructive={true}
-            />
-
-            <ConfirmationModal
-                visible={isConfirmRevertVisible}
-                onClose={() => setIsConfirmRevertVisible(false)}
-                onConfirm={async () => {
-                    setIsConfirmRevertVisible(false);
-                    if (onRevertCancellation) {
-                        setIsProcessingAction(true);
-                        try {
-                            await onRevertCancellation(cancellationRequest);
-                            showToast.success(REVIEW_TOASTS.CANCELLATION_REVERTED);
-                        } catch (err: unknown) {
-                            showToast.error(err instanceof Error ? err.message : 'Failed to revert cancellation.');
-                        } finally {
-                            setIsProcessingAction(false);
-                        }
-                    }
-                }}
-                title={REVIEW_MODALS.REVERT_CANCELLATION.title}
-                message={REVIEW_MODALS.REVERT_CANCELLATION.message}
-                confirmText={REVIEW_MODALS.REVERT_CANCELLATION.confirmText}
-                cancelText={REVIEW_MODALS.REVERT_CANCELLATION.cancelText}
-                iconName="alert-triangle"
-                isDestructive={false}
-            />
-
-            <CustomSelectionModal
-                visible={showRescheduleModal}
-                onClose={() => setShowRescheduleModal(false)}
-                title="Select New Offer"
-                options={availableOffers}
-                selectedValue={selectedRescheduleOffer?.id}
-                onSelect={(selected) => {
-                    const offerOption = selected as { id: string; label: string; subLabel?: string; originalData: Offer };
-                    setSelectedRescheduleOffer(offerOption);
-                    setShowRescheduleModal(false);
-                    setTimeout(async () => {
-                        if (onReschedule) {
+            {showCancelUnpaidModal && (
+                <AdminCancelBookingModal
+                    visible={showCancelUnpaidModal}
+                    onClose={() => setShowCancelUnpaidModal(false)}
+                    isSubmitting={isProcessingAction}
+                    booking={booking}
+                    onConfirm={async (selectedReason: string, refundType: 'full' | 'partial' | 'none', refundAmount: number) => {
+                        setShowCancelUnpaidModal(false);
+                        if (onAdminCancelBooking) {
                             setIsProcessingAction(true);
                             try {
-                                await onReschedule(offerOption.originalData, booking);
+                                await onAdminCancelBooking(booking, selectedReason, refundType, refundAmount);
+                                showToast.success(REVIEW_TOASTS.ORGANIZER_CANCELLED);
+                            } catch (err: unknown) {
+                                showToast.error(err instanceof Error ? err.message : "Failed to cancel booking");
+                            } finally {
+                                setIsProcessingAction(false);
+                            }
+                        } else if (onCancelUnpaid) {
+                            setIsProcessingAction(true);
+                            try {
+                                await onCancelUnpaid(booking);
                             } finally {
                                 setIsProcessingAction(false);
                             }
                         }
-                    }, 300);
-                }}
-            />
+                    }}
+                />
+            )}
 
-            <AdminRefundModal
-                visible={showRefundModal}
-                initialType={refundModalInitialType}
-                amountPaid={totalAmountPaid}
-                paymentCapturedAt={paymentCapturedAt}
-                isCancellationFlow={Boolean(cancellationRequest) || isCancellationPending || isCancelledStatus || isHikerCancellationPending || isAdminCancellationPending}
-                onClose={() => setShowRefundModal(false)}
-                onSelect={(refundType: RefundType, customAmount?: number, adminNote?: string) => {
-                    setShowRefundModal(false);
-                    setTimeout(async () => {
-                        setIsProcessingAction(true);
-                        try {
-                            const isCancellationFlow = Boolean(cancellationRequest) || isCancellationPending || isCancelledStatus || isHikerCancellationPending || isAdminCancellationPending;
-                            const isManualProvider = PAYMENT_CONFIG.PROVIDER === 'manual_qr';
-
-                            if (isCancellationFlow) {
-                                if (refundType === 'none') {
-                                    if (onApproveCancellation) {
-                                        await onApproveCancellation(cancellationRequest, booking, 'none', 0, adminNote);
-                                        showToast.success('Cancellation approved and slot released without refund.');
-                                    }
-                                } else if (isManualProvider && onApproveWithManualRefund) {
-                                    const resolvedAmount = refundType === 'custom'
-                                        ? (customAmount || totalAmountPaid)
-                                        : (refundType === 'partial' ? Math.round(totalAmountPaid * 0.10 * 100) / 100 : totalAmountPaid);
-                                    await onApproveWithManualRefund(resolvedAmount, cancellationRequest, booking);
-                                    const hasWalletUpfront = Boolean(cancellationRequest?.userWallet?.accountNumber);
-                                    showToast.success(
-                                        hasWalletUpfront
-                                            ? `Cancellation approved. Refund of ₱${resolvedAmount.toFixed(2)} set. Ready for payout.`
-                                            : `Cancellation approved. Refund of ₱${resolvedAmount.toFixed(2)} set. Awaiting hiker wallet.`
-                                    );
-                                } else if (onApproveCancellation) {
-                                    await onApproveCancellation(cancellationRequest, booking, refundType, customAmount, adminNote);
-                                    showToast.success('Cancellation approved and refund processed successfully.');
-                                }
-                            } else if (refundType === 'none') {
-                                showToast.error('Policy forfeiture without refund is only applicable when cancelling a booking.');
-                            } else if (isManualProvider) {
-                                showToast.info('Direct refund outside cancellation is not supported for manual payments. Please issue via cancellation.');
-                            } else if (onRefund) {
-                                await onRefund(booking, refundType, customAmount);
-                                showToast.success('Refund processed successfully.');
-                            }
-                        } catch (err: unknown) {
-                                const rawMessage = err instanceof Error ? err.message : String(err || '');
-                                let displayMessage = 'Failed to process refund. Please try again.';
-
-                                if (rawMessage.includes('Cannot partially refund') || rawMessage.includes('same day')) {
-                                    displayMessage = 'Payment Policy: Partial refunds cannot be processed on the same calendar day for gateway payments.';
-                                } else if (rawMessage.includes('Insufficient') || rawMessage.includes('balance')) {
-                                    displayMessage = 'Your account has insufficient merchant balance to cover this refund.';
-                                } else if (rawMessage) {
-                                    displayMessage = rawMessage.replace('Payment Gateway Error: ', '').replace('PayMongo API Error: ', '');
-                                }
-
-                                showToast.error(displayMessage);
+            {isConfirmCancellationVisible && (
+                <ConfirmationModal
+                    visible={isConfirmCancellationVisible}
+                    onClose={() => setIsConfirmCancellationVisible(false)}
+                    onConfirm={async () => {
+                        setIsConfirmCancellationVisible(false);
+                        if (onApproveCancellation) {
+                            setIsProcessingAction(true);
+                            try {
+                                await onApproveCancellation(cancellationRequest, booking);
+                                showToast.success(REVIEW_TOASTS.CANCELLATION_APPROVED);
+                            } catch (err: unknown) {
+                                showToast.error(err instanceof Error ? err.message : 'Failed to approve cancellation.');
                             } finally {
                                 setIsProcessingAction(false);
+                            }
+                        }
+                    }}
+                    title={REVIEW_MODALS.APPROVE_CANCELLATION.title}
+                    message={REVIEW_MODALS.APPROVE_CANCELLATION.message(totalAmountPaid > 0, totalAmountPaid)}
+                    confirmText={REVIEW_MODALS.APPROVE_CANCELLATION.confirmText}
+                    cancelText={REVIEW_MODALS.APPROVE_CANCELLATION.cancelText}
+                    iconName="alert-triangle"
+                    isDestructive={true}
+                />
+            )}
+
+            {isConfirmDeclineVisible && (
+                <ConfirmationModal
+                    visible={isConfirmDeclineVisible}
+                    onClose={() => setIsConfirmDeclineVisible(false)}
+                    onConfirm={async () => {
+                        setIsConfirmDeclineVisible(false);
+                        if (onDeclineCancellation) {
+                            setIsProcessingAction(true);
+                            try {
+                                await onDeclineCancellation(cancellationDeclineReason, cancellationRequest, booking);
+                                setIsDecliningCancellation(false);
+                                setCancellationDeclineReason('');
+                                showToast.success(REVIEW_TOASTS.CANCELLATION_DECLINED);
+                            } catch (err: unknown) {
+                                showToast.error(err instanceof Error ? err.message : 'Failed to decline cancellation.');
+                            } finally {
+                                setIsProcessingAction(false);
+                            }
+                        }
+                    }}
+                    title={REVIEW_MODALS.DECLINE_CANCELLATION.title}
+                    message={REVIEW_MODALS.DECLINE_CANCELLATION.message}
+                    confirmText={REVIEW_MODALS.DECLINE_CANCELLATION.confirmText}
+                    cancelText={REVIEW_MODALS.DECLINE_CANCELLATION.cancelText}
+                    iconName="alert-triangle"
+                    isDestructive={true}
+                />
+            )}
+
+            {isConfirmRevertVisible && (
+                <ConfirmationModal
+                    visible={isConfirmRevertVisible}
+                    onClose={() => setIsConfirmRevertVisible(false)}
+                    onConfirm={async () => {
+                        setIsConfirmRevertVisible(false);
+                        if (onRevertCancellation) {
+                            setIsProcessingAction(true);
+                            try {
+                                await onRevertCancellation(cancellationRequest);
+                                showToast.success(REVIEW_TOASTS.CANCELLATION_REVERTED);
+                            } catch (err: unknown) {
+                                showToast.error(err instanceof Error ? err.message : 'Failed to revert cancellation.');
+                            } finally {
+                                setIsProcessingAction(false);
+                            }
+                        }
+                    }}
+                    title={REVIEW_MODALS.REVERT_CANCELLATION.title}
+                    message={REVIEW_MODALS.REVERT_CANCELLATION.message}
+                    confirmText={REVIEW_MODALS.REVERT_CANCELLATION.confirmText}
+                    cancelText={REVIEW_MODALS.REVERT_CANCELLATION.cancelText}
+                    iconName="alert-triangle"
+                    isDestructive={false}
+                />
+            )}
+
+            {showRescheduleModal && (
+                <CustomSelectionModal
+                    visible={showRescheduleModal}
+                    onClose={() => setShowRescheduleModal(false)}
+                    title="Select New Offer"
+                    options={availableOffers}
+                    selectedValue={selectedRescheduleOffer?.id}
+                    onSelect={(selected) => {
+                        const offerOption = selected as { id: string; label: string; subLabel?: string; originalData: Offer };
+                        setSelectedRescheduleOffer(offerOption);
+                        setShowRescheduleModal(false);
+                        setTimeout(async () => {
+                            if (onReschedule) {
+                                setIsProcessingAction(true);
+                                try {
+                                    await onReschedule(offerOption.originalData, booking);
+                                } finally {
+                                    setIsProcessingAction(false);
+                                }
                             }
                         }, 300);
                     }}
                 />
+            )}
 
-            <ImagePreviewModal
-                visible={!!previewImageUrl}
-                imageUrl={previewImageUrl || undefined}
-                onClose={() => setPreviewImageUrl(null)}
-            />
+            {showRefundModal && (
+                <AdminRefundModal
+                    visible={showRefundModal}
+                    initialType={refundModalInitialType}
+                    amountPaid={totalAmountPaid}
+                    paymentCapturedAt={paymentCapturedAt}
+                    isCancellationFlow={Boolean(cancellationRequest) || isCancellationPending || isCancelledStatus || isHikerCancellationPending || isAdminCancellationPending}
+                    onClose={() => setShowRefundModal(false)}
+                    onSelect={(refundType: RefundType, customAmount?: number, adminNote?: string) => {
+                        setShowRefundModal(false);
+                        setTimeout(async () => {
+                            setIsProcessingAction(true);
+                            try {
+                                const isCancellationFlow = Boolean(cancellationRequest) || isCancellationPending || isCancelledStatus || isHikerCancellationPending || isAdminCancellationPending;
+                                const isManualProvider = PAYMENT_CONFIG.PROVIDER === 'manual_qr';
 
-            <AdminActionMenu
-                visible={showActionMenu}
-                onClose={() => setShowActionMenu(false)}
-                isCancelledStatus={isCancelledStatus}
-                isFinishedStatus={currentStatus === 'finished' || currentStatus === 'expired'}
-                totalAmountPaid={totalAmountPaid}
-                totalRefundedAmount={totalRefundedAmount}
-                remainingRefundableAmount={remainingRefundableAmount}
-                isOfferFinished={isOfferFinished}
-                hasPendingCancellation={isCancellationPending}
-                onRescheduleClick={() => {
-                    setShowActionMenu(false);
-                    setTimeout(() => setShowRescheduleModal(true), 300);
-                }}
-                onRefundClick={() => {
-                    setShowActionMenu(false);
-                    setTimeout(() => setShowRefundModal(true), 300);
-                }}
-                onCancelClick={() => {
-                    setShowActionMenu(false);
-                    setTimeout(() => setShowCancelUnpaidModal(true), 300);
-                }}
-            />
+                                if (isCancellationFlow) {
+                                    if (refundType === 'none') {
+                                        if (onApproveCancellation) {
+                                            await onApproveCancellation(cancellationRequest, booking, 'none', 0, adminNote);
+                                            showToast.success('Cancellation approved and slot released without refund.');
+                                        }
+                                    } else if (isManualProvider && onApproveWithManualRefund) {
+                                        const resolvedAmount = refundType === 'custom'
+                                            ? (customAmount || totalAmountPaid)
+                                            : (refundType === 'partial' ? Math.round(totalAmountPaid * 0.10 * 100) / 100 : totalAmountPaid);
+                                        await onApproveWithManualRefund(resolvedAmount, cancellationRequest, booking);
+                                        const hasWalletUpfront = Boolean(cancellationRequest?.userWallet?.accountNumber);
+                                        showToast.success(
+                                            hasWalletUpfront
+                                                ? `Cancellation approved. Refund of ₱${resolvedAmount.toFixed(2)} set. Ready for payout.`
+                                                : `Cancellation approved. Refund of ₱${resolvedAmount.toFixed(2)} set. Awaiting hiker wallet.`
+                                        );
+                                    } else if (onApproveCancellation) {
+                                        await onApproveCancellation(cancellationRequest, booking, refundType, customAmount, adminNote);
+                                        showToast.success('Cancellation approved and refund processed successfully.');
+                                    }
+                                } else if (refundType === 'none') {
+                                    showToast.error('Policy forfeiture without refund is only applicable when cancelling a booking.');
+                                } else if (isManualProvider) {
+                                    showToast.info('Direct refund outside cancellation is not supported for manual payments. Please issue via cancellation.');
+                                } else if (onRefund) {
+                                    await onRefund(booking, refundType, customAmount);
+                                    showToast.success('Refund processed successfully.');
+                                }
+                            } catch (err: unknown) {
+                                    const rawMessage = err instanceof Error ? err.message : String(err || '');
+                                    let displayMessage = 'Failed to process refund. Please try again.';
+
+                                    if (rawMessage.includes('Cannot partially refund') || rawMessage.includes('same day')) {
+                                        displayMessage = 'Payment Policy: Partial refunds cannot be processed on the same calendar day for gateway payments.';
+                                    } else if (rawMessage.includes('Insufficient') || rawMessage.includes('balance')) {
+                                        displayMessage = 'Your account has insufficient merchant balance to cover this refund.';
+                                    } else if (rawMessage) {
+                                        displayMessage = rawMessage.replace('Payment Gateway Error: ', '').replace('PayMongo API Error: ', '');
+                                    }
+
+                                    showToast.error(displayMessage);
+                                } finally {
+                                    setIsProcessingAction(false);
+                                }
+                            }, 300);
+                        }}
+                    />
+            )}
+
+            {Boolean(previewImageUrl) && (
+                <ImagePreviewModal
+                    visible={!!previewImageUrl}
+                    imageUrl={previewImageUrl || undefined}
+                    onClose={() => setPreviewImageUrl(null)}
+                />
+            )}
+
+            {showActionMenu && (
+                <AdminActionMenu
+                    visible={showActionMenu}
+                    onClose={() => setShowActionMenu(false)}
+                    isCancelledStatus={isCancelledStatus}
+                    isFinishedStatus={currentStatus === 'finished' || currentStatus === 'expired'}
+                    totalAmountPaid={totalAmountPaid}
+                    totalRefundedAmount={totalRefundedAmount}
+                    remainingRefundableAmount={remainingRefundableAmount}
+                    isOfferFinished={isOfferFinished}
+                    hasPendingCancellation={isCancellationPending}
+                    onRescheduleClick={() => {
+                        setShowActionMenu(false);
+                        setTimeout(() => setShowRescheduleModal(true), 300);
+                    }}
+                    onRefundClick={() => {
+                        setShowActionMenu(false);
+                        setTimeout(() => setShowRefundModal(true), 300);
+                    }}
+                    onCancelClick={() => {
+                        setShowActionMenu(false);
+                        setTimeout(() => setShowCancelUnpaidModal(true), 300);
+                    }}
+                />
+            )}
 
             <CustomTutorialModal
                 visible={tutorial.isVisible}
