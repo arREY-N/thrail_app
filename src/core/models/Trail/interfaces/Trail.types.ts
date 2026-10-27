@@ -33,6 +33,7 @@ export interface IGeographyDB {
     masl: Meters;
     start: GeoPoint;
     end: GeoPoint;
+    geoJsonPath?: string;
 }
 
 export interface IGeographyUI {
@@ -41,6 +42,7 @@ export interface IGeographyUI {
     startLong: number;
     endLat: number;
     endLong: number;
+    geoJsonPath?: string;
 }
 
 export interface IGeneral {

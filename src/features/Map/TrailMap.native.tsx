@@ -20,6 +20,7 @@ import { resolveOfflineSprites } from "@/src/utils/resolveOfflineSprites";
 import {
   getOrDownloadAllMountainsGeoJson,
   getOrDownloadTrailGeoJson,
+  MOUNTAIN_TRAIL_REGISTRY,
   resolveMountainId,
   resolveMountainIdByCoords,
 } from "./services/TrailOfflineManager";
@@ -242,11 +243,11 @@ const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, o
 
   const initials = hiker.hikerName
     ? hiker.hikerName
-        .split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .substring(0, 2)
-        .toUpperCase()
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase()
     : "?";
 
   // LKL condition: 2 or more minutes since last recorded update
@@ -383,6 +384,7 @@ export interface TrailMapProps {
   initialLat?: number | string | (number | string)[];
   mountainId?: string;
   trailFileName?: string;
+  geoJsonPath?: string;
   showControls?: boolean;
   showRecenter?: boolean;
   bottomInset?: number;
@@ -390,6 +392,7 @@ export interface TrailMapProps {
   attributionPosition?: { top: number; left: number } | { top: number; right: number } | { bottom: number; right: number } | { bottom: number; left: number };
   hikerLocations?: HikerLocation[];
   currentUserId?: string;
+  isOffline?: boolean;
 }
 
 export interface TrailMapRef {
@@ -407,6 +410,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   initialLat,
   mountainId,
   trailFileName,
+  geoJsonPath,
   showControls = true,
   showRecenter = false,
   bottomInset = 280,
@@ -441,7 +445,8 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const [isFollowing, setIsFollowing] = useState(!hasInitialCoords);
   const [mapReady, setMapReady] = useState(false);
   const [offlineTileUrl, setOfflineTileUrl] = useState<string>("");
-  const [geoJsonUrl, setGeoJsonUrl] = useState<string | null>(null);
+  const [contextGeoJsonUrl, setContextGeoJsonUrl] = useState<string | null>(null);
+  const [activeGeoJsonUrl, setActiveGeoJsonUrl] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [fontBaseDir, setFontBaseDir] = useState<string>("");
   const [spriteBaseUri, setSpriteBaseUri] = useState<string>("");
@@ -556,29 +561,66 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
 
     async function resolveGeoJson() {
       try {
+        const hasExplicitTrail = !!(
+          (geoJsonPath && typeof geoJsonPath === "string" && geoJsonPath.trim().length > 0) ||
+          trailFileName
+        );
+
         const targetMountain =
           resolveMountainId(mountainId) ||
           (hasInitialCoords
             ? resolveMountainIdByCoords(parsedLat, parsedLon)
             : null);
 
-        if (targetMountain) {
-          const localUri = await getOrDownloadTrailGeoJson(
-            targetMountain,
-            trailFileName,
-          );
-          if (localUri && isMounted) {
-            setGeoJsonUrl(localUri);
-            return;
+        let activeUri: string | null = null;
+        let contextUri: string | null = null;
+
+        if (hasExplicitTrail) {
+          // 1. Resolve Active Selected Trail
+          if (geoJsonPath && typeof geoJsonPath === "string" && geoJsonPath.trim().length > 0) {
+            activeUri = await getOrDownloadTrailGeoJson(geoJsonPath.trim());
+          } else if (targetMountain && trailFileName) {
+            activeUri = await getOrDownloadTrailGeoJson(
+              targetMountain,
+              trailFileName,
+            );
+          }
+
+          // 2. Resolve Context Trail Network (e.g. Mountain network or All Mountains)
+          if (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile) {
+            contextUri = await getOrDownloadTrailGeoJson(
+              targetMountain,
+              MOUNTAIN_TRAIL_REGISTRY[targetMountain].allFile,
+            );
+          }
+          if (!contextUri) {
+            contextUri = await getOrDownloadAllMountainsGeoJson();
+          }
+        } else {
+          // Overview mode: no specific trail selected
+          activeUri = null;
+          if (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile) {
+            contextUri = await getOrDownloadTrailGeoJson(
+              targetMountain,
+              MOUNTAIN_TRAIL_REGISTRY[targetMountain].allFile,
+            );
+          }
+          if (!contextUri) {
+            contextUri = await getOrDownloadAllMountainsGeoJson();
           }
         }
 
-        const combinedUri = await getOrDownloadAllMountainsGeoJson();
-        if (combinedUri && isMounted) {
-          setGeoJsonUrl(combinedUri);
+        // If active and context point to the exact same file, treat as single-layer overview
+        if (activeUri && activeUri === contextUri) {
+          activeUri = null;
+        }
+
+        if (isMounted) {
+          setActiveGeoJsonUrl(activeUri);
+          setContextGeoJsonUrl(contextUri);
         }
       } catch (err) {
-        console.warn("⚠️ Failed to resolve trail GeoJSON from offline cache or Firebase trail_routes/:", err);
+        console.warn("⚠️ Failed to resolve trail GeoJSON layers from offline cache or Firebase trail_routes/:", err);
       }
     }
 
@@ -686,7 +728,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
       isMounted = false;
       if (timer) clearTimeout(timer);
     };
-  }, [reloadKey, mountainId, trailFileName, hasInitialCoords, parsedLat, parsedLon]);
+  }, [reloadKey, geoJsonPath, mountainId, trailFileName, hasInitialCoords, parsedLat, parsedLon]);
 
   useEffect(() => {
     if (!mapReady || !hasInitialCoords) return;
@@ -856,9 +898,9 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
       <Map
         style={styles.map}
         logo={false}
-        attribution={true}
+        attribution={showControls}
         attributionPosition={resolvedAttributionPosition}
-        compass={true}
+        compass={showControls}
         compassPosition={resolvedCompassPosition}
         compassHiddenFacingNorth={true}
         mapStyle={activeStyle}
@@ -884,38 +926,77 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
           maxZoom={20}
         />
 
-        {isStyleReady && geoJsonUrl && (
+        {/* Context Trail Network Layer (Muted background if active trail is selected, standard if not) */}
+        {isStyleReady && contextGeoJsonUrl && (
           <GeoJSONSource
-            key={`trailSource-${currentStyleMode}`}
-            id={`trailSource-${currentStyleMode}`}
-            data={geoJsonUrl}
+            key={`contextTrailSource-${currentStyleMode}`}
+            id={`contextTrailSource-${currentStyleMode}`}
+            data={contextGeoJsonUrl}
           >
-            {/* Soft translucent casing for enhanced contrast across terrain */}
             <Layer
-              key={`layer-hiking-casing-${currentStyleMode}`}
-              id={`layer-hiking-casing-${currentStyleMode}`}
+              key={`layer-context-casing-${currentStyleMode}`}
+              id={`layer-context-casing-${currentStyleMode}`}
               type="line"
               {...(actuallyOffline ? { beforeId: "roads_labels_minor" } : {})}
               paint={{
                 "line-color": "#FFFFFF",
-                "line-width": 6,
-                "line-opacity": 0.55,
+                "line-width": activeGeoJsonUrl ? 4 : 6,
+                "line-opacity": activeGeoJsonUrl ? 0.2 : 0.55,
               }}
               layout={{
                 "line-cap": "round",
                 "line-join": "round",
               }}
             />
-            {/* Main Trail Line — Placed underneath basemap labels via beforeId in offline mode */}
             <Layer
-              key={`layer-hiking-${currentStyleMode}`}
-              id={`layer-hiking-${currentStyleMode}`}
+              key={`layer-context-hiking-${currentStyleMode}`}
+              id={`layer-context-hiking-${currentStyleMode}`}
+              type="line"
+              {...(actuallyOffline ? { beforeId: "roads_labels_minor" } : {})}
+              paint={{
+                "line-color": activeGeoJsonUrl ? "#94A3B8" : "#16A34A",
+                "line-width": activeGeoJsonUrl ? 2.5 : 4,
+                "line-opacity": activeGeoJsonUrl ? 0.55 : 0.88,
+              }}
+              layout={{
+                "line-cap": "round",
+                "line-join": "round",
+              }}
+            />
+          </GeoJSONSource>
+        )}
+
+        {/* Active Highlight Trail Layer (Prominent foreground route) */}
+        {isStyleReady && activeGeoJsonUrl && (
+          <GeoJSONSource
+            key={`activeTrailSource-${currentStyleMode}`}
+            id={`activeTrailSource-${currentStyleMode}`}
+            data={activeGeoJsonUrl}
+          >
+            <Layer
+              key={`layer-active-casing-${currentStyleMode}`}
+              id={`layer-active-casing-${currentStyleMode}`}
+              type="line"
+              {...(actuallyOffline ? { beforeId: "roads_labels_minor" } : {})}
+              paint={{
+                "line-color": "#FFFFFF",
+                "line-width": 8.5,
+                "line-opacity": 0.95,
+              }}
+              layout={{
+                "line-cap": "round",
+                "line-join": "round",
+              }}
+            />
+            <Layer
+              key={`layer-active-hiking-${currentStyleMode}`}
+              id={`layer-active-hiking-${currentStyleMode}`}
               type="line"
               {...(actuallyOffline ? { beforeId: "roads_labels_minor" } : {})}
               paint={{
                 "line-color": "#16A34A",
-                "line-width": 4,
-                "line-opacity": 0.88,
+                "line-width": 5.5,
+                "line-opacity": 1.0,
               }}
               layout={{
                 "line-cap": "round",

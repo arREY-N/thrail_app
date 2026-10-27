@@ -127,6 +127,14 @@ export const TrailUIConfig: ITrailFormField[] = [
         placeholder: 'e.g. 120.8112',
         required: true 
     },
+    { 
+        section: 'geography', 
+        id: 'geoJsonPath', 
+        label: 'GeoJSON Storage Path', 
+        type: 'text', 
+        placeholder: 'e.g. trail_routes/pulag/pulag-all.geojson',
+        required: false 
+    },
 
     // --- DIFFICULTY ---
     {

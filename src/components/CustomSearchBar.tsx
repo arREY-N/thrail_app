@@ -42,6 +42,7 @@ export interface CustomSearchBarProps {
     searchPlaceholder?: string;
     searchValue?: string;
     onSearchChange?: (text: string) => void;
+    onSubmitEditing?: (text?: string) => void;
     rightIconLibrary?: IconLibrary;
     rightIconName?: string;
     onRightButtonPress?: () => void;
@@ -63,10 +64,11 @@ export interface CustomSearchBarProps {
  * @param props - Component properties.
  * @returns {React.ReactElement} Rendered search bar component.
  */
-const CustomSearchBar: React.FC<CustomSearchBarProps> = ({ 
+const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
     searchPlaceholder = "Search...",
     searchValue,
     onSearchChange,
+    onSubmitEditing,
     rightIconLibrary = "Feather",
     rightIconName,
     onRightButtonPress,
@@ -103,6 +105,13 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
         onSearchChange?.('');
     };
 
+    const handleSubmit = () => {
+        if (onSearchChange && localQuery !== (searchValue || "")) {
+            onSearchChange(localQuery);
+        }
+        onSubmitEditing?.(localQuery);
+    };
+
     const hasText = localQuery.length > 0;
 
     // ── Compact Variant (header-embedded minimal input) ──
@@ -133,6 +142,8 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
                     autoFocus={autoFocus}
+                    returnKeyType="search"
+                    onSubmitEditing={handleSubmit}
                 />
                 {hasText ? (
                     <TouchableOpacity
@@ -161,11 +172,13 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                         iconLibrary="Feather"
                         style={styles.searchInputContainer}
                         inputStyle={styles.searchInput}
+                        returnKeyType="search"
+                        onSubmitEditing={handleSubmit}
                     />
-                    
+
                     {(localQuery.length ?? 0) > 0 && (
-                        <TouchableOpacity 
-                            style={styles.clearButton} 
+                        <TouchableOpacity
+                            style={styles.clearButton}
                             onPress={handleClear}
                             activeOpacity={0.7}
                         >
@@ -174,16 +187,16 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                     )}
                 </View>
                 {rightIconName ? (
-                    <TouchableOpacity 
-                        style={styles.iconButton} 
+                    <TouchableOpacity
+                        style={styles.iconButton}
                         onPress={onRightButtonPress}
                         activeOpacity={0.7}
                     >
-                        <CustomIcon 
-                            library={rightIconLibrary} 
-                            name={rightIconName} 
-                            size={24} 
-                            color={Colors.PRIMARY} 
+                        <CustomIcon
+                            library={rightIconLibrary}
+                            name={rightIconName}
+                            size={24}
+                            color={Colors.PRIMARY}
                         />
                     </TouchableOpacity>
                 ) : null}

@@ -70,7 +70,6 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
 
                 return downloadURL;
             } else {
-                console.log('Document selection canceled.');
                 throw new Error('Document selection canceled');
             }
         } catch (err) {
@@ -84,7 +83,7 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
             const errMsg = err instanceof Error ? err.message : String(err);
             const isCanceled = errMsg.toLowerCase().includes('cancel');
             if (!isCanceled) {
-                console.error('Error uploading document:', err);
+                console.warn('Error uploading document:', err);
             }
             throw err instanceof Error ? err : new Error('Failed to upload document');
         }

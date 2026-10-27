@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -11,7 +11,7 @@ import CustomText from "@/src/components/CustomText";
 import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
-import { Trail } from "@/src/core/models/Trail/Trail";
+import { Trail, computeTrailMidpoint } from "@/src/core/models/Trail/Trail";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
@@ -34,7 +34,7 @@ interface NavigationScreenProps {
     isLoading: boolean;
 
     onSearchChange: (text: string) => void;
-    onSearchSubmit: () => void;
+    onSearchSubmit: (query?: string) => void;
     onTrailSelect: (trail: Trail) => void;
     onGroupPress: () => void;
     onBookingPress: () => void;
@@ -95,18 +95,32 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         }
     }
 
+    const trailCenter = useMemo(() => {
+        return computeTrailMidpoint(selectedTrail);
+    }, [selectedTrail]);
+
     useEffect(() => {
-        if (prevTrailRef.current !== null && selectedTrail === null) {
+        if (selectedTrail && trailCenter) {
+            mapRef.current?.centerOnCoordinate(trailCenter.longitude, trailCenter.latitude);
+        } else if (prevTrailRef.current !== null && selectedTrail === null) {
             setTimeout(() => {
                 mapRef.current?.centerOnUser();
             }, 150);
         }
         prevTrailRef.current = selectedTrail;
-    }, [selectedTrail]);
+    }, [selectedTrail, trailCenter]);
+
+    const [modeToast, setModeToast] = useState<string | null>(null);
+    const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleToggleOffline = () => {
-        setIsOfflineMode(!isOfflineMode);
+        const nextMode = !isOfflineMode;
+        setIsOfflineMode(nextMode);
         mapRef.current?.toggleOffline();
+
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setModeToast(nextMode ? "Offline Map Active · Local Storage" : "Online Map Active · Live Topo Tiles");
+        toastTimeoutRef.current = setTimeout(() => setModeToast(null), 2500);
     };
 
     const handleDisabledPress = () => {
@@ -143,8 +157,11 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         <View style={styles.container}>
             <TrailMap
                 ref={mapRef}
-                initialLon={selectedTrail?.geography?.startLong}
-                initialLat={selectedTrail?.geography?.startLat}
+                isOffline={isOfflineMode}
+                initialLon={trailCenter?.longitude}
+                initialLat={trailCenter?.latitude}
+                geoJsonPath={selectedTrail?.geography?.geoJsonPath}
+                mountainId={Array.isArray(selectedTrail?.general?.mountain) ? selectedTrail?.general?.mountain[0] : (selectedTrail?.general?.mountain || selectedTrail?.general?.name)}
                 bottomInset={controlsHeight + 20}
             />
 
@@ -165,23 +182,38 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                     styles.floatingSearchWrapper,
                     { top: Platform.OS === 'web' ? 0 : searchTopPadding },
                     responsiveStyle,
-                    Platform.OS === 'web' && (
-                        isLargeScreen
-                            ? { paddingLeft: 48, paddingRight: 60 }
-                            : { paddingLeft: 50, paddingRight: 40 }
-                    ),
                 ]}
             >
-                <CustomSearchBar
-                    searchPlaceholder="Search mountains or trails..."
-                    searchValue={searchQuery}
-                    onSearchChange={onSearchChange}
-                    activeTab={undefined}
-                    onTabSelect={undefined}
-                />
+                <View
+                    style={
+                        Platform.OS === 'web'
+                            ? (isLargeScreen
+                                ? { paddingLeft: 48, paddingRight: 60 }
+                                : { paddingLeft: 50, paddingRight: 40 })
+                            : undefined
+                    }
+                >
+                    <CustomSearchBar
+                        searchPlaceholder="Search mountains or trails..."
+                        searchValue={searchQuery}
+                        onSearchChange={onSearchChange}
+                        onSubmitEditing={onSearchSubmit}
+                        activeTab={undefined}
+                        onTabSelect={undefined}
+                    />
+                </View>
 
                 {showDropdown && (
-                    <View style={styles.dropdownContainer}>
+                    <View
+                        style={[
+                            styles.dropdownContainer,
+                            Platform.OS === 'web' && (
+                                isLargeScreen
+                                    ? { marginHorizontal: 16 }
+                                    : { marginHorizontal: 12 }
+                            ),
+                        ]}
+                    >
                         <FlatList
                             data={filteredTrails}
                             keyExtractor={(item) => item.id}
@@ -193,7 +225,11 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
 
                                 return (
                                     <TouchableOpacity
-                                        style={[styles.dropdownItem, index === filteredTrails.length - 1 && { borderBottomWidth: 0 }]}
+                                        style={[
+                                            styles.dropdownItem,
+                                            index === filteredTrails.length - 1 && { borderBottomWidth: 0 },
+                                            Platform.OS === 'web' && !isLargeScreen && { paddingHorizontal: 14, gap: 12 },
+                                        ]}
                                         onPress={() => onTrailSelect(item)}
                                     >
                                         <View style={styles.dropdownIconBox}>
@@ -204,7 +240,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                                 <CustomText style={styles.dropdownItemText} numberOfLines={1}>{item.general?.name}</CustomText>
                                                 <CustomText variant="caption" style={styles.dropdownLocation}>{locationName}</CustomText>
                                             </View>
-                                            <CustomText variant="caption" style={styles.dropdownSubText}>{dist} • {elev} • {route}</CustomText>
+                                            <CustomText variant="caption" style={styles.dropdownSubText} numberOfLines={1}>{dist} • {elev} • {route}</CustomText>
                                         </View>
                                         <CustomIcon library="Feather" name="arrow-up-left" size={16} color={Colors.GRAY_MEDIUM} />
                                     </TouchableOpacity>
@@ -214,6 +250,22 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                     </View>
                 )}
             </View>
+
+            {modeToast && (
+                <View style={[styles.modeToastBanner, { top: Platform.OS === 'web' ? 70 : searchTopPadding + 56 }]} pointerEvents="none">
+                    <View style={[styles.modeToastContent, styles.toastOnline]}>
+                        <CustomIcon
+                            library="Feather"
+                            name={isOfflineMode ? "hard-drive" : "cloud"}
+                            size={14}
+                            color={Colors.PRIMARY}
+                        />
+                        <CustomText style={[styles.modeToastText, styles.textEmerald]}>
+                            {modeToast}
+                        </CustomText>
+                    </View>
+                </View>
+            )}
 
             <View style={[styles.mapControlsColumn, { bottom: controlsHeight + 36 }]}>
                 {Platform.OS !== 'web' &&
@@ -235,7 +287,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 }
 
 
-                {upcomingBookings.length > 0 && (
+                {Platform.OS !== 'web' && upcomingBookings.length > 0 && (
                     <TouchableOpacity
                         style={styles.floatingIconBtn}
                         onPress={() => setUpcomingModalVisible(true)}
@@ -249,8 +301,18 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                     <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.floatingIconBtn} onPress={handleToggleOffline} activeOpacity={0.8}>
-                    <CustomIcon library="Feather" name={isOfflineMode ? "map" : "layers"} size={20} color={isOfflineMode ? Colors.TEXT_SECONDARY : Colors.PRIMARY} />
+                <TouchableOpacity
+                    style={styles.floatingIconBtn}
+                    onPress={handleToggleOffline}
+                    activeOpacity={0.8}
+                    accessibilityLabel={`Toggle map mode. Currently ${isOfflineMode ? "Offline" : "Online"}`}
+                >
+                    <CustomIcon
+                        library="Feather"
+                        name={isOfflineMode ? "hard-drive" : "cloud"}
+                        size={20}
+                        color={Colors.PRIMARY}
+                    />
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.floatingIconBtn} onPress={() => mapRef.current?.centerOnUser()} activeOpacity={0.8}>
@@ -440,7 +502,7 @@ const styles = StyleSheet.create({
     mapControlsColumn: { position: 'absolute', right: 16, gap: 12, zIndex: 45 },
     floatingIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: "center", justifyContent: "center", ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
 
-    dropdownContainer: { marginHorizontal: 16, marginTop: 4, backgroundColor: Colors.WHITE, borderRadius: 16, maxHeight: 220, overflow: "hidden", ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
+    dropdownContainer: { marginHorizontal: 16, marginTop: -14, backgroundColor: Colors.WHITE, borderRadius: 16, maxHeight: 220, overflow: "hidden", ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
     dropdownList: { paddingVertical: 4 },
     dropdownItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.GRAY_ULTRALIGHT, gap: 12 },
     dropdownIconBox: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.BACKGROUND, alignItems: 'center', justifyContent: 'center' },
@@ -545,6 +607,44 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
         color: Colors.PRIMARY,
+    },
+
+
+    modeToastBanner: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 60,
+    },
+    modeToastContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: Colors.WHITE,
+        gap: 8,
+        ...GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }),
+        borderWidth: 1,
+    },
+    toastOffline: {
+        borderColor: '#FDE68A',
+        backgroundColor: '#FFFBEB',
+    },
+    toastOnline: {
+        borderColor: '#A7F3D0',
+        backgroundColor: '#ECFDF5',
+    },
+    modeToastText: {
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    textAmber: {
+        color: '#92400E',
+    },
+    textEmerald: {
+        color: '#065F46',
     },
 });
 
