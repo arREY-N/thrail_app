@@ -187,11 +187,11 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                     let labelText: string = step.defaultLabel;
                     let labelColor: string = Colors.TEXT_SECONDARY;
 
-                    if (isDone) {
+                    if (isDone || (rawStatus === 'completed' && index === 3)) {
                         circleBg = Colors.SUCCESS;
                         iconColor = Colors.WHITE;
                         iconName = 'check';
-                        labelText = step.id === 2 ? 'PAID' : step.defaultLabel;
+                        labelText = step.id === 2 ? 'PAID' : (step.id === 3 ? 'CONFIRMED' : step.defaultLabel);
                         labelColor = Colors.TEXT_PRIMARY;
                     } else if (isCurrent) {
                         if (isErrorState) {

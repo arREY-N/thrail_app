@@ -195,7 +195,10 @@ export function useBookingAdmin() {
         }
     };
 
-    const onSettleRemainingBalance = async (booking: Booking) => {
+    const onSettleRemainingBalance = async (
+        booking: Booking,
+        options?: { method?: 'cash' | 'manual_qr'; referenceCode?: string; adminNote?: string }
+    ) => {
         try {
             if (!booking) throw new Error('Missing booking information');
 
@@ -204,6 +207,10 @@ export function useBookingAdmin() {
                 bookingId: booking.id,
                 userId: booking.user?.id,
                 businessId: booking.business?.id,
+                offerId: booking.offer?.id,
+                method: options?.method || 'cash',
+                referenceCode: options?.referenceCode || '',
+                adminNote: options?.adminNote || '',
             });
 
             await useBookingsStore.getState().refreshBookingItem(booking.id, booking.offer?.id);

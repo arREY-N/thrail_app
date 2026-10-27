@@ -17,9 +17,12 @@ import * as ImagePicker from 'expo-image-picker';
 import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomInfoRow from '@/src/components/CustomInfoRow';
+import CustomStatusBadge from '@/src/components/CustomStatusBadge';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput, { stripEmojis } from '@/src/components/CustomTextInput';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
+import PaymentBreakdownPanel from '@/src/components/PaymentBreakdownPanel';
 import { useToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -59,7 +62,7 @@ export interface ManualQRVerificationCardProps {
     booking: Booking;
     onVerifyPayment: (classification: 'full' | 'downpayment', note?: string, verifiedAmount?: number) => Promise<void>;
     onRejectPayment: (reason: string) => Promise<void>;
-    onSettleBalance: () => Promise<void>;
+    onSettleBalance: (options?: { method?: 'cash' | 'manual_qr'; referenceCode?: string; adminNote?: string }) => Promise<void>;
     onUploadOverpaymentProof?: (file: SelectedFile) => Promise<void | string>;
     isProcessing?: boolean;
 }
@@ -129,17 +132,26 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
         ? booking.remainingBalance 
         : Math.max(0, totalPrice - previouslyCaptured);
 
-    const isPending = verificationStatus === 'pending_verification' || manualPayment?.status === 'pending';
-    const isDownpayment = verificationStatus === 'downpayment' || booking.status === 'downpayment' || (remainingBal > 0 && previouslyCaptured > 0);
-    const isFullyPaid = verificationStatus === 'fully_paid' || (booking.status === 'paid' && remainingBal === 0);
-    const isRejected = verificationStatus === 'rejected' || manualPayment?.status === 'rejected';
+    const isFullyPaid = verificationStatus === 'fully_paid' || 
+        booking.status === 'completed' || 
+        (booking.status === 'paid' && remainingBal === 0);
+    const isPending = !isFullyPaid && (verificationStatus === 'pending_verification' || manualPayment?.status === 'pending');
+    const isDownpayment = !isFullyPaid && (verificationStatus === 'downpayment' || booking.status === 'downpayment' || (remainingBal > 0 && previouslyCaptured > 0));
+    const isRejected = !isFullyPaid && (verificationStatus === 'rejected' || manualPayment?.status === 'rejected');
 
-    const defaultAmount = manualPayment?.amount && manualPayment.amount > 0
-        ? String(manualPayment.amount)
-        : String(remainingBal);
-
-    const [verifiedAmountInput, setVerifiedAmountInput] = useState<string>(sanitizeCurrencyInput(defaultAmount));
+    // Admin payment inputs (Zero Pre-fill Rule & Mandatory Reference)
+    const [verifiedAmountInput, setVerifiedAmountInput] = useState<string>('');
+    const [referenceNumber, setReferenceNumber] = useState<string>('');
     const [adminNote, setAdminNote] = useState<string>('');
+
+    // Reset inputs when booking switches or loads (avoids cascading render warning)
+    const [prevBookingId, setPrevBookingId] = useState(booking.id);
+    if (booking.id !== prevBookingId) {
+        setPrevBookingId(booking.id);
+        setVerifiedAmountInput('');
+        setReferenceNumber('');
+        setAdminNote('');
+    }
 
     const parsedAmount = parseFloat(verifiedAmountInput);
     const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0;
@@ -154,49 +166,63 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
             return;
         }
 
+        if (!referenceNumber.trim()) {
+            showToast.error('Reference number is mandatory for verification.');
+            return;
+        }
+
         const maxAllowedLimit = Math.max(totalPrice * 10, 100000);
         if (parsedAmount > maxAllowedLimit) {
             showToast.error('Entered amount exceeds maximum allowed limit. Please check for extra zeros.');
             return;
         }
 
+        const combinedNote = [
+            adminNote.trim(),
+            `Ref: ${referenceNumber.trim()}`
+        ].filter(Boolean).join(' | ');
+
         onVerifyPayment(
             isFullSettlement ? 'full' : 'downpayment',
-            adminNote.trim() || undefined,
+            combinedNote,
             parsedAmount
         );
+
+        // Reset state after submit
+        setVerifiedAmountInput('');
+        setReferenceNumber('');
+        setAdminNote('');
+    };
+
+    const handleSettleCash = () => {
+        onSettleBalance({
+            method: 'cash',
+            referenceCode: `CASH-${Date.now()}`,
+            adminNote: 'Settled via Onsite Cash',
+        });
+    };
+
+    const handleSettleBalance = () => {
+        onSettleBalance({
+            method: 'manual_qr',
+            referenceCode: `MANUAL-${Date.now()}`,
+            adminNote: 'Remaining Balance Settled',
+        });
     };
 
     const renderStatusBadge = () => {
-        let label = 'Pending Verification';
-        let bg = Colors.STATUS_PENDING_BG;
-        let text = Colors.STATUS_PENDING_TEXT;
-        let icon = 'clock';
-
-        if (isFullyPaid) {
-            label = 'Fully Paid';
-            bg = Colors.STATUS_APPROVED_BG;
-            text = Colors.SUCCESS;
-            icon = 'check-circle';
-        } else if (isDownpayment) {
-            label = 'Downpayment';
-            bg = Colors.STATUS_DOWNPAYMENT_BG;
-            text = Colors.STATUS_DOWNPAYMENT_TEXT;
-            icon = 'pie-chart';
-        } else if (isRejected) {
-            label = 'Receipt Rejected';
-            bg = Colors.STATUS_CANCELLED_BG;
-            text = Colors.STATUS_CANCELLED_TEXT;
-            icon = 'x-circle';
-        }
+        let statusKey = 'for-payment';
+        if (isFullyPaid) statusKey = 'paid';
+        else if (isDownpayment) statusKey = 'downpayment';
+        else if (isRejected) statusKey = 'reservation-rejected';
+        else if (isPending) statusKey = 'verifying-payment';
 
         return (
-            <View style={[styles.statusBadge, { backgroundColor: bg }]}>
-                <CustomIcon library="Feather" name={icon} size={12} color={text} />
-                <CustomText style={[styles.statusBadgeText, { color: text }]}>
-                    {label.toUpperCase()}
-                </CustomText>
-            </View>
+            <CustomStatusBadge
+                statusKey={statusKey}
+                role="admin"
+                size="sm"
+            />
         );
     };
 
@@ -231,20 +257,19 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                     </TouchableOpacity>
 
                     <View style={styles.detailsList}>
-                        <View style={styles.detailRow}>
-                            <CustomText style={styles.detailLabel}>Reference No.:</CustomText>
-                            <CustomText style={styles.detailValue} selectable={true}>
-                                {manualPayment?.referenceCode || manualPayment?.sessionId || 'N/A'}
-                            </CustomText>
-                        </View>
+                        <CustomInfoRow
+                            label="Reference No.:"
+                            value={manualPayment?.referenceCode || manualPayment?.sessionId || 'N/A'}
+                            copyable={Boolean(manualPayment?.referenceCode || manualPayment?.sessionId)}
+                            noBorder={true}
+                        />
 
                         {manualPayment?.paidAt && (
-                            <View style={styles.detailRow}>
-                                <CustomText style={styles.detailLabel}>Submitted At:</CustomText>
-                                <CustomText style={styles.detailValue}>
-                                    {formatDate(manualPayment.paidAt)}
-                                </CustomText>
-                            </View>
+                            <CustomInfoRow
+                                label="Submitted At:"
+                                value={formatDate(manualPayment.paidAt)}
+                                noBorder={true}
+                            />
                         )}
                     </View>
                 </View>
@@ -360,7 +385,7 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                 </View>
             )}
 
-            {/* Downpayment remaining balance callout */}
+            {/* Downpayment remaining balance callout with separate Cash / Settle buttons */}
             {isDownpayment && !isFullyPaid && (
                 <View style={styles.balanceCallout}>
                     <View style={styles.balanceCalloutHeader}>
@@ -376,15 +401,28 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                         </CustomText>{' '}
                         must be collected and settled before the booking can be completed.
                     </CustomText>
-                    <CustomButton
-                        title="Settle Balance (Cash / On-Site)"
-                        variant="primary"
-                        icon="check-circle"
-                        iconLibrary="Feather"
-                        onPress={onSettleBalance}
-                        isLoading={isProcessing}
-                        style={styles.settleBtn}
-                    />
+                    <View style={styles.settleButtonsRow}>
+                        <CustomButton
+                            title="Paid Cash"
+                            variant="secondary"
+                            size="md"
+                            icon="dollar-sign"
+                            iconLibrary="Feather"
+                            onPress={handleSettleCash}
+                            isLoading={isProcessing}
+                            style={styles.halfBtn}
+                        />
+                        <CustomButton
+                            title="Settle Balance"
+                            variant="primary"
+                            size="md"
+                            icon="check-circle"
+                            iconLibrary="Feather"
+                            onPress={handleSettleBalance}
+                            isLoading={isProcessing}
+                            style={styles.halfBtn}
+                        />
+                    </View>
                 </View>
             )}
 
@@ -396,35 +434,38 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                         Inspect the uploaded receipt screenshot and enter the verified amount paid by the hiker.
                     </CustomText>
 
-                    {/* Breakdown mini-panel */}
-                    <View style={styles.balancePreviewBox}>
-                        <View style={styles.balancePreviewCol}>
-                            <CustomText style={styles.previewColLabel}>Total Price</CustomText>
-                            <CustomText style={styles.previewColValue}>₱{totalPrice.toFixed(2)}</CustomText>
-                        </View>
-                        <View style={styles.balancePreviewDivider} />
-                        <View style={styles.balancePreviewCol}>
-                            <CustomText style={styles.previewColLabel}>Already Paid</CustomText>
-                            <CustomText style={[styles.previewColValue, { color: Colors.SUCCESS }]}>₱{previouslyCaptured.toFixed(2)}</CustomText>
-                        </View>
-                        <View style={styles.balancePreviewDivider} />
-                        <View style={styles.balancePreviewCol}>
-                            <CustomText style={styles.previewColLabel}>Remaining</CustomText>
-                            <CustomText style={[styles.previewColValue, { color: Colors.PRIMARY }]}>₱{remainingBal.toFixed(2)}</CustomText>
-                        </View>
-                    </View>
+                    {/* Breakdown mini-panel using PaymentBreakdownPanel */}
+                    <PaymentBreakdownPanel
+                        totalPrice={totalPrice}
+                        amountPaid={previouslyCaptured}
+                        remainingBalance={remainingBal}
+                        variant="compact"
+                        style={{ marginTop: 4, marginBottom: 8 }}
+                    />
 
                     {/* Verified Amount Input */}
                     <View style={styles.inputWrapper}>
                         <CustomTextInput
                             label="Verified Amount Received (₱) *"
-                            placeholder="e.g. 200, 500, 1000"
+                            placeholder="Enter amount manually..."
                             type="numerical"
                             prefix="₱ "
                             maxLength={10}
                             sanitizeText={sanitizeCurrencyInput}
                             value={verifiedAmountInput}
                             onChangeText={(val: string | Date | null) => setVerifiedAmountInput(sanitizeCurrencyInput(String(val || '')))}
+                        />
+                    </View>
+
+                    {/* Mandatory Reference Number Input */}
+                    <View style={styles.inputWrapper}>
+                        <CustomTextInput
+                            label="Reference Number *"
+                            placeholder="e.g. 100293841234 or GCash Ref"
+                            value={referenceNumber}
+                            maxLength={60}
+                            sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
+                            onChangeText={(val: string | Date | null) => setReferenceNumber(stripEmojis(String(val || '')).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 60))}
                         />
                     </View>
 
@@ -441,6 +482,7 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                 name={isOverpaid ? "alert-triangle" : (isFullSettlement ? "check-circle" : "info")} 
                                 size={14} 
                                 color={isOverpaid ? '#D97706' : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT)} 
+                                style={{ marginTop: 2 }}
                             />
                             <CustomText style={[
                                 styles.calcFeedbackText, 
@@ -449,7 +491,7 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                 {isOverpaid 
                                     ? `Overpayment Detected: Hiker sent ₱${parsedAmount.toFixed(2)} for a ₱${remainingBal.toFixed(2)} balance. ₱${remainingBal.toFixed(2)} will settle the hike in full, and an excess refund of ₱${excessAmount.toFixed(2)} will be initiated for the hiker.`
                                     : (isFullSettlement 
-                                        ? `Full payment verified. Booking will be marked as Fully Paid (₱0.00 balance).` 
+                                        ? `Full payment verified. Booking will be marked as Completed (₱0.00 balance).` 
                                         : `Downpayment / Partial payment. New balance to collect: ₱${remainingAfterVerification.toFixed(2)}`)}
                             </CustomText>
                         </View>
@@ -458,8 +500,8 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                     {/* Optional Admin Note */}
                     <View style={styles.inputWrapper}>
                         <CustomTextInput
-                            label="Admin Note / Ref No. (Optional)"
-                            placeholder="e.g. Verified GCash ref #123456"
+                            label="Admin Note (Optional)"
+                            placeholder="e.g. Verified on-site or additional notes"
                             value={adminNote}
                             maxLength={120}
                             sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
@@ -511,20 +553,22 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                         variant="danger"
                     />
                     <View style={styles.rejectionButtonsRow}>
-                        <View style={{ flex: 1 }}>
+                        <View style={styles.rejectionBtnWrapper}>
                             <CustomButton
                                 title="Cancel"
                                 variant="outline"
+                                style={styles.rejectionBtn}
                                 onPress={() => {
                                     setIsRejecting(false);
                                     setRejectionReason('');
                                 }}
                             />
                         </View>
-                        <View style={{ flex: 1 }}>
+                        <View style={styles.rejectionBtnWrapper}>
                             <CustomButton
                                 title="Confirm Rejection"
                                 variant="destructive"
+                                style={styles.rejectionBtn}
                                 onPress={() => onRejectPayment(rejectionReason)}
                                 isLoading={isProcessing}
                                 disabled={!rejectionReason.trim()}
@@ -709,8 +753,15 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         lineHeight: 16,
     },
-    settleBtn: {
-        marginTop: 4,
+    settleButtonsRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 6,
+        flexWrap: 'wrap',
+    },
+    halfBtn: {
+        flex: 1,
+        minWidth: 130,
     },
     actionsSection: {
         gap: 10,
@@ -760,7 +811,7 @@ const styles = StyleSheet.create({
     },
     calcFeedbackBox: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         gap: 6,
         padding: 10,
         borderRadius: 8,
@@ -794,6 +845,17 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 8,
         marginTop: 4,
+        alignItems: 'stretch',
+    },
+    rejectionBtnWrapper: {
+        flex: 1,
+        alignSelf: 'stretch',
+    },
+    rejectionBtn: {
+        flex: 1,
+        height: '100%',
+        minHeight: 48,
+        justifyContent: 'center',
     },
     overpaymentCallout: {
         backgroundColor: '#FEF3C7',

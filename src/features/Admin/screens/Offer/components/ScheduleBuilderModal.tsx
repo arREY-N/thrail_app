@@ -8,6 +8,7 @@ import {
     ScrollView,
     StyleSheet,
     TextInput,
+    TextStyle,
     TouchableOpacity,
     View,
     useWindowDimensions
@@ -21,6 +22,7 @@ import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IActivity, ISchedule } from '@/src/core/models/Offer/Offer';
 import { formatTime, parseTimeToDate } from '@/src/utils/dateFormatter';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -82,19 +84,31 @@ const AMPMToggle = ({ value, onChange }: AMPMToggleProps) => (
     </View>
 );
 
+export interface IBuilderActivity {
+    hourVal: string;
+    minuteVal: string;
+    periodVal: string;
+    event: string;
+}
+
+export interface IBuilderDay {
+    day: number;
+    activities: IBuilderActivity[];
+}
+
 /**
  * Props for the ScheduleBuilderModal component.
  * @param {boolean} visible - Controls the visibility of the modal.
  * @param {() => void} onClose - Callback triggered to close the modal.
- * @param {(schedule: any[]) => void} onSave - Callback triggered when the itinerary is saved.
- * @param {any[]} [initialSchedule] - Existing schedule data to pre-populate the builder.
+ * @param {(schedule: ISchedule<Date>[]) => void} onSave - Callback triggered when the itinerary is saved.
+ * @param {ISchedule<Date | string>[]} [initialSchedule] - Existing schedule data to pre-populate the builder.
  * @param {number | string} [offerDays] - The target number of days this offer spans, used to pad empty days.
  */
 export interface ScheduleBuilderModalProps {
     visible: boolean;
     onClose: () => void;
-    onSave: (schedule: any[]) => void;
-    initialSchedule?: any[];
+    onSave: (schedule: ISchedule<Date>[]) => void;
+    initialSchedule?: ISchedule<Date | string>[];
     offerDays?: number | string;
 }
 
@@ -106,8 +120,8 @@ export interface ScheduleBuilderModalProps {
  * @param {ScheduleBuilderModalProps} props - The props for the component.
  * @param {boolean} props.visible - Controls the visibility of the modal.
  * @param {() => void} props.onClose - Callback triggered to close the modal.
- * @param {(schedule: any[]) => void} props.onSave - Callback triggered when the itinerary is saved. Passes the finalized schedule array.
- * @param {any[]} [props.initialSchedule=[]] - Existing schedule data to pre-populate the builder.
+ * @param {(schedule: ISchedule<Date>[]) => void} props.onSave - Callback triggered when the itinerary is saved. Passes the finalized schedule array.
+ * @param {ISchedule<Date | string>[]} [props.initialSchedule=[]] - Existing schedule data to pre-populate the builder.
  * @param {number|string} [props.offerDays=0] - The target number of days this offer spans, used to pad empty days.
  */
 const ScheduleBuilderModal = ({ 
@@ -121,7 +135,7 @@ const ScheduleBuilderModal = ({
     const insets = useSafeAreaInsets();
     const isDesktop = width >= 768;
 
-    const [schedule, setSchedule] = useState<any[]>([]);
+    const [schedule, setSchedule] = useState<IBuilderDay[]>([]);
     const [focusedField, setFocusedField] = useState<string | null>(null);
     
     const [dayToDelete, setDayToDelete] = useState<{ index: number, dayNum: number } | null>(null);
@@ -162,12 +176,12 @@ const ScheduleBuilderModal = ({
         setPrevScheduleKey({ visible, initialSchedule, offerDays });
         if (visible) {
             const targetDays = typeof offerDays === 'string' ? parseInt(offerDays, 10) : (offerDays || 0);
-            let formattedSchedule: any[] = [];
+            let formattedSchedule: IBuilderDay[] = [];
 
             if (initialSchedule && initialSchedule.length > 0) {
-                formattedSchedule = initialSchedule.map((day: any) => ({
+                formattedSchedule = initialSchedule.map((day: ISchedule<Date | string>) => ({
                     day: day.day,
-                    activities: day.activities.map((act: any) => {
+                    activities: (day.activities || []).map((act: IActivity<Date | string>) => {
                         const fullTimeStr = formatTime(act.time); 
                         const [timePart, period] = fullTimeStr.split(' ');
                         const [h, m] = timePart ? timePart.split(':') : ['', ''];
@@ -262,7 +276,7 @@ const ScheduleBuilderModal = ({
     const handleRemoveActivity = (dayIndex: number, actIndex: number) => {
         const newSchedule = [...schedule];
         newSchedule[dayIndex].activities = newSchedule[dayIndex].activities.filter(
-            (_: any, idx: number) => idx !== actIndex
+            (_: IBuilderActivity, idx: number) => idx !== actIndex
         );
         setSchedule(newSchedule);
     };
@@ -271,10 +285,10 @@ const ScheduleBuilderModal = ({
      * Updates a specific field within an activity.
      * @param {number} dayIndex - The array index of the day.
      * @param {number} actIndex - The array index of the activity to update.
-     * @param {string} field - The object key to update (e.g., 'hourVal', 'event').
+     * @param {keyof IBuilderActivity} field - The object key to update (e.g., 'hourVal', 'event').
      * @param {string} value - The new value to set.
      */
-    const handleUpdateActivity = (dayIndex: number, actIndex: number, field: string, value: string) => {
+    const handleUpdateActivity = (dayIndex: number, actIndex: number, field: keyof IBuilderActivity, value: string) => {
         const newSchedule = [...schedule];
         newSchedule[dayIndex].activities[actIndex][field] = value;
         setSchedule(newSchedule);
@@ -285,9 +299,9 @@ const ScheduleBuilderModal = ({
      * and triggers the onSave callback.
      */
     const handleSave = () => {
-        const finalizedSchedule = schedule.map(d => ({
+        const finalizedSchedule: ISchedule<Date>[] = schedule.map(d => ({
             day: d.day,
-            activities: d.activities.map((act: any) => ({
+            activities: d.activities.map((act: IBuilderActivity) => ({
                 time: parseTimeToDate(`${act.hourVal}:${act.minuteVal} ${act.periodVal}`), 
                 event: act.event
             }))
@@ -435,7 +449,7 @@ const ScheduleBuilderModal = ({
 
                                         {/* --- TIMELINE LAYOUT --- */}
                                         <View style={styles.timelineWrapper}>
-                                            {dayItem.activities.map((activity: any, actIndex: number) => {
+                                            {dayItem.activities.map((activity: IBuilderActivity, actIndex: number) => {
                                                 const isHourFocused = focusedField === `${dayIndex}-${actIndex}-hour`;
                                                 const isMinFocused = focusedField === `${dayIndex}-${actIndex}-min`;
                                                 
@@ -735,26 +749,25 @@ const styles = StyleSheet.create({
         paddingBottom: 32 
     },
     
-    // Time Row Inside Timeline
     activityTimeRow: { 
         flexDirection: 'row', 
         alignItems: 'center', 
         marginBottom: 12, 
-        gap: 12 
+        gap: 8 
     },
     timeInputContainer: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        gap: 6 
+        gap: 4 
     },
     timeInputBox: { 
         borderWidth: 1, 
-        borderRadius: 12, 
-        height: 50, 
-        width: 50, 
+        borderRadius: 10, 
+        height: 44, 
+        width: 42, 
         justifyContent: 'center', 
         alignItems: 'center' 
-    }, // Slightly smaller inputs to fit everything beautifully
+    },
     inputUnfocused: { 
         backgroundColor: Colors.GRAY_ULTRALIGHT, 
         borderColor: Colors.GRAY_LIGHT 
@@ -764,16 +777,16 @@ const styles = StyleSheet.create({
         borderColor: Colors.PRIMARY 
     },
     rawTimeInput: { 
-        fontSize: 16, 
+        fontSize: 15, 
         color: Colors.TEXT_PRIMARY, 
         textAlign: 'center', 
         width: '100%', 
         padding: 0, 
         margin: 0, 
-        ...Platform.select({ web: { outlineStyle: 'none' } as any }) 
+        ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : {})
     },
     timeColon: { 
-        fontSize: 18, 
+        fontSize: 16, 
         fontWeight: 'bold', 
         color: Colors.TEXT_PRIMARY, 
         marginBottom: 2 
@@ -786,11 +799,11 @@ const styles = StyleSheet.create({
     toggleContainer: { 
         flexDirection: 'row', 
         backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        borderRadius: 12, 
-        padding: 4, 
+        borderRadius: 10, 
+        padding: 3, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_LIGHT, 
-        height: 50, 
+        height: 44, 
         alignItems: 'center' 
     },
     toggleOption: { 

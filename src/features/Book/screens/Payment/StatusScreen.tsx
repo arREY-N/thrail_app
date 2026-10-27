@@ -8,6 +8,7 @@ import {
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomInfoRow from '@/src/components/CustomInfoRow';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -73,7 +74,6 @@ const StatusScreen = ({
             requestTargetMeasurement('payment_receipt_card');
         }
     }, [isTutorialVisible, activeTutorialStep]);
-    const displayRef = referenceCode || `TRX-${bookingId?.substring(0, 8).toUpperCase() || '102938A'}`;
 
     return (
         <ScrollView 
@@ -119,23 +119,11 @@ const StatusScreen = ({
                     
                     <View style={styles.divider} />
 
-                    <View style={styles.dataColumn}>
-                        <CustomText variant="caption" style={styles.detailLabel}>
-                            Reference No.
-                        </CustomText>
-                        <CustomText variant="body" style={styles.longValue} selectable={true}>
-                            {displayRef}
-                        </CustomText>
-                    </View>
-
-                    <View style={[styles.detailRow, styles.noMarginBottom]}>
-                        <CustomText variant="caption" style={styles.detailLabel}>
-                            Method
-                        </CustomText>
-                        <CustomText variant="body" style={[styles.detailValue, { textTransform: 'capitalize' }]}>
-                            {selectedMethod || 'N/A'}
-                        </CustomText>
-                    </View>
+                    <CustomInfoRow
+                        label="Method"
+                        value={selectedMethod || 'N/A'}
+                        isLast={true}
+                    />
                 </View>
             </View>
         </ScrollView>

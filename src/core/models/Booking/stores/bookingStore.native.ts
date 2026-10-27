@@ -1,7 +1,7 @@
 import { BookingState, bookingStoreCreator } from "@/src/core/models/Booking/stores/bookingStoreCreator";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createThrottledJSONStorage } from "@/src/core/utility/createThrottledAsyncStorage";
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
 export const useBookingsStore = create<BookingState>()(
@@ -9,11 +9,13 @@ export const useBookingsStore = create<BookingState>()(
         immer(bookingStoreCreator),
         {
             name: "booking-storage",
-            storage: createJSONStorage(() => AsyncStorage),
-            partialize: (state) => {
-                const { activeListeners, listenerCounts, ...rest } = state;
-                return rest;
-            },
+            storage: createThrottledJSONStorage(500),
+            partialize: (state) => ({
+                data: state.data,
+                userBookings: state.userBookings,
+                businessBookings: state.businessBookings,
+                offerBookings: state.offerBookings,
+            }),
         }
     )
 );

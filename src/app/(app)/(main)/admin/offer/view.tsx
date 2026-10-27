@@ -33,10 +33,17 @@ export default function ViewOffer() {
 
     const displayBookings = useMemo(() => {
         if (!offerBookings) return [];
+        const cancellationByBookingId = new Map<string, Cancellation>();
+        if (businessCancellations) {
+            for (const c of businessCancellations) {
+                if (!c.isDeleted && c.bookingId && !cancellationByBookingId.has(c.bookingId)) {
+                    cancellationByBookingId.set(c.bookingId, c);
+                }
+            }
+        }
+
         return offerBookings.map(b => {
-            const cancellation = businessCancellations?.find(
-                (c: Cancellation) => c.bookingId === b.id && !c.isDeleted
-            );
+            const cancellation = cancellationByBookingId.get(b.id);
             if (cancellation) {
                 if (cancellation.status === 'approved' && !['refund', 'refunded', 'cancelled'].includes(b.status)) {
                     return {

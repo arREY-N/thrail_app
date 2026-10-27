@@ -83,6 +83,13 @@ export const getBookingEffectiveStatus = (
         return 'cancelled';
     }
     if (cancellationDoc?.status === 'pending') {
+        if (cancellationDoc.cancelledBy === 'admin') {
+            const hasCapturedPayments = payments.some(p => p.status === 'captured');
+            if (hasCapturedPayments || (cancellationDoc.refundAmount ?? 0) > 0) {
+                return 'refund';
+            }
+            return 'cancelled';
+        }
         return 'for-cancellation';
     }
     if (booking.status === 'refund') {

@@ -105,8 +105,16 @@ export const getBookingFooterConfig = ({
         };
     }
 
-    const isPaymentVerifying = booking?.paymentVerificationStatus === 'pending_verification' ||
-        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+    const isCompletedOrFullyPaid = 
+        booking?.status === 'completed' || 
+        booking?.paymentVerificationStatus === 'fully_paid' ||
+        booking?.status === 'cancelled' || 
+        booking?.status === 'refunded';
+
+    const isPaymentVerifying = !isCompletedOrFullyPaid && (
+        booking?.paymentVerificationStatus === 'pending_verification' ||
+        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'))
+    );
 
     if (isPaymentVerifying) {
         return {

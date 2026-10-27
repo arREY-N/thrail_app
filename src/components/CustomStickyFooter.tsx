@@ -36,6 +36,9 @@ export interface FooterButtonConfig {
     validationState?: ButtonValidationState;
     hasError?: boolean;
     isIdleDisabled?: boolean;
+    numberOfLines?: number;
+    adjustsFontSizeToFit?: boolean;
+    minimumFontScale?: number;
 }
 
 /**
@@ -157,8 +160,11 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                                 title={secondaryButton.title}
                                 onPress={secondaryButton.onPress}
                                 variant={secondaryButton.variant || 'outline'}
-                                style={secondaryButton.style}
+                                style={[styles.footerButton, secondaryButton.style]}
                                 textStyle={secondaryButton.textStyle}
+                                numberOfLines={secondaryButton.numberOfLines ?? 1}
+                                adjustsFontSizeToFit={secondaryButton.adjustsFontSizeToFit ?? true}
+                                minimumFontScale={secondaryButton.minimumFontScale ?? 0.75}
                                 disabled={secondaryButton.disabled}
                                 isLoading={secondaryButton.isLoading}
                                 disabledToastMessage={secondaryButton.disabledToastMessage}
@@ -173,8 +179,11 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                                 title={primaryButton.title}
                                 onPress={primaryButton.onPress}
                                 variant={primaryButton.variant || 'primary'}
-                                style={primaryButton.style}
+                                style={[styles.footerButton, primaryButton.style]}
                                 textStyle={primaryButton.textStyle}
+                                numberOfLines={primaryButton.numberOfLines ?? 1}
+                                adjustsFontSizeToFit={primaryButton.adjustsFontSizeToFit ?? true}
+                                minimumFontScale={primaryButton.minimumFontScale ?? 0.75}
                                 disabled={primaryButton.disabled}
                                 isLoading={primaryButton.isLoading}
                                 disabledToastMessage={primaryButton.disabledToastMessage}
@@ -274,6 +283,7 @@ const styles = StyleSheet.create({
     buttonRow: {
         flexDirection: 'row',
         gap: 16,
+        alignItems: 'stretch',
     },
     buttonColumn: {
         width: '100%',
@@ -282,6 +292,13 @@ const styles = StyleSheet.create({
     buttonWrapper: {
         flex: 1,
         position: 'relative',
+        alignSelf: 'stretch',
+    },
+    footerButton: {
+        flex: 1,
+        height: '100%',
+        minHeight: 52,
+        justifyContent: 'center',
     },
     singleButtonWrapper: {
         width: '100%',
