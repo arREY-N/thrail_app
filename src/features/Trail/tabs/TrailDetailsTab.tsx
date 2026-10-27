@@ -65,11 +65,10 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
     const criticalInfo = trail?.general?.critical_info || null;
 
     const slope = trail?.difficulty?.slope ? `${trail.difficulty.slope}%` : "--";
-    const obstacles = trail?.difficulty?.obstacles ? `${trail.difficulty.obstacles}m` : "--";
     const qualityTags = getArray<string>(trail?.difficulty?.quality, []);
     const routeType = trail?.difficulty?.circularity || "Route Type";
 
-    const hasDifficultyData = slope !== "--" || obstacles !== "--" || qualityTags.length > 0;
+    const hasDifficultyData = slope !== "--" || qualityTags.length > 0;
 
     const tourismFeaturesActive = isFeatureEnabled(trail?.tourism?.shelter, (trail as LegacyTrail)?.shelter) ||
         isFeatureEnabled(trail?.tourism?.clean_water, (trail as LegacyTrail)?.clean_water) ||
@@ -282,18 +281,6 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                                     <View style={styles.diffTextContent}>
                                         <CustomText style={styles.diffWidgetValue}>{slope}</CustomText>
                                         <CustomText style={styles.diffWidgetLabel}>Steepness</CustomText>
-                                    </View>
-                                </View>
-                            )}
-                            {slope !== "--" && obstacles !== "--" && <View style={styles.diffVerticalDivider} />}
-                            {obstacles !== "--" && (
-                                <View style={styles.diffWidget}>
-                                    <View style={[styles.diffIconWrapper, { backgroundColor: Colors.TRAIL_STATS_BLUE + '15' }]}>
-                                        <CustomIcon library="MaterialCommunityIcons" name="kettlebell" size={24} color={Colors.TRAIL_STATS_BLUE} />
-                                    </View>
-                                    <View style={styles.diffTextContent}>
-                                        <CustomText style={styles.diffWidgetValue}>{obstacles}</CustomText>
-                                        <CustomText style={styles.diffWidgetLabel}>Max Obstacle</CustomText>
                                     </View>
                                 </View>
                             )}
