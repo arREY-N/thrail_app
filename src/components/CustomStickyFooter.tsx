@@ -20,6 +20,7 @@ import {
 } from '@/src/components/Tutorial/Tutorial';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
+import { IconLibrary } from '@/src/types/ui.types';
 
 export interface FooterButtonConfig {
     title: string;
@@ -39,6 +40,11 @@ export interface FooterButtonConfig {
     numberOfLines?: number;
     adjustsFontSizeToFit?: boolean;
     minimumFontScale?: number;
+    icon?: string;
+    iconLibrary?: IconLibrary;
+    iconPosition?: 'left' | 'right';
+    iconSize?: number;
+    iconColor?: string;
 }
 
 /**
@@ -136,6 +142,11 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                                 validationState={primaryButton.validationState}
                                 hasError={primaryButton.hasError}
                                 isIdleDisabled={primaryButton.isIdleDisabled}
+                                icon={primaryButton.icon}
+                                iconLibrary={primaryButton.iconLibrary}
+                                iconPosition={primaryButton.iconPosition}
+                                iconSize={primaryButton.iconSize}
+                                iconColor={primaryButton.iconColor}
                             />
                         </View>
                         <CustomButton
@@ -172,6 +183,11 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                                 validationState={secondaryButton.validationState}
                                 hasError={secondaryButton.hasError}
                                 isIdleDisabled={secondaryButton.isIdleDisabled}
+                                icon={secondaryButton.icon}
+                                iconLibrary={secondaryButton.iconLibrary}
+                                iconPosition={secondaryButton.iconPosition}
+                                iconSize={secondaryButton.iconSize}
+                                iconColor={secondaryButton.iconColor}
                             />
                         </View>
                         <View style={styles.buttonWrapper}>
@@ -191,6 +207,11 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                                 validationState={primaryButton.validationState}
                                 hasError={primaryButton.hasError}
                                 isIdleDisabled={primaryButton.isIdleDisabled}
+                                icon={primaryButton.icon}
+                                iconLibrary={primaryButton.iconLibrary}
+                                iconPosition={primaryButton.iconPosition}
+                                iconSize={primaryButton.iconSize}
+                                iconColor={primaryButton.iconColor}
                             />
                             {primaryButton.showIndicator && (
                                 <View
@@ -234,6 +255,11 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
                         validationState={primaryButton.validationState}
                         hasError={primaryButton.hasError}
                         isIdleDisabled={primaryButton.isIdleDisabled}
+                        icon={primaryButton.icon}
+                        iconLibrary={primaryButton.iconLibrary}
+                        iconPosition={primaryButton.iconPosition}
+                        iconSize={primaryButton.iconSize}
+                        iconColor={primaryButton.iconColor}
                     />
                     {primaryButton.showIndicator && (
                         <View
