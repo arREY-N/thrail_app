@@ -43,7 +43,7 @@ export const formatDate = (
         full: { month: 'short', day: 'numeric', year: 'numeric' },
         short: { month: '2-digit', day: '2-digit', year: '2-digit' },
         time: { hour: '2-digit', minute: '2-digit', hour12: true },
-        dateTime: { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }
+        dateTime: { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }
     } as const;
     const config = configs[options];
     return new Intl.DateTimeFormat('en-US', config).format(parsedDate);
