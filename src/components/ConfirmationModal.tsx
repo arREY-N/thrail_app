@@ -49,6 +49,7 @@ export type ConfirmationModalButtonRatio = 'auto' | 'guided' | 'equal';
  * @param iconName - Name of the icon to display inside the circular header badge.
  * @param iconLibrary - Icon library for the header badge (defaults to Feather).
  * @param iconColor - Custom color override for the badge icon.
+ * @param badgeBgColor - Custom background color override for the header badge.
  * @param children - Optional custom body elements to render below the title.
  * @param testID - Optional accessibility/test identifier.
  */
@@ -67,6 +68,7 @@ export interface ConfirmationModalProps {
     iconName?: string;
     iconLibrary?: IconLibrary;
     iconColor?: string;
+    badgeBgColor?: string;
     children?: ReactNode;
     testID?: string;
 }
@@ -111,13 +113,14 @@ const ConfirmationModal = ({
     iconName,
     iconLibrary = 'Feather',
     iconColor,
+    badgeBgColor,
     children,
     testID,
 }: ConfirmationModalProps): React.JSX.Element => {
     const { isMobile, width } = useBreakpoints();
 
     // Semantic accents (always rendered against clean white card surface)
-    const badgeBgColor = isDestructive ? Colors.ERROR_BG : Colors.STATUS_APPROVED_BG;
+    const resolvedBadgeBgColor = badgeBgColor || (isDestructive ? Colors.ERROR_BG : Colors.STATUS_APPROVED_BG);
     const resolvedIconColor = iconColor || (isDestructive ? Colors.ERROR : Colors.PRIMARY);
     const primaryButtonVariant: 'destructive' | 'primary' = isDestructive ? 'destructive' : 'primary';
 
@@ -153,7 +156,7 @@ const ConfirmationModal = ({
                                 style={[
                                     styles.iconBadge,
                                     !isMobile && styles.iconBadgeDesktop,
-                                    { backgroundColor: badgeBgColor }
+                                    { backgroundColor: resolvedBadgeBgColor }
                                 ]}
                             >
                                 <CustomIcon
