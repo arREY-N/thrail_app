@@ -50,7 +50,7 @@ export interface HikeState {
     lastShareCoord?: { latitude: number; longitude: number } | null;
 
     locationByGroup: Record<string, Location[]>;
-    activeListeners: Record<string, Unsubscribe>;
+    activeListeners: Record<string, Unsubscribe | undefined>;
     shareLocationEnabled: boolean;
 
     getLastKnownCoordinate: () => Location | null;
