@@ -1,4 +1,5 @@
 import EmergencyNotification from '@/src/components/EmergencyNotification';
+import { UpdateUserFlow } from '@/src/core/flows/UpdateUserFlow';
 import { ViewProfile } from '@/src/core/flows/ViewProfile';
 import ProfileScreen from '@/src/features/Profile/screens/ProfileScreen';
 import { View } from 'react-native';
@@ -10,6 +11,8 @@ import { View } from 'react-native';
  * rather than gating the entire screen behind a full-screen spinner.
  */
 export default function profile() {
+    const { onSaveAccount } = UpdateUserFlow();
+
     const {
         hikeLog,
         hasMore,
@@ -40,6 +43,7 @@ export default function profile() {
                 onAdminPress={onAdminPress}
                 onSettingsPress={onSettingsPress}
                 onSuperadminPress={onSuperadminPress}
+                onSavePress={onSaveAccount}
                 stats={computedStats}
                 hikeLog={hikeLog}
                 isLoading={isLoading}

@@ -38,7 +38,7 @@ import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { IconLibrary } from "@/src/types/ui.types";
 import { formatDateToStandard, safeParseDateString } from "@/src/utils/dateFormatter";
 
-const MOUNTAIN_OPTIONS = [
+export const MOUNTAIN_OPTIONS = [
     'Mt. Ayaas (Rizal)', 'Mt. Banahaw (Quezon)', 'Mt. Batulao (Batangas)',
     'Mt. Binacayan (Rizal)', 'Mt. Bira-Bira (Rizal)', 'Mt. Cristobal (Laguna/Quezon)',
     'Mt. Daguldol (Batangas)', 'Mt. Daraitan (Rizal)', 'Mt. Hapunang Banoi (Rizal)',
@@ -49,8 +49,8 @@ const MOUNTAIN_OPTIONS = [
     'Mt. Talamitam (Batangas)'
 ];
 
-const DURATION_OPTIONS = ['1-3 Hour(s)', 'Half-Day', 'Full-Day', 'Overnight', 'Multi-Day'];
-const PROVINCE_OPTIONS = ['Cavite', 'Laguna', 'Batangas', 'Rizal', 'Quezon'];
+export const DURATION_OPTIONS = ['1-3 Hour(s)', 'Half-Day', 'Full-Day', 'Overnight', 'Multi-Day'];
+export const PROVINCE_OPTIONS = ['Cavite', 'Laguna', 'Batangas', 'Rizal', 'Quezon'];
 
 /**
  * Helper function to extract initials from a user's first and last name.
@@ -369,39 +369,6 @@ const ProfileInfoScreen = ({
         : null;
 
 
-    const renderVerificationBadge = (validity: VerificationValidityInfo, isLinked?: boolean) => {
-        if (validity.status === 'verified') {
-            return (
-                <View style={badgeStyles.verifiedPill}>
-                    <CustomIcon library="Feather" name="check" size={10} color={Colors.STATUS_APPROVED_TEXT} />
-                    <CustomText style={badgeStyles.verifiedPillText}>
-                        Verified
-                    </CustomText>
-                </View>
-            );
-        }
-        if (validity.status === 'expired') {
-            return (
-                <View style={badgeStyles.expiredPill}>
-                    <CustomIcon library="Feather" name="alert-octagon" size={10} color={Colors.VERIFICATION_EXPIRED_TEXT} />
-                    <CustomText style={badgeStyles.expiredPillText}>Expired</CustomText>
-                </View>
-            );
-        }
-        if (isLinked) {
-            return (
-                <View style={badgeStyles.linkedPill}>
-                    <CustomIcon library="Feather" name="link" size={10} color={Colors.STATUS_APPROVED_TEXT} />
-                    <CustomText style={badgeStyles.linkedPillText}>Linked</CustomText>
-                </View>
-            );
-        }
-        return (
-            <View style={badgeStyles.unverifiedPill}>
-                <CustomText style={badgeStyles.unverifiedPillText}>Unverified</CustomText>
-            </View>
-        );
-    };
 
     const clearanceImages = medicalProfile?.clearanceUri
         ? medicalProfile.clearanceUri.split(',').map(s => s.trim()).filter(Boolean)
@@ -788,34 +755,6 @@ const ProfileInfoScreen = ({
                                     {isEditing ? (
                                         <View style={styles.editForm}>
                                             <View style={styles.preferenceEditGroup}>
-                                                <CustomText variant="caption" style={styles.inputLabel}>Experience Level (Read Only)</CustomText>
-                                                <View style={[styles.experienceBadge, { backgroundColor: expStyles.bg, marginLeft: 0 }]}>
-                                                    <CustomText variant="body" style={[styles.experienceBadgeText, { color: expStyles.text }]}>
-                                                        {preferences.experience || 'Not set'}
-                                                    </CustomText>
-                                                </View>
-                                            </View>
-
-                                            <View style={styles.preferenceEditGroup}>
-                                                <CustomText variant="caption" style={styles.inputLabel}>Preferred Duration</CustomText>
-                                                <View style={styles.toggleChipsContainer}>
-                                                    {DURATION_OPTIONS.map((opt) => {
-                                                        const isSelected = (preferences.hike_length || []).includes(opt);
-                                                        return (
-                                                            <TouchableOpacity key={opt} style={[styles.toggleChip, isSelected && styles.toggleChipActive]} onPress={() => {
-                                                                const current = preferences.hike_length || [];
-                                                                const updated = current.includes(opt) ? current.filter(x => x !== opt) : [...current, opt];
-                                                                setPreferences(prev => ({ ...prev, hike_length: updated }));
-                                                            }} activeOpacity={0.7}>
-                                                                <CustomIcon library="Feather" name={isSelected ? "check" : "plus"} size={12} color={isSelected ? Colors.PRIMARY : Colors.TEXT_SECONDARY} />
-                                                                <CustomText variant="caption" style={[styles.toggleChipText, isSelected && styles.toggleChipTextActive]}>{opt}</CustomText>
-                                                            </TouchableOpacity>
-                                                        );
-                                                    })}
-                                                </View>
-                                            </View>
-
-                                            <View style={styles.preferenceEditGroup}>
                                                 <CustomText variant="caption" style={styles.inputLabel}>Favorite Destinations</CustomText>
                                                 <MountainSelectChip options={MOUNTAIN_OPTIONS} selectedValues={preferences.location || []} onToggle={(value) => {
                                                     const current = preferences.location || [];
@@ -845,63 +784,6 @@ const ProfileInfoScreen = ({
                                         </View>
                                     ) : (
                                         <View>
-                                            {/* Experience Level Bar */}
-                                            {(() => {
-                                                const LEVELS = ['Beginner', 'Regular', 'Experienced'];
-                                                const currentExp = effectiveUser.preferences?.experience || 'Beginner';
-                                                const currentLevelIndex = Math.max(0, LEVELS.findIndex(l => l.toLowerCase() === currentExp.toLowerCase().trim()));
-
-                                                return (
-                                                    <View style={styles.expBarContainer}>
-                                                        <View style={styles.expBarHeader}>
-                                                            <View style={styles.expBarTextContainer}>
-                                                                <CustomText style={styles.expBarLabel} numberOfLines={1} adjustsFontSizeToFit>Hiking Experience</CustomText>
-                                                                <CustomText variant="h2" style={[styles.expBarValue, { color: activeColor }]} numberOfLines={1} adjustsFontSizeToFit>
-                                                                    {currentExp}
-                                                                </CustomText>
-                                                            </View>
-                                                            <View style={[styles.expBarIconWrapper, { backgroundColor: expStyles.bg }]}>
-                                                                <CustomIcon library={expStyles.library} name={expStyles.icon} size={20} color={expStyles.text} />
-                                                            </View>
-                                                        </View>
-
-                                                        <View style={styles.segmentsContainer}>
-                                                            {LEVELS.map((lvl, idx) => {
-                                                                const isActive = idx <= currentLevelIndex;
-                                                                const isCurrent = idx === currentLevelIndex;
-                                                                return (
-                                                                    <View key={lvl} style={{ flex: 1, alignItems: 'center' }}>
-                                                                        <View style={[
-                                                                            styles.segment,
-                                                                            isActive && { backgroundColor: activeColor },
-                                                                            idx === 0 && styles.segmentFirst,
-                                                                            idx === LEVELS.length - 1 && styles.segmentLast,
-                                                                        ]} />
-                                                                        <CustomText
-                                                                            numberOfLines={1}
-                                                                            adjustsFontSizeToFit
-                                                                            style={[
-                                                                                styles.segmentLabelText,
-                                                                                isActive && { color: Colors.TEXT_PRIMARY, fontWeight: 'bold' },
-                                                                                isCurrent && { color: activeColor }
-                                                                            ]}
-                                                                        >
-                                                                            {lvl}
-                                                                        </CustomText>
-                                                                    </View>
-                                                                );
-                                                            })}
-                                                        </View>
-                                                    </View>
-                                                );
-                                            })()}
-
-                                            {/* Unified Gamified Preferences */}
-                                            <View style={styles.preferencesSection}>
-                                                <CustomText style={[styles.inlineLabel, { marginBottom: 6 }]}>Preferred Duration</CustomText>
-                                                {renderGamifiedChips(effectiveUser.preferences?.hike_length, "clock")}
-                                            </View>
-
                                             <View style={styles.preferencesSection}>
                                                 <CustomText style={[styles.inlineLabel, { marginBottom: 6 }]}>Favorite Destinations</CustomText>
                                                 {renderGamifiedChips(effectiveUser.preferences?.location, "map-pin")}
@@ -927,22 +809,22 @@ const ProfileInfoScreen = ({
                 primaryButton={
                     isEditing
                         ? {
-                              title: 'Save Changes',
-                              onPress: handleSavePress,
-                              disabled: !isDirty,
-                          }
+                            title: 'Save Changes',
+                            onPress: handleSavePress,
+                            disabled: !isDirty,
+                        }
                         : {
-                              title: 'Edit Profile',
-                              onPress: () => setIsEditModalVisible(true),
-                          }
+                            title: 'Edit Profile',
+                            onPress: () => setIsEditModalVisible(true),
+                        }
                 }
                 secondaryButton={
                     isEditing
                         ? {
-                              title: 'Cancel',
-                              onPress: handleCancelPress,
-                              variant: 'outline',
-                          }
+                            title: 'Cancel',
+                            onPress: handleCancelPress,
+                            variant: 'outline',
+                        }
                         : undefined
                 }
             />
@@ -1001,7 +883,7 @@ const ProfileInfoScreen = ({
     );
 };
 
-const badgeStyles = StyleSheet.create({
+export const badgeStyles = StyleSheet.create({
     verifiedPill: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1080,5 +962,39 @@ const badgeStyles = StyleSheet.create({
         color: Colors.ERROR,
     },
 });
+
+export const renderVerificationBadge = (validity: VerificationValidityInfo, isLinked?: boolean) => {
+    if (validity.status === 'verified') {
+        return (
+            <View style={badgeStyles.verifiedPill}>
+                <CustomIcon library="Feather" name="check" size={10} color={Colors.STATUS_APPROVED_TEXT} />
+                <CustomText style={badgeStyles.verifiedPillText}>
+                    Verified
+                </CustomText>
+            </View>
+        );
+    }
+    if (validity.status === 'expired') {
+        return (
+            <View style={badgeStyles.expiredPill}>
+                <CustomIcon library="Feather" name="alert-octagon" size={10} color={Colors.VERIFICATION_EXPIRED_TEXT} />
+                <CustomText style={badgeStyles.expiredPillText}>Expired</CustomText>
+            </View>
+        );
+    }
+    if (isLinked) {
+        return (
+            <View style={badgeStyles.linkedPill}>
+                <CustomIcon library="Feather" name="link" size={10} color={Colors.STATUS_APPROVED_TEXT} />
+                <CustomText style={badgeStyles.linkedPillText}>Linked</CustomText>
+            </View>
+        );
+    }
+    return (
+        <View style={badgeStyles.unverifiedPill}>
+            <CustomText style={badgeStyles.unverifiedPillText}>Unverified</CustomText>
+        </View>
+    );
+};
 
 export default ProfileInfoScreen;
