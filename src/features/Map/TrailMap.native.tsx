@@ -156,6 +156,7 @@ function formatRecordedTime(timestamp?: Date | string | number): string {
 interface AnimatedHikerMarkerProps {
   hiker: HikerLocation;
   onPress: (hiker: HikerLocation) => void;
+  now?: number;
 }
 
 /**
@@ -163,20 +164,11 @@ interface AnimatedHikerMarkerProps {
  * upon receiving remote location updates. Automatically transitions to
  * Last Known Location (LKL) state if no updates are received for >= 2 minutes.
  */
-const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, onPress }) => {
+const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, onPress, now = Date.now() }) => {
   const [coords, setCoords] = useState<[number, number]>([hiker.longitude, hiker.latitude]);
   const prevCoordsRef = useRef<[number, number]>([hiker.longitude, hiker.latitude]);
   const animValue = useRef(new Animated.Value(1)).current;
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
-  const [now, setNow] = useState(Date.now());
-
-  // Periodic ticker ensuring LKL state transitions even if device battery died
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Smoothly interpolate coordinate movements across updates
   useEffect(() => {
@@ -308,6 +300,7 @@ const AnimatedUserLocationMarker: React.FC<AnimatedUserLocationMarkerProps> = me
       new Animated.ValueXY({ x: lngLat[0], y: lngLat[1] })
     ).current;
     const prevTarget = useRef<[number, number]>(lngLat);
+    const animRef = useRef<Animated.CompositeAnimation | null>(null);
 
     useEffect(() => {
       const listenerId = animValue.addListener((val) => {
@@ -331,6 +324,11 @@ const AnimatedUserLocationMarker: React.FC<AnimatedUserLocationMarkerProps> = me
 
       prevTarget.current = [targetLon, targetLat];
 
+      if (animRef.current) {
+        animRef.current.stop();
+        animRef.current = null;
+      }
+
       // Snap immediately on initial jump > ~1km; otherwise glide smoothly over 550ms
       if (dLon > 0.01 || dLat > 0.01) {
         animValue.setValue({ x: targetLon, y: targetLat });
@@ -338,12 +336,26 @@ const AnimatedUserLocationMarker: React.FC<AnimatedUserLocationMarkerProps> = me
         return;
       }
 
-      Animated.timing(animValue, {
+      const animation = Animated.timing(animValue, {
         toValue: { x: targetLon, y: targetLat },
         duration: 550,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
-      }).start();
+      });
+
+      animRef.current = animation;
+      animation.start(({ finished }) => {
+        if (finished) {
+          animRef.current = null;
+        }
+      });
+
+      return () => {
+        if (animRef.current) {
+          animRef.current.stop();
+          animRef.current = null;
+        }
+      };
     }, [lngLat, animValue]);
 
     const hasHeading = typeof heading === "number" && !isNaN(heading) && heading >= 0;
@@ -405,6 +417,8 @@ export interface TrailMapRef {
   stopBackgroundTracking: () => Promise<void>;
 }
 
+const EMPTY_HIKER_LOCATIONS: HikerLocation[] = [];
+
 const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   initialLon,
   initialLat,
@@ -416,8 +430,9 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   bottomInset = 280,
   compassPosition,
   attributionPosition,
-  hikerLocations = [],
-  currentUserId
+  hikerLocations = EMPTY_HIKER_LOCATIONS,
+  currentUserId,
+  isOffline: isOfflineProp,
 }, ref) => {
   const resolvedAttributionPosition = attributionPosition || { bottom: bottomInset, left: 16 };
   const resolvedCompassPosition = compassPosition || { bottom: bottomInset + 36, left: 16 };
@@ -441,7 +456,37 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const parsedLat = Number(latStr);
   const hasInitialCoords = !!(lonStr && latStr && !isNaN(parsedLon) && !isNaN(parsedLat));
 
-  const [forceOffline, setForceOffline] = useState(true);
+  // Track and cleanly cancel requestAnimationFrame calls on unmount
+  const rafIdsRef = useRef<Set<number>>(new Set());
+  const scheduleRaf = useCallback((cb: () => void) => {
+    const id = requestAnimationFrame(() => {
+      rafIdsRef.current.delete(id);
+      cb();
+    });
+    rafIdsRef.current.add(id);
+    return id;
+  }, []);
+
+  useEffect(() => {
+    const rafIds = rafIdsRef.current;
+    return () => {
+      rafIds.forEach((id) => cancelAnimationFrame(id));
+      rafIds.clear();
+    };
+  }, []);
+
+  const [forceOffline, setForceOffline] = useState(isOfflineProp ?? true);
+  const forceOfflineRef = useRef(forceOffline);
+
+  useEffect(() => {
+    if (isOfflineProp !== undefined && isOfflineProp !== forceOfflineRef.current) {
+      forceOfflineRef.current = isOfflineProp;
+      setLoadedStyleMode(null);
+      scheduleRaf(() => {
+        setForceOffline(isOfflineProp);
+      });
+    }
+  }, [isOfflineProp, scheduleRaf]);
   const [isFollowing, setIsFollowing] = useState(!hasInitialCoords);
   const [mapReady, setMapReady] = useState(false);
   const [offlineTileUrl, setOfflineTileUrl] = useState<string>("");
@@ -452,6 +497,16 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const [spriteBaseUri, setSpriteBaseUri] = useState<string>("");
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedHiker, setSelectedHiker] = useState<HikerLocation | null>(null);
+
+  // Centralized LKL ticker: runs a single 10s interval only when hikers are present
+  const [tickerTime, setTickerTime] = useState(() => Date.now());
+  useEffect(() => {
+    if (!hikerLocations || hikerLocations.length === 0) return;
+    const interval = setInterval(() => {
+      setTickerTime(Date.now());
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [hikerLocations]);
 
   // Dynamic live hiker derivation: ensures rescue card stays continuously fresh as hiker moves
   const liveSelectedHiker = useMemo(() => {
@@ -832,10 +887,10 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
 
   const handleStyleLoaded = useCallback(() => {
     setMapReady(true);
-    requestAnimationFrame(() => {
+    scheduleRaf(() => {
       setLoadedStyleMode(currentStyleModeRef.current);
     });
-  }, []);
+  }, [scheduleRaf]);
 
   // ✅ Expose these functions up to the HikeRecordingScreen
   useImperativeHandle(ref, () => ({
@@ -850,7 +905,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
       // Unmount custom GeoJSON sources/layers before swapping mapStyle to prevent
       // native MLRNLayer.setBelowLayerID(null) NullPointerException & C++ style peer conflicts
       setLoadedStyleMode(null);
-      requestAnimationFrame(() => {
+      scheduleRaf(() => {
         setForceOffline((v: boolean) => !v);
       });
     },
@@ -1066,6 +1121,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
               key={`hiker-${hiker.id}`}
               hiker={hiker}
               onPress={handleHikerPress}
+              now={tickerTime}
             />
           );
         })}
