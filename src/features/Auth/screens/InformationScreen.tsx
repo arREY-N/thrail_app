@@ -113,6 +113,7 @@ const InformationScreen = ({
                             allowFutureDates={false}
                             defaultMode="year"
                             maximumDate={maxAllowedBirthday}
+                            helperText="Note: You must be at least 10 years old to register."
                         />
 
                         <CustomTextInput
