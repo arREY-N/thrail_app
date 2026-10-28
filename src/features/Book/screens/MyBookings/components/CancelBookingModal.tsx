@@ -364,7 +364,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                     <ScrollView
                         ref={scrollViewRef}
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.scrollBody}
+                        contentContainerStyle={[styles.scrollBody, { paddingBottom: keyboardHeight > 0 ? 90 : 16 }]}
                         keyboardShouldPersistTaps="handled"
                     >
                         <View style={styles.warningBox}>
@@ -477,6 +477,11 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                                     maxLength={11}
                                     value={accountNumber}
                                     onChangeText={(t: string) => setAccountNumber(t.replace(/\D/g, '').slice(0, 11))}
+                                    onFocus={() => {
+                                        setTimeout(() => {
+                                            scrollViewRef.current?.scrollToEnd({ animated: true });
+                                        }, Platform.OS === 'android' ? 200 : 100);
+                                    }}
                                     icon="phone"
                                     iconLibrary="Feather"
                                     containerStyle={{ marginBottom: 12 }}
@@ -487,6 +492,11 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                                     placeholder="e.g. Juan Dela Cruz"
                                     value={accountName}
                                     onChangeText={setAccountName}
+                                    onFocus={() => {
+                                        setTimeout(() => {
+                                            scrollViewRef.current?.scrollToEnd({ animated: true });
+                                        }, Platform.OS === 'android' ? 200 : 100);
+                                    }}
                                     icon="user"
                                     iconLibrary="Feather"
                                     containerStyle={{ marginBottom: 4 }}

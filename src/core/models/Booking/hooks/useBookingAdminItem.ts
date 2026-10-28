@@ -7,8 +7,7 @@ export function useBookingAdminItem(bookingId: string, offerId: string) {
 
     const bookingsByOffer = useBookingsStore(s => s.bookingByOffer[offerId]);
     const booking = bookingsByOffer?.find(b => b.id === bookingId);
-    const isFetching = useBookingsStore(s => s.isFetching)
-    const offerBookings = useBookingsStore(s => s.bookingByOffer[booking?.offer.id || '']);
+    const isFetching = useBookingsStore(s => s.isFetching);
 
     useEffect(() => {
         if (!businessId || !offerId) return;
@@ -22,7 +21,6 @@ export function useBookingAdminItem(bookingId: string, offerId: string) {
 
     return {
         booking,
-        offerBookings,
         isFetching,
-    }
+    };
 }

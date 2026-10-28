@@ -71,21 +71,20 @@ flowchart TD
     end
 
     subgraph Part_3 [Part 3: 2-Way Refund & Cancellation Handshake with Dispute Limits & Chat Retention]
-        R[Cancellation Initiated with Upfront Wallet Entry<br/>Zero Auto-Fill Rule] --> S{Initiator?}
-        S -->|User Initiated| T[Admin Approves Request in ReviewScreen]
-        S -->|Admin Initiated| U[Awaiting User Acceptance in CancellationCard]
-        U --> V[User Accepts Cancellation]
-        V --> W{Admin Refund Decision}
-        W -->|No Refund| X[Close Booking as Cancelled]
-        W -->|Issue Refund| Y[Admin inputs Refund Amount]
-        T --> Y
-        Y --> Z[Admin views hiker wallet with Copy button]
-        Z --> AC[Admin pays outside app & uploads Refund Receipt Proof via completeManualRefund]
-        AC --> AD[Status: refund_submitted<br/>HandshakeStep: awaiting_user_confirmation<br/>Hiker RETAINED in group chat]
-        AD -->|Action 1: Confirm Received| AE[Callable: confirmRefundReceived<br/>Status: refunded, handshake completed<br/>Slot released & removed from group chat]
-        AD -->|Action 2: Not Received / Appeal| AF[Callable: disputeRefundPayout<br/>Status: refund_disputed<br/>Dispute count incremented max 3<br/>Hiker RETAINED in group chat]
-        AF -->|Admin re-transfers & re-uploads proof| AC
-        AF -.->|If disputeCount >= 3| AG[Automated dispute locked<br/>Coordinate directly in tour group chat]
+        R[Cancellation Initiated] --> S{Initiator?}
+        S -->|User Initiated| T[Hiker submits Reason + GCash/Maya details upfront in CancelBookingModal]
+        T --> U[Admin reviews in ReviewScreen: Approves or Declines with reason]
+        U -->|Admin Approves| V[Admin verifies Hiker Wallet & sets Refund Amount]
+        S -->|Admin Initiated| W[Admin selects Reason + Refund Decision (Full/Partial/None) in AdminCancelBookingModal]
+        W -->|No Refund| X[Hiker accepts ₱0 cancellation -> Status: cancelled]
+        W -->|Refund Granted| Y[Hiker accepts & enters GCash/Maya wallet in UserRefundScreen]
+        V --> Z[Admin transfers funds & uploads receipt proof via completeManualRefund]
+        Y --> Z
+        Z --> AA[Status: refund_submitted<br/>HandshakeStep: awaiting_user_confirmation<br/>Hiker RETAINED in group chat]
+        AA -->|Confirm Received| AB[Callable: confirmRefundReceived<br/>Status: refunded, handshake completed<br/>Slot released & removed from group chat]
+        AA -->|Dispute / Appeal| AC[Callable: disputeRefundPayout<br/>Status: refund_disputed<br/>Dispute count incremented max 3]
+        AC -->|Admin re-transfers & re-uploads proof| Z
+        AC -.->|If disputeCount >= 3| AD[Disputes locked<br/>Coordinate directly in tour group chat]
     end
 ```
 
@@ -524,6 +523,29 @@ service firebase.storage {
 3. Set `CancellationCard.tsx` to expand by default (`isExpanded: true`) so hikers immediately see active cancellation actions.
 4. Updated `OverpaymentRefundCard.tsx` with uniform text styling, green completed theme (`#86EFAC` border, `check-circle`, `₱{excessAmount} REFUNDED`), receipt proof button, and collapsible accordion with in-render state adjustment.
 
+### Phase 12: Streamlined Cancellation Handshake, Ellipsis Prevention & Input Keyboard Clearance (Completed ✅)
+1. **Streamlined Admin Cancellation Workflow:**
+   - In `AdminCancelBookingModal.tsx`: Combined cancellation reason selection with the refund decision (`full`, `partial`, or `none`) into a single atomic action, eliminating the redundant back-and-forth waiting step.
+   - In `UserRefundScreen.tsx`: Hikers immediately see the approved refund amount and submit their GCash/Maya wallet details directly.
+   - In `AdminCancellationCard.tsx`: Organizers immediately see the hiker's wallet details and submit the transfer receipt proof.
+2. **Ellipsis Prevention & Typography Responsiveness:**
+   - In `ManualQRMethodScreen.tsx`: Updated `docName` to `"Payment Receipt"` and `subtitle` to `"Receipt attached • Ready to submit"`, eliminating run-on label truncation.
+   - In `DocumentUploadCard.tsx`: Expanded `docSubtitle` to `numberOfLines={2}` and optimized action button min-widths (`uploadBtn: 68px`, `viewBtn: 54px`) to guarantee ample horizontal space on all mobile screens.
+3. **Offer Details vs. Review Booking Status Alignment:**
+   - In `AdminBookingCard.tsx`: Corrected status resolution so active `booking.status === 'refund'` is preserved as `'refund'` (rendered as amber **`REFUNDING`** badge via `CustomStatusBadge`), matching `ReviewScreen.tsx`.
+   - Included `'refund'` in `requiresAdminAction` in `AdminBookingCard.tsx` and `isNeedsReview` in `useBookingFilters.ts` so organizers are actively alerted when refund payouts are pending.
+4. **Number Input & Virtual Keyboard Visibility:**
+   - In `UserRefundScreen.tsx`: Attached `scrollViewRef`, `keyboardShouldPersistTaps="handled"`, added `onFocus` auto-scrolling to GCash/Maya number and account name inputs, and set `scrollContent.paddingBottom = 160px`.
+   - In `AdminCancelBookingModal.tsx` & `CancelBookingModal.tsx`: Added `onFocus` scroll listeners and dynamic bottom padding (`paddingBottom: keyboardHeight > 0 ? 90 : 16`) to ensure partial refund amounts and mobile numbers stay comfortably visible above the virtual keyboard and action buttons.
+5. **Card Header Spacing & Date/Time Collision Fix:**
+   - In `AdminCancellationCard.tsx`: Resolved text collision where `ORGANIZER'S CANCELLATION REASON` and `formatBookingDate` timestamp ran directly into each other on mobile. Added `flexWrap: 'wrap'`, `rowGap: 4`, `columnGap: 8`, and passed `shortMonth: true` (`"Oct 28, 2026 • 2:57 AM"`).
+   - Increased `infoBox` padding to 14px, increased `infoBoxHeader.marginBottom` to 10px, and bumped `infoBoxText.lineHeight` to 20px for comfortable vertical breathing room.
+   - Symmetrized `impactRow` columns (`flex: 1`, `marginHorizontal: 8`) to eliminate the orphaned vertical divider line on mobile screens.
+6. **Owner Master QR Setup Mobile Modal Fix:**
+   - In `OwnerQRModal.tsx`: Fixed React Native Yoga height collapse where `ScrollView` (`flex: 1`) inside a card with only `maxHeight: '90%'` collapsed to 0px on mobile, hiding the QR image, file picker, and inputs. Added `dialogCardMobile` with explicit `height: '85%'`.
+   - Added `useEffect` to synchronize local form state with `business?.paymentConfig` upon modal opening.
+   - Replaced `['images']` with `ImagePicker.MediaTypeOptions.Images` and wrapped the modal in `KeyboardAvoidingView` with backdrop dismissal.
+
 ---
 
 ## 8. Atomic Cloud Functions Architecture (Server-Side Batch Execution)
@@ -827,5 +849,478 @@ In client-side execution, chaining sequential updates (`updateDoc(booking)` then
    - In `functions/index.js` (`completeManualRefund`), added `offerId` to `metadata` and `data` in the `notifyUser` call.
    - Resolved the unused variable warning while enabling deep-linking directly into offer details and group chats from refund push notifications.
 
+---
 
+## 10. Phase 15: Mobile QR Display, Backend Balance Settlement, Verification UX & Receipt Streamlining Architecture Plan
 
+### A. Problem Statement & Root Cause Matrix
+
+| Area | Observed Issue | Root Cause in Codebase | Target Resolution |
+| :--- | :--- | :--- | :--- |
+| **1. Manage QR on Mobile** | Works and displays properly on Web, but hidden or not functioning on Mobile. | 1. `businessStore.native.ts` persists `data` in `AsyncStorage`. In `load(id)`, if `data.length > 0`, it reads cached business and **never** fetches from Firestore.<br/>2. In `useAuthHook.ts` and `admin/index.tsx`, `isBusinessOwner` checks custom claims or cached `businessAccount.owner.id`. When cache is stale, `isOwner` evaluates to `false`, completely hiding the "Manual Payment QR" section.<br/>3. In `OwnerQRModal.tsx`, image extension parsing `(asset.fileName \|\| asset.uri).split('.').pop()` fails on Android `content://...` URIs which have no dot extension, throwing an invalid file type error. | 1. Evict stale business cache or force server refresh in `businessStoreCreator.ts` on `load()`.<br/>2. Harmonize ownership check in `useAuthHook.ts` and `admin/index.tsx` using auth token claims (`token.owner === businessId`).<br/>3. Parse MIME type (`asset.mimeType`) as first-class fallback in `OwnerQRModal.tsx`. |
+| **2. Settle Balance Onsite / Cash Backend** | Settle balance / onsite cash not working as intended; logic not working properly. | The Cloud Function `settleManualBalance` was planned in documentation but **NEVER IMPLEMENTED** in `functions/index.js`. Frontend calling `httpsCallable(functions, 'settleManualBalance')` throws 404 `not-found`. | Implement atomic Cloud Function `exports.settleManualBalance` in `functions/index.js` with admin authorization guard, remaining balance capture, group chat membership addition, and push notification. |
+| **3. Awaiting vs Verifying Payment Status** | Admin side shows "Awaiting Payment" even after the hiker uploads a payment receipt. | When a user submits a manual QR receipt, `booking.paymentVerificationStatus` is set to `'pending_verification'`, but `booking.status` remains `'for-payment'`. In `statusConfig.ts`, `'for-payment'` maps to `adminLabel: 'AWAITING PAYMENT'`. | In `AdminBookingCard.tsx`, `OfferViewScreen.tsx`, and `ReviewScreen.tsx`, check `booking.paymentVerificationStatus === 'pending_verification'` and display admin badge **`VERIFYING PAYMENT`** with action-needed highlight border. |
+| **4. Payment & Verification Workflow** | Intrusive toast upon complete payment; requires manual click to move "Paid" to "Completed"; admin input issues. | 1. `ReviewScreen.tsx` shows `showToast.success('Full payment verified!')` and `showToast.success('Remaining balance settled in full!')`.<br/>2. `verifyManualPayment` sets status `'paid'`, requiring admin to manually click `"Complete Booking"`.<br/>3. `ManualQRVerificationCard.tsx` pre-fills amount with remaining balance, lacks mandatory Reference Number field, and does not reset input state on submission. | 1. Remove intrusive completion toast notification.<br/>2. In `verifyManualPayment` and balance settlement, when payment is full (`isFull === true`), atomically set `booking.status = 'completed'` immediately.<br/>3. Initialize `verifiedAmountInput` to empty `''`, add mandatory `Reference Number *` field with validation, and reset inputs on submission. |
+| **5. UI / Display Adjustments** | Reference number shown on user UI; receipt lacks top summary; action buttons combined; text overflow in My Bookings. | 1. User UI exposes reference code inputs and labels in `ManualQRMethodScreen.tsx`, `StatusScreen.tsx`, and `ReceiptScreen.tsx`.<br/>2. `ReceiptScreen.tsx` lists payments linearly at the bottom without a structured top price breakdown.<br/>3. `ManualQRVerificationCard.tsx` has a single combined button `"Settle Balance (Cash / On-Site)"`.<br/>4. In `BookingCard.tsx`, downpayment status displays both `"Deposit Paid"` and `"Balance"`, causing layout collision and text overflow on Web / Upcoming tab. | 1. Remove reference/transaction numbers from user-facing screens (`ManualQRMethodScreen`, `StatusScreen`, `ReceiptScreen`).<br/>2. Add top breakdown in `ReceiptScreen.tsx` cleanly separating **Total Price**, **Amount Already Paid**, and **Remaining Balance**.<br/>3. Separate into distinct action buttons: **"Paid Cash"** and **"Settle Balance"**.<br/>4. In `BookingCard.tsx`, remove `"Deposit Paid"` and display only `"Balance: ₱..."` with text constraints (`numberOfLines={1}`, `flexShrink`, `adjustsFontSizeToFit`). |
+| **6. Activity Log Discrepancy** | Activity log shows `Payment of ₱1,300.00 via MANUAL_QR is currently pending` when no amount was input or OCR'd. | In `PaymentScreen.tsx` line 190, `newPayment.amount` is automatically assigned `amountToPay` (e.g. ₱1,300.00). `ActivityLog.tsx` reads `paymentRecord.amount` and formats `"Payment of ₱... is currently pending"`. | Do not preset `amountToPay` as confirmed in pending payment records, and in `ActivityLog.tsx`, format pending manual QR payments as `"Payment receipt submitted via MANUAL_QR is currently pending verification."` without assuming unverified amounts. |
+| **7. Receipt Upload Glitch (Web)** | Intermittent glitch / failure when uploading receipts on Web. | On Web, `DocumentUploadCard.tsx` branches to `pickDocument()` -> `uploadDocument()` in `fileStore.ts`. That function calls `ImagePicker.requestMediaLibraryPermissionsAsync()` (unsupported on Web), throws an unhandled error when file dialog is closed, and triggers blocking `Alert.alert`. | Streamline Web receipt upload to use standard browser file picker / `ImagePicker.launchImageLibraryAsync` with graceful cancellation (no error throw on cancel) and direct Firebase Storage upload. |
+
+---
+
+### B. Implementation Roadmap
+
+#### 1. Mobile QR Management & Display (`DashboardScreen`, `OwnerQRModal`, `businessStoreCreator`)
+- **Stale Cache Elimination in `businessStoreCreator.ts`:**
+  Update `load(id: string | null)` to always fetch latest business data from `BusinessRepo.fetchById(id)` when called for admin management, rather than relying on stale cached entries from `AsyncStorage`.
+- **Ownership Verification Harmonization:**
+  In `useAuthHook.ts` and `src/app/(app)/(main)/admin/index.tsx`, ensure `isBusinessOwner` correctly checks `token.owner === businessId || user.uid === businessAccount.owner?.id || role === 'owner' || isOwner`.
+- **Android Content URI File Extension Fallback in `OwnerQRModal.tsx`:**
+  Enhance extension and MIME type detection:
+  ```typescript
+  const isImageMime = !asset.mimeType || asset.mimeType.startsWith('image/');
+  const extension = (asset.fileName || asset.uri).split('?')[0].split('.').pop()?.toLowerCase();
+  const isAllowedExt = extension && ALLOWED_EXTENSIONS.includes(extension);
+  if (!isImageMime && !isAllowedExt) {
+      setErrorMessage('Only JPG, PNG, WEBP, or HEIC image files are accepted.');
+      return;
+  }
+  ```
+
+#### 2. Backend Cloud Function: `settleManualBalance` (`functions/index.js`)
+- Add atomic callable function `exports.settleManualBalance`:
+  ```javascript
+  exports.settleManualBalance = https.onCall(async (request) => {
+      const { bookingId, userId, businessId: inputBusinessId, offerId: inputOfferId, method = 'cash', referenceCode = '' } = request.data || {};
+      const caller = request.auth;
+      if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
+      if (!bookingId || !userId) throw new HttpsError('invalid-argument', 'bookingId and userId are required.');
+
+      const db = admin.firestore();
+      const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
+      const bookingSnap = await bookingRef.get();
+      if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+      const bookingData = bookingSnap.data();
+
+      const businessId = inputBusinessId || bookingData.business?.id;
+      const offerId = inputOfferId || bookingData.offer?.id;
+
+      // Admin authorization guard
+      const adminBusinessId = caller.token.businessId || caller.token.owner;
+      const isAdmin = caller.token.role === 'admin' && (!businessId || adminBusinessId === businessId);
+      const isOwner = caller.token.role === 'owner' && (!businessId || adminBusinessId === businessId);
+      const isSuperAdmin = caller.token.role === 'superadmin';
+      if (!isAdmin && !isOwner && !isSuperAdmin) {
+          throw new HttpsError('permission-denied', 'Only administrators can settle balances.');
+      }
+
+      const totalPrice = bookingData.totalPrice || bookingData.offer?.price || 0;
+      const payments = bookingData.payment || [];
+      const previouslyCaptured = payments.reduce((sum, p) => p.status === 'captured' ? sum + (p.amount || 0) : sum, 0);
+      const remainingBal = typeof bookingData.remainingBalance === 'number'
+          ? bookingData.remainingBalance
+          : Math.max(0, totalPrice - previouslyCaptured);
+
+      const batch = db.batch();
+
+      const newPaymentRecord = {
+          gateway: 'manual_qr',
+          method: method, // 'cash' or 'manual_qr'
+          sessionId: `settle_${Date.now()}`,
+          referenceCode: referenceCode.trim() || `CASH-${Date.now()}`,
+          amount: remainingBal,
+          status: 'captured',
+          classification: 'full',
+          createdAt: Timestamp.now(),
+          paidAt: Timestamp.now(),
+          verifiedBy: caller.uid,
+          verifiedAt: Timestamp.now(),
+          adminNote: method === 'cash' ? 'Settled via Onsite Cash' : 'Balance Settled',
+      };
+
+      batch.update(bookingRef, {
+          status: 'completed', // Immediately finalized per user instruction
+          remainingBalance: 0,
+          paymentVerificationStatus: 'fully_paid',
+          payment: [...payments, newPaymentRecord],
+          updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      // Add to tour group chat
+      if (offerId) {
+          try {
+              const groupRef = db.collection('groups').doc(offerId);
+              const groupSnap = await groupRef.get();
+              if (groupSnap.exists) {
+                  const members = groupSnap.data().members || [];
+                  if (!members.some(m => m.id === userId)) {
+                      const hikerUser = bookingData.user || {};
+                      batch.update(groupRef, {
+                          participantsIds: FieldValue.arrayUnion(userId),
+                          members: [...members, {
+                              id: userId,
+                              username: hikerUser.username || '',
+                              firstname: hikerUser.firstname || '',
+                              lastname: hikerUser.lastname || '',
+                              email: hikerUser.email || '',
+                              bookingId,
+                          }],
+                          updatedAt: FieldValue.serverTimestamp(),
+                      });
+                  }
+              }
+          } catch (groupErr) {
+              console.warn('[settleManualBalance] Group chat update failed:', groupErr.message);
+          }
+      }
+
+      await batch.commit();
+
+      const trailName = bookingData.trail?.name || 'your tour';
+      await notifyUser(db, userId, {
+          title: 'Balance Settled · Booking Confirmed',
+          body: `Your remaining balance for ${trailName} has been settled in full. Your reservation is completed!`,
+          inAppTitle: 'Balance Settled',
+          inAppMessage: `Your remaining balance of ₱${remainingBal.toFixed(2)} for ${trailName} was settled. Your booking is 100% completed!`,
+          type: 'booking_completed',
+          metadata: { bookingId, trailName },
+          data: { bookingId, userId }
+      });
+
+      return { success: true, remainingBalance: 0, status: 'completed' };
+  });
+  ```
+
+#### 3. Admin Verification Status & Action Buttons
+- **`AdminBookingCard.tsx` Status Mapping:**
+  ```typescript
+  const isVerifyingPayment = booking.paymentVerificationStatus === 'pending_verification' ||
+      Boolean(booking.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+
+  const displayStatus = (hasRefundedPayment || booking.status === 'refund' || booking.status === 'refunded')
+      ? 'refunded'
+      : (cancellation && cancellation.status === 'pending' && cancellation.cancelledBy === 'user' && booking.status !== 'cancelled'
+          ? 'for-cancellation'
+          : (isVerifyingPayment && booking.status === 'for-payment'
+              ? 'verifying-payment'
+              : booking.status));
+  ```
+  Add `'verifying-payment'` configuration in `statusConfig.ts`:
+  `adminLabel: 'VERIFY PAYMENT'`, `adminType: 'ACTION'`, `icon: 'clock'`, `bgColor: Colors.STATUS_PENDING_BG`, `textColor: Colors.PRIMARY`.
+- **Separate "Paid Cash" and "Settle Balance" Buttons:**
+  In `ManualQRVerificationCard.tsx` and `ReviewScreen.tsx`:
+  - Button 1: **"Paid Cash"** (records cash received; opens prompt for verified cash amount and mandatory reference).
+  - Button 2: **"Settle Balance"** (clears full remaining balance).
+- **Auto-Update to "Completed":**
+  In `verifyManualPayment`: when `isFull === true`, set `status: 'completed'` instead of `'paid'`. Eliminates the extra manual click required to move from `'paid'` to `'completed'`.
+- **Remove Payment Verification Toast:**
+  Remove `showToast.success(...)` from `onVerifyManualPayment` and `onSettleRemainingBalance` in `ReviewScreen.tsx`.
+
+#### 4. Admin Payment Input Hardening (`ManualQRVerificationCard.tsx`)
+- **Zero Pre-fill Rule for Verified Amount:**
+  Initialize `const [verifiedAmountInput, setVerifiedAmountInput] = useState<string>('');`. Do not pre-fill with `remainingBal` or `manualPayment.amount`.
+- **Mandatory Reference Number Field:**
+  Add state `const [referenceNumber, setReferenceNumber] = useState<string>('');`.
+  Render input: `CustomTextInput label="Reference Number *" placeholder="e.g. 100293841234 or CASH-01" value={referenceNumber} ...`.
+  In `handleVerifySubmit`: enforce `if (!referenceNumber.trim()) { showToast.error('Reference number is mandatory for verification.'); return; }`.
+- **Input Reset:**
+  Upon successful submission and inside `useEffect([booking.id])`, reset `setVerifiedAmountInput('')` and `setReferenceNumber('')`.
+
+#### 5. User-Facing UI Adjustments
+- **Remove Reference Number from User UI:**
+  - `ManualQRMethodScreen.tsx`: Remove the reference number text input.
+  - `StatusScreen.tsx`: Remove the "Reference No." row from the summary card.
+  - `ReceiptScreen.tsx`: Remove "Reference: ..." from the ticket header.
+- **Structured Receipt Summary Breakdown (`ReceiptScreen.tsx`):**
+  Add top hero breakdown card:
+  ```tsx
+  <View style={styles.topSummaryCard}>
+      <View style={styles.summaryCol}>
+          <CustomText variant="caption" style={styles.summaryLabel}>Total Price</CustomText>
+          <CustomText variant="h3" style={styles.summaryValue}>₱{totalAmount.toFixed(2)}</CustomText>
+      </View>
+      <View style={styles.summaryDivider} />
+      <View style={styles.summaryCol}>
+          <CustomText variant="caption" style={styles.summaryLabel}>Amount Already Paid</CustomText>
+          <CustomText variant="h3" style={[styles.summaryValue, { color: Colors.SUCCESS }]}>₱{totalPaid.toFixed(2)}</CustomText>
+      </View>
+      <View style={styles.summaryDivider} />
+      <View style={styles.summaryCol}>
+          <CustomText variant="caption" style={styles.summaryLabel}>Remaining Balance</CustomText>
+          <CustomText variant="h3" style={[styles.summaryValue, { color: remainingBalance > 0 ? Colors.WARNING : Colors.PRIMARY }]}>
+              ₱{remainingBalance.toFixed(2)}
+          </CustomText>
+      </View>
+  </View>
+  ```
+- **My Bookings Web / Upcoming Layout Fix (`BookingCard.tsx`):**
+  - When `displayStatus === 'downpayment'`, remove `"Deposit Paid"` and display only `"Balance"`:
+    ```tsx
+    <View style={styles.flexCol}>
+        <CustomText variant="caption" style={styles.dataLabel}>Balance</CustomText>
+        <CustomText variant="h2" style={[styles.dataValue, { color: Colors.WARNING }]}>
+            ₱{remainingBalance.toFixed(2)}
+        </CustomText>
+    </View>
+    ```
+  - Apply `flexShrink: 1` and `numberOfLines={1}` across `dataValue`, `trailName`, and `actionCol` to eliminate text collision and overflow on Web.
+
+#### 6. Bugs & Inconsistencies Fixes
+- **Activity Log Discrepancy Fix (`PaymentScreen.tsx`, `ActivityLog.tsx`):**
+  - In `PaymentScreen.tsx`, set `amount: 0` (or leave undefined) in the pending `manual_qr` payment record instead of pre-populating `amountToPay`.
+  - In `ActivityLog.tsx`, format pending manual payments as:
+    `desc: "Payment receipt submitted via MANUAL_QR is currently pending verification."`
+    This accurately explains the state without fabricating a premature payment amount.
+- **Web Receipt Upload Glitch Fix (`DocumentUploadCard.tsx`):**
+  - Unify Web and Mobile image picking in `DocumentUploadCard.tsx` to use `ImagePicker.launchImageLibraryAsync` directly, eliminating `fileStore.uploadDocument()`'s invalid media library permission calls on Web.
+  - Gracefully exit when `result.canceled` without throwing `"Document selection canceled"` errors.
+
+---
+
+### C. Admin Mobile UI Inconsistency & Collision Analysis
+
+A systematic audit was conducted across all screens and components in the Admin subsystem (`src/features/Admin`) across mobile viewports (320px–390px widths). Below is the comprehensive catalog of detected layout collisions, text overflows, and overlapping boxes, together with their architectural remedies:
+
+| Component / Screen | Identified Inconsistency on Mobile | Root Cause in Styling / Layout | Remediation Strategy |
+| :--- | :--- | :--- | :--- |
+| **1. `ActivityLog.tsx`** | Timeline title and timestamp collide or push timestamp off-screen. | `timelineHeaderRow` has `flexDirection: 'row', justifyContent: 'space-between'`. Long event titles ("Emergency Contact Verified", "Partial Refund Processed") have no `flex: 1` / `flexShrink: 1`, while `timelineTime` has no `flexShrink: 0`. Available width in timeline column is only ~270px. | Add `flex: 1` and `flexShrink: 1` to `timelineEventTitle`, add `flexShrink: 0` and `marginLeft: 8` to `timelineTime`. Allow multi-line wrapping with `flexWrap: 'wrap'` on viewports <360px. |
+| **2. `PaymentTab.tsx`** | 4-column breakdown grid crunches into unreadable text when refunds exist (`totalRefunded > 0`). | `breakdownColumns` sets `flexDirection: 'row'` with 4 columns in 288px available width (~63px per column). Labels like `"To Collect (Remaining)"` and values like `"₱12,500.00"` break into 5 vertical lines or collide with adjacent columns. | Use responsive 2x2 wrapping grid on mobile: `flexWrap: 'wrap'`, setting each column to `width: '48%'` on mobile (`isWide ? '23%' : '48%'`) with row gap `12px`. |
+| **3. `PaymentTab.tsx`** | Right-aligned values wrap awkwardly under labels in inline transaction rows. | `paymentRow` has `flexWrap: 'wrap'` with `paymentValue` having `textAlign: 'right'`. When wrapped to line 2, it floats awkwardly at the far right. | On mobile viewports, stack long transaction rows vertically (`flexDirection: 'column', alignItems: 'flex-start'`) or restrict label width so values align cleanly. |
+| **4. `ManualQRVerificationCard.tsx`** | 3-column breakdown mini-panel numbers wrap or collide with dividers. | `balancePreviewBox` places 3 columns + 2 dividers in ~280px. 5-digit amounts (`₱12,500.00`) at `fontSize: 13` occupy ~85px, causing text wrapping or collision with the 1px divider lines. | Apply `numberOfLines={1}` with `adjustsFontSizeToFit={true}` (minimum font size `11px`) and compact horizontal padding. |
+| **5. `ManualQRVerificationCard.tsx`** | Receipt details list squeezed against 110px thumbnail; long reference codes clip. | `receiptContainer` has 110px thumbnail leaving only ~170px for `detailsList`. Long GCash/bank transaction references clip off the card. | Add `flexShrink: 1` and `numberOfLines={2}` to `detailValue` in `receiptContainer`. |
+| **6. `ManualQRVerificationCard.tsx`** | Calculation feedback banner icon vertically misaligned on multi-line text. | `calcFeedbackBox` has `alignItems: 'center'`. Multi-line overpayment feedback causes the icon to float in the middle of a 3-line paragraph. | Change `alignItems` to `'flex-start'` and add `marginTop: 2` to the icon. |
+| **7. `AdminCancellationCard.tsx`** | Cancellation title collides directly with status badge. | `headerRow` has `justifyContent: 'space-between'`, but `headerLeft` lacks `flex: 1`. Long titles ("Payout Proof Uploaded — Awaiting Hiker Confirmation") collide with `approvedBadge` ("NEEDS REFUND DECISION") on screens <390px. | Add `flex: 1` and `flexShrink: 1` to `headerLeft`. Wrap `headerTitle` cleanly and allow badge to wrap or adjust margins. |
+| **8. `AdminCancellationCard.tsx`** | Impact metrics row (3 items + 2 dividers) crammed side-by-side. | `impactRow` places 3 columns in ~246px width. Metric labels like `"AMOUNT REFUNDED"` and `"Held (Pending)"` wrap awkwardly into 3 cramped lines. | Use a 2-column or stacked grid on mobile when `resolvedRefunded > 0`. |
+| **9. `AdminCancellationCard.tsx`** | "Change Amount" button squashes waiting wallet text. | `waitingWalletBox` has `flexDirection: 'row'`. `changeRefundAmountBtn` forces `waitingWalletText` into a ~160px column. | Add `flexWrap: 'wrap'` to `waitingWalletBox` and allow `changeRefundAmountBtn` to wrap below the message on mobile. |
+| **10. `HikerProfileCard.tsx`** | Verification contact row squashes phone and name; buttons misaligned vertically. | `contactRow` is `flexDirection: 'row'`. `contactActions` (call button + verification pill, ~150px) leaves only ~138px for `contactLeft`. When emergency contact has name and phone (`+63 912 345 6789 (Maria Santos Dela Cruz)`), it wraps to 4 lines and vertically misaligns with `contactActions`. | Stack `contactActions` underneath `contactLeft` on mobile viewports (<360px), or give `contactActions` a full-width bottom action row. |
+| **11. `HikerProfileCard.tsx`** | Copyable email pushes copy icon off the card edge in expanded profile. | `copyableValueRow` has `emailText` without `flexShrink: 1`. Long emails (`user.name@longdomainexample.com`) push the copy icon off-screen. | Add `flexShrink: 1` to `emailText` with `numberOfLines={1}` and `ellipsizeMode="tail"`. |
+| **12. `DashboardScreen.tsx`** | Address and Serviced Location wrap underneath labels into awkward floating right blocks. | `inlineRow` has `flexWrap: 'wrap'` with `inlineValue` having `textAlign: 'right'`. Multi-word addresses span second lines right-aligned under labels. | On mobile, stack multi-line fields like Address and Serviced Location vertically (`flexDirection: 'column', alignItems: 'flex-start'`). |
+| **13. `DashboardScreen.tsx`** | "Manual Payment QR" title and "Manage QR" button collide on screens <360px. | `paymentConfigHeader` has heavy horizontal padding (24px card + 16px screen) leaving 280px. Title and button have no flex shrink. | Add `flex: 1` and `flexShrink: 1` to `paymentConfigTitleRow`. |
+| **14. `OwnerQRModal.tsx`** | Modal header subtitle collides with close button. | `headerLeft` has no `flex: 1`. "Owner Account Verification Required" (36 chars) overflows into the close button on screens <360px. | Add `flex: 1` and `flexShrink: 1` to `headerLeft` and title text container. |
+| **15. `OwnerQRModal.tsx`** | Footer buttons ("Delete QR" and "Save QR Code") cram text on narrow screens. | `footerRow` places two fixed-flex buttons with icons side-by-side in ~248px width. | Add `numberOfLines={1}` and `adjustsFontSizeToFit` to button labels, or stack vertically on screens <340px. |
+| **16. `OfferCard.tsx`** | Actionable bookings notification badge overlaps into adjacent "Edit" button. | `buttonNotificationDot` has `position: 'absolute', right: -8`. With a 12px gap between buttons, `right: -8` overflows into the boundary of `editButtonWrapper`. | Constrain badge positioning to `right: 0` or clamp inside `actionButtonWrapper`. |
+| **17. `ScheduleBuilderModal.tsx`** | Time input row (hour, colon, minute, AM/PM toggle, delete button) overflows on small viewports. | `activityTimeRow` crams two 50px boxes + toggle (82px) + delete button into 260px content column. | Reduce `timeInputBox` to 42x44px and decrease gaps from 12px to 8px on mobile so all elements fit comfortably without clipping. |
+| **18. `PersonnelListScreen.tsx`** | Long admin email strings without spaces push role badge off the card boundary. | `subtext` in `adminInfo` has no `numberOfLines={1}` or `ellipsizeMode="tail"`. Long emails push `cardRight` badge outward. | Add `numberOfLines={1}` and `ellipsizeMode="tail"` to `subtext`. |
+| **19. `AdminBookingCard.tsx`** | Status badge ("VERIFYING PAYMENT" ~135px) squashes hiker name and booking date. | `bookingCard` has `justifyContent: 'space-between'`. Long badges take ~140px, leaving only ~100px for hiker name and date on narrow screens (<360px). | Add `flexShrink: 1` to `statusBadge`, allow badge text `adjustsFontSizeToFit`, and ensure `hikerName` has `numberOfLines={1}`. |
+
+---
+
+### D. Reusable UI Component Audit, Consistency & Migration Strategy
+
+To guarantee visual, architectural, and behavioural consistency across all screens (User and Admin) and prevent fragmented styling, this section audits components performing similar functions across the application. 
+
+Per user directive, the harmonization strategy strictly prioritizes:
+1. **Reusing existing shared components** in `src/components/` where already suitable.
+2. **Non-destructively enhancing existing shared components** with backward-compatible props (e.g. adding sizing options) when the extension is clean and low-risk.
+3. **Copying and creating dedicated specialized shared components** when extending an existing component would introduce bloated conditionals or regression risks in existing screens.
+
+#### 1. Component Harmonization & Reuse Matrix
+
+| Functional Need | Current Ad-Hoc / Fragmented Implementations | Existing Shared Component | Harmonization Action | Target Resolution & Consistency Standard |
+| :--- | :--- | :--- | :--- | :--- |
+| **Status Badges & Pills** | 1. `AdminBookingCard` (`styles.statusBadge`)<br/>2. `BookingCard` (`styles.statusBadge`)<br/>3. `HikerProfileCard` (`styles.statusBadge`, `medicalBadge`, `minorBadge`)<br/>4. `ManualQRVerificationCard` (`styles.statusBadge`)<br/>5. `AdminCancellationCard` (`styles.approvedBadge`)<br/>6. `DocumentReviewCard` (`styles.badge`)<br/>7. `PersonnelListScreen` (`styles.ownerBadge`, `roleBadge`) | *None centralized.* Status dictionaries exist in `src/constants/statusConfig.ts`, but every screen builds raw `<View style={[styles.badge, ...]}>` with inconsistent padding (3px–10px), border radiuses (6px–20px), and font sizes. | **Copy & Create Specialized Component** (`CustomStatusBadge.tsx`) | Create `src/components/CustomStatusBadge.tsx`. Automatically resolves labels, colors, and icons from `statusConfig.ts` when given `statusKey`, or accepts custom parameters. Enforces `numberOfLines={1}` and `adjustsFontSizeToFit` to permanently eliminate badge squashing and text truncation on mobile. |
+| **Small / Inline Action Buttons** | 1. `PersonnelListScreen` (`headerAddBtn` overrides `CustomButton`)<br/>2. `OfferListScreen` (`headerAddButton` raw `TouchableOpacity`)<br/>3. `DashboardScreen` (`paymentConfigEditBtn` raw `TouchableOpacity`)<br/>4. `AdminCancellationCard` (`viewProofBtn`, `copyIconBtn`, `changeRefundAmountBtn`, `refundBtn`, `finalizeBtn`)<br/>5. `HikerProfileCard` (`verifyBtn`, `callCircleButton`, `expandToggle`)<br/>6. `DocumentReviewCard` (`viewFileBtn`, `decisionBtn`) | `CustomButton.tsx` in `src/components/` (currently hardcoded to `width: '100%'`, `paddingVertical: 16`, text `fontSize: 16`). | **Modify Existing Component** (`CustomButton.tsx`) | Add `size?: 'sm' \| 'md' \| 'lg'` (default `'lg'`) and `autoWidth?: boolean` to `CustomButtonProps`. Provide standardized padding, border radius, and font sizes for `'sm'` (`minHeight: 32`, `fontSize: 12`) and `'md'` (`minHeight: 42`, `fontSize: 14`). Migrate ad-hoc buttons to `<CustomButton size="sm">`. |
+| **Key-Value Info Rows** | 1. `DashboardScreen` (`InfoRow` helper)<br/>2. `HikerProfileCard` (`inlineRow` block)<br/>3. `PaymentTab` (`paymentRow`)<br/>4. `ManualQRVerificationCard` (`detailRow`)<br/>5. `AdminCancellationCard` (`walletFieldRow`)<br/>6. `ReceiptScreen` (`ticketRow`)<br/>7. `StatusScreen` (`summaryRow`) | *None centralized.* Each screen reimplements `justifyContent: 'space-between'` with `textAlign: 'right'`. | **Copy & Create Specialized Component** (`CustomInfoRow.tsx`) | Create `src/components/CustomInfoRow.tsx`. Provides standard typography, border divider options, optional copy-to-clipboard action with toast feedback, and auto-stacking on mobile viewports (<360px) to permanently prevent awkward right-aligned text wrapping. |
+| **Segmented Switcher Tabs** | 1. `ReviewScreen` (`styles.tabContainer` for Documents vs Payment)<br/>2. `TrailScreen` (`styles.tabContainer` for Overview/Reviews/Gallery)<br/>3. `TACScreen` (`styles.tabContainer` for Terms vs Privacy)<br/>4. `LegalTermsModal` (`styles.tabContainer`) | `CustomFilterTabs.tsx` in `src/components/` (designed for long, horizontally scrollable lists with gradient fades and drag-to-scroll). | **Copy & Create Specialized Component** (`CustomSegmentedTabs.tsx`) | Copy structural patterns from `ReviewScreen` and `CustomFilterTabs` to create `src/components/CustomSegmentedTabs.tsx`. Features equal-width `flex: 1` columns, smooth active background pill, icon support, and badge count pills. Replaces all inline 2-to-3 tab switchers. |
+| **Financial Triad / Quad Breakdown** | 1. `PaymentTab` (`breakdownColumns` 4-column row)<br/>2. `ManualQRVerificationCard` (`balancePreviewBox` 3-column row)<br/>3. `ReceiptScreen` (requested top financial summary) | *None centralized.* Ad-hoc flex rows with vertical divider lines. | **Copy & Create Specialized Component** (`PaymentBreakdownPanel.tsx`) | Create `src/components/PaymentBreakdownPanel.tsx`. Standardizes 3-item (Total, Paid, Balance) and 4-item (Total, Paid, Refunded, Remaining) financial metrics. Includes responsive 2x2 wrapping on mobile to eliminate the 4-column crunch bug. |
+| **Confirmation Dialogs** | `OwnerQRModal` (calls `Alert.alert` on mobile and `window.confirm` on web to confirm deleting payment QR code). | `ConfirmationModal.tsx` in `src/components/` (fully featured with responsive layout, semantic green/red themes, and animated backdrop). | **Reuse Existing Directly** (`ConfirmationModal.tsx`) | Replace `Alert.alert` / `window.confirm` in `OwnerQRModal.tsx` with `<ConfirmationModal>` for a unified cross-platform UX. |
+| **Rejection Feedback Forms** | Admin rejection prompts across document review, payment verification, and booking cancellations. | `CustomFeedbackInput.tsx` in `src/components/` (features preset suggestion chips, danger/warning borders, helper text). | **Reuse Existing Directly** (`CustomFeedbackInput.tsx`) | Ensure all rejection flows (`ManualQRVerificationCard`, `AdminCancelBookingModal`, `ReviewScreen` cancellation decline) consistently use `CustomFeedbackInput`. |
+| **Single-Image Upload & Preview** | 1. `OwnerQRModal` (custom image picker & upload state)<br/>2. `AdminCancellationCard` (custom image picker for refund receipt)<br/>3. `ManualQRVerificationCard` (custom image picker for excess refund proof) | `DocumentUploadCard.tsx` in `src/components/` (heavier card designed for multi-document checklist flows). | **Copy & Create Specialized Component** (`ImageUploadBox.tsx`) | Copy upload mechanics from `DocumentUploadCard.tsx` to create a lightweight `src/components/ImageUploadBox.tsx` tailored for single-image selection with preview thumbnail, enlarge button, replace/delete actions, and file size validation. |
+
+---
+
+#### 2. Architectural Blueprint for New & Enhanced Components
+
+##### A. Enhanced `CustomButton.tsx` (Full Component Specification)
+Standardized action button featuring semantic variants, sizing tokens, validation states, and disabled toast dispatches:
+```typescript
+export interface CustomButtonProps {
+    title?: string;
+    onPress?: (event: GestureResponderEvent) => void;
+    variant?: 'primary' | 'secondary' | 'outline' | 'destructive';
+    size?: 'sm' | 'md' | 'lg';
+    autoWidth?: boolean;
+    style?: StyleProp<ViewStyle>;
+    textStyle?: StyleProp<TextStyle>;
+    disabled?: boolean;
+    isLoading?: boolean;
+    throttleMs?: number;
+    children?: ReactNode;
+    icon?: string;
+    iconLibrary?: IconLibrary;
+    iconPosition?: 'left' | 'right';
+    iconSize?: number;
+    iconColor?: string;
+    disabledToastMessage?: string;
+    disabledToastType?: ToastType;
+    validationState?: ButtonValidationState; // 'valid' | 'idle' | 'error'
+    hasError?: boolean;                      // Shorthand for validationState="error"
+    isIdleDisabled?: boolean;                // Shorthand for validationState="idle"
+    numberOfLines?: number;
+    adjustsFontSizeToFit?: boolean;
+    minimumFontScale?: number;
+}
+
+// Sizing token styles:
+const sizeStyles = StyleSheet.create({
+    sm: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        minHeight: 32,
+    },
+    md: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        minHeight: 42,
+    },
+    lg: {
+        paddingVertical: 16,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        minHeight: 52,
+    },
+});
+
+const sizeTextStyles = StyleSheet.create({
+    sm: { fontSize: 12, fontWeight: '600' },
+    md: { fontSize: 14, fontWeight: '700' },
+    lg: { fontSize: 16, fontWeight: 'bold' },
+});
+```
+*Core Features:*
+- **Validation Tri-State:** Built-in support for `'valid'` (active), `'idle'` (soft-disabled), and `'error'` (shake/error style), eliminating custom form-validation button styling.
+- **Disabled Toast Dispatch:** Tapping a disabled button with `disabledToastMessage` triggers a feedback toast (e.g. informing users why the action is blocked).
+- **Auto-Width & Sizing Hierarchy:** `size="sm"` (32px), `size="md"` (42px), and `size="lg"` (52px) provide design system consistency. When `autoWidth={true}`, button shrinks to fit text/icon instead of expanding to `width: 100%`.
+- **Debounce Protection:** Defaults to `throttleMs: 500` to prevent accidental double-tap submission.
+- **Responsive Typography:** Auto-shrinks long action titles gracefully with `adjustsFontSizeToFit` and `minimumFontScale={0.8}`.
+
+##### B. New Component: `CustomStatusBadge.tsx`
+Centralized status badge rendering:
+```typescript
+export interface CustomStatusBadgeProps {
+    statusKey?: AppStatus | string;
+    role?: 'user' | 'admin';
+    label?: string;
+    icon?: string;
+    iconLibrary?: IconLibrary;
+    bgColor?: string;
+    textColor?: string;
+    size?: 'sm' | 'md';
+    variant?: 'pill' | 'rounded';
+    style?: StyleProp<ViewStyle>;
+}
+```
+*Features:*
+- When `statusKey` is supplied, automatically queries `getStatusConfig(statusKey, role)`.
+- Enforces `numberOfLines={1}` and `adjustsFontSizeToFit={true}` with minimum font scale `0.8`.
+- Replaces duplicate badge JSX in `AdminBookingCard`, `BookingCard`, `HikerProfileCard`, `DocumentReviewCard`, `PaymentTab`, `ManualQRVerificationCard`, `AdminCancellationCard`, and `PersonnelListScreen`.
+
+##### C. New Component: `CustomInfoRow.tsx`
+Standardized key-value display row:
+```typescript
+export interface CustomInfoRowProps {
+    label: string;
+    value?: React.ReactNode | string | number | null;
+    copyable?: boolean;
+    onCopyFeedback?: string;
+    stackedOnMobile?: boolean;
+    noBorder?: boolean;
+    labelColor?: string;
+    valueColor?: string;
+    style?: StyleProp<ViewStyle>;
+}
+```
+*Features:*
+- Handles string values with automatic fallback (`'N/A'`).
+- Integrated `expo-clipboard` copy button with toast feedback when `copyable={true}`.
+- Responsive wrapping: when `stackedOnMobile={true}` and viewport is <360px, renders label on row 1 and value on row 2, left-aligned, eliminating awkward right-align wrap.
+
+##### D. New Component: `CustomSegmentedTabs.tsx`
+Segmented control component for 2-to-4 tab switches:
+```typescript
+export interface SegmentedTabItem {
+    id: string;
+    label: string;
+    icon?: string;
+    iconLibrary?: IconLibrary;
+    badgeCount?: number;
+}
+
+export interface CustomSegmentedTabsProps {
+    tabs: (string | SegmentedTabItem)[];
+    activeTab: string;
+    onTabSelect: (tabId: string) => void;
+    style?: StyleProp<ViewStyle>;
+}
+```
+*Features:*
+- Equal-width `flex: 1` columns with unified background, active pill highlight, icon rendering, and badge counts.
+- Replaces ad-hoc `styles.tabContainer` in `ReviewScreen.tsx`, `TrailScreen.tsx`, `TACScreen.tsx`, and `LegalTermsModal.tsx`.
+
+##### E. New Component: `PaymentBreakdownPanel.tsx`
+Unified financial metrics presentation:
+```typescript
+export interface PaymentBreakdownItem {
+    label: string;
+    amount: number;
+    color?: string;
+    sublabel?: string;
+}
+
+export interface PaymentBreakdownPanelProps {
+    items: PaymentBreakdownItem[];
+    variant?: 'compact' | 'hero' | 'receipt';
+    style?: StyleProp<ViewStyle>;
+}
+```
+*Features:*
+- Standardized currency formatting (`₱XX,XXX.XX`).
+- Built-in responsive 2x2 wrapping on mobile screens (<360px) to prevent 3- and 4-column clipping.
+- Used in `ManualQRVerificationCard`, `PaymentTab`, and `ReceiptScreen`.
+
+---
+
+#### 3. Migration Roadmap for Screens & Components
+
+1. **Phase 1: Shared Components Creation & Extension (`src/components/`) (Completed ✅)**
+   - Updated `CustomButton.tsx` with `size?: 'sm' | 'md' | 'lg'`, `autoWidth`, validation tri-state, and disabled toast dispatches.
+   - Created `src/components/CustomStatusBadge.tsx`.
+   - Created `src/components/CustomInfoRow.tsx`.
+   - Created `src/components/CustomSegmentedTabs.tsx`.
+   - Created `src/components/PaymentBreakdownPanel.tsx`.
+2. **Phase 2: Admin Booking Review Subsystem Migration (Completed ✅)**
+   - In `ReviewScreen.tsx`: Integrated `<CustomSegmentedTabs>` and unified cancellation flow.
+   - In `AdminBookingCard.tsx`: Standardized badge to `<CustomStatusBadge>` and fixed `'refund'` vs `'refunded'` resolution.
+   - In `HikerProfileCard.tsx`: Replaced detail rows with `<CustomInfoRow>` and badges with `<CustomStatusBadge>`.
+   - In `DocumentReviewCard.tsx`: Standardized status badges with `<CustomStatusBadge>`.
+   - In `ManualQRVerificationCard.tsx`: Replaced detail rows with `<CustomInfoRow>` and financial display with `<PaymentBreakdownPanel>`.
+   - In `PaymentTab.tsx`: Standardized metrics display using `<PaymentBreakdownPanel>` and transaction records with `<CustomInfoRow>`.
+   - In `AdminCancellationCard.tsx`: Integrated `<CustomStatusBadge>`, `<CustomInfoRow>`, and streamlined receipt upload.
+3. **Phase 3: Admin Hub & Management Screens Migration (Completed ✅)**
+   - In `DashboardScreen.tsx`: Replaced ad-hoc rows with `<CustomInfoRow>`.
+   - In `PersonnelListScreen.tsx`: Standardized badges with `<CustomStatusBadge>`.
+   - In `OwnerQRModal.tsx`: Hardened validation and modal confirmations.
+4. **Phase 4: User Booking & Receipt Screens Migration (Completed ✅)**
+   - In `ReceiptScreen.tsx`: Implemented financial metrics using `<PaymentBreakdownPanel variant="receipt">` and ticket rows with `<CustomInfoRow>`.
+   - In `BookingCard.tsx`: Standardized badges with `<CustomStatusBadge>`.
+   - In `StatusScreen.tsx`: Standardized booking metrics with `<CustomInfoRow>`.
+5. **Phase 5: Mobile Admin Performance Optimization & Native Persistence Throttling (Completed ✅)**
+   - **Root Cause & Bottleneck Isolation:**
+     - **Synchronous `AsyncStorage` serialization on mobile:** Zustand's `persist` middleware synchronously ran `JSON.stringify` on the JS thread after every single `set()`, serializing entire nested realtime dictionaries (`bookingByOffer`, `businessCancellations`) across the React Native bridge.
+     - **Non-UI listener bookkeeping coupled to reactive state:** `activeListeners` and `listenerCounts` triggered full Zustand state mutations and Immer recomputations on simple ref-count increments and component unmounts.
+     - **Redundant network refetching on mount:** `useOfferAdminList` refetched all business offers every time an admin booking review screen was mounted.
+     - **Quadratic $O(N \cdot M)$ scans:** `displayBookings` in `src/app/(app)/(main)/admin/offer/view.tsx` used linear `.find()` over cancellations for each booking item.
+     - **`React.memo` reference busting:** Passing inline `style={{ width: '100%' }}` broke shallow equality on `OfferCard` in `OfferListScreen.tsx`.
+   - **Implemented Solutions:**
+     - **Shared Throttled Storage Adapter:** Created `createThrottledJSONStorage(throttleMs = 500)` in `src/core/utility/createThrottledAsyncStorage.ts` implementing `PersistStorage` with trailing 500ms debounce, payload deduplication against the last written string, `AppState` background flushing, and cancellation on `removeItem()`.
+     - **Listener Persistence Exclusion:** Excluded `bookingByOffer` and `businessCancellations` from `partialize` in `bookingStore.native.ts` and `cancellationStore.native.ts`.
+     - **Store Migration:** Migrated all `.native.ts` persisted Zustand stores (`booking`, `cancellation`, `offer`, `business`, `admin`, `payment`, `reschedule`) to `createThrottledJSONStorage(500)`.
+     - **Decoupled Listener Tracking:** Moved `activeListeners` and `listenerCounts` to module-level Maps in `bookingStoreCreator.ts` and `cancellationStoreCreator.ts`, making ref-count increments on existing listeners and decrements that remain $> 0$ perform zero `set()` calls.
+     - **Snapshot Shallow Equality Checking:** Added `areBookingsEqual` and `areCancellationsEqual` guards to discard identical Firestore snapshot updates.
+     - **Optimized Offer Retrieval:** In `src/app/(app)/(main)/admin/booking/view.tsx`, replaced `useOfferAdminList()` with a direct Zustand selector `useOfferStore(s => s.businessOffers)` and single-mount safety fallback. Guarded `useOfferAdminList` to skip mount fetches when offers for `businessId` are already in memory.
+     - **Linear Map Indexing:** In `src/app/(app)/(main)/admin/offer/view.tsx`, built a single-pass `Map<string, Cancellation>` inside `useMemo` for $O(1)$ lookup per booking ($O(N + M)$ total complexity).
+     - **Hoisted Static Styles:** In `OfferListScreen.tsx`, hoisted inline styles to `styles.offerCardFullWidth` to maintain `React.memo` purity.
+   - **Unit Tests Added:**
+     - `src/core/utility/__tests__/createThrottledAsyncStorage.test.ts` (100% pass)
+     - `src/core/models/Booking/stores/__tests__/bookingStore.test.ts` (100% pass)

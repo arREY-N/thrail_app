@@ -134,14 +134,10 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
     },
 
     fetchAll: async () => {
-        set({ isLoading: true, error: null })
-
         const data = get().data;
+        if (data.length > 0) return;
 
-        if (data.length > 0) {
-            set({ isLoading: false, error: null })
-            return;
-        }
+        set({ isLoading: true, error: null });
 
         try {
             const offers = await OfferRepo.fetchAll();
@@ -151,79 +147,63 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
                     data: [],
                     error: 'No offers found',
                     isLoading: false
-                })
+                });
                 return;
             }
 
             set({
                 data: offers,
                 isLoading: false
-            })
+            });
         } catch (err) {
-            set({ isLoading: false, error: (err as Error).message || 'Failed fetching offers' })
+            set({ isLoading: false, error: (err as Error).message || 'Failed fetching offers' });
             throw err;
         }
     },
 
     fetchOfferByBusiness: async (id: string) => {
-        set({ isLoading: true, error: null })
+        if (!id) return;
 
         try {
-            if (!id)
-                throw new Error('No ID provided')
+            set({ isLoading: true, error: null });
 
-            const data = get().businessOffers;
-
-            let offers: Offer[] = [];
-
-            if (data.length > 0) {
-                offers = data.filter(o => o.business.id === id);
-            };
-
-            if (offers.length === 0) {
-                offers = await OfferRepo.fetchAllBusinessOffers(id);
-            }
+            const offers = await OfferRepo.fetchAllBusinessOffers(id);
 
             if (offers.length === 0) {
                 set({
                     businessOffers: [],
                     error: 'No offers found',
                     isLoading: false
-                })
+                });
                 return;
             }
 
             set({
                 businessOffers: offers,
                 isLoading: false
-            })
+            });
         } catch (err) {
-            set({ isLoading: false })
-            throw err
+            set({ isLoading: false, error: (err as Error).message });
+            throw err;
         }
     },
 
     fetchOfferById: async (id: string): Promise<void> => {
+        const existingOffer = get().data.find(o => o.id === id) ||
+            get().trailOffers.find(o => o.id === id) ||
+            get().businessOffers.find(o => o.id === id);
+
+        if (existingOffer) {
+            if (!get().data.some(o => o.id === id)) {
+                set({ data: upsertItem(get().data, existingOffer) });
+            }
+            return;
+        }
+
         try {
             set({ isLoading: true, error: null });
 
-            let offer = null;
-
-            if (get().data.length > 0) {
-                offer = get().data.find(o => o.id === id);
-            }
-
-            if (!offer) {
-                offer = get().trailOffers.find(o => o.id === id);
-            }
-
-            if (!offer) {
-                offer = get().businessOffers.find(o => o.id === id);
-            }
-
-            if (!offer) {
-                offer = await OfferRepo.fetch(id);
-            }
+            const offer = await OfferRepo.fetch(id);
 
             if (!offer) {
                 throw new Error('No offer found');
@@ -235,8 +215,8 @@ export const offerStoreCreator: StateCreator<OfferState, [["zustand/immer", neve
                 error: null
             });
         } catch (error) {
-            set({ isLoading: false })
-            throw error
+            set({ isLoading: false, error: (error as Error).message });
+            throw error;
         }
     },
 

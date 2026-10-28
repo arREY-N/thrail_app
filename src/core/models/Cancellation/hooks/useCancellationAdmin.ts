@@ -1,12 +1,12 @@
 import { functions } from "@/src/core/config/Firebase";
 import { httpsCallable } from "firebase/functions";
-import { Cancellation } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
+import { Cancellation, HandshakeStep } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { catchError, logger } from "@/src/core/utility/errorFormatter";
 import { useState } from "react";
 
-import { Booking, useBookingsStore } from "@/src/core/models/Booking/Booking";
+import { Booking, BookingRepo, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useCancellationAdminList } from "@/src/core/models/Cancellation/hooks/useCancellationAdminList";
 import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/CancellationFactory";
@@ -115,11 +115,21 @@ export function useCancellationAdmin(bookingId: string) {
     }
 
     /**
-     * Creates a cancellation request on behalf of a user booking. This function is intended for admin use only.
-     * @param {Booking} booking - The booking for which to create a cancellation request.
+     * Creates a cancellation on behalf of an organizer-initiated booking cancellation.
+     * Sets status to 'approved' and defines the refund amount upfront so that the hiker is immediately
+     * prompted to enter their wallet details (streamlining the flow and removing intermediate acceptance round-trips).
+     * 
+     * @param {Booking} booking - The booking to cancel.
      * @param {string} reason - The reason for the cancellation.
+     * @param {'full' | 'partial' | 'none'} refundType - Explicit refund decision selected by the admin.
+     * @param {number} refundAmount - The resolved refund amount.
      */
-    const cancelUserBooking = async (booking: Booking, reason: string) => {
+    const cancelUserBooking = async (
+        booking: Booking,
+        reason: string,
+        refundType: 'full' | 'partial' | 'none' = 'full',
+        refundAmount?: number
+    ) => {
         try {
             setWritingError(null);
 
@@ -128,6 +138,38 @@ export function useCancellationAdmin(bookingId: string) {
 
             if (role !== "admin")
                 throw new Error("Only admins can cancel bookings through this path.");
+
+            const totalPaid = (booking.payment || []).reduce(
+                (sum, p) => (p.status === 'captured' ? sum + p.amount : sum),
+                0
+            );
+
+            let resolvedRefundAmount = 0;
+            if (refundType === 'full') {
+                resolvedRefundAmount = totalPaid;
+            } else if (refundType === 'partial') {
+                resolvedRefundAmount = typeof refundAmount === 'number'
+                    ? Math.min(totalPaid, Math.max(0, refundAmount))
+                    : totalPaid;
+            } else {
+                resolvedRefundAmount = 0;
+            }
+
+            const isManualRefund =
+                PAYMENT_CONFIG.PROVIDER === 'manual_qr' ||
+                (booking.payment || []).some(p => p.gateway === 'manual_qr');
+
+            // If manual refund and refund amount > 0, immediately request hiker wallet.
+            // If refund is 0 or unpaid, mark completed.
+            let handshakeStep: HandshakeStep = 'completed';
+            if (isManualRefund && resolvedRefundAmount > 0) {
+                const existingCancellation = cancellationRequest?.bookingId === booking.id
+                    ? cancellationRequest
+                    : businessCancellations.find(c => c.bookingId === booking.id);
+                handshakeStep = existingCancellation?.userWallet?.accountNumber
+                    ? 'awaiting_admin_payout'
+                    : 'awaiting_user_wallet';
+            }
 
             const cancellationNotice = createCancellationRequest(
                 {
@@ -138,15 +180,28 @@ export function useCancellationAdmin(bookingId: string) {
                     offerId: booking.offer.id,
                     businessId: booking.business.id,
                 },
-                PAYMENT_CONFIG.PROVIDER === 'manual_qr'
-                    ? { handshakeStep: "awaiting_user_acceptance" }
-                    : {}
+                {
+                    status: 'approved',
+                    refundAmount: resolvedRefundAmount,
+                    refundDecision: resolvedRefundAmount > 0 ? 'issue_refund' : 'no_refund',
+                    handshakeStep,
+                }
             );
 
             await createCancellation({
                 cancellation: cancellationNotice,
                 isAdmin: true
             });
+
+            // Atomically update booking status
+            const updatedBooking: Booking = {
+                ...booking,
+                status: resolvedRefundAmount > 0 ? 'refund' : 'cancelled',
+                cancellationReason: reason,
+                cancelledBy: 'admin',
+                updatedAt: new Date(),
+            };
+            await BookingRepo.write(updatedBooking);
 
             const resolvedBizId = businessId || booking.business?.id;
             if (resolvedBizId) {
@@ -157,6 +212,7 @@ export function useCancellationAdmin(bookingId: string) {
         } catch (error) {
             catchError(error as Error, 'writingError', 'cancelUserBooking()');
             setWritingError((error as Error).message || "An unexpected error occurred.");
+            throw error;
         }
     }
 

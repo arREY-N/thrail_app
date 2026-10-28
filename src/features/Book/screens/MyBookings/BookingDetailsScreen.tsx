@@ -229,7 +229,18 @@ const BookingDetailsScreen = ({
     if (isNoRefund) {
         displayStatus = 'cancelled';
     } else if (cancellation?.status === 'pending') {
-        displayStatus = 'for-cancellation';
+        if (cancellation?.cancelledBy === 'admin') {
+            const hasCapturedPayments = payments.some(p => p.status === 'captured');
+            if (isRefundComplete) {
+                displayStatus = 'refunded';
+            } else if (hasCapturedPayments || (cancellation?.refundAmount ?? 0) > 0) {
+                displayStatus = 'refund';
+            } else {
+                displayStatus = 'cancelled';
+            }
+        } else {
+            displayStatus = 'for-cancellation';
+        }
     } else if (
         cancellation?.status === 'approved' ||
         cancellation?.status === 'refund_submitted' ||
@@ -277,8 +288,16 @@ const BookingDetailsScreen = ({
     const isInactiveBooking = displayStatus === 'cancelled' || displayStatus === 'refunded' || localStatus === 'cancelled' || localStatus === 'refunded';
     const remainingBalance = isInactiveBooking ? 0 : Math.max(0, totalAmount - amountPaid);
 
-    const isPaymentVerifying = booking?.paymentVerificationStatus === 'pending_verification' ||
-        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+    const isCompletedOrFullyPaid = 
+        displayStatus === 'completed' || 
+        booking?.status === 'completed' || 
+        booking?.paymentVerificationStatus === 'fully_paid' ||
+        isInactiveBooking;
+
+    const isPaymentVerifying = !isCompletedOrFullyPaid && (
+        booking?.paymentVerificationStatus === 'pending_verification' ||
+        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'))
+    );
 
     const isPaymentRejected = !isPaymentVerifying && (
         booking?.paymentVerificationStatus === 'rejected' ||

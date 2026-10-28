@@ -1,7 +1,7 @@
 import { AdminState, adminStoreCreator } from "@/src/core/models/Admin/stores/adminStoreCreator";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createThrottledJSONStorage } from "@/src/core/utility/createThrottledAsyncStorage";
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
 export const useAdminStore = create<AdminState>()(
@@ -9,7 +9,7 @@ export const useAdminStore = create<AdminState>()(
         immer(adminStoreCreator),
         {
             name: "admin-storage",
-            storage: createJSONStorage(() => AsyncStorage),
+            storage: createThrottledJSONStorage(500),
         }
     )
 );

@@ -6,8 +6,8 @@
 
 import React, { useState } from 'react';
 import {
-    Alert,
     Image,
+    KeyboardAvoidingView,
     Modal,
     Platform,
     ScrollView,
@@ -18,6 +18,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 
 import CustomButton from '@/src/components/CustomButton';
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
@@ -61,6 +62,23 @@ export const OwnerQRModal: React.FC<OwnerQRModalProps> = ({
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+
+    const [prevVisible, setPrevVisible] = useState(false);
+
+    if (visible && !prevVisible) {
+        setPrevVisible(true);
+        const cfg = business?.paymentConfig;
+        setQrCodeUrl(cfg?.qrCodeUrl || '');
+        setPickedLocalUri(null);
+        setAccountName(cfg?.accountName || '');
+        setAccountNumber(cfg?.accountNumber || '');
+        setProviderName(cfg?.providerName || 'GCash / Maya');
+        setErrorMessage(null);
+        setSuccessMessage(null);
+    } else if (!visible && prevVisible) {
+        setPrevVisible(false);
+    }
 
     const isAccountPhoneInvalid = accountNumber.length > 0 && !/^09\d{9}$/.test(accountNumber);
 
@@ -77,7 +95,7 @@ export const OwnerQRModal: React.FC<OwnerQRModalProps> = ({
             }
 
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images'],
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: false,
                 quality: 0.9,
             });
@@ -87,8 +105,10 @@ export const OwnerQRModal: React.FC<OwnerQRModalProps> = ({
             }
 
             const asset = result.assets[0];
-            const extension = (asset.fileName || asset.uri).split('.').pop()?.toLowerCase();
-            if (extension && !ALLOWED_EXTENSIONS.includes(extension)) {
+            const isImageMime = !asset.mimeType || asset.mimeType.startsWith('image/');
+            const rawExt = (asset.fileName || asset.uri).split('?')[0].split('.').pop()?.toLowerCase();
+            const hasValidExt = rawExt && ALLOWED_EXTENSIONS.includes(rawExt);
+            if (!isImageMime && !hasValidExt) {
                 setErrorMessage('Only JPG, PNG, WEBP, or HEIC image files are accepted.');
                 return;
             }
@@ -179,28 +199,7 @@ export const OwnerQRModal: React.FC<OwnerQRModalProps> = ({
             return;
         }
 
-        if (Platform.OS === 'web') {
-            const confirmed = window.confirm(
-                'Are you sure you want to delete the master payment QR code? Hikers will no longer be able to submit manual QR payments.'
-            );
-            if (confirmed) {
-                handleRemove();
-            }
-            return;
-        }
-
-        Alert.alert(
-            'Delete Payment QR',
-            'Are you sure you want to delete the master payment QR code? Hikers will no longer be able to submit manual QR payments.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: handleRemove,
-                },
-            ]
-        );
+        setShowDeleteConfirm(true);
     };
 
     const handleRemove = async () => {
@@ -246,8 +245,17 @@ export const OwnerQRModal: React.FC<OwnerQRModalProps> = ({
                 animationType="fade"
                 onRequestClose={onClose}
             >
-                <View style={styles.overlay}>
-                    <View style={[styles.dialogCard, isWideScreen && styles.dialogCardWide]}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+                    style={styles.overlay}
+                >
+                    <TouchableOpacity
+                        style={StyleSheet.absoluteFill}
+                        activeOpacity={1}
+                        onPress={onClose}
+                    />
+                    <View style={[styles.dialogCard, isWideScreen ? styles.dialogCardWide : styles.dialogCardMobile]}>
                         {/* Header */}
                         <View style={styles.header}>
                             <View style={styles.headerLeft}>
@@ -389,6 +397,7 @@ export const OwnerQRModal: React.FC<OwnerQRModalProps> = ({
                                     <CustomButton
                                         title={currentConfig?.qrCodeUrl ? "Delete QR" : "Clear"}
                                         variant="outline"
+                                        size="md"
                                         icon="trash-2"
                                         iconLibrary="Feather"
                                         iconColor={Colors.ERROR}
@@ -401,6 +410,7 @@ export const OwnerQRModal: React.FC<OwnerQRModalProps> = ({
                                 <CustomButton
                                     title={isSaving ? "Saving..." : "Save QR Code"}
                                     variant="primary"
+                                    size="md"
                                     icon="check"
                                     iconLibrary="Feather"
                                     onPress={handleSave}
@@ -411,7 +421,7 @@ export const OwnerQRModal: React.FC<OwnerQRModalProps> = ({
                             </View>
                         )}
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
 
             {previewImageUrl ? (
@@ -421,6 +431,22 @@ export const OwnerQRModal: React.FC<OwnerQRModalProps> = ({
                     onClose={() => setPreviewImageUrl(null)}
                 />
             ) : null}
+
+            <ConfirmationModal
+                visible={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={() => {
+                    setShowDeleteConfirm(false);
+                    handleRemove();
+                }}
+                title="Delete Payment QR?"
+                message="Are you sure you want to delete the master payment QR code? Hikers will no longer be able to submit manual QR payments."
+                isDestructive={true}
+                confirmText="Yes, Delete"
+                cancelText="Cancel"
+                iconName="trash-2"
+                isLoading={isSaving}
+            />
         </>
     );
 };
@@ -436,7 +462,6 @@ const styles = StyleSheet.create({
     dialogCard: {
         width: '100%',
         maxWidth: 520,
-        maxHeight: '90%',
         backgroundColor: Colors.WHITE,
         borderRadius: 20,
         overflow: 'hidden',
@@ -444,11 +469,18 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         ...GlobalStyles.dropShadow(5),
     },
+    dialogCardMobile: {
+        height: '85%',
+        maxHeight: '90%',
+    },
     dialogCardWide: {
         maxWidth: 560,
+        height: 620,
+        maxHeight: '90%',
     },
     scrollView: {
         flex: 1,
+        width: '100%',
     },
     header: {
         flexDirection: 'row',
@@ -464,6 +496,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
+        flex: 1,
+        marginRight: 8,
     },
     iconCircle: {
         width: 40,
@@ -607,6 +641,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_ULTRALIGHT,
         backgroundColor: Colors.WHITE,
+        flexWrap: 'wrap',
     },
     removeBtn: {
         flex: 1,

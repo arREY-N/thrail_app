@@ -30,12 +30,12 @@ export function useOfferAdminList() {
         ])
     }, [profile?.id, businessId])
 
-    const onViewOfferBookings = (offerId: string) => {
+    const onViewOfferBookings = useCallback((offerId: string) => {
         router.push({
-            pathname: '/(main)/admin/offer/view',
+            pathname: '/(app)/(main)/admin/offer/view',
             params: { offerId }
         });
-    }
+    }, []);
 
     return useMemo(() => ({
         onRefresh,
@@ -46,5 +46,5 @@ export function useOfferAdminList() {
         error,
         businessId,
         isLoading,
-    }), [onRefresh, error, businessOffers, profile, role, businessId, isLoading])
+    }), [onRefresh, onViewOfferBookings, error, businessOffers, profile, role, businessId, isLoading])
 }

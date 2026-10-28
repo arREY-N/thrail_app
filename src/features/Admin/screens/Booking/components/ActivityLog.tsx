@@ -192,10 +192,13 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
                     sortDate: paymentDate
                 });
             } else if (paymentRecord.status === 'pending') {
+                const descText = paymentRecord.gateway === 'manual_qr'
+                    ? "Payment receipt submitted via MANUAL_QR is currently pending verification."
+                    : `Payment of ₱${paymentRecord.amount.toFixed(2)} via ${paymentRecord.gateway.toUpperCase()} is currently pending.`;
                 timelineEvents.push({
                     title: "Payment Processing",
                     time: paymentRecord.createdAt ? formatDateToStandard(paymentRecord.createdAt) : '',
-                    desc: `Payment of ₱${paymentRecord.amount.toFixed(2)} via ${paymentRecord.gateway.toUpperCase()} is currently pending.`,
+                    desc: descText,
                     status: "PENDING",
                     color: Colors.STATUS_WARNING_TEXT,
                     sortDate: paymentDate
@@ -516,17 +519,20 @@ const styles = StyleSheet.create({
     timelineHeaderRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
+        gap: 8,
         marginBottom: 4
     },
     timelineEventTitle: {
         fontWeight: 'bold',
         fontSize: 13,
-        color: Colors.TEXT_PRIMARY
+        color: Colors.TEXT_PRIMARY,
+        flex: 1,
     },
     timelineTime: {
         fontSize: 11,
-        color: Colors.TEXT_SECONDARY
+        color: Colors.TEXT_SECONDARY,
+        flexShrink: 0,
     },
     timelineDesc: {
         fontSize: 12,

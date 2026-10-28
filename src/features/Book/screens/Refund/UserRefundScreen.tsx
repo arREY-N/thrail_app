@@ -4,7 +4,7 @@
  * once a refund has been approved by the organizer, and inspecting the admin payout proof receipt.
  */
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Image,
@@ -52,6 +52,8 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
     const { confirmRefundReceived, disputeRefundPayout } = useCancellationUser();
     const existingWallet = cancellation?.userWallet;
 
+    const scrollViewRef = useRef<ScrollView>(null);
+
     const [walletType, setWalletType] = useState<'GCash' | 'Maya'>(existingWallet?.walletType || 'GCash');
     const [accountNumber, setAccountNumber] = useState<string>(existingWallet?.accountNumber || '');
     const [accountName, setAccountName] = useState<string>(existingWallet?.accountName || '');
@@ -64,8 +66,10 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
     const [disputeReasonInput, setDisputeReasonInput] = useState<string>('');
     const [isSubmittingDispute, setIsSubmittingDispute] = useState<boolean>(false);
 
-    const isAwaitingAdminDecision = (cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || cancellation?.refundAmount === undefined) && !existingWallet?.accountNumber;
-    const refundAmount = cancellation?.refundAmount ?? 0;
+    const isAdminCancelled = cancellation?.cancelledBy === 'admin';
+    const totalPaid = (booking?.payment || []).reduce((sum, p) => p.status === 'captured' ? sum + p.amount : sum, 0);
+    const refundAmount = cancellation?.refundAmount ?? (isAdminCancelled ? totalPaid : 0);
+    const isAwaitingAdminDecision = !isAdminCancelled && (cancellation?.handshakeStep === 'awaiting_admin_refund_decision' || cancellation?.refundAmount === undefined) && !existingWallet?.accountNumber;
     const hasSubmittedWallet = Boolean(existingWallet?.accountNumber);
     const adminProofReceipt = cancellation?.adminRefundReceiptUrl;
 
@@ -177,10 +181,13 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
                 style={{ flex: 1 }}
             >
                 <ScrollView
+                    ref={scrollViewRef}
                     showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                     contentContainerStyle={styles.scrollContent}
                 >
                     <View style={styles.constrainer}>
@@ -392,6 +399,11 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
                                     maxLength={11}
                                     value={accountNumber}
                                     onChangeText={(t: string) => setAccountNumber(formatPhoneNumber(t))}
+                                    onFocus={() => {
+                                        setTimeout(() => {
+                                            scrollViewRef.current?.scrollToEnd({ animated: true });
+                                        }, Platform.OS === 'android' ? 250 : 100);
+                                    }}
                                     icon="phone"
                                     iconLibrary="Feather"
                                 />
@@ -402,6 +414,11 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
                                     placeholder="e.g. Juan Dela Cruz"
                                     value={accountName}
                                     onChangeText={setAccountName}
+                                    onFocus={() => {
+                                        setTimeout(() => {
+                                            scrollViewRef.current?.scrollToEnd({ animated: true });
+                                        }, Platform.OS === 'android' ? 250 : 100);
+                                    }}
                                     icon="user"
                                     iconLibrary="Feather"
                                 />
@@ -528,7 +545,7 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
 const styles = StyleSheet.create({
     scrollContent: {
         paddingTop: 16,
-        paddingBottom: 40,
+        paddingBottom: 160,
         paddingHorizontal: 16,
     },
     constrainer: {

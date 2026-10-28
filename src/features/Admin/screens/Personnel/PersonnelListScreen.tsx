@@ -142,10 +142,10 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
                         )}
                     </View>
 
-                    <CustomText variant="caption" style={styles.subtext}>
+                    <CustomText variant="caption" style={styles.subtext} numberOfLines={1} ellipsizeMode="tail">
                         @{admin.username || '--'}
                     </CustomText>
-                    <CustomText variant="caption" style={styles.subtext}>
+                    <CustomText variant="caption" style={styles.subtext} numberOfLines={1} ellipsizeMode="tail">
                         {admin.email || '--'}
                     </CustomText>
                 </View>
@@ -186,6 +186,7 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
                         title="Add"
                         onPress={onAddAdminPress}
                         variant="primary"
+                        size="sm"
                         style={styles.headerAddBtn}
                         textStyle={styles.headerAddBtnText}
                     />

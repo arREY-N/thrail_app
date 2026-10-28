@@ -642,16 +642,19 @@ const styles = StyleSheet.create({
     },
     contactRow: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: Colors.GRAY_ULTRALIGHT,
+        gap: 8,
     },
     contactLeft: {
         flexDirection: 'column',
         gap: 4,
         flex: 1,
+        minWidth: 160,
     },
     contactLabel: {
         fontSize: 11,
@@ -678,7 +681,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 8,
         alignItems: 'center',
-        marginTop: 8,
+        marginTop: 4,
+        flexShrink: 0,
     },
     callCircleButton: {
         width: 32,
@@ -787,11 +791,13 @@ const styles = StyleSheet.create({
         gap: 6,
         flexShrink: 1,
         justifyContent: 'flex-end',
+        maxWidth: '70%',
     },
     emailText: {
         color: Colors.PRIMARY,
         fontSize: 12,
         fontWeight: '600',
+        flexShrink: 1,
     }
 });
 

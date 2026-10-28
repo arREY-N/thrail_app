@@ -1,10 +1,10 @@
+import React from 'react';
 import { StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
 
-import CustomIcon from '@/src/components/CustomIcon';
+import CustomStatusBadge from '@/src/components/CustomStatusBadge';
 import CustomText from '@/src/components/CustomText';
 
 import { Colors } from '@/src/constants/colors';
-import { getStatusConfig } from '@/src/constants/statusConfig';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
@@ -31,15 +31,30 @@ const AdminBookingCard = ({
     cancellation,
 }: AdminBookingCardProps) => {
     const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
-    const displayStatus = (hasRefundedPayment || booking.status === 'refund' || booking.status === 'refunded')
-        ? 'refunded'
-        : (cancellation && cancellation.status === 'pending' && cancellation.cancelledBy === 'user' && booking.status !== 'cancelled'
-            ? 'for-cancellation'
-            : booking.status);
+    const isVerifyingPayment = booking.paymentVerificationStatus === 'pending_verification' ||
+        Boolean(booking.payment?.some((p: IPayment<Date>) => p.gateway === 'manual_qr' && p.status === 'pending'));
 
-    const statusConfig = getStatusConfig(displayStatus, 'admin');
-    
-    const requiresAdminAction = !isOfferLocked && ['for-reservation', 'downpayment', 'paid', 'for-cancellation', 'for-reschedule'].includes(displayStatus);
+    const isRefundComplete =
+        booking.status === 'refunded' ||
+        cancellation?.status === 'refund_completed' ||
+        cancellation?.handshakeStep === 'completed' ||
+        (hasRefundedPayment && booking.status !== 'refund');
+
+    const isRefunding =
+        booking.status === 'refund' ||
+        (cancellation?.status === 'approved' && ['hiker_details_submitted', 'admin_payout_sent', 'user_declined_receipt', 'refund_disputed'].includes(cancellation?.handshakeStep || ''));
+
+    const displayStatus = isRefundComplete
+        ? 'refunded'
+        : (isRefunding
+            ? 'refund'
+            : (cancellation && cancellation.status === 'pending' && cancellation.cancelledBy === 'user' && booking.status !== 'cancelled'
+                ? 'for-cancellation'
+                : (isVerifyingPayment && booking.status === 'for-payment'
+                    ? 'verifying-payment'
+                    : booking.status)));
+
+    const requiresAdminAction = !isOfferLocked && ['for-reservation', 'verifying-payment', 'downpayment', 'paid', 'for-cancellation', 'for-reschedule', 'refund'].includes(displayStatus);
 
     const firstName = booking.user?.firstname || 'Unknown';
     const lastName = booking.user?.lastname || 'Hiker';
@@ -76,17 +91,12 @@ const AdminBookingCard = ({
                 </View>
             </View>
             
-            <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
-                <CustomIcon 
-                    library="Feather" 
-                    name={statusConfig.icon} 
-                    size={10} 
-                    color={statusConfig.textColor} 
-                />
-                <CustomText variant="caption" style={[styles.badgeText, { color: statusConfig.textColor }]}>
-                    {statusConfig.label}
-                </CustomText>
-            </View>
+            <CustomStatusBadge
+                statusKey={displayStatus}
+                role="admin"
+                size="sm"
+                style={styles.statusBadge}
+            />
         </TouchableOpacity>
     );
 };
@@ -153,4 +163,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default AdminBookingCard;
+export default React.memo(AdminBookingCard);

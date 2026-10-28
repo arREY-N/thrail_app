@@ -24,7 +24,6 @@ import CustomButton from '@/src/components/CustomButton';
 import { getStickyFooterScrollPadding } from '@/src/components/CustomStickyFooter';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomTextInput from '@/src/components/CustomTextInput';
 import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { useToast } from '@/src/components/Toast/Toast';
@@ -369,8 +368,8 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
                     </CustomText>
 
                     <DocumentUploadCard
-                        docName={hasUploadedReceipt ? "Payment Receipt Uploaded" : "Payment Receipt Screenshot"}
-                        subtitle={hasUploadedReceipt ? "Receipt ready — sign below and tap Submit to send for verification" : "Upload clear screenshot showing amount & reference number"}
+                        docName="Payment Receipt"
+                        subtitle={hasUploadedReceipt ? "Receipt attached • Ready to submit" : "Screenshot showing amount & reference no."}
                         isUploaded={receiptUrl || undefined}
                         isRejected={isReceiptRejected}
                         rejectionReason={bookingData?.paymentRejectionReason}
@@ -378,18 +377,6 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
                         onUploadSuccess={(url) => setReceiptUrl(url)}
                         onDelete={() => setReceiptUrl('')}
                     />
-
-                    {/* Reference Number Input */}
-                    <View style={styles.refInputContainer}>
-                        <CustomTextInput
-                            label="Reference / Transaction Number (Optional)"
-                            placeholder="e.g. 1002 9384 1234"
-                            value={referenceCode}
-                            onChangeText={setReferenceCode}
-                            icon="hash"
-                            iconLibrary="Feather"
-                        />
-                    </View>
                 </View>
 
                 {/* Terms & Digital Signature */}
