@@ -77,9 +77,27 @@ export default function ListBook() {
 
     const [currentTime] = useState(() => Date.now());
     const { offers } = useOfferList();
+
+    // Collect all offer IDs for which the user currently has an active booking
+    const activeBookedOfferIds = useMemo(() => {
+        const ids = new Set<string>();
+        for (const b of bookings || []) {
+            if (!['cancelled', 'refunded', 'expired', 'rescheduled'].includes(b.status)) {
+                const offId = b.offer?.id || (b as any).offerId;
+                if (offId) ids.add(offId);
+            }
+        }
+        return ids;
+    }, [bookings]);
+
     const futureOffers = useMemo(
-        () => offers.filter(o => o.id && new Date(o.date).getTime() > currentTime),
-        [offers, currentTime]
+        () => offers.filter(o => 
+            o.id && 
+            new Date(o.date).getTime() > currentTime &&
+            !activeBookedOfferIds.has(o.id) &&
+            (o.status || '').toLowerCase() !== 'cancelled'
+        ),
+        [offers, currentTime, activeBookedOfferIds]
     );
 
     return (

@@ -244,7 +244,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
             title: "Reschedule Request Declined",
             time: booking.updatedAt ? formatDateToStandard(booking.updatedAt) : '',
             desc: "Admin declined the reschedule request.",
-            reason: booking.cancellationReason || 'N/A',
+            reason: booking.rescheduleDeclineReason || booking.cancellationReason || 'N/A',
             status: getStatusConfig('reschedule-rejected', 'admin').label,
             color: getStatusThemeColor('reschedule-rejected'),
             sortDate: getEventDate(booking.updatedAt)

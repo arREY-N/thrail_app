@@ -104,6 +104,10 @@ export interface IBookingBase<T> {
     documents: Requirements[];
     cancellationReason?: string;
     cancelledBy?: string;
+    rescheduleRequestId?: string | null;
+    rescheduledToOfferId?: string | null;
+    rescheduleDeclineReason?: string;
+    previousStatus?: BookingStatus;
 
     // Manual QR tracking fields:
     remainingBalance?: number;

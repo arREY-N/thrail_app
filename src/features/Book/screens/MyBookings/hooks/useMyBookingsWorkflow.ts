@@ -20,7 +20,7 @@ export interface UseMyBookingsWorkflowParams {
     initialView?: MyBookingsView;
     onBackPress: () => void;
     onCancelBookingPress: (booking: Booking, reason: string, userWallet?: IUserWalletDetails<Date>) => Promise<void> | void;
-    onRescheduleBooking?: (booking: Booking, newOffer: IOffer) => Promise<void> | void;
+    onRescheduleBooking?: (booking: Booking, newOffer: IOffer, reason?: string) => Promise<void> | void;
     onRefundBookingPress?: (booking: Booking, reason: string, userWallet?: IUserWalletDetails<Date>) => Promise<void> | void;
 }
 
@@ -111,16 +111,16 @@ export function useMyBookingsWorkflow({
         }
     }, [onCancelBookingPress, showToast]);
 
-    const handleRescheduleConfirm = useCallback(async (booking: Booking, newOffer: IOffer) => {
+    const handleRescheduleConfirm = useCallback(async (booking: Booking, newOffer: IOffer, reason?: string) => {
         if (!onRescheduleBooking) return;
         try {
-            await onRescheduleBooking(booking, newOffer);
+            await onRescheduleBooking(booking, newOffer, reason);
             setCurrentView('list');
-            showToast.success('Booking rescheduled successfully.');
+            showToast.success('Reschedule request submitted successfully.');
         } catch (err: unknown) {
             setCurrentView('list');
             showToast.error(
-                err instanceof Error ? err.message : 'Failed to reschedule booking.'
+                err instanceof Error ? err.message : 'Failed to submit reschedule request.'
             );
         }
     }, [onRescheduleBooking, showToast]);

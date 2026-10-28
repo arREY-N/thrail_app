@@ -25,7 +25,9 @@ export interface SegmentedTabItem {
     icon?: string;
     iconLibrary?: IconLibrary;
     badgeCount?: number;
+    badgeText?: string;
     hasAlert?: boolean;
+    isRejected?: boolean;
 }
 
 export interface CustomSegmentedTabsProps {
@@ -63,9 +65,14 @@ const CustomSegmentedTabs: React.FC<CustomSegmentedTabsProps> = ({
                 const tabIcon = typeof tab === 'object' ? tab.icon : undefined;
                 const tabIconLib = typeof tab === 'object' ? (tab.iconLibrary || 'Feather') : 'Feather';
                 const badgeCount = typeof tab === 'object' ? tab.badgeCount : undefined;
+                const badgeText = typeof tab === 'object' ? tab.badgeText : undefined;
                 const hasAlert = typeof tab === 'object' ? tab.hasAlert : false;
+                const isRejected = typeof tab === 'object' ? tab.isRejected : false;
 
                 const isActive = activeTab === tabId;
+                const iconColor = isActive 
+                    ? activeTextColor 
+                    : (isRejected ? Colors.ERROR : Colors.TEXT_SECONDARY);
 
                 return (
                     <TouchableOpacity
@@ -79,26 +86,54 @@ const CustomSegmentedTabs: React.FC<CustomSegmentedTabsProps> = ({
                         activeOpacity={0.7}
                     >
                         {tabIcon ? (
-                            <CustomIcon
-                                library={tabIconLib}
-                                name={tabIcon}
-                                size={16}
-                                color={isActive ? activeTextColor : Colors.TEXT_SECONDARY}
-                            />
+                            <View style={styles.iconWrapper}>
+                                <CustomIcon
+                                    library={tabIconLib}
+                                    name={tabIcon}
+                                    size={tabLabel ? 16 : 18}
+                                    color={iconColor}
+                                />
+                                {(hasAlert || isRejected) && !tabLabel && (
+                                    <View style={[styles.alertDot, isActive && styles.alertDotActive]} />
+                                )}
+                            </View>
                         ) : null}
 
-                        <CustomText
-                            style={[
-                                styles.tabText,
-                                textStyle,
-                                isActive && [styles.tabTextActive, { color: activeTextColor }, activeTextStyle],
-                            ]}
-                            numberOfLines={1}
-                        >
-                            {tabLabel}
-                        </CustomText>
+                        {Boolean(tabLabel) && (
+                            <CustomText
+                                style={[
+                                    styles.tabText,
+                                    textStyle,
+                                    isRejected && !isActive && { color: Colors.ERROR },
+                                    isActive && [styles.tabTextActive, { color: activeTextColor }, activeTextStyle],
+                                ]}
+                                numberOfLines={1}
+                            >
+                                {tabLabel}
+                            </CustomText>
+                        )}
 
-                        {badgeCount !== undefined && badgeCount > 0 && (
+                        {Boolean(tabLabel) && badgeText ? (
+                            <View
+                                style={[
+                                    styles.badgePill,
+                                    isActive
+                                        ? styles.badgePillActive
+                                        : (hasAlert || isRejected ? styles.badgePillAlert : styles.badgePillInactive),
+                                ]}
+                            >
+                                <CustomText
+                                    style={[
+                                        styles.badgeText,
+                                        isActive
+                                            ? styles.badgeTextActive
+                                            : (hasAlert || isRejected ? styles.badgeTextAlert : styles.badgeTextInactive),
+                                    ]}
+                                >
+                                    {badgeText}
+                                </CustomText>
+                            </View>
+                        ) : Boolean(tabLabel) && badgeCount !== undefined && badgeCount > 0 ? (
                             <View
                                 style={[
                                     styles.badgePill,
@@ -118,7 +153,7 @@ const CustomSegmentedTabs: React.FC<CustomSegmentedTabsProps> = ({
                                     {badgeCount > 99 ? '99+' : badgeCount}
                                 </CustomText>
                             </View>
-                        )}
+                        ) : null}
                     </TouchableOpacity>
                 );
             })}
@@ -148,6 +183,26 @@ const styles = StyleSheet.create({
     },
     tabBtnActive: {
         backgroundColor: Colors.PRIMARY,
+    },
+    iconWrapper: {
+        position: 'relative',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    alertDot: {
+        position: 'absolute',
+        top: -3,
+        right: -5,
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: Colors.ERROR,
+        borderWidth: 1.5,
+        borderColor: Colors.WHITE,
+    },
+    alertDotActive: {
+        backgroundColor: Colors.WHITE,
+        borderColor: Colors.PRIMARY,
     },
     tabText: {
         fontWeight: 'bold',
