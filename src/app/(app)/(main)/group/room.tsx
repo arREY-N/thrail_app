@@ -45,13 +45,20 @@ export default function GroupRoom() {
     const capturePhoto = useFilesStore(s => s.capturePhoto);
     const selectPhoto = useFilesStore(s => s.selectPhoto);
     const subscribeToGroup = useGroupStore(s => s.subscribeToGroup);
+    const unsubscribeFromGroup = useGroupStore(s => s.unsubscribeFromGroup);
 
     useEffect(() => {
         if (roomId) {
             subscribeToGroup(roomId);
             markRoomAsVisited();
         }
-    }, [roomId, subscribeToGroup, markRoomAsVisited]);
+
+        return () => {
+            if (roomId) {
+                unsubscribeFromGroup(roomId);
+            }
+        };
+    }, [roomId, subscribeToGroup, markRoomAsVisited, unsubscribeFromGroup]);
 
     /**
      * Handlers for attaching a photo from image gallery.

@@ -221,16 +221,39 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
         const unsubscribe = get().activeListeners[groupId];
 
         if (unsubscribe) {
-            unsubscribe();
-            set((state) => {
-                const newListeners = { ...state.activeListeners };
-                delete newListeners[groupId];
-                return {
-                    ...state,
-                    activeListeners: newListeners,
-                };
-            });
+            try {
+                unsubscribe();
+            } catch (err) {
+                console.warn(`[unsubscribeFromGroup] Error calling unsubscribe for ${groupId}:`, err);
+            }
         }
+
+        set((state) => {
+            const newListeners = { ...state.activeListeners };
+            delete newListeners[groupId];
+
+            const newMessages = { ...state.messagesByGroup };
+            delete newMessages[groupId];
+
+            const newLimits = { ...state.messageLimits };
+            delete newLimits[groupId];
+
+            const newPrevCounts = { ...state.messagePrevCounts };
+            delete newPrevCounts[groupId];
+
+            const newReachedEnd = { ...state.hasReachedEndByGroup };
+            delete newReachedEnd[groupId];
+
+            return {
+                ...state,
+                activeListeners: newListeners,
+                messagesByGroup: newMessages,
+                messageLimits: newLimits,
+                messagePrevCounts: newPrevCounts,
+                hasReachedEndByGroup: newReachedEnd,
+                groups: state.groups.filter((g) => g.id !== groupId),
+            };
+        });
     },
 
     setGroups: (groups, fromCache = false) => {
