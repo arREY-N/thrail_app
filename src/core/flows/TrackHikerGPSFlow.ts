@@ -61,6 +61,64 @@ const permissionListeners = new Set<(granted: boolean) => void>();
  * @property {() => Promise<void>} onStartGps - Starts the GPS tracking session (foreground and background).
  * @property {() => Promise<void>} onEndGps - Stops the GPS tracking session and cleans up subscriptions.
  */
+/**
+ * Standalone background location controls.
+ * Decoupled from the stateful TrackHikerGPSFlow hook to prevent unnecessary
+ * re-render cascades in components that only need to start/stop tracking.
+ */
+export const startBackgroundLocationTracking = async (): Promise<void> => {
+    if (Platform.OS === "web") return;
+    if (globalIsBackgroundTrackingRunning || globalIsBackgroundStarting) {
+        console.log("[TrackHikerGPSFlow] Background tracking already active or initializing. Skipping duplicate request.");
+        return;
+    }
+
+    globalIsBackgroundStarting = true;
+    try {
+        if (Platform.OS === "android" && Platform.Version >= 33) {
+            await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+        }
+
+        const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+        if (bgStatus === "granted") {
+            await Location.startLocationUpdatesAsync(LOCATION_TASK, {
+                accuracy: Location.Accuracy.High,
+                distanceInterval: 10,
+                timeInterval: 5000,
+                deferredUpdatesInterval: 5000,
+                showsBackgroundLocationIndicator: true,
+                foregroundService: {
+                    notificationTitle: "Thrail Hike Tracking Active",
+                    notificationBody: "Recording your trail coordinates and elevation...",
+                    notificationColor: "#2E7D32",
+                },
+            });
+            globalIsBackgroundTrackingRunning = true;
+            console.log("✅ Background tracking active via TaskManager");
+        } else {
+            console.warn("Background location permission denied");
+        }
+    } catch (err) {
+        console.error("Failed to start background tracking task:", err);
+    } finally {
+        globalIsBackgroundStarting = false;
+    }
+};
+
+export const stopBackgroundLocationTracking = async (): Promise<void> => {
+    if (Platform.OS === "web") return;
+    try {
+        const hasStarted = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK);
+        if (hasStarted) {
+            await Location.stopLocationUpdatesAsync(LOCATION_TASK);
+        }
+        globalIsBackgroundTrackingRunning = false;
+        console.log("✅ Background task stopped");
+    } catch (err) {
+        console.warn("Failed to stop background tracking task:", err);
+    }
+};
+
 export const TrackHikerGPSFlow = () => {
     const addCoordinate = useHikeStore((state) => state.addCoordinate);
     const updateHikeStore = useHikeStore((state) => state.updateHikeStore);
@@ -138,7 +196,7 @@ export const TrackHikerGPSFlow = () => {
             // Start singleton compass/magnetometer heading watcher for directional user indicator
             if (!globalHeadingSub) {
                 try {
-                    globalHeadingSub = await Location.watchHeadingAsync((headingData) => {
+                    const headingSub = await Location.watchHeadingAsync((headingData) => {
                         const rawHeading =
                             headingData.trueHeading >= 0
                                 ? headingData.trueHeading
@@ -160,12 +218,19 @@ export const TrackHikerGPSFlow = () => {
                             userHeadingListeners.forEach((fn) => fn(smoothed));
                         }
                     });
+
+                    if (globalActiveInstances <= 0) {
+                        headingSub.remove();
+                        globalHeadingSub = null;
+                        return;
+                    }
+                    globalHeadingSub = headingSub;
                 } catch (headingErr) {
                     console.warn("Compass heading subscription warning:", headingErr);
                 }
             }
 
-            globalLocationSub = await Location.watchPositionAsync(
+            const locSub = await Location.watchPositionAsync(
                 {
                     accuracy: Location.Accuracy.BestForNavigation,
                     distanceInterval: 0,
@@ -257,8 +322,10 @@ export const TrackHikerGPSFlow = () => {
                         status: 'ACTIVE',
                     });
 
-                    // Continuous Pre-Hike GPS Availability: always update currentLocation for Emergency SOS & SMS (Finding 5)
-                    useHikeStore.getState().setCurrentLocation(latestCoord);
+                    // Continuous Pre-Hike GPS Availability: only update currentLocation when coordinates change or on initial fix (prevents selector churn)
+                    if (hasCoordChanged || !useHikeStore.getState().currentLocation) {
+                        useHikeStore.getState().setCurrentLocation(latestCoord);
+                    }
 
                     // Global Store Integration: record breadcrumbs when hike is started, stream live location when started or paused (Finding 4)
                     const { active, currentHike } = useHikeStore.getState();
@@ -267,6 +334,13 @@ export const TrackHikerGPSFlow = () => {
                     }
                 },
             );
+
+            if (globalActiveInstances <= 0) {
+                locSub.remove();
+                globalLocationSub = null;
+                return;
+            }
+            globalLocationSub = locSub;
         } catch (err: unknown) {
             console.error("Failed to start location tracking:", err);
             const message = err instanceof Error ? err.message : String(err);
@@ -276,62 +350,8 @@ export const TrackHikerGPSFlow = () => {
         }
     };
 
-    /**
-     * MODE 2: BACKGROUND TRACKING
-     * Starts the TaskManager so tracking continues when screen is off.
-     */
-    const startBackgroundTracking = async () => {
-        if (Platform.OS === "web") return;
-        if (globalIsBackgroundTrackingRunning || globalIsBackgroundStarting) {
-            console.log("[TrackHikerGPSFlow] Background tracking already active or initializing. Skipping duplicate request.");
-            return;
-        }
-
-        globalIsBackgroundStarting = true;
-        try {
-            if (Platform.OS === "android" && Platform.Version >= 33) {
-                await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
-            }
-
-            const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
-            if (bgStatus === "granted") {
-                await Location.startLocationUpdatesAsync(LOCATION_TASK, {
-                    accuracy: Location.Accuracy.High,
-                    distanceInterval: 10,
-                    timeInterval: 5000,
-                    deferredUpdatesInterval: 5000,
-                    showsBackgroundLocationIndicator: true,
-                    foregroundService: {
-                        notificationTitle: "Thrail Hike Tracking Active",
-                        notificationBody: "Recording your trail coordinates and elevation...",
-                        notificationColor: "#2E7D32",
-                    },
-                });
-                globalIsBackgroundTrackingRunning = true;
-                console.log("✅ Background tracking active via TaskManager");
-            } else {
-                console.warn("Background location permission denied");
-            }
-        } catch (err) {
-            console.error("Failed to start background tracking task:", err);
-        } finally {
-            globalIsBackgroundStarting = false;
-        }
-    };
-
-    const stopBackgroundTracking = async () => {
-        if (Platform.OS === "web") return;
-        try {
-            const hasStarted = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK);
-            if (hasStarted) {
-                await Location.stopLocationUpdatesAsync(LOCATION_TASK);
-            }
-            globalIsBackgroundTrackingRunning = false;
-            console.log("✅ Background task stopped");
-        } catch (err) {
-            console.warn("Failed to stop background tracking task:", err);
-        }
-    };
+    const startBackgroundTracking = startBackgroundLocationTracking;
+    const stopBackgroundTracking = stopBackgroundLocationTracking;
 
     // Set up listeners on mount and clean up on unmount
     useEffect(() => {
@@ -414,7 +434,7 @@ export const TrackHikerGPSFlow = () => {
             // Only stop background tracking if no hike is actively recording
             const { active, currentHike } = useHikeStore.getState();
             if (!active || !currentHike || currentHike.status !== 'started') {
-                stopBackgroundTracking();
+                stopBackgroundLocationTracking();
             }
         };
     }, []);
