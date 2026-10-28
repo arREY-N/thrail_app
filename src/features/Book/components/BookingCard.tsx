@@ -84,6 +84,9 @@ const BookingCard: React.FC<BookingCardProps> = ({
     const isPast = hikeDate.getTime() < today.getTime();
 
     let displayStatus = booking?.status;
+    if (booking?.status === 'for-reschedule') {
+        displayStatus = 'for-reschedule';
+    }
 
     const payments = booking?.payment || [];
     const isPayMongo = payments.some(p => p.gateway === 'paymongo');
@@ -183,19 +186,28 @@ const BookingCard: React.FC<BookingCardProps> = ({
     const configRole = (role === 'admin' || role === 'superadmin') ? 'admin' : 'user';
     const statusConfig = getStatusConfig(displayStatus, configRole);
 
+    const isSpecialFlow =
+        displayStatus === 'for-reschedule' ||
+        displayStatus === 'rescheduled' ||
+        displayStatus === 'reschedule-rejected' ||
+        displayStatus === 'for-cancellation' ||
+        displayStatus === 'cancellation-rejected' ||
+        displayStatus === 'cancelled' ||
+        displayStatus === 'refund' ||
+        displayStatus === 'refunded';
+
     const isCompletedOrFullyPaid =
         displayStatus === 'completed' ||
         booking?.status === 'completed' ||
         booking?.paymentVerificationStatus === 'fully_paid' ||
-        displayStatus === 'cancelled' ||
-        displayStatus === 'refunded';
+        isSpecialFlow;
 
     const isPaymentVerifying = !isCompletedOrFullyPaid && (
         booking?.paymentVerificationStatus === 'pending_verification' ||
         Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'))
     );
 
-    const isPaymentRejected = !isPaymentVerifying && (
+    const isPaymentRejected = !isCompletedOrFullyPaid && !isPaymentVerifying && (
         booking?.paymentVerificationStatus === 'rejected' ||
         (displayStatus === 'for-payment' && Boolean(booking?.payment?.length && booking.payment[booking.payment.length - 1].status === 'rejected'))
     );
@@ -243,10 +255,16 @@ const BookingCard: React.FC<BookingCardProps> = ({
         } else if (displayStatus === 'downpayment') {
             actionLabel = "Pay Balance";
             actionColor = Colors.WARNING;
+        } else if (displayStatus === 'for-reschedule') {
+            actionLabel = "View Details";
+            actionColor = '#0369A1';
+        } else if (displayStatus === 'rescheduled') {
+            actionLabel = "View Details";
+            actionColor = Colors.SUCCESS;
         }
     }
 
-    const isRejection = ['reservation-rejected', 'cancellation-rejected', 'reschedule-rejected'].includes(displayStatus || '') || isPaymentRejected;
+    const isRejection = ['reservation-rejected', 'cancellation-rejected'].includes(displayStatus || '') || isPaymentRejected;
     const isPaymentNeeded = ['for-payment', 'approved-docs'].includes(displayStatus || '') && !isPaymentVerifying;
     const isWalletNeeded = displayStatus === 'refund' && !isPayMongo && !cancellation?.userWallet?.accountNumber;
     const isConfirmReceiptNeeded = displayStatus === 'refund' && !isPayMongo && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted');
@@ -260,7 +278,9 @@ const BookingCard: React.FC<BookingCardProps> = ({
                 ? styles.paymentBorder
                 : isDownpayment
                     ? styles.downpaymentBorder
-                    : null
+                    : displayStatus === 'for-reschedule'
+                        ? styles.rescheduleBorder
+                        : null
         : null;
 
     const bookingUpdateTime = booking?.updatedAt ? safeParseDateString(booking.updatedAt).getTime() : 0;
@@ -415,6 +435,24 @@ const BookingCard: React.FC<BookingCardProps> = ({
                     <CustomIcon library="Feather" name="clock" size={13} color={Colors.PRIMARY} />
                     <CustomText style={styles.verifyingText} numberOfLines={1}>
                         Payment receipt submitted. Organizer verification in progress.
+                    </CustomText>
+                </View>
+            )}
+
+            {displayStatus === 'for-reschedule' && (
+                <View style={styles.rescheduleBanner}>
+                    <CustomIcon library="Feather" name="calendar" size={13} color="#0369A1" />
+                    <CustomText style={styles.rescheduleText} numberOfLines={1}>
+                        Reschedule request submitted. Organizer approval in progress.
+                    </CustomText>
+                </View>
+            )}
+
+            {displayStatus === 'rescheduled' && (
+                <View style={[styles.rescheduleBanner, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                    <CustomIcon library="Feather" name="check-circle" size={13} color="#059669" />
+                    <CustomText style={[styles.rescheduleText, { color: '#065F46' }]} numberOfLines={1}>
+                        Booking rescheduled to a new date.
                     </CustomText>
                 </View>
             )}
@@ -625,6 +663,29 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 12,
         color: Colors.PRIMARY,
+        fontWeight: '600',
+        lineHeight: 16,
+    },
+    rescheduleBorder: {
+        borderColor: '#BAE6FD',
+        borderWidth: 1.5,
+    },
+    rescheduleBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: '#F0F9FF',
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: '#BAE6FD',
+    },
+    rescheduleText: {
+        flex: 1,
+        fontSize: 12,
+        color: '#0369A1',
         fontWeight: '600',
         lineHeight: 16,
     },

@@ -122,28 +122,6 @@ export function CreateOfferFlow(params: UseOfferParams = {}) {
             });
 
             await createGroup(groupBlueprint);
-            // if (mode === 'create') {
-            // } else if (mode === 'edit') {
-            //     let groupExists = false;
-
-            //     try {
-            //         const existingGroup = await checkGroupExists(offer.id);
-            //         if (existingGroup) {
-            //             groupExists = true;
-            //         }
-            //     } catch (e) {
-            //         console.log('Group not found in DB. Catching error to heal the offer.');
-            //         groupExists = false;
-            //     }
-
-            //     if (!groupExists) {
-            //         console.log('Healing broken offer: Creating missing group...');
-            //         await createGroup(groupBlueprint);
-            //     } else {
-            //         console.log('Offer updated successfully. Existing group preserved.');
-            //     }
-            // }
-
             onBackPress();
             setLoadingFlow(false);
         } catch (error) {

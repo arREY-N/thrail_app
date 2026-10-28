@@ -163,6 +163,26 @@ const CustomButton: React.FC<CustomButtonProps> = ({
         ? Colors.BUTTON_RIPPLE_LIGHT
         : Colors.BUTTON_RIPPLE_DARK;
     const isStandardDisabled = (disabled || isLoading) && resolvedValidationState === 'valid';
+    let disabledVariantStyle: StyleProp<ViewStyle> = null;
+    let disabledTextStyle: StyleProp<TextStyle> = null;
+
+    if (isStandardDisabled) {
+        useShadow = false;
+        if (variant === 'primary') {
+            disabledVariantStyle = styles.disabledPrimary;
+            disabledTextStyle = styles.textDisabledPrimary;
+        } else if (variant === 'outline') {
+            disabledVariantStyle = styles.disabledOutline;
+            disabledTextStyle = styles.textDisabledOutline;
+        } else if (variant === 'secondary') {
+            disabledVariantStyle = styles.disabledSecondary;
+            disabledTextStyle = styles.textDisabledSecondary;
+        } else if (variant === 'destructive') {
+            disabledVariantStyle = styles.disabledDestructive;
+            disabledTextStyle = styles.textDisabledDestructive;
+        }
+    }
+
     const isInteractionDisabled = (disabled || isLoading) && !disabledToastMessage;
     const isInteractive = !isLoading && (Boolean(onPress) || Boolean(disabledToastMessage));
     const lastPressTimeRef = useRef<number>(0);
@@ -198,6 +218,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
                 (autoWidth || size === 'sm') && (styles.autoWidth as StyleProp<ViewStyle>),
                 buttonStyle, 
                 useShadow && size === 'lg' && !isInteractionDisabled && (styles.shadows as StyleProp<ViewStyle>),
+                isStandardDisabled && disabledVariantStyle,
                 style,
                 pressed && !isInteractionDisabled && (styles.pressed as StyleProp<ViewStyle>),
                 isStandardDisabled && (styles.disabledState as StyleProp<ViewStyle>)
@@ -232,6 +253,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
                             styles.baseText as StyleProp<TextStyle>, 
                             styles[`text_${size}`] as StyleProp<TextStyle>,
                             labelStyle, 
+                            isStandardDisabled && disabledTextStyle,
                             textStyle
                         ]}
                     >
@@ -302,10 +324,42 @@ const styles = StyleSheet.create({
         transform: [{ scale: 0.98 }],
     },
     disabledState: {
-        opacity: 0.5,
+        opacity: 1,
         ...Platform.select({
             web: { cursor: 'not-allowed' } as unknown as ViewStyle,
         }),
+    },
+    disabledPrimary: {
+        backgroundColor: '#95C595',
+        borderWidth: 1.5,
+        borderColor: '#95C595',
+    },
+    textDisabledPrimary: {
+        color: Colors.WHITE,
+    },
+    disabledSecondary: {
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1.5,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    textDisabledSecondary: {
+        color: Colors.GRAY_MEDIUM,
+    },
+    disabledOutline: {
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1.5,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    textDisabledOutline: {
+        color: Colors.GRAY_MEDIUM,
+    },
+    disabledDestructive: {
+        backgroundColor: '#FCA5A5',
+        borderWidth: 1.5,
+        borderColor: '#FCA5A5',
+    },
+    textDisabledDestructive: {
+        color: Colors.WHITE,
     },
 
     primary: {

@@ -9,15 +9,12 @@ export const useRescheduleUserList = () => {
     const error = useRescheduleStore(s => s.error);
 
     useEffect(() => {
-        const fetch = async () => {
-            if (!profile?.id) {
-                return;
-            }
+        if (!profile?.id) return;
 
-            await useRescheduleStore.getState().fetchAllUserReschedules(profile.id);
+        const unsubscribe = useRescheduleStore.getState().subscribeToUserReschedules(profile.id);
+        return () => {
+            if (unsubscribe) unsubscribe();
         };
-
-        fetch();
     }, [profile?.id]);
 
     return {

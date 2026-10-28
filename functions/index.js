@@ -22,9 +22,9 @@ const { Buffer } = require('buffer');
 const PaymentManager = require('./services/PaymentManager');
 const LoginLimiter = require('./services/LoginLimiter');
 
-// Firebase Web API key (public value) used to verify passwords via the Identity Toolkit REST API.
 const authWebApiKey = defineString('AUTH_WEB_API_KEY');
 const PayMongoProvider = require('./services/providers/PayMongoProvider');
+const { approveReschedule } = require('./services/RescheduleManager');
 
 admin.initializeApp();
 
@@ -4332,3 +4332,5 @@ exports.onUserOnboardingComplete = functions.firestore
             return null;
         }
     });
+
+exports.approveReschedule = approveReschedule;

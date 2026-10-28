@@ -137,6 +137,20 @@ export const getBookingFooterConfig = ({
         };
     }
 
+    if (displayStatus === 'for-reschedule' || displayStatus === 'rescheduled') {
+        if (hasHistoricalPayments) {
+            return {
+                primaryButton: {
+                    title: "View Receipt",
+                    variant: "primary" as const,
+                    style: { borderRadius: 12 },
+                    onPress: () => onViewReceipt(booking)
+                }
+            };
+        }
+        return null;
+    }
+
     if (displayStatus === 'for-payment' || displayStatus === 'approved-docs') {
         const isPaymentRejected = booking?.paymentVerificationStatus === 'rejected' ||
             Boolean(booking?.payment?.length && booking.payment[booking.payment.length - 1].status === 'rejected');

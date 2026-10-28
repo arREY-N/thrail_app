@@ -65,7 +65,7 @@ export interface MyBookingsScreenProps {
     /** Callback when updating contact details on rejected bookings */
     onUpdateBookingContacts?: (booking: Booking, phone: string, emergencyContact: IEmergencyContact) => Promise<boolean>;
     /** Callback to reschedule */
-    onRescheduleBooking?: (booking: Booking, newOffer: IOffer) => Promise<void> | void;
+    onRescheduleBooking?: (booking: Booking, newOffer: IOffer, reason?: string) => Promise<void> | void;
     /** Callback to pay */
     onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<PaymentResultResponse>;
     /** Function to fetch full offer */
@@ -321,6 +321,7 @@ const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
                 booking={selectedBooking}
                 getBookOffer={getBookOffer}
                 availableFutureOffers={availableFutureOffers}
+                userBookings={userBookings}
                 onBackPress={handleHeaderBackPress}
                 onProceedToPayment={handleProceedToPaymentPress}
                 onViewReceipt={handleViewReceiptPress}

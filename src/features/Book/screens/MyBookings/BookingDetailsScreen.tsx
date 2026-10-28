@@ -28,12 +28,14 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
-import { Booking, BookingStatus, Requirements } from "@/src/core/models/Booking/Booking";
+import { Booking, BookingStatus, Requirements, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { IOffer } from "@/src/core/models/Offer/Offer";
 import { IEmergencyContact, User } from '@/src/core/models/User/User';
 import { logger } from '@/src/core/utility/errorFormatter';
 
+import { formatBookingDate } from '@/src/utils/dateFormatter';
+import { RescheduleRepo } from '@/src/core/models/Reschedule/repositories/RescheduleRepository';
 import { Cancellation, IUserWalletDetails } from '@/src/core/models/Cancellation/Cancellation';
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem';
 import BookingActionMenuModal from '@/src/features/Book/screens/MyBookings/components/BookingActionMenuModal';
@@ -63,7 +65,7 @@ export interface BookingDetailsScreenProps {
     /** Callback when user proceeds to payment */
     onProceedToPayment: (booking: Booking) => void;
     /** Callback for reschedule confirmation */
-    onReschedule?: (booking: Booking, newOffer: IOffer) => Promise<void> | void;
+    onReschedule?: (booking: Booking, newOffer: IOffer, reason?: string) => Promise<void> | void;
     /** Callback to view receipt */
     onViewReceipt: (booking: Booking) => void;
     /** Callback for cancellation confirmation */
@@ -81,6 +83,8 @@ export interface BookingDetailsScreenProps {
     onUpdateContacts?: (booking: Booking, phone: string, emergencyContact: IEmergencyContact) => Promise<boolean>;
     /** Available future offers for rescheduling */
     availableFutureOffers?: IOffer[];
+    /** All user bookings to prevent presenting offers the user already booked */
+    userBookings?: Booking[];
     /** Active cancellation associated with this booking, if any */
     cancellation?: Cancellation | null;
     /** Handler to withdraw an active cancellation request */
@@ -116,6 +120,7 @@ const BookingDetailsScreen = ({
     onSyncBookingVerification,
     onSearchUser,
     availableFutureOffers = [],
+    userBookings = [],
     cancellation,
     onWithdrawCancellation,
     onUpdateCancellationReason,
@@ -130,7 +135,68 @@ const BookingDetailsScreen = ({
     const [modalErrorMessage, setModalErrorMessage] = useState<string | null>(null);
     const [isSubmittingCancellation, setIsSubmittingCancellation] = useState<boolean>(false);
     const [showRescheduleModal, setShowRescheduleModal] = useState<boolean>(false);
+    const [isDismissingDecline, setIsDismissingDecline] = useState<boolean>(false);
+    const [isDeclineDismissedLocally, setIsDeclineDismissedLocally] = useState<boolean>(false);
     const isReschedulingRef = useRef<boolean>(false);
+
+    const handleDismissDecline = async () => {
+        if (!booking?.id || !booking?.user?.id) return;
+        setIsDeclineDismissedLocally(true);
+        setIsDismissingDecline(true);
+        try {
+            await RescheduleRepo.dismissRescheduleDecline(booking.user.id, booking.id);
+            showToast.success('Reschedule notice dismissed.');
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Failed to dismiss notice';
+            showToast.error(msg);
+        } finally {
+            setIsDismissingDecline(false);
+        }
+    };
+
+    const storeUserBookings = useBookingsStore(s => s.userBookings);
+    const effectiveBookings = storeUserBookings && storeUserBookings.length > 0 ? storeUserBookings : userBookings;
+
+    // Filter available offers so users NEVER see or select offers they already booked,
+    // nor the current offer, nor offers from other businesses, cancelled offers, or full capacity offers.
+    const reschedulableOffers = useMemo(() => {
+        const currentOfferId = booking.offer?.id;
+        const currentBusinessId = booking.business?.id;
+
+        // Collect all offer IDs for which the user currently has an active booking
+        const activeBookedOfferIds = new Set<string>();
+        for (const b of effectiveBookings) {
+            if (!['cancelled', 'refunded', 'expired', 'rescheduled'].includes(b.status)) {
+                const offId = b.offer?.id || (b as any).offerId;
+                if (offId) activeBookedOfferIds.add(offId);
+            }
+        }
+        // Also ensure current booking's offer is unconditionally excluded
+        if (currentOfferId) {
+            activeBookedOfferIds.add(currentOfferId);
+        }
+
+        return availableFutureOffers.filter(offer => {
+            if (!offer.id) return false;
+            // Exclude already booked offers
+            if (activeBookedOfferIds.has(offer.id)) return false;
+
+            // Strictly require matching the current booking's organizer/business
+            const offerBusinessId = offer.business?.id || (offer as any).businessId;
+            if (!currentBusinessId || !offerBusinessId || offerBusinessId !== currentBusinessId) return false;
+
+            // Must be strictly in the future
+            if (new Date(offer.date).getTime() <= Date.now()) return false;
+
+            // Exclude cancelled offers
+            if ((offer.status || '').toLowerCase() === 'cancelled') return false;
+            // Exclude full offers
+            if (offer.maxPax > 0 && offer.reservedPax >= offer.maxPax) return false;
+
+            return true;
+        });
+    }, [availableFutureOffers, booking.offer?.id, booking.business?.id, effectiveBookings]);
+
     const [showContactsModal, setShowContactsModal] = useState<boolean>(false);
 
     const [fullOffer, setFullOffer] = useState<IOffer | null>(null);
@@ -288,11 +354,19 @@ const BookingDetailsScreen = ({
     const isInactiveBooking = displayStatus === 'cancelled' || displayStatus === 'refunded' || localStatus === 'cancelled' || localStatus === 'refunded';
     const remainingBalance = isInactiveBooking ? 0 : Math.max(0, totalAmount - amountPaid);
 
+    const isSpecialFlow =
+        displayStatus === 'for-reschedule' ||
+        displayStatus === 'rescheduled' ||
+        displayStatus === 'reschedule-rejected' ||
+        displayStatus === 'for-cancellation' ||
+        displayStatus === 'cancellation-rejected' ||
+        isInactiveBooking;
+
     const isCompletedOrFullyPaid = 
         displayStatus === 'completed' || 
         booking?.status === 'completed' || 
         booking?.paymentVerificationStatus === 'fully_paid' ||
-        isInactiveBooking;
+        isSpecialFlow;
 
     const isPaymentVerifying = !isCompletedOrFullyPaid && (
         booking?.paymentVerificationStatus === 'pending_verification' ||
@@ -347,7 +421,9 @@ const BookingDetailsScreen = ({
 
     const canCancelDraft = isPreApprovalDraft && !isCancelled && !hasActiveCancellation;
     const canRefund = isConfirmed && !isCancelled && !hasActiveCancellation;
-    const canReschedule = (amountPaid > 0 || displayStatus === 'for-reschedule') &&
+    const canReschedule = (amountPaid > 0) &&
+        displayStatus !== 'for-reschedule' &&
+        displayStatus !== 'rescheduled' &&
         !isCancelled &&
         !isAdminCancelled &&
         !hasActiveCancellation;
@@ -802,6 +878,91 @@ const BookingDetailsScreen = ({
                         </View>
                     )}
 
+                    {displayStatus === 'for-reschedule' && (
+                        <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
+                            <View style={[styles.infoBanner, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
+                                <CustomIcon library="Feather" name="calendar" size={20} color="#0284C7" />
+                                <View style={{ flex: 1, marginLeft: 8 }}>
+                                    <CustomText variant="body" style={{ fontWeight: '600', color: '#0369A1' }}>
+                                        Reschedule Request Pending
+                                    </CustomText>
+                                    <CustomText variant="caption" style={{ color: '#0284C7', marginTop: 2 }}>
+                                        Your request to reschedule this hike has been submitted and is currently being reviewed by the organizer.
+                                    </CustomText>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+
+                    {displayStatus === 'rescheduled' && (
+                        <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
+                            <View style={[styles.infoBanner, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                                <CustomIcon library="Feather" name="check-circle" size={20} color="#059669" />
+                                <View style={{ flex: 1, marginLeft: 8 }}>
+                                    <CustomText variant="body" style={{ fontWeight: '600', color: '#065F46' }}>
+                                        Booking Rescheduled
+                                    </CustomText>
+                                    <CustomText variant="caption" style={{ color: '#047857', marginTop: 2 }}>
+                                        This booking was moved to a new hike schedule. Please view your My Bookings list for your updated booking.
+                                    </CustomText>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+
+                    {!isDeclineDismissedLocally && Boolean(booking?.rescheduleDeclineReason) && displayStatus !== 'for-reschedule' && (
+                        <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
+                            <View style={[styles.infoBanner, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
+                                <CustomIcon library="Feather" name="calendar" size={20} color={Colors.ERROR} />
+                                <View style={{ flex: 1, marginLeft: 8 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <CustomText variant="body" style={{ fontWeight: '600', color: '#991B1B' }}>
+                                            Reschedule Request
+                                        </CustomText>
+                                        <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, borderWidth: 1, borderColor: '#FCA5A5' }}>
+                                            <CustomText style={{ fontSize: 10, fontWeight: '700', color: '#DC2626' }}>DECLINED</CustomText>
+                                        </View>
+                                    </View>
+                                    <CustomText variant="caption" style={{ color: '#B91C1C', marginTop: 2, lineHeight: 18 }}>
+                                        {`Organizer's note: "${booking.rescheduleDeclineReason}". `}
+                                        Your booking remains confirmed for your original hike schedule on {formatBookingDate(booking?.offer?.date, null, true)}.
+                                    </CustomText>
+                                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                                        <TouchableOpacity
+                                            style={{
+                                                backgroundColor: Colors.PRIMARY,
+                                                paddingHorizontal: 12,
+                                                paddingVertical: 6,
+                                                borderRadius: 6,
+                                            }}
+                                            onPress={() => setShowRescheduleModal(true)}
+                                        >
+                                            <CustomText variant="caption" style={{ color: '#FFF', fontWeight: 'bold' }}>
+                                                Request Another Date
+                                            </CustomText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={{
+                                                backgroundColor: '#FFF',
+                                                borderWidth: 1,
+                                                borderColor: '#CBD5E1',
+                                                paddingHorizontal: 12,
+                                                paddingVertical: 6,
+                                                borderRadius: 6,
+                                            }}
+                                            disabled={isDismissingDecline}
+                                            onPress={handleDismissDecline}
+                                        >
+                                            <CustomText variant="caption" style={{ color: Colors.TEXT_PRIMARY, fontWeight: '600' }}>
+                                                {isDismissingDecline ? 'Dismissing...' : 'Dismiss'}
+                                            </CustomText>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+
                     </View>
 
                     <View
@@ -998,8 +1159,8 @@ const BookingDetailsScreen = ({
                     isReschedulingRef.current = false;
                     setShowRescheduleModal(false);
                 }}
-                availableFutureOffers={availableFutureOffers}
-                onConfirm={(selectedOffer: IOffer | 'explore') => {
+                availableFutureOffers={reschedulableOffers}
+                onConfirm={(selectedOffer: IOffer | 'explore', reason?: string) => {
                     if (isReschedulingRef.current) return;
                     isReschedulingRef.current = true;
                     setShowRescheduleModal(false);
@@ -1008,7 +1169,7 @@ const BookingDetailsScreen = ({
                             if (selectedOffer === 'explore') {
                                 router.replace('/explore');
                             } else if (onReschedule && typeof selectedOffer === 'object') {
-                                await onReschedule(booking, selectedOffer);
+                                await onReschedule(booking, selectedOffer, reason);
                             }
                         } finally {
                             isReschedulingRef.current = false;
