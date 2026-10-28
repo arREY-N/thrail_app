@@ -100,14 +100,18 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     }, [selectedTrail]);
 
     useEffect(() => {
+        let timer: NodeJS.Timeout | null = null;
         if (selectedTrail && trailCenter) {
             mapRef.current?.centerOnCoordinate(trailCenter.longitude, trailCenter.latitude);
         } else if (prevTrailRef.current !== null && selectedTrail === null) {
-            setTimeout(() => {
+            timer = setTimeout(() => {
                 mapRef.current?.centerOnUser();
             }, 150);
         }
         prevTrailRef.current = selectedTrail;
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
     }, [selectedTrail, trailCenter]);
 
     const [modeToast, setModeToast] = useState<string | null>(null);
