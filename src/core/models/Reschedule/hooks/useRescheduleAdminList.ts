@@ -10,15 +10,14 @@ export const useRescheduleAdminList = () => {
     const error = useRescheduleStore(s => s.error);
 
     useEffect(() => {
-        const fetch = async () => {
-            if (role !== 'admin' || !profile?.id || !businessId) {
-                return;
-            }
+        if ((role !== 'admin' && role !== 'superadmin') || !profile?.id || !businessId) {
+            return;
+        }
 
-            await useRescheduleStore.getState().fetchAllByBusinessId(businessId);
+        const unsubscribe = useRescheduleStore.getState().subscribeToBusinessReschedules(businessId);
+        return () => {
+            if (unsubscribe) unsubscribe();
         };
-
-        fetch();
     }, [profile?.id, businessId, role]);
 
     return {
