@@ -379,6 +379,12 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 }
             }
 
+            const existingUnsub = get().activeListeners[groupId];
+            if (existingUnsub) {
+                set({ activeGroupId: groupId, live: true });
+                return;
+            }
+
             const unsubscribe = HikeRepo.listenToLocations(
                 groupId,
                 (locations) => set((state) => ({
