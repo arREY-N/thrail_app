@@ -28,7 +28,6 @@ import CustomText from '@/src/components/CustomText';
 import CustomTextInput, { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
 import { CustomToast } from '@/src/components/Toast/Toast';
 import {
-    createReplayHelpStep,
     CustomTutorialModal,
     registerMeasureCallback,
     registerTutorialLayout,
@@ -248,8 +247,7 @@ const EmergencyModal = ({
 
     const dynamicTourSteps = useMemo(() => {
         const isUnified = mode === 'unified';
-        const baseSteps = isUnified ? emergencyModalUnifiedSteps : emergencyModalOnlySteps;
-        return [...baseSteps, createReplayHelpStep(isUnified ? 'Contacts' : 'Emergency Contact')];
+        return isUnified ? emergencyModalUnifiedSteps : emergencyModalOnlySteps;
     }, [mode]);
 
     const tutorial = useTutorialGuide('emergency_modal', visible && renderModal, dynamicTourSteps);
@@ -708,7 +706,7 @@ const EmergencyModal = ({
                                 {mode === 'unified' ? 'Edit Contacts' : 'Emergency Setup'}
                             </CustomText>
                             <View style={styles.headerActions}>
-                                <TutorialHelpButton onPress={tutorial.onReplayTour} />
+                                <TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />
                                 <TouchableOpacity
                                     onPress={handleCloseOrSkip}
                                     style={styles.closeBtn}

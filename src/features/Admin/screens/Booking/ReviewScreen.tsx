@@ -25,7 +25,6 @@ import { useToast } from '@/src/components/Toast/Toast';
 import {
     adminBookingReviewDocSteps,
     adminBookingReviewPaymentSteps,
-    createReplayHelpStep,
 } from '@/src/components/Tutorial/constants';
 import {
     CustomTutorialModal,
@@ -269,10 +268,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     }, [availableTabIds, activeTab, isApprovedStatus, setActiveTab]);
 
     const dynamicTourSteps = useMemo(() => {
-        const steps = activeTab === 'payment'
+        return activeTab === 'payment'
             ? adminBookingReviewPaymentSteps
             : adminBookingReviewDocSteps;
-        return [...steps, createReplayHelpStep('Booking Review')];
     }, [activeTab]);
 
     const tutorial = useTutorialGuide('admin_booking_review', !isLoading && Boolean(booking), dynamicTourSteps);
@@ -676,7 +674,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 onBackPress={onBackPress}
                 rightActions={
                     <View style={styles.headerRightActions}>
-                        <TutorialHelpButton onPress={tutorial.onReplayTour} />
+                        <TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />
                         <TouchableOpacity
                             style={styles.headerOptionsBtn}
                             onPress={() => setShowActionMenu(true)}

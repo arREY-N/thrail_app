@@ -10,16 +10,17 @@ import {
 } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
-import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomSelectionModal from '@/src/components/CustomSelectionModal';
+import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput from '@/src/components/CustomTextInput';
 import DynamicListBuilder from '@/src/components/DynamicListBuilder';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { useToast } from '@/src/components/Toast/Toast';
 import {
     CustomTutorialModal,
     registerMeasureCallback,
@@ -67,7 +68,9 @@ const OfferWriteScreen = ({
     onBackPress
 }: OfferWriteScreenProps) => {
     const isEditing = Boolean(offer?.id && offer.id !== '');
+    const { showToast } = useToast();
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
     const tutorial = useTutorialGuide('admin_offer_write', !isLoading);
 
     const [docInput, setDocInput] = useState('');
@@ -86,7 +89,6 @@ const OfferWriteScreen = ({
     const pricingRef = useRef<View>(null);
     const scheduleRef = useRef<View>(null);
     const checklistsRef = useRef<View>(null);
-    const saveBtnRef = useRef<View>(null);
 
     const measureTrailNow = useCallback(() => {
         trailRef.current?.measureInWindow((x, y, w, h) => {
@@ -120,28 +122,18 @@ const OfferWriteScreen = ({
         });
     }, []);
 
-    const measureSaveBtnNow = useCallback(() => {
-        saveBtnRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('booking_footer', { x, y, width: w, height: h });
-            }
-        });
-    }, []);
-
     useEffect(() => {
         const u1 = registerMeasureCallback('admin_write_trail_dates', measureTrailNow);
         const u2 = registerMeasureCallback('admin_write_pricing_pax', measurePricingNow);
         const u3 = registerMeasureCallback('admin_write_schedule', measureScheduleNow);
         const u4 = registerMeasureCallback('admin_write_checklists', measureChecklistsNow);
-        const u5 = registerMeasureCallback('booking_footer', measureSaveBtnNow);
         return () => {
             u1();
             u2();
             u3();
             u4();
-            u5();
         };
-    }, [measureTrailNow, measurePricingNow, measureScheduleNow, measureChecklistsNow, measureSaveBtnNow]);
+    }, [measureTrailNow, measurePricingNow, measureScheduleNow, measureChecklistsNow]);
 
     useEffect(() => {
         if (!tutorial.isVisible) return;
@@ -319,7 +311,9 @@ const OfferWriteScreen = ({
         return hasTrail && hasDesc && hasPrice && hasDate && hasEndDate && hasDuration && hasMinPax && hasMaxPax && hasSchedule && hasDocs;
     };
 
-    const isReadyToSubmit = isFormValid() && !isLoading;
+    const isDirty = hasUnsavedChanges || Boolean(docInput.trim() || incInput.trim() || bringInput.trim());
+    const canSubmit = isFormValid() && (!isEditing || isDirty);
+    const isReadyToSubmit = canSubmit && !isLoading;
 
     const totalDays = Number(days) || 0;
     const totalActivities = offer?.schedule?.reduce((acc: number, curr: ISchedule<Date>) => {
@@ -336,6 +330,81 @@ const OfferWriteScreen = ({
     };
 
     const handleSaveClick = () => {
+        if (isLoading) return;
+
+        if (!offer?.trail?.id) {
+            setHasAttemptedSubmit(true);
+            showToast.error("Please select a trail for this offer.", {
+                onHide: () => setHasAttemptedSubmit(false),
+            });
+            return;
+        }
+
+        if (!offer?.description || offer.description.trim() === '') {
+            setHasAttemptedSubmit(true);
+            showToast.error("Please enter a package description.", {
+                onHide: () => setHasAttemptedSubmit(false),
+            });
+            return;
+        }
+
+        if (!offer?.price || Number(offer.price) <= 0) {
+            setHasAttemptedSubmit(true);
+            showToast.error("Please enter a valid price per pax greater than ₱0.", {
+                onHide: () => setHasAttemptedSubmit(false),
+            });
+            return;
+        }
+
+        if (!offer?.minPax || Number(offer.minPax) <= 0) {
+            setHasAttemptedSubmit(true);
+            showToast.error("Please enter a minimum pax capacity greater than 0.", {
+                onHide: () => setHasAttemptedSubmit(false),
+            });
+            return;
+        }
+
+        if (!offer?.maxPax || Number(offer.maxPax) < Number(offer.minPax)) {
+            setHasAttemptedSubmit(true);
+            showToast.error("Maximum pax capacity must be at least the minimum pax capacity.", {
+                onHide: () => setHasAttemptedSubmit(false),
+            });
+            return;
+        }
+
+        if (!offer?.date || !offer?.endDate || !offer?.duration || offer.duration.trim() === '') {
+            setHasAttemptedSubmit(true);
+            showToast.error("Please select both a start date and an end date.", {
+                onHide: () => setHasAttemptedSubmit(false),
+            });
+            return;
+        }
+
+        if (!Array.isArray(offer?.schedule) || offer.schedule.length === 0) {
+            setHasAttemptedSubmit(true);
+            showToast.error("Please configure the itinerary & schedule.", {
+                onHide: () => setHasAttemptedSubmit(false),
+            });
+            return;
+        }
+
+        const hasDocs = (Array.isArray(offer?.documents) && offer.documents.length > 0) || docInput.trim() !== '';
+        if (!hasDocs) {
+            setHasAttemptedSubmit(true);
+            showToast.error("Please add at least one required document for hikers.", {
+                onHide: () => setHasAttemptedSubmit(false),
+            });
+            return;
+        }
+
+        if (isEditing && !isDirty) {
+            setHasAttemptedSubmit(true);
+            showToast.error("No changes have been made to this offer.", {
+                onHide: () => setHasAttemptedSubmit(false),
+            });
+            return;
+        }
+
         if (!isReadyToSubmit) return;
         
         if (docInput.trim()) { 
@@ -380,7 +449,7 @@ const OfferWriteScreen = ({
                 title={isEditing ? "Edit Offer" : "Add New Offer"} 
                 centerTitle={true}
                 onBackPress={handleHeaderBack}
-                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />} 
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />} 
             />
             
             <ScrollView 
@@ -655,32 +724,28 @@ const OfferWriteScreen = ({
 
                         {error && <ErrorMessage error={error} />}
 
-                        <View
-                            ref={saveBtnRef}
-                            collapsable={false}
-                            style={styles.buttonContainer}
-                        >
-                            <CustomButton 
-                                title={isLoading ? "Saving..." : "Save Offer"}
-                                onPress={handleSaveClick}
-                                variant="primary"
-                                style={!isReadyToSubmit ? styles.disabledButton : undefined}
-                            />
-                            
-                            {isEditing && (
-                                <CustomButton 
-                                    title="Delete Offer"
-                                    onPress={() => setIsDeleteModalVisible(true)}
-                                    variant="outline"
-                                    style={[styles.deleteBtn, isLoading && styles.disabledButton]}
-                                    textStyle={{ color: Colors.ERROR }}
-                                />
-                            )}
-                        </View>
-
                     </View>
                 </View>
             </ScrollView>
+
+            <CustomStickyFooter
+                enableToastDock={true}
+                primaryButton={{
+                    title: isLoading ? "Saving..." : "Save Offer",
+                    onPress: handleSaveClick,
+                    disabled: isLoading,
+                    isLoading: isLoading,
+                    validationState: canSubmit ? 'valid' : (hasAttemptedSubmit ? 'error' : 'idle'),
+                }}
+                secondaryButton={isEditing ? {
+                    title: "Delete Offer",
+                    onPress: () => setIsDeleteModalVisible(true),
+                    variant: 'outline',
+                    disabled: isLoading,
+                    style: styles.deleteBtn,
+                    textStyle: styles.deleteBtnText,
+                } : undefined}
+            />
 
             <CustomSelectionModal 
                 visible={showTrailModal}
@@ -777,7 +842,8 @@ const OfferWriteScreen = ({
 
 const styles = StyleSheet.create({
     scrollContent: { 
-        paddingVertical: 24, 
+        paddingTop: 24, 
+        paddingBottom: 120, 
         paddingHorizontal: 16 
     },
     constrainer: {
@@ -923,15 +989,11 @@ const styles = StyleSheet.create({
         paddingTop: 16, 
         paddingBottom: 16 
     },
-    buttonContainer: { 
-        marginTop: 8,
-        gap: 12 
-    },
     deleteBtn: { 
         borderColor: Colors.ERROR 
     },
-    disabledButton: { 
-        opacity: 0.5 
+    deleteBtnText: { 
+        color: Colors.ERROR 
     }
 });
 

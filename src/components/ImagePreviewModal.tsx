@@ -9,7 +9,7 @@ import {
     View,
     useWindowDimensions
 } from 'react-native';
-import ImageZoom, { ImageZoomProps } from 'react-native-image-pan-zoom';
+import ImageZoom, { IOnClick, ImageZoomProps } from 'react-native-image-pan-zoom';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -51,6 +51,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     const insets = useSafeAreaInsets();
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [isImageLoading, setIsImageLoading] = useState(true);
+    const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
 
     const imageList = images && images.length > 0 ? images : (imageUrl ? [imageUrl] : []);
 
@@ -65,12 +66,14 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             );
             setCurrentIndex(safeIndex);
             setIsImageLoading(true);
+            setImageDimensions(null);
         }
     }
 
     const handleNext = () => {
         if (currentIndex < imageList.length - 1) {
             setIsImageLoading(true);
+            setImageDimensions(null);
             setCurrentIndex(prev => prev + 1);
         }
     };
@@ -78,6 +81,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     const handlePrev = () => {
         if (currentIndex > 0) {
             setIsImageLoading(true);
+            setImageDimensions(null);
             setCurrentIndex(prev => prev - 1);
         }
     };
@@ -90,12 +94,46 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             } else if (currentIndex >= newLength) {
                 setCurrentIndex(newLength - 1);
             }
+            setImageDimensions(null);
             onDelete(currentIndex);
         }
     };
 
     const { width: windowWidth, height: windowHeight } = useWindowDimensions();
     const cropHeight = windowHeight * 0.8;
+
+    const handleZoomClick = (event: IOnClick) => {
+        if (!imageDimensions || imageDimensions.width <= 0 || imageDimensions.height <= 0) {
+            onClose();
+            return;
+        }
+
+        const containerRatio = windowWidth / cropHeight;
+        const imageRatio = imageDimensions.width / imageDimensions.height;
+
+        let renderedWidth = windowWidth;
+        let renderedHeight = cropHeight;
+
+        if (imageRatio > containerRatio) {
+            renderedHeight = windowWidth / imageRatio;
+        } else {
+            renderedWidth = cropHeight * imageRatio;
+        }
+
+        const offsetX = (windowWidth - renderedWidth) / 2;
+        const offsetY = (cropHeight - renderedHeight) / 2;
+
+        const isInsideImage = (
+            event.locationX >= offsetX &&
+            event.locationX <= offsetX + renderedWidth &&
+            event.locationY >= offsetY &&
+            event.locationY <= offsetY + renderedHeight
+        );
+
+        if (!isInsideImage) {
+            onClose();
+        }
+    };
 
     const getSource = (img: unknown): ImageSourcePropType | null => {
         if (!img) return null;
@@ -127,6 +165,13 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             onRequestClose={onClose}
         >
             <View style={styles.modalOverlay}>
+                <TouchableOpacity 
+                    style={styles.backdropTouch} 
+                    activeOpacity={1} 
+                    onPress={onClose}
+                    accessibilityLabel="Close image preview background"
+                    accessibilityRole="button"
+                />
                 
                 {onDelete && imageList.length > 0 && (
                     <TouchableOpacity 
@@ -176,6 +221,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                             cropHeight={cropHeight}
                             imageWidth={windowWidth}
                             imageHeight={cropHeight}
+                            onClick={handleZoomClick}
                         >
                             <Image 
                                 key={`preview-image-${currentIndex}-${currentImageKey}`}
@@ -185,7 +231,13 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                                     { width: windowWidth, height: cropHeight, opacity: isImageLoading ? 0 : 1 }
                                 ]} 
                                 resizeMode="contain" 
-                                onLoad={() => setIsImageLoading(false)}
+                                onLoad={(e) => {
+                                    setIsImageLoading(false);
+                                    const { width, height } = e.nativeEvent.source;
+                                    if (width && height) {
+                                        setImageDimensions({ width, height });
+                                    }
+                                }}
                                 onLoadEnd={() => setIsImageLoading(false)}
                                 onError={() => setIsImageLoading(false)}
                             />
@@ -223,6 +275,10 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.MODAL_OVERLAY,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    backdropTouch: {
+        ...StyleSheet.absoluteFill,
+        zIndex: 0,
     },
     zoomWrapper: {
         width: '100%',
