@@ -66,7 +66,7 @@ const EmergencyNotification: React.FC = () => {
         const nextTime = Date.now() + (24 * 60 * 60 * 1000); 
         await AsyncStorage.setItem('skipEmergencyModal', nextTime.toString());
         */
-        showToast.info("Setup skipped. We will remind you later.");
+        showToast.info("Setup skipped. We will remind you later.", { position: 'tabbar' });
         hideBanner();
         setShowEmergencyModal(false);
     };
@@ -79,7 +79,7 @@ const EmergencyNotification: React.FC = () => {
     const handleCloseEmergencyModal = () => {
         setShowEmergencyModal(false);
         if (!profile?.emergencyContact?.name) {
-            showToast.info("Setup skipped. We will remind you later.");
+            showToast.info("Setup skipped. We will remind you later.", { position: 'tabbar' });
         }
     };
 
