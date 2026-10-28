@@ -1,4 +1,4 @@
-import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
+import { startBackgroundLocationTracking, stopBackgroundLocationTracking } from "@/src/core/flows/TrackHikerGPSFlow";
 import { useBookingUserItem } from "@/src/core/models/Booking/Booking";
 import { newHike, useHikesStore, useHikeState, useHikeStore } from "@/src/core/models/Hike/Hike";
 import { getReverseGeocode } from "@/src/core/models/Location/Location";
@@ -21,7 +21,8 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
     const { hikeId, trailId, bookingId, groupId } = params;
     const { profile } = useAuthHook();
 
-    const { startBackgroundTracking, stopBackgroundTracking } = TrackHikerGPSFlow();
+    const startBackgroundTracking = startBackgroundLocationTracking;
+    const stopBackgroundTracking = stopBackgroundLocationTracking;
 
     const [localError, setLocalError] = useState<string | null>(null);
 
