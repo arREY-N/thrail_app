@@ -40,7 +40,7 @@ export type CalloutTargetVariant =
 /**
  * Configuration for the coded visual callout banner displayed at the top of each tutorial step card.
  *
- * @param badgeText - Short category or location label (e.g., "Bottom Navigation • Tab 1 of 5")
+ * @param badgeText - Short category or location label (e.g., "Bottom Navigation â€¢ Tab 1 of 5")
  * @param targetLabel - Text inside the simulated button/element being highlighted
  * @param targetIcon - Icon name from @expo/vector-icons
  * @param targetIconLibrary - Icon family library name
@@ -129,9 +129,15 @@ export type TargetSpotlightType =
     | 'web_drawer_profile'
     | 'web_drawer_messages'
     | 'web_drawer_settings'
+    | 'web_drawer_dashboard'
     | 'web_drawer_offers'
     | 'web_drawer_trails'
     | 'web_drawer_personnel'
+    | 'web_drawer_application'
+    | 'web_drawer_business'
+    | 'web_drawer_mountain'
+    | 'web_drawer_user'
+    | 'web_drawer_recommendation'
     | 'fab_messages';
 
 export type TooltipPlacement = 'auto' | 'top' | 'bottom' | 'center' | 'right';
@@ -193,9 +199,10 @@ export type TutorialCompletionMap = Partial<Record<TutorialTourId, boolean>>;
  * @param totalSteps - Total number of steps in this tour
  * @param tourConfig - Full tour metadata
  * @param hasCompletedTour - Whether this user has already completed this tour
- * @param onNextStep - Advance to the next step (or complete tour if on the final '?' replay step)
+ * @param hasGuide - Whether an active guide is configured with at least one step for this screen
+ * @param onNextStep - Advance to the next step (or complete tour if on the final step)
  * @param onPrevStep - Return to the previous step
- * @param onSkipTour - Jumps directly to the Final '?' Replay Spotlight step (or closes if already on the final step) so the user sees where the '?' button is before closing
+ * @param onSkipTour - Exits and completes the tour immediately
  * @param onReplayTour - Manually open/replay the tour from Step 0 (bound to the '?' header button)
  */
 export interface UseTutorialGuideReturn {
@@ -203,6 +210,7 @@ export interface UseTutorialGuideReturn {
     currentStepIndex: number;
     currentStep: TutorialStep;
     totalSteps: number;
+    hasGuide: boolean;
     tourConfig: TutorialTourConfig;
     hasCompletedTour: boolean;
     onNextStep: () => Promise<void>;
