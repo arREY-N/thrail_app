@@ -449,7 +449,7 @@ const OfferWriteScreen = ({
                 title={isEditing ? "Edit Offer" : "Add New Offer"} 
                 centerTitle={true}
                 onBackPress={handleHeaderBack}
-                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />} 
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />} 
             />
             
             <ScrollView 

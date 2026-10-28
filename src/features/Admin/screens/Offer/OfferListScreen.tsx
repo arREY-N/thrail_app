@@ -3,7 +3,7 @@
  * @description Admin screen displaying a list of created offers and basic booking stats, including search, filter, and sorting features.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
@@ -112,11 +112,14 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         setActiveFilter, 
         sortBy,
         setSortBy,
-        filterTrailNames,
-        setFilterTrailNames,
-        uniqueTrailNames,
-        filteredAndSortedOffers 
-    } = useOfferFilters(offers);
+        filteredAndSortedOffers,
+        sortOrder,
+        setSortOrder,
+        filterByStatus,
+        setFilterByStatus,
+        actionableCountsByOffer,
+        filterSections,
+    } = useOfferFilters(offers, bookingByOffer, cancellations);
 
     const tutorial = useTutorialGuide('admin_offer_list', !isLoading);
     
@@ -205,92 +208,17 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         return STATUS_DETAILS.active;
     }, []);
 
-    const actionableCountsByOffer = useMemo(() => {
-        const counts: Record<string, number> = {};
-
-        // 1. Group cancellations by offerId
-        const cancellationsByOffer = new Map<string, Cancellation[]>();
-        (cancellations || []).forEach(c => {
-            if (!cancellationsByOffer.has(c.offerId)) {
-                cancellationsByOffer.set(c.offerId, []);
-            }
-            cancellationsByOffer.get(c.offerId)!.push(c);
-        });
-
-        // 2. Compute actionable count for each offer in a single pass
-        (offers || []).forEach(offer => {
-            const list = (bookingByOffer && Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id))
-                ? bookingByOffer[offer.id] || []
-                : [];
-            const offerCancellations = cancellationsByOffer.get(offer.id) || [];
-
-            const cancellationByBooking = new Map<string, Cancellation>();
-            offerCancellations.forEach(c => {
-                cancellationByBooking.set(c.bookingId, c);
-            });
-
-            const actionableBookingIds = new Set<string>();
-            list.forEach(b => {
-                const cancellation = cancellationByBooking.get(b.id);
-                // If cancellation is approved or booking is cancelled, it is resolved and not actionable for admin
-                if (cancellation?.status === 'approved' || b.status === 'cancelled') {
-                    return;
-                }
-                // If cancellation was initiated by admin, admin is waiting on hiker action
-                if (cancellation && cancellation.cancelledBy === 'admin') {
-                    return;
-                }
-
-                const status = (b.status as string) || '';
-                if (
-                    status === 'for-reservation' || 
-                    status === 'paid' || 
-                    status === 'downpayment' ||
-                    status === 'for-cancellation' ||
-                    status === 'for-reschedule'
-                ) {
-                    actionableBookingIds.add(b.id);
-                }
-            });
-
-            // Also count pending cancellation requests submitted by hikers
-            offerCancellations.forEach(c => {
-                if (c.status === 'pending' && c.cancelledBy !== 'admin') {
-                    actionableBookingIds.add(c.bookingId);
-                }
-            });
-
-            counts[offer.id] = actionableBookingIds.size;
-        });
-
-        return counts;
-    }, [offers, bookingByOffer, cancellations]);
-
-    const filterSections = [
-        {
-            id: 'sortBy',
-            title: 'Sort By',
-            type: 'radio' as const,
-            options: [
-                { label: 'Date: Earliest First', value: 'date-asc' },
-                { label: 'Date: Latest First', value: 'date-desc' },
-                { label: 'Price: Low to High', value: 'price-asc' },
-                { label: 'Price: High to Low', value: 'price-desc' }
-            ]
-        },
-        {
-            id: 'filterTrailNames',
-            title: 'Filter By Trail',
-            type: 'pill' as const,
-            multiSelect: true,
-            options: uniqueTrailNames.map((name: string) => ({ label: name, value: name }))
-        }
-    ];
-
     const handleApplyFilters = useCallback((values: Record<string, unknown>) => {
-        setSortBy(values.sortBy as string);
-        setFilterTrailNames((values.filterTrailNames as string[]) || []);
-    }, [setSortBy, setFilterTrailNames]);
+        if (typeof values.sortBy === 'string') {
+            setSortBy(values.sortBy as import('@/src/features/Admin/hooks/useOfferFilters').OfferSortBy);
+        }
+        if (typeof values.sortOrder === 'string') {
+            setSortOrder(values.sortOrder as import('@/src/features/Admin/hooks/useOfferFilters').OfferSortOrder);
+        }
+        if (typeof values.filterByStatus === 'string') {
+            setFilterByStatus(values.filterByStatus as import('@/src/features/Admin/hooks/useOfferFilters').OfferStatusFilter);
+        }
+    }, [setSortBy, setSortOrder, setFilterByStatus]);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -303,7 +231,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                         title="Manage Offers" 
                         centerTitle={true} 
                         onBackPress={onBackPress}
-                        rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />} 
+                        rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />} 
                         hasSearch={true}
                         searchProps={{
                             searchPlaceholder: "Search by trail name...",
@@ -449,10 +377,18 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                 <CustomFilterModal
                     visible={showFilterModal}
                     onClose={() => setShowFilterModal(false)}
-                    title="Sort & Filter Offers"
+                    title="Sort & Filter"
                     sections={filterSections}
-                    initialValues={{ sortBy, filterTrailNames }}
-                    defaultValues={{ sortBy: 'date-asc', filterTrailNames: [] }}
+                    initialValues={{
+                        sortBy,
+                        sortOrder,
+                        filterByStatus,
+                    }}
+                    defaultValues={{
+                        sortBy: 'date',
+                        sortOrder: activeFilter === 'Expired' ? 'desc' : 'asc',
+                        filterByStatus: 'all',
+                    }}
                     onApply={handleApplyFilters}
                 />
             )}
