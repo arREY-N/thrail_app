@@ -6,9 +6,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Animated, Easing, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -181,16 +181,6 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
                 title="Personnel"
                 centerTitle={true}
                 onBackPress={onBackPress}
-                rightActions={
-                    <CustomButton
-                        title="Add"
-                        onPress={onAddAdminPress}
-                        variant="primary"
-                        size="sm"
-                        style={styles.headerAddBtn}
-                        textStyle={styles.headerAddBtnText}
-                    />
-                }
             />
 
             <ResponsiveScrollView
@@ -243,6 +233,18 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
                     </TouchableOpacity>
                 </View>
             </ResponsiveScrollView>
+
+            <CustomStickyFooter
+                enableToastDock={true}
+                primaryButton={{
+                    title: "Add Personnel",
+                    icon: 'plus',
+                    iconLibrary: 'Feather',
+                    iconSize: 18,
+                    onPress: onAddAdminPress,
+                    variant: 'primary',
+                }}
+            />
         </ScreenWrapper>
     );
 };
@@ -250,7 +252,7 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
 const styles = StyleSheet.create({
     scrollContent: {
         padding: 16,
-        paddingBottom: 40,
+        paddingBottom: 110,
     },
 
     constrainer: {
@@ -258,21 +260,6 @@ const styles = StyleSheet.create({
         maxWidth: Layout.MAX_WIDTH,
         alignSelf: 'center',
         flex: 1,
-    },
-    headerAddBtn: {
-        paddingHorizontal: 16,
-        paddingVertical: 0,
-        height: 32,
-        width: 70,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        alignSelf: 'center',
-    },
-    headerAddBtnText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        // marginTop: -2,
     },
     list: {
         gap: 12,

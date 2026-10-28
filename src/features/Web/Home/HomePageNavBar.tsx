@@ -10,6 +10,7 @@ import {
   isDrawerMeasurementActive,
   registerDrawerItemLayout,
   registerDrawerMeasureCallback,
+  subscribeDrawerScroll,
 } from "@/src/components/Tutorial/utils/webDrawerLayoutRegistry";
 import { Colors } from "@/src/constants/colors";
 import { SignOutFlow } from "@/src/core/flows/SignOutFlow";
@@ -31,7 +32,7 @@ interface NavSection {
   items: NavItemConfig[];
 }
 
-// ── Base Navigation Sections (Available for all users) ──
+// â”€â”€ Base Navigation Sections (Available for all users) â”€â”€
 const BASE_NAV_SECTIONS: NavSection[] = [
   {
     title: "MENU",
@@ -94,7 +95,7 @@ const BASE_NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-// ── Superadmin Navigation Sections ──
+// â”€â”€ Superadmin Navigation Sections â”€â”€
 const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
   {
     title: "ADMIN MAIN",
@@ -157,7 +158,7 @@ const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-// ── Admin (Business Admin) Navigation Sections ──
+// â”€â”€ Admin (Business Admin) Navigation Sections â”€â”€
 const ADMIN_NAV_SECTIONS: NavSection[] = [
   {
     title: "ADMIN MAIN",
@@ -211,7 +212,10 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
   const profile = useAuthStore((s) => s.profile);
   const role = useAuthStore((s) => s.role);
 
+  const scrollViewRef = useRef<ScrollView>(null);
   const itemRefs = useRef<Record<string, View | null>>({});
+  const sectionOffsets = useRef<Record<number, number>>({});
+  const itemOffsets = useRef<Record<string, number>>({});
 
   const measureAllItemsNow = useCallback(() => {
     Object.entries(itemRefs.current).forEach(([id, node]) => {
@@ -228,6 +232,44 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
       measureAllItemsNow();
     }
     return registerDrawerMeasureCallback(measureAllItemsNow);
+  }, [measureAllItemsNow]);
+
+  // Synchronize drawer scroll position whenever tutorial focuses on a drawer item
+  useEffect(() => {
+    let scrollTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const unsub = subscribeDrawerScroll((targetId) => {
+      if (!targetId) {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        return;
+      }
+
+      // 1. Calculate target offset from registered layout measurements
+      const targetOffset = itemOffsets.current[targetId];
+      if (typeof targetOffset === "number") {
+        scrollViewRef.current?.scrollTo({
+          y: Math.max(0, targetOffset - 60),
+          animated: true,
+        });
+      }
+
+      // 2. Extra safeguard for native Web DOM elements
+      const domNode = itemRefs.current[targetId] as unknown as HTMLElement | undefined;
+      if (domNode && typeof domNode.scrollIntoView === "function") {
+        domNode.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      // 3. Post-scroll re-measurement after scroll animation settles
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        measureAllItemsNow();
+      }, 180);
+    });
+
+    return () => {
+      unsub();
+      if (scrollTimer) clearTimeout(scrollTimer);
+    };
   }, [measureAllItemsNow]);
 
   const fullName = profile
@@ -342,12 +384,19 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
 
       {/* Scrollable Navigation Links */}
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollList}
         contentContainerStyle={styles.navListContainer}
         showsVerticalScrollIndicator={false}
       >
         {navSections.map((section, sIndex) => (
-          <View key={section.title || sIndex} style={styles.sectionGroup}>
+          <View
+            key={section.title || sIndex}
+            style={styles.sectionGroup}
+            onLayout={(e) => {
+              sectionOffsets.current[sIndex] = e.nativeEvent.layout.y;
+            }}
+          >
             {section.title && (
               <View style={styles.sectionHeaderContainer}>
                 <CustomText variant="caption" style={styles.sectionTitleText}>
@@ -364,6 +413,10 @@ export const HomeSidebar = ({ onClose }: HomeSidebarProps) => {
                   key={item.id}
                   ref={(node) => {
                     itemRefs.current[item.id] = node;
+                  }}
+                  onLayout={(e) => {
+                    const secY = sectionOffsets.current[sIndex] ?? 0;
+                    itemOffsets.current[item.id] = secY + e.nativeEvent.layout.y;
                   }}
                   style={[
                     styles.navItem,

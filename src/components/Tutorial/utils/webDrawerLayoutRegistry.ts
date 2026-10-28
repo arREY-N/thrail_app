@@ -12,6 +12,8 @@ export interface DrawerItemLayout {
 const registry = new Map<string, DrawerItemLayout>();
 const listeners = new Set<() => void>();
 const drawerMeasureCallbacks = new Set<() => void>();
+let activeDrawerTarget: string | null = null;
+const drawerScrollListeners = new Set<(itemId: string | null) => void>();
 
 /**
  * Returns true only when an active CustomTutorialModal is visible and listening for drawer measurements.
@@ -108,5 +110,51 @@ export const subscribeDrawerItemLayouts = (listener: () => void): (() => void) =
     listeners.add(listener);
     return () => {
         listeners.delete(listener);
+    };
+};
+
+/**
+ * Sets the active sidebar drawer item targeted by the current tutorial step.
+ * Automatically notifies registered drawer scroll listeners to adjust their scroll position.
+ *
+ * @param itemId - The navigation item id (e.g. 'personnel', 'business') or null when tour leaves drawer
+ */
+export const setActiveDrawerTarget = (itemId: string | null): void => {
+    if (activeDrawerTarget !== itemId) {
+        activeDrawerTarget = itemId;
+        drawerScrollListeners.forEach((listener) => {
+            try {
+                listener(itemId);
+            } catch {
+                // Ignore listener notification errors
+            }
+        });
+    }
+};
+
+/**
+ * Retrieves the currently active drawer target item id.
+ *
+ * @returns {string | null}
+ */
+export const getActiveDrawerTarget = (): string | null => activeDrawerTarget;
+
+/**
+ * Subscribes to changes in the active drawer target to auto-scroll the drawer into view.
+ *
+ * @param listener - Callback invoked when the active drawer target changes
+ * @returns Unsubscribe cleanup function
+ */
+export const subscribeDrawerScroll = (listener: (itemId: string | null) => void): (() => void) => {
+    drawerScrollListeners.add(listener);
+    if (activeDrawerTarget !== null) {
+        try {
+            listener(activeDrawerTarget);
+        } catch {
+            // Ignore error
+        }
+    }
+    return () => {
+        drawerScrollListeners.delete(listener);
     };
 };

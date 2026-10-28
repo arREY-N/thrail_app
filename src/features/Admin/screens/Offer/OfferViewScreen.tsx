@@ -167,7 +167,7 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                 title="Offer Details" 
                 centerTitle={true} 
                 onBackPress={onBackPress}
-                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />} 
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />} 
             />
             
             <ScrollView 

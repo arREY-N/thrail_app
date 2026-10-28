@@ -17,9 +17,11 @@ import {
     isTutorialMeasurementActive,
     registerMeasureCallback,
     registerTutorialLayout,
+    TargetSpotlightType,
 } from '@/src/components/Tutorial/Tutorial';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
+import { IconLibrary } from '@/src/types/ui.types';
 
 export interface FooterButtonConfig {
     title: string;
@@ -39,7 +41,58 @@ export interface FooterButtonConfig {
     numberOfLines?: number;
     adjustsFontSizeToFit?: boolean;
     minimumFontScale?: number;
+    icon?: string;
+    iconLibrary?: IconLibrary;
+    iconPosition?: 'left' | 'right';
+    iconSize?: number;
+    iconColor?: string;
+    tutorialTargetId?: TargetSpotlightType;
 }
+
+interface FooterButtonWrapperProps {
+    tutorialTargetId?: TargetSpotlightType;
+    style?: StyleProp<ViewStyle>;
+    children: React.ReactNode;
+}
+
+const FooterButtonWrapper: React.FC<FooterButtonWrapperProps> = ({
+    tutorialTargetId,
+    style,
+    children,
+}) => {
+    const wrapperRef = useRef<View>(null);
+
+    const measureNow = useCallback(() => {
+        if (!tutorialTargetId) return;
+        wrapperRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout(tutorialTargetId, { x, y, width, height });
+            }
+        });
+    }, [tutorialTargetId]);
+
+    useEffect(() => {
+        if (!tutorialTargetId) return undefined;
+        return registerMeasureCallback(tutorialTargetId, measureNow);
+    }, [tutorialTargetId, measureNow]);
+
+    const handleWrapperLayout = () => {
+        if (tutorialTargetId && isTutorialMeasurementActive()) {
+            measureNow();
+        }
+    };
+
+    return (
+        <View
+            ref={wrapperRef}
+            collapsable={false}
+            onLayout={tutorialTargetId ? handleWrapperLayout : undefined}
+            style={style}
+        >
+            {children}
+        </View>
+    );
+};
 
 /**
  * A sticky footer container usually placed at the bottom of forms or screens.
@@ -47,6 +100,8 @@ export interface FooterButtonConfig {
 interface CustomStickyFooterProps {
     primaryButton?: FooterButtonConfig;
     secondaryButton?: FooterButtonConfig;
+    tertiaryButton?: FooterButtonConfig;
+    buttons?: FooterButtonConfig[];
     layout?: 'row' | 'column';
     style?: StyleProp<ViewStyle>;
     enableToastDock?: boolean;
@@ -66,6 +121,8 @@ export const getStickyFooterScrollPadding = (bottomInset: number = 0, isMobile: 
 const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
     primaryButton,
     secondaryButton,
+    tertiaryButton,
+    buttons,
     layout = 'row',
     style,
     enableToastDock = false,
@@ -110,7 +167,42 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
         }
     };
 
-    if (!primaryButton) return null;
+    const resolvedButtons: FooterButtonConfig[] =
+        buttons && buttons.length > 0
+            ? buttons
+            : layout === 'column'
+              ? [primaryButton, secondaryButton, tertiaryButton].filter(
+                    (btn): btn is FooterButtonConfig => Boolean(btn),
+                )
+              : [secondaryButton, primaryButton, tertiaryButton].filter(
+                    (btn): btn is FooterButtonConfig => Boolean(btn),
+                );
+
+    if (resolvedButtons.length === 0) return null;
+
+    const isThreeColumnRow = layout === 'row' && resolvedButtons.length >= 3;
+
+    const renderIndicator = (btn: FooterButtonConfig) => {
+        if (!btn.showIndicator) return null;
+        return (
+            <View
+                style={[
+                    styles.indicatorBadge,
+                    typeof btn.badgeCount === 'number' &&
+                        btn.badgeCount > 0 &&
+                        styles.indicatorBadgeWithCount,
+                ]}
+            >
+                {typeof btn.badgeCount === 'number' && btn.badgeCount > 0 ? (
+                    <CustomText variant="caption" style={styles.indicatorBadgeText}>
+                        {btn.badgeCount > 99 ? '99+' : String(btn.badgeCount)}
+                    </CustomText>
+                ) : (
+                    <View style={styles.indicatorDot} />
+                )}
+            </View>
+        );
+    };
 
     return (
         <View
@@ -119,147 +211,111 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
             onLayout={handleLayout}
             style={[styles.footer, { paddingBottom: safeBottomPadding }, style]}
         >
-            {secondaryButton ? (
+            {resolvedButtons.length > 1 ? (
                 layout === 'column' ? (
                     <View style={styles.buttonColumn}>
-                        <View style={styles.singleButtonWrapper}>
-                            <CustomButton
-                                title={primaryButton.title}
-                                onPress={primaryButton.onPress}
-                                variant={primaryButton.variant || 'primary'}
-                                style={primaryButton.style}
-                                textStyle={primaryButton.textStyle}
-                                disabled={primaryButton.disabled}
-                                isLoading={primaryButton.isLoading}
-                                disabledToastMessage={primaryButton.disabledToastMessage}
-                                disabledToastType={primaryButton.disabledToastType}
-                                validationState={primaryButton.validationState}
-                                hasError={primaryButton.hasError}
-                                isIdleDisabled={primaryButton.isIdleDisabled}
-                            />
-                        </View>
-                        <CustomButton
-                            title={secondaryButton.title}
-                            onPress={secondaryButton.onPress}
-                            variant={secondaryButton.variant || 'outline'}
-                            style={secondaryButton.style}
-                            textStyle={secondaryButton.textStyle}
-                            disabled={secondaryButton.disabled}
-                            isLoading={secondaryButton.isLoading}
-                            disabledToastMessage={secondaryButton.disabledToastMessage}
-                            disabledToastType={secondaryButton.disabledToastType}
-                            validationState={secondaryButton.validationState}
-                            hasError={secondaryButton.hasError}
-                            isIdleDisabled={secondaryButton.isIdleDisabled}
-                        />
+                        {resolvedButtons.map((btn, index) => (
+                            <FooterButtonWrapper
+                                key={`${btn.title}-${index}`}
+                                tutorialTargetId={btn.tutorialTargetId}
+                                style={styles.singleButtonWrapper}
+                            >
+                                <CustomButton
+                                    title={btn.title}
+                                    onPress={btn.onPress}
+                                    variant={btn.variant || (index === 0 ? 'primary' : 'outline')}
+                                    style={btn.style}
+                                    textStyle={btn.textStyle}
+                                    disabled={btn.disabled}
+                                    isLoading={btn.isLoading}
+                                    disabledToastMessage={btn.disabledToastMessage}
+                                    disabledToastType={btn.disabledToastType}
+                                    validationState={btn.validationState}
+                                    hasError={btn.hasError}
+                                    isIdleDisabled={btn.isIdleDisabled}
+                                    icon={btn.icon}
+                                    iconLibrary={btn.iconLibrary}
+                                    iconPosition={btn.iconPosition}
+                                    iconSize={btn.iconSize}
+                                    iconColor={btn.iconColor}
+                                />
+                                {renderIndicator(btn)}
+                            </FooterButtonWrapper>
+                        ))}
                     </View>
                 ) : (
-                    <View style={styles.buttonRow}>
-                        <View style={styles.buttonWrapper}>
-                            <CustomButton
-                                title={secondaryButton.title}
-                                onPress={secondaryButton.onPress}
-                                variant={secondaryButton.variant || 'outline'}
-                                style={[styles.footerButton, secondaryButton.style]}
-                                textStyle={secondaryButton.textStyle}
-                                numberOfLines={secondaryButton.numberOfLines ?? 1}
-                                adjustsFontSizeToFit={secondaryButton.adjustsFontSizeToFit ?? true}
-                                minimumFontScale={secondaryButton.minimumFontScale ?? 0.75}
-                                disabled={secondaryButton.disabled}
-                                isLoading={secondaryButton.isLoading}
-                                disabledToastMessage={secondaryButton.disabledToastMessage}
-                                disabledToastType={secondaryButton.disabledToastType}
-                                validationState={secondaryButton.validationState}
-                                hasError={secondaryButton.hasError}
-                                isIdleDisabled={secondaryButton.isIdleDisabled}
-                            />
-                        </View>
-                        <View style={styles.buttonWrapper}>
-                            <CustomButton
-                                title={primaryButton.title}
-                                onPress={primaryButton.onPress}
-                                variant={primaryButton.variant || 'primary'}
-                                style={[styles.footerButton, primaryButton.style]}
-                                textStyle={primaryButton.textStyle}
-                                numberOfLines={primaryButton.numberOfLines ?? 1}
-                                adjustsFontSizeToFit={primaryButton.adjustsFontSizeToFit ?? true}
-                                minimumFontScale={primaryButton.minimumFontScale ?? 0.75}
-                                disabled={primaryButton.disabled}
-                                isLoading={primaryButton.isLoading}
-                                disabledToastMessage={primaryButton.disabledToastMessage}
-                                disabledToastType={primaryButton.disabledToastType}
-                                validationState={primaryButton.validationState}
-                                hasError={primaryButton.hasError}
-                                isIdleDisabled={primaryButton.isIdleDisabled}
-                            />
-                            {primaryButton.showIndicator && (
-                                <View
+                    <View
+                        style={[
+                            styles.buttonRow,
+                            isThreeColumnRow && styles.buttonRowThree,
+                        ]}
+                    >
+                        {resolvedButtons.map((btn, index) => (
+                            <FooterButtonWrapper
+                                key={`${btn.title}-${index}`}
+                                tutorialTargetId={btn.tutorialTargetId}
+                                style={styles.buttonWrapper}
+                            >
+                                <CustomButton
+                                    title={btn.title}
+                                    onPress={btn.onPress}
+                                    variant={
+                                        btn.variant ||
+                                        (btn === primaryButton ? 'primary' : 'outline')
+                                    }
                                     style={[
-                                        styles.indicatorBadge,
-                                        typeof primaryButton.badgeCount === 'number' &&
-                                            primaryButton.badgeCount > 0 &&
-                                            styles.indicatorBadgeWithCount,
+                                        styles.footerButton,
+                                        isThreeColumnRow && styles.footerButtonThree,
+                                        btn.style,
                                     ]}
-                                >
-                                    {typeof primaryButton.badgeCount === 'number' &&
-                                    primaryButton.badgeCount > 0 ? (
-                                        <CustomText
-                                            variant="caption"
-                                            style={styles.indicatorBadgeText}
-                                        >
-                                            {primaryButton.badgeCount > 99
-                                                ? '99+'
-                                                : String(primaryButton.badgeCount)}
-                                        </CustomText>
-                                    ) : (
-                                        <View style={styles.indicatorDot} />
-                                    )}
-                                </View>
-                            )}
-                        </View>
+                                    textStyle={btn.textStyle}
+                                    numberOfLines={btn.numberOfLines ?? 1}
+                                    adjustsFontSizeToFit={btn.adjustsFontSizeToFit ?? true}
+                                    minimumFontScale={btn.minimumFontScale ?? 0.75}
+                                    disabled={btn.disabled}
+                                    isLoading={btn.isLoading}
+                                    disabledToastMessage={btn.disabledToastMessage}
+                                    disabledToastType={btn.disabledToastType}
+                                    validationState={btn.validationState}
+                                    hasError={btn.hasError}
+                                    isIdleDisabled={btn.isIdleDisabled}
+                                    icon={btn.icon}
+                                    iconLibrary={btn.iconLibrary}
+                                    iconPosition={btn.iconPosition}
+                                    iconSize={btn.iconSize}
+                                    iconColor={btn.iconColor}
+                                />
+                                {renderIndicator(btn)}
+                            </FooterButtonWrapper>
+                        ))}
                     </View>
                 )
             ) : (
-                <View style={styles.singleButtonWrapper}>
+                <FooterButtonWrapper
+                    tutorialTargetId={resolvedButtons[0].tutorialTargetId}
+                    style={styles.singleButtonWrapper}
+                >
                     <CustomButton
-                        title={primaryButton.title}
-                        onPress={primaryButton.onPress}
-                        variant={primaryButton.variant || 'primary'}
-                        style={primaryButton.style}
-                        textStyle={primaryButton.textStyle}
-                        disabled={primaryButton.disabled}
-                        isLoading={primaryButton.isLoading}
-                        disabledToastMessage={primaryButton.disabledToastMessage}
-                        disabledToastType={primaryButton.disabledToastType}
-                        validationState={primaryButton.validationState}
-                        hasError={primaryButton.hasError}
-                        isIdleDisabled={primaryButton.isIdleDisabled}
+                        title={resolvedButtons[0].title}
+                        onPress={resolvedButtons[0].onPress}
+                        variant={resolvedButtons[0].variant || 'primary'}
+                        style={resolvedButtons[0].style}
+                        textStyle={resolvedButtons[0].textStyle}
+                        disabled={resolvedButtons[0].disabled}
+                        isLoading={resolvedButtons[0].isLoading}
+                        disabledToastMessage={resolvedButtons[0].disabledToastMessage}
+                        disabledToastType={resolvedButtons[0].disabledToastType}
+                        validationState={resolvedButtons[0].validationState}
+                        hasError={resolvedButtons[0].hasError}
+                        isIdleDisabled={resolvedButtons[0].isIdleDisabled}
+                        icon={resolvedButtons[0].icon}
+                        iconLibrary={resolvedButtons[0].iconLibrary}
+                        iconPosition={resolvedButtons[0].iconPosition}
+                        iconSize={resolvedButtons[0].iconSize}
+                        iconColor={resolvedButtons[0].iconColor}
                     />
-                    {primaryButton.showIndicator && (
-                        <View
-                            style={[
-                                styles.indicatorBadge,
-                                typeof primaryButton.badgeCount === 'number' &&
-                                    primaryButton.badgeCount > 0 &&
-                                    styles.indicatorBadgeWithCount,
-                            ]}
-                        >
-                            {typeof primaryButton.badgeCount === 'number' &&
-                            primaryButton.badgeCount > 0 ? (
-                                <CustomText
-                                    variant="caption"
-                                    style={styles.indicatorBadgeText}
-                                >
-                                    {primaryButton.badgeCount > 99
-                                        ? '99+'
-                                        : String(primaryButton.badgeCount)}
-                                </CustomText>
-                            ) : (
-                                <View style={styles.indicatorDot} />
-                            )}
-                        </View>
-                    )}
-                </View>
+                    {renderIndicator(resolvedButtons[0])}
+                </FooterButtonWrapper>
             )}
         </View>
     );
@@ -285,6 +341,9 @@ const styles = StyleSheet.create({
         gap: 16,
         alignItems: 'stretch',
     },
+    buttonRowThree: {
+        gap: 10,
+    },
     buttonColumn: {
         width: '100%',
         gap: 12,
@@ -299,6 +358,9 @@ const styles = StyleSheet.create({
         height: '100%',
         minHeight: 52,
         justifyContent: 'center',
+    },
+    footerButtonThree: {
+        paddingHorizontal: 10,
     },
     singleButtonWrapper: {
         width: '100%',

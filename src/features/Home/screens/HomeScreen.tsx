@@ -374,7 +374,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
       <CustomHeader
         title="Home"
         showDefaultIcons={true}
-        rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />}
+        rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />}
       />
 
       <ResponsiveScrollView

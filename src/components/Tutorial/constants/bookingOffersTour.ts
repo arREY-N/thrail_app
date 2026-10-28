@@ -33,14 +33,4 @@ export const bookingOffersTourSteps: TutorialStep[] = [
             'Once you choose an offer, tap the "Select an Offer" / "Continue" button at the bottom of the screen to advance to Step 2 for contact info and document uploads.',
         actionTip: 'Tap the green action button at the bottom to continue to hiker requirements.',
     },
-    {
-        id: 'book-offers-step-4-replay',
-        category: 'Booking • Replay Guide',
-        targetSpotlight: 'header_help',
-        highlightHeaderHelp: true,
-        title: 'Replay Guide Anytime',
-        description:
-            'Need a refresher at any stage of your booking? Tap the question mark icon (?) in the top right corner anytime to replay this walkthrough.',
-        actionTip: 'You can replay the walkthrough on Offers, Details, or Status screens whenever you need help.',
-    },
 ];

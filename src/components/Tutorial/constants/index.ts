@@ -74,7 +74,7 @@ export const TUTORIAL_TOURS: Record<TutorialTourId, TutorialTourConfig> = {
         tourId: 'tabs',
         tourTitle: 'Welcome to Thrail — App Tour',
         roleScope: 'user',
-        steps: [...tabsTourSteps, createReplayHelpStep('Home')],
+        steps: [...tabsTourSteps],
     },
     booking_offers: {
         tourId: 'booking_offers',
@@ -104,7 +104,7 @@ export const TUTORIAL_TOURS: Record<TutorialTourId, TutorialTourConfig> = {
         tourId: 'my_booking_details',
         tourTitle: 'Tracking Your Booking & Review Status',
         roleScope: 'user',
-        steps: [...myBookingDetailsTourSteps, createReplayHelpStep('Booking Details')],
+        steps: [...myBookingDetailsTourSteps],
     },
     legal_terms: {
         tourId: 'legal_terms',
@@ -122,7 +122,7 @@ export const TUTORIAL_TOURS: Record<TutorialTourId, TutorialTourConfig> = {
         tourId: 'payment',
         tourTitle: 'Completing Your Hike Payment',
         roleScope: 'user',
-        steps: [...paymentTourSteps, createReplayHelpStep('Payment')],
+        steps: [...paymentTourSteps],
     },
     payment_status: {
         tourId: 'payment_status',
@@ -134,19 +134,19 @@ export const TUTORIAL_TOURS: Record<TutorialTourId, TutorialTourConfig> = {
         tourId: 'admin_dashboard',
         tourTitle: 'Admin Dashboard — Quick Guide',
         roleScope: 'admin',
-        steps: [...adminDashboardSteps, createReplayHelpStep('Admin Dashboard')],
+        steps: [...adminDashboardSteps],
     },
     admin_offer_list: {
         tourId: 'admin_offer_list',
         tourTitle: 'Managing Your Hike Offers',
         roleScope: 'admin',
-        steps: [...adminOfferListSteps, createReplayHelpStep('Manage Offers')],
+        steps: [...adminOfferListSteps],
     },
     admin_offer_write: {
         tourId: 'admin_offer_write',
         tourTitle: 'How to Create or Edit an Offer',
         roleScope: 'admin',
-        steps: [...adminOfferWriteSteps, createReplayHelpStep('Create / Edit Offer')],
+        steps: [...adminOfferWriteSteps],
     },
     admin_offer_write_step2: {
         tourId: 'admin_offer_write_step2',
@@ -158,12 +158,12 @@ export const TUTORIAL_TOURS: Record<TutorialTourId, TutorialTourConfig> = {
         tourId: 'admin_offer_view',
         tourTitle: 'Viewing Offer Bookings',
         roleScope: 'admin',
-        steps: [...adminOfferViewSteps, createReplayHelpStep('Offer Details')],
+        steps: [...adminOfferViewSteps],
     },
     admin_booking_review: {
         tourId: 'admin_booking_review',
         tourTitle: 'How to Review & Approve a Booking',
         roleScope: 'admin',
-        steps: [...adminBookingReviewSteps, createReplayHelpStep('Booking Review')],
+        steps: [...adminBookingReviewSteps],
     },
 };

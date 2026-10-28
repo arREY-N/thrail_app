@@ -423,7 +423,7 @@ const LegalTermsModal = ({
                             Terms & Conditions
                         </CustomText>
                         <View style={styles.headerActions}>
-                            <TutorialHelpButton onPress={tutorial.onReplayTour} />
+                            <TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />
                             <TouchableOpacity
                                 onPress={handleDismiss}
                                 style={styles.closeBtn}

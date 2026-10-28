@@ -10,10 +10,10 @@ export const adminOfferListSteps: TutorialStep[] = [
         id: 'offer-list-create',
         category: 'Manage Offers • Step 1',
         targetSpotlight: 'admin_offer_add_btn',
-        title: 'Step 1: Create a New Offer ("+ New")',
+        title: 'Step 1: Create a New Offer ("Add New Offer")',
         description:
-            'Tap the "+ New" button in the top-right header to publish a new guided hike package with custom dates, pricing, slot limits, and required documents.',
-        actionTip: 'Tap "+ New" in the top-right corner to create your first offer.',
+            'Tap the "Add New Offer" button at the bottom of the screen to publish a new guided hike package with custom dates, pricing, slot limits, and required documents.',
+        actionTip: 'Tap "Add New Offer" at the bottom to create your first offer.',
     },
     {
         id: 'offer-list-filters',

@@ -16,7 +16,7 @@ import {
     TutorialTourId,
     UseTutorialGuideReturn,
 } from '@/src/components/Tutorial/interfaces/Tutorial.types';
-import { createReplayHelpStep, TUTORIAL_TOURS } from '@/src/components/Tutorial/constants';
+import { TUTORIAL_TOURS } from '@/src/components/Tutorial/constants';
 import { getWebNavTourSteps } from '@/src/components/Tutorial/constants/tabsTour';
 import { normalizeTutorialComplete, useAuthStore, UserRepo } from '@/src/core/models/User/User';
 
@@ -59,7 +59,7 @@ export const useTutorialGuide = (
         if (tourId === 'tabs' && Platform.OS === 'web') {
             return {
                 ...baseConfig,
-                steps: [...getWebNavTourSteps(role), createReplayHelpStep('Home')],
+                steps: getWebNavTourSteps(role),
             };
         }
         return baseConfig;
@@ -174,9 +174,10 @@ export const useTutorialGuide = (
         }
     }, [storageKey, tourId, uid]);
 
-    const totalSteps = tourConfig.steps.length;
-    const safeIndex = Math.min(Math.max(currentStepIndex, 0), totalSteps - 1);
-    const currentStep = tourConfig.steps[safeIndex];
+    const totalSteps = tourConfig?.steps?.length ?? 0;
+    const hasGuide = Boolean(enabled && totalSteps > 0);
+    const safeIndex = Math.min(Math.max(currentStepIndex, 0), Math.max(0, totalSteps - 1));
+    const currentStep = tourConfig?.steps?.[safeIndex];
 
     const onNextStep = useCallback(async (): Promise<void> => {
         if (safeIndex + 1 < totalSteps) {
@@ -191,18 +192,8 @@ export const useTutorialGuide = (
     }, []);
 
     const onSkipTour = useCallback(async (): Promise<void> => {
-        const lastStepIndex = totalSteps - 1;
-        const lastStep = tourConfig.steps[lastStepIndex];
-
-        // If skipping before the final '?' Replay Spotlight step, jump to the final '?' spotlight step first
-        // so the user always sees where the '?' button is located before closing!
-        if (lastStep?.highlightHeaderHelp && safeIndex < lastStepIndex) {
-            setCurrentStepIndex(lastStepIndex);
-            return;
-        }
-
         await markTourCompleted();
-    }, [markTourCompleted, safeIndex, totalSteps, tourConfig.steps]);
+    }, [markTourCompleted]);
 
     const onReplayTour = useCallback((): void => {
         setCurrentStepIndex(0);
@@ -229,6 +220,7 @@ export const useTutorialGuide = (
         currentStepIndex: safeIndex,
         currentStep,
         totalSteps,
+        hasGuide,
         tourConfig,
         hasCompletedTour,
         onNextStep,

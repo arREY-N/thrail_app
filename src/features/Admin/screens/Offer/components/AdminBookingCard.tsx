@@ -149,17 +149,8 @@ const styles = StyleSheet.create({
         flexShrink: 1 
     },
     statusBadge: { 
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 20,
-        marginLeft: 8,
-        gap: 4
-    },
-    badgeText: {
-        fontSize: 10,
-        fontWeight: 'bold'
+        alignSelf: 'center',
+        flexShrink: 0,
     },
 });
 

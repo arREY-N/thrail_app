@@ -11,12 +11,12 @@ import {
     View
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomButton from '@/src/components/CustomButton';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomInfoRow from '@/src/components/CustomInfoRow';
+import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -83,15 +83,11 @@ const DashboardScreen = ({
 }: DashboardScreenProps): React.JSX.Element => {
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
-    const insets = useSafeAreaInsets();
     const tutorial = useTutorialGuide('admin_dashboard', !isLoading && !error);
 
     const [showQRModal, setShowQRModal] = useState<boolean>(false);
     const isNavigatingRef = useRef<boolean>(false);
     const overviewRef = useRef<View>(null);
-    const trailsBtnRef = useRef<View>(null);
-    const offersBtnRef = useRef<View>(null);
-    const personnelBtnRef = useRef<View>(null);
 
     const measureOverviewNow = useCallback(() => {
         overviewRef.current?.measureInWindow((x, y, width, height) => {
@@ -101,42 +97,9 @@ const DashboardScreen = ({
         });
     }, []);
 
-    const measureTrailsBtnNow = useCallback(() => {
-        trailsBtnRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('admin_action_0', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureOffersBtnNow = useCallback(() => {
-        offersBtnRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('admin_action_1', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measurePersonnelBtnNow = useCallback(() => {
-        personnelBtnRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('admin_action_2', { x, y, width, height });
-            }
-        });
-    }, []);
-
     useEffect(() => {
-        const unsubOverview = registerMeasureCallback('admin_dash_overview', measureOverviewNow);
-        const unsub0 = registerMeasureCallback('admin_action_0', measureTrailsBtnNow);
-        const unsub1 = registerMeasureCallback('admin_action_1', measureOffersBtnNow);
-        const unsub2 = registerMeasureCallback('admin_action_2', measurePersonnelBtnNow);
-        return () => {
-            unsubOverview();
-            unsub0();
-            unsub1();
-            unsub2();
-        };
-    }, [measureOverviewNow, measureTrailsBtnNow, measureOffersBtnNow, measurePersonnelBtnNow]);
+        return registerMeasureCallback('admin_dash_overview', measureOverviewNow);
+    }, [measureOverviewNow]);
 
     useFocusEffect(
         useCallback(() => {
@@ -284,102 +247,13 @@ const DashboardScreen = ({
         </View>
     );
 
-    const renderQuickActions = () => (
-        <View style={styles.webActionSection}>
-            <CustomText variant="body" style={styles.actionTitle}>
-                Quick Actions
-            </CustomText>
-            <View style={styles.webActionContainer}>
-                <View ref={isWideScreen ? trailsBtnRef : undefined} collapsable={false} style={styles.webButtonWrapper}>
-                    <CustomButton 
-                        title="Trails"
-                        onPress={() => handleNavPress(onManageTrailsPress)}
-                        variant="secondary"
-                        icon="map"
-                        iconLibrary="Feather"
-                    />
-                </View>
-                <View ref={isWideScreen ? offersBtnRef : undefined} collapsable={false} style={styles.webButtonWrapper}>
-                    <CustomButton 
-                        title="Offers"
-                        onPress={() => handleNavPress(onManageOffersPress)}
-                        variant="primary"
-                        icon="pricetags"
-                        iconLibrary="Ionicons"
-                    />
-                </View>
-                <View ref={isWideScreen ? personnelBtnRef : undefined} collapsable={false} style={styles.webButtonWrapper}>
-                    <CustomButton 
-                        title="Personnel"
-                        onPress={() => handleNavPress(onManageAdminsPress)}
-                        variant="secondary" 
-                        icon="users"
-                        iconLibrary="Feather"
-                    />
-                </View>
-            </View>
-        </View>
-    );
-
-    const renderMobileStickyActions = () => {
-        const safeBottomPadding = Math.max(insets.bottom, 20);
-
-        return (
-            <View style={[styles.stickyFooter, { paddingBottom: safeBottomPadding }]}>
-                <CustomText variant="caption" style={styles.stickyFooterTitle}>
-                    Quick Actions
-                </CustomText>
-                <View style={styles.stickyButtonRow}>
-                    <View ref={!isWideScreen ? trailsBtnRef : undefined} collapsable={false} style={styles.stickyButtonWrapper}>
-                        <CustomButton 
-                            title="Trails"
-                            onPress={() => handleNavPress(onManageTrailsPress)}
-                            variant="secondary"
-                            icon="map"
-                            iconLibrary="Feather"
-                            iconSize={16}
-                            style={styles.mobileCustomButton}
-                            textStyle={styles.mobileButtonText}
-                        />
-                    </View>
-
-                    <View ref={!isWideScreen ? offersBtnRef : undefined} collapsable={false} style={styles.stickyButtonWrapper}>
-                        <CustomButton 
-                            title="Offers"
-                            onPress={() => handleNavPress(onManageOffersPress)}
-                            variant="primary"
-                            icon="pricetags"
-                            iconLibrary="Ionicons"
-                            iconSize={16}
-                            style={styles.mobileCustomButton}
-                            textStyle={styles.mobileButtonText}
-                        />
-                    </View>
-
-                    <View ref={!isWideScreen ? personnelBtnRef : undefined} collapsable={false} style={styles.stickyButtonWrapper}>
-                        <CustomButton 
-                            title="Personnel"
-                            onPress={() => handleNavPress(onManageAdminsPress)}
-                            variant="secondary" 
-                            icon="users"
-                            iconLibrary="Feather"
-                            iconSize={16}
-                            style={styles.mobileCustomButton}
-                            textStyle={styles.mobileButtonText}
-                        />
-                    </View>
-                </View>
-            </View>
-        );
-    };
-
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomHeader 
                 title="Admin Dashboard" 
                 centerTitle={true}
                 onBackPress={onBackPress}
-                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />} 
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />} 
             />
 
             {isLoading ? (
@@ -460,12 +334,42 @@ const DashboardScreen = ({
                             {renderAdminCard()}
                         </View>
                     )}
-
-                    {isWideScreen && renderQuickActions()}
                 </ResponsiveScrollView>
             )}
 
-            {!isLoading && !error && !isWideScreen && renderMobileStickyActions()}
+            {!isLoading && !error && (
+                <CustomStickyFooter
+                    buttons={[
+                        {
+                            title: 'Trails',
+                            onPress: () => handleNavPress(onManageTrailsPress),
+                            variant: 'secondary',
+                            icon: 'map',
+                            iconLibrary: 'Feather',
+                            iconSize: 16,
+                            tutorialTargetId: 'admin_action_0',
+                        },
+                        {
+                            title: 'Offers',
+                            onPress: () => handleNavPress(onManageOffersPress),
+                            variant: 'primary',
+                            icon: 'pricetags',
+                            iconLibrary: 'Ionicons',
+                            iconSize: 16,
+                            tutorialTargetId: 'admin_action_1',
+                        },
+                        {
+                            title: 'Personnel',
+                            onPress: () => handleNavPress(onManageAdminsPress),
+                            variant: 'secondary',
+                            icon: 'users',
+                            iconLibrary: 'Feather',
+                            iconSize: 16,
+                            tutorialTargetId: 'admin_action_2',
+                        },
+                    ]}
+                />
+            )}
 
             <CustomTutorialModal
                 visible={tutorial.isVisible}
@@ -504,7 +408,7 @@ const styles = StyleSheet.create({
         maxWidth: Layout.MAX_WIDTH, 
         width: '100%',
         alignSelf: 'center',
-        paddingBottom: 40,
+        paddingBottom: 120,
     },
 
     loadingContainer: {
@@ -655,68 +559,6 @@ const styles = StyleSheet.create({
         fontSize: 12, 
         fontWeight: 'bold', 
         color: Colors.STATUS_CANCELLED_TEXT, 
-    },
-
-    webActionSection: {
-        marginTop: 8,
-        width: '100%',
-        alignItems: 'center',
-        gap: 16,
-    },
-    actionTitle: { 
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    webActionContainer: { 
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 16,
-        width: '100%',
-        maxWidth: 600,
-    },
-    webButtonWrapper: {
-        flex: 1,
-    },
-
-    stickyFooter: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: Colors.WHITE,
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: Colors.GRAY_ULTRALIGHT,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        ...GlobalStyles.dropShadow(4),
-        gap: 8,
-    },
-    stickyFooterTitle: {
-        textAlign: 'center',
-        fontWeight: 'bold',
-        color: Colors.TEXT_SECONDARY,
-        fontSize: 11,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    stickyButtonRow: {
-        flexDirection: 'row',
-        gap: 8,
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    stickyButtonWrapper: {
-        flex: 1,
-    },
-    mobileCustomButton: {
-        paddingVertical: 12,
-        paddingHorizontal: 8,
-    },
-    mobileButtonText: {
-        fontSize: 12,
     },
 
     paymentConfigSection: {
