@@ -27,25 +27,30 @@ export const ReviewRepository = (db: Firestore) => {
         return collection(db, 'reviews').withConverter(reviewConverter);
     };
 
-    let lastDoc: QueryDocumentSnapshot<Review, DocumentData> | undefined;
+    let lastFetchAllDoc: QueryDocumentSnapshot<Review, DocumentData> | undefined;
+    let lastFetchByUserDoc: QueryDocumentSnapshot<Review, DocumentData> | undefined;
 
     return {
         async fetchAll(isInitial: boolean = false): Promise<Review[]> {
             try {
                 const reviewCollection = createReviewsCollection();
+                if (isInitial) {
+                    lastFetchAllDoc = undefined;
+                }
+
                 let q = query(
                     reviewCollection,
                     orderBy('createdAt', 'desc'),
                     limit(PAGE_SIZE)
                 );
 
-                if (!isInitial && lastDoc) {
-                    q = query(q, startAfter(lastDoc));
+                if (!isInitial && lastFetchAllDoc) {
+                    q = query(q, startAfter(lastFetchAllDoc));
                 }
 
                 const snapshot = await getDocs(q);
                 const lastVisible = snapshot.docs[snapshot.docs.length - 1];
-                lastDoc = lastVisible;
+                lastFetchAllDoc = lastVisible;
 
                 return snapshot.docs.map((docsnap) => docsnap.data());
             } catch (error: unknown) {
@@ -68,24 +73,38 @@ export const ReviewRepository = (db: Firestore) => {
                     console.warn('Could not orderBy createdAt on reviews, fetching unordered:', orderErr);
                     snapshot = await getDocs(reviewCollection);
                 }
-                return snapshot.docs.map((docsnap) => docsnap.data());
+                const reviews = snapshot.docs.map((docsnap) => docsnap.data());
+                reviews.sort((a, b) => {
+                    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : (b.hikeDate ? new Date(b.hikeDate).getTime() : 0);
+                    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : (a.hikeDate ? new Date(a.hikeDate).getTime() : 0);
+                    return bTime - aTime;
+                });
+                return reviews;
             } catch (error: unknown) {
                 console.error('Error fetching reviews: ', error);
                 throw new Error('Failed to fetch reviews');
             }
         },
 
-        listenToReviews(onUpdate: (reviews: Review[]) => void, onError?: (error: Error) => void): Unsubscribe {
+        listenToReviews(
+            onUpdate: (reviews: Review[]) => void,
+            onError?: (error: Error) => void,
+            limitCount?: number
+        ): Unsubscribe {
             try {
                 const reviewCollection = createReviewsCollection();
-                const q = query(
-                    reviewCollection,
-                    orderBy('createdAt', 'desc'),
-                    limit(PAGE_SIZE)
-                );
+                const q = limitCount
+                    ? query(reviewCollection, orderBy('createdAt', 'desc'), limit(limitCount))
+                    : query(reviewCollection);
 
                 return onSnapshot(q, (snapshot) => {
-                    onUpdate(snapshot.docs.map((docSnap) => docSnap.data()));
+                    const list = snapshot.docs.map((docSnap) => docSnap.data());
+                    list.sort((a, b) => {
+                        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : (b.hikeDate ? new Date(b.hikeDate).getTime() : 0);
+                        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : (a.hikeDate ? new Date(a.hikeDate).getTime() : 0);
+                        return bTime - aTime;
+                    });
+                    onUpdate(list);
                 }, (error) => {
                     console.error('Error in listenToReviews: ', error);
                     onError?.(error);
@@ -100,6 +119,10 @@ export const ReviewRepository = (db: Firestore) => {
         async fetchByUserId(userId: string, isInitial: boolean = false): Promise<Review[]> {
             try {
                 const reviewCollection = createReviewsCollection();
+                if (isInitial) {
+                    lastFetchByUserDoc = undefined;
+                }
+
                 let q = query(
                     reviewCollection,
                     orderBy('createdAt', 'desc'),
@@ -107,13 +130,13 @@ export const ReviewRepository = (db: Firestore) => {
                     where('user.id', '==', userId)
                 );
 
-                if (!isInitial && lastDoc) {
-                    q = query(q, startAfter(lastDoc));
+                if (!isInitial && lastFetchByUserDoc) {
+                    q = query(q, startAfter(lastFetchByUserDoc));
                 }
 
                 const snapshot = await getDocs(q);
                 const lastVisible = snapshot.docs[snapshot.docs.length - 1];
-                lastDoc = lastVisible;
+                lastFetchByUserDoc = lastVisible;
 
                 return snapshot.docs.map((docsnap) => docsnap.data());
             } catch (error: unknown) {

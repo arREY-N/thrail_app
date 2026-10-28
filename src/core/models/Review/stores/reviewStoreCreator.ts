@@ -26,6 +26,7 @@ export interface ReviewState {
 }
 
 let activeReviewsUnsubscribe: Unsubscribe | null = null;
+let reviewSubscribersCount = 0;
 
 const init = {
     reviews: [],
@@ -45,10 +46,7 @@ export const reviewStoreCreator: StateCreator<
     },
 
     subscribeToReviews: () => {
-        if (activeReviewsUnsubscribe) {
-            activeReviewsUnsubscribe();
-            activeReviewsUnsubscribe = null;
-        }
+        reviewSubscribersCount++;
 
         const hasCached = get().reviews.length > 0;
         if (!hasCached) {
@@ -65,17 +63,23 @@ export const reviewStoreCreator: StateCreator<
             });
         }
 
+        if (activeReviewsUnsubscribe) {
+            return () => {
+                reviewSubscribersCount = Math.max(0, reviewSubscribersCount - 1);
+                if (reviewSubscribersCount === 0 && activeReviewsUnsubscribe) {
+                    activeReviewsUnsubscribe();
+                    activeReviewsUnsubscribe = null;
+                }
+            };
+        }
+
         try {
             const unsubscribe = ReviewRepo.listenToReviews(
                 (reviews) => {
-                    if (reviews && reviews.length > 0) {
-                        set({
-                            reviews,
-                            isLoading: false,
-                        });
-                    } else {
-                        set({ isLoading: false });
-                    }
+                    set({
+                        reviews: reviews ?? [],
+                        isLoading: false,
+                    });
                 },
                 (error) => {
                     console.error('Error in listenToReviews: ', error);
@@ -88,15 +92,15 @@ export const reviewStoreCreator: StateCreator<
 
             activeReviewsUnsubscribe = unsubscribe;
             return () => {
-                if (activeReviewsUnsubscribe === unsubscribe) {
+                reviewSubscribersCount = Math.max(0, reviewSubscribersCount - 1);
+                if (reviewSubscribersCount === 0 && activeReviewsUnsubscribe) {
                     activeReviewsUnsubscribe();
                     activeReviewsUnsubscribe = null;
-                } else {
-                    unsubscribe();
                 }
             };
         } catch (error) {
             console.error('Error subscribing to reviews: ', error);
+            reviewSubscribersCount = Math.max(0, reviewSubscribersCount - 1);
             set({ isLoading: false });
             return null;
         }
@@ -107,6 +111,7 @@ export const reviewStoreCreator: StateCreator<
             activeReviewsUnsubscribe();
             activeReviewsUnsubscribe = null;
         }
+        reviewSubscribersCount = 0;
     },
 
     fetchAll: async () => {
@@ -126,12 +131,8 @@ export const reviewStoreCreator: StateCreator<
         set({ error: null });
 
         try {
-            const reviews = await ReviewRepo.fetchAll(true);
-            if (reviews && reviews.length > 0) {
-                set({ reviews, isLoading: false });
-            } else {
-                set({ isLoading: false });
-            }
+            const reviews = await ReviewRepo.retrieveAll();
+            set({ reviews: reviews ?? [], isLoading: false });
         } catch (err) {
             console.error(err);
             set({
@@ -154,12 +155,8 @@ export const reviewStoreCreator: StateCreator<
         set({ isLoading: true, error: null });
 
         try {
-            const reviews = await ReviewRepo.fetchAll(true);
-            if (reviews && reviews.length > 0) {
-                set({ reviews, isLoading: false });
-            } else {
-                set({ isLoading: false });
-            }
+            const reviews = await ReviewRepo.retrieveAll();
+            set({ reviews: reviews ?? [], isLoading: false });
         } catch (err) {
             console.error(err);
             set({
