@@ -8,6 +8,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Modal,
+    Platform,
     StyleSheet,
     TouchableOpacity,
     useWindowDimensions,
@@ -25,11 +26,6 @@ import {
     TutorialTourConfig,
 } from '@/src/components/Tutorial/interfaces/Tutorial.types';
 import {
-    getDrawerItemLayout,
-    requestDrawerMeasurements,
-    subscribeDrawerItemLayouts,
-} from '@/src/components/Tutorial/utils/webDrawerLayoutRegistry';
-import {
     getTutorialLayout,
     isTutorialMeasurementActive,
     registerMeasureCallback,
@@ -37,6 +33,11 @@ import {
     requestTargetMeasurement,
     subscribeTutorialLayouts,
 } from '@/src/components/Tutorial/utils/tutorialLayoutRegistry';
+import {
+    getDrawerItemLayout,
+    requestDrawerMeasurements,
+    subscribeDrawerItemLayouts,
+} from '@/src/components/Tutorial/utils/webDrawerLayoutRegistry';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
@@ -81,6 +82,7 @@ const TAB_NAMES = ['Home', 'Explore', 'Hike', 'Community', 'Profile'] as const;
 const DRAWER_TARGET_TO_ID: Record<string, string> = {
     web_drawer_home: 'home',
     web_drawer_explore: 'explore',
+    web_drawer_navigate: 'navigate',
     web_drawer_community: 'community',
     web_drawer_profile: 'profile',
     web_drawer_messages: 'messages',
@@ -90,20 +92,22 @@ const DRAWER_TARGET_TO_ID: Record<string, string> = {
     web_drawer_personnel: 'personnel',
     web_drawer_0: 'home',
     web_drawer_1: 'explore',
-    web_drawer_2: 'community',
-    web_drawer_3: 'profile',
+    web_drawer_2: 'navigate',
+    web_drawer_3: 'community',
+    web_drawer_4: 'profile',
 };
 
 const DRAWER_FALLBACK_COORDS: Record<string, { y: number; height: number }> = {
     home: { y: 111, height: 42 },
     explore: { y: 157, height: 42 },
-    community: { y: 203, height: 42 },
-    profile: { y: 249, height: 42 },
-    messages: { y: 295, height: 42 },
-    settings: { y: 379, height: 42 },
-    business: { y: 463, height: 42 },
-    trail: { y: 509, height: 42 },
-    personnel: { y: 555, height: 42 },
+    navigate: { y: 203, height: 42 },
+    community: { y: 249, height: 42 },
+    profile: { y: 295, height: 42 },
+    messages: { y: 341, height: 42 },
+    settings: { y: 425, height: 42 },
+    business: { y: 509, height: 42 },
+    trail: { y: 555, height: 42 },
+    personnel: { y: 601, height: 42 },
 };
 
 /**
@@ -275,7 +279,8 @@ const ActiveTutorialModalContent = ({
             const isSmallControl =
                 targetSpotlightType === 'header_help' ||
                 targetSpotlightType === 'web_nav_menu' ||
-                targetSpotlightType === 'admin_offer_add_btn';
+                targetSpotlightType === 'admin_offer_add_btn' ||
+                targetSpotlightType === 'fab_messages';
             const isTightCard = targetSpotlightType.startsWith('my_booking_');
             const pad = isSmallControl ? 4 : isTightCard ? 0 : 2;
 
@@ -298,6 +303,7 @@ const ActiveTutorialModalContent = ({
 
             const isExplicitBottomTarget =
                 targetSpotlightType.startsWith('tab_') ||
+                targetSpotlightType === 'fab_messages' ||
                 targetSpotlightType === 'booking_footer' ||
                 targetSpotlightType === 'booking_offers_footer' ||
                 targetSpotlightType === 'booking_status_primary' ||
@@ -314,8 +320,12 @@ const ActiveTutorialModalContent = ({
                 targetSpotlightType === 'emergency_save_btn' ||
                 targetSpotlightType.startsWith('admin_action_');
 
+            const isCircleControl =
+                targetSpotlightType === 'header_help' ||
+                targetSpotlightType === 'fab_messages';
+
             const rx =
-                targetSpotlightType === 'header_help'
+                isCircleControl
                     ? Math.min(finalWidth, finalHeight) / 2
                     : isSmallControl
                         ? 12
@@ -404,6 +414,22 @@ const ActiveTutorialModalContent = ({
                 height: iconSize,
                 rx: 18,
                 placement: 'top',
+            };
+        }
+
+        // 5. Floating Action Button (FAB) Messages on mobile
+        if (targetSpotlightType === 'fab_messages') {
+            const fabSize = 60;
+            const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 16);
+            const navBarHeight = 70 + bottomPadding;
+            const fabY = height - navBarHeight - 24 - fabSize;
+            return {
+                x: width - 16 - fabSize,
+                y: fabY,
+                width: fabSize,
+                height: fabSize,
+                rx: fabSize / 2,
+                placement: 'bottom',
             };
         }
 
@@ -791,7 +817,7 @@ const ActiveTutorialModalContent = ({
                             activeOpacity={0.7}
                         >
                             <CustomText variant="caption" style={styles.skipButtonText}>
-                                {isLastStep ? 'Close' : 'Skip Guide'}
+                                {isLastStep ? 'Close' : 'Skip'}
                             </CustomText>
                         </TouchableOpacity>
                     </View>

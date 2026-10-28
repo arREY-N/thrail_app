@@ -124,13 +124,15 @@ export type TargetSpotlightType =
     | 'web_drawer_3'
     | 'web_drawer_home'
     | 'web_drawer_explore'
+    | 'web_drawer_navigate'
     | 'web_drawer_community'
     | 'web_drawer_profile'
     | 'web_drawer_messages'
     | 'web_drawer_settings'
     | 'web_drawer_offers'
     | 'web_drawer_trails'
-    | 'web_drawer_personnel';
+    | 'web_drawer_personnel'
+    | 'fab_messages';
 
 export type TooltipPlacement = 'auto' | 'top' | 'bottom' | 'center' | 'right';
 
