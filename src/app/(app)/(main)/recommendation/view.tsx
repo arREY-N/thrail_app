@@ -771,7 +771,7 @@ export default function RecommendationViewScreen() {
                                     </CustomText>
                                     <CustomText style={styles.warningBody}>
                                         For everyone&apos;s safety, we suggest staying on easy trails on your 1st to 3rd hikes to help us calibrate more your profile safely.
-                                        Whether easy or not, hiking these trail without proper preparation and sufficient experience may cause injuries or accidents. As always, please proceed with caution.
+                                        Whether easy or not, hiking these trail without proper preparation and sufficient experience may cause injuries or accidents.
                                     </CustomText>
                                     <CustomText style={styles.warningBody}>
                                         As always, please proceed with caution.
