@@ -425,14 +425,16 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
             {isConfirmApproveVisible && (
                 <ConfirmationModal
                     visible={isConfirmApproveVisible}
-                    onClose={() => setIsConfirmApproveVisible(false)}
+                    onClose={() => !isBusy && setIsConfirmApproveVisible(false)}
                     onConfirm={handleApprove}
-                    title="Approve Reschedule"
+                    title={isBusy ? "Approving Reschedule..." : "Approve Reschedule"}
                     message={`Are you sure you want to approve this reschedule to ${targetOffer?.date ? formatBookingDate(targetOffer.date, null, true) : 'the new offer'}?\n\nTransferred payments (₱${totalPaid.toFixed(2)}) will be credited to the new booking.`}
-                    confirmText="Approve Reschedule"
+                    confirmText={isBusy ? "Approving..." : "Approve Reschedule"}
                     cancelText="Cancel"
-                    iconName="check-circle"
+                    iconName={isBusy ? "clock" : "check-circle"}
                     isDestructive={false}
+                    isLoading={isBusy}
+                    loadingMessage="Approving reschedule and transferring payment credits. Please wait..."
                 />
             )}
 
@@ -440,14 +442,16 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
             {isConfirmDeclineVisible && (
                 <ConfirmationModal
                     visible={isConfirmDeclineVisible}
-                    onClose={() => setIsConfirmDeclineVisible(false)}
+                    onClose={() => !isBusy && setIsConfirmDeclineVisible(false)}
                     onConfirm={handleDecline}
-                    title="Decline Reschedule Request"
+                    title={isBusy ? "Declining Reschedule..." : "Decline Reschedule Request"}
                     message={`Are you sure you want to decline this reschedule request? The hiker will be notified and the reservation will remain on the current date.`}
-                    confirmText="Decline Request"
+                    confirmText={isBusy ? "Declining..." : "Decline Request"}
                     cancelText="Cancel"
                     iconName="alert-triangle"
                     isDestructive={true}
+                    isLoading={isBusy}
+                    loadingMessage="Declining reschedule request and reverting status. Please wait..."
                 />
             )}
         </View>
