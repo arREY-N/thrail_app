@@ -11,12 +11,14 @@ import ConfirmationModal from "@/src/components/ConfirmationModal";
 import CustomFeedbackInput from "@/src/components/CustomFeedbackInput";
 import CustomHeader from "@/src/components/CustomHeader";
 import CustomIcon from "@/src/components/CustomIcon";
+import CustomStickyFooter, { getStickyFooterScrollPadding } from "@/src/components/CustomStickyFooter";
 import CustomText from "@/src/components/CustomText";
 import CustomTextInput, { cleanPhoneNumber } from "@/src/components/CustomTextInput";
 import DocumentUploadCard from "@/src/components/DocumentUploadCard";
 import ErrorMessage from "@/src/components/ErrorMessage";
 import ImagePreviewModal from "@/src/components/ImagePreviewModal";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import EmergencyModal from "@/src/components/EmergencyModal";
 import { Colors } from "@/src/constants/colors";
@@ -186,6 +188,7 @@ const ProfileInfoScreen = ({
     onCancelPress,
     onSavePress,
 }: ProfileInfoScreenProps) => {
+    const insets = useSafeAreaInsets();
     const { isDesktop, isTablet, isMobile, width } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
 
@@ -289,7 +292,7 @@ const ProfileInfoScreen = ({
     }, []);
 
     const userBirthdayDate = effectiveUser.birthday ? safeParseDateString(effectiveUser.birthday) : null;
-    const isExistingBirthdayUnderage = userBirthdayDate ? userBirthdayDate > maxAllowedBirthday : false;
+    const isPlaceholderOrUnderageBirthday = !effectiveUser.birthday || (userBirthdayDate ? userBirthdayDate > maxAllowedBirthday : true);
 
     const handleSaveAccount = async (updatedFields: Partial<IUser>): Promise<void> => {
         if (!onSavePress) return;
@@ -596,53 +599,7 @@ const ProfileInfoScreen = ({
             <CustomHeader
                 title={isEditing ? "Edit Profile" : "Profile Information"}
                 centerTitle={true}
-                onBackPress={isEditing ? undefined : onBackPress}
-                leftAction={
-                    isEditing ? (
-                        <TouchableOpacity
-                            onPress={handleCancelPress}
-                            style={styles.headerCancelButton}
-                            activeOpacity={0.7}
-                        >
-                            <CustomText style={styles.cancelText}>Cancel</CustomText>
-                        </TouchableOpacity>
-                    ) : undefined
-                }
-                rightActions={
-                    isEditing ? (
-                        <TouchableOpacity
-                            onPress={handleSavePress}
-                            style={[
-                                styles.headerSaveButton,
-                                !isDirty && styles.headerSaveButtonDisabled
-                            ]}
-                            disabled={!isDirty}
-                            activeOpacity={0.7}
-                        >
-                            <CustomText
-                                style={[
-                                    styles.saveText,
-                                    !isDirty && styles.saveTextDisabled
-                                ]}
-                            >
-                                Save
-                            </CustomText>
-                        </TouchableOpacity>
-                    ) : (
-                        <TouchableOpacity
-                            style={styles.headerActionButton}
-                            onPress={() => setIsEditModalVisible(true)}
-                            activeOpacity={0.7}
-                        >
-                            <CustomIcon
-                                library="Feather"
-                                name="edit-2"
-                                size={20}
-                                color={Colors.PRIMARY}
-                            />
-                        </TouchableOpacity>
-                    )
-                }
+                onBackPress={isEditing ? handleCancelPress : onBackPress}
             />
 
             <ScrollView
@@ -687,6 +644,7 @@ const ProfileInfoScreen = ({
                                             dateFormat="MM/DD/YYYY"
                                             defaultMode="year"
                                             maximumDate={maxAllowedBirthday}
+                                            helperText="Minimum age requirement is 10 years old."
                                         />
                                         <CustomTextInput label="Address" placeholder="Enter address" value={address} onChangeText={setAddress} style={styles.noMarginBottom} />
                                     </View>
@@ -703,13 +661,41 @@ const ProfileInfoScreen = ({
                                         />
                                         <InfoRow
                                             label="Birthday"
-                                            value={effectiveUser.birthday ? formatDateToStandard(effectiveUser.birthday) : null}
-                                            subValue={isExistingBirthdayUnderage ? 'Requires update: Minimum age is 10' : null}
-                                            subValueStyle={isExistingBirthdayUnderage ? { color: Colors.ERROR } : undefined}
+                                            value={effectiveUser.birthday ? formatDateToStandard(effectiveUser.birthday) : 'Not provided'}
+                                            badge={
+                                                isPlaceholderOrUnderageBirthday ? (
+                                                    <View style={badgeStyles.actionRequiredPill}>
+                                                        <CustomIcon library="Feather" name="alert-triangle" size={10} color={Colors.ERROR} />
+                                                        <CustomText style={badgeStyles.actionRequiredPillText}>Action Required</CustomText>
+                                                    </View>
+                                                ) : undefined
+                                            }
+                                            badgePosition="before_value"
                                             forceStack={personalDetailsRequiresStack}
                                         />
                                         <InfoRow label="Email Address" value={effectiveUser.email} forceStack={personalDetailsRequiresStack} />
-                                        <InfoRow label="Address" value={effectiveUser.address} noMargin={true} forceStack={personalDetailsRequiresStack} />
+                                        <InfoRow
+                                            label="Address"
+                                            value={effectiveUser.address}
+                                            noMargin={!isPlaceholderOrUnderageBirthday}
+                                            forceStack={personalDetailsRequiresStack}
+                                        />
+
+                                        {isPlaceholderOrUnderageBirthday && (
+                                            <View style={styles.cardAlertCallout}>
+                                                <View style={styles.cardAlertCalloutHeader}>
+                                                    <CustomIcon library="Feather" name="alert-circle" size={14} color={Colors.ERROR} />
+                                                    <CustomText style={styles.cardAlertCalloutTitle}>
+                                                        Minimum Age Requirement
+                                                    </CustomText>
+                                                </View>
+                                                <CustomText variant="caption" style={styles.cardAlertCalloutBody}>
+                                                    {!effectiveUser.birthday
+                                                        ? 'Hikers must be at least 10 years old to register. Your birthdate is currently unset. Tap "Edit Profile" below to update it.'
+                                                        : 'Hikers must be at least 10 years old to register. Your current birthdate indicates an age under 10. Tap "Edit Profile" below to update it.'}
+                                                </CustomText>
+                                            </View>
+                                        )}
                                     </View>
                                 )}
                             </View>
@@ -773,7 +759,7 @@ const ProfileInfoScreen = ({
                                 ) : (
                                     <View style={styles.emptyEmergencyContainer}>
                                         <View style={styles.emptyEmergencyIconContainer}>
-                                            <CustomIcon library="Feather" name="alert-triangle" size={24} color={Colors.WARNING} />
+                                            <CustomIcon library="Feather" name="alert-triangle" size={24} color={Colors.ERROR} />
                                         </View>
                                         <CustomText style={styles.emptyEmergencyText}>No emergency contact set up. In case of emergencies, having a contact helps guides reach your family.</CustomText>
                                         <TouchableOpacity onPress={() => setIsEmergencyModalVisible(true)} style={styles.setupEmergencyBtn} activeOpacity={0.8}>
@@ -934,8 +920,32 @@ const ProfileInfoScreen = ({
 
                 </View>
 
-                <View style={styles.bottomSpacer} />
+                <View style={{ height: getStickyFooterScrollPadding(insets.bottom, isMobile) }} />
             </ScrollView>
+
+            <CustomStickyFooter
+                primaryButton={
+                    isEditing
+                        ? {
+                              title: 'Save Changes',
+                              onPress: handleSavePress,
+                              disabled: !isDirty,
+                          }
+                        : {
+                              title: 'Edit Profile',
+                              onPress: () => setIsEditModalVisible(true),
+                          }
+                }
+                secondaryButton={
+                    isEditing
+                        ? {
+                              title: 'Cancel',
+                              onPress: handleCancelPress,
+                              variant: 'outline',
+                          }
+                        : undefined
+                }
+            />
 
             {/* Modals */}
             <ConfirmationModal
@@ -1053,8 +1063,22 @@ const badgeStyles = StyleSheet.create({
         fontWeight: 'bold',
         color: Colors.STATUS_APPROVED_TEXT,
     },
+    actionRequiredPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.ERROR_BG,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 8,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+    },
+    actionRequiredPillText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: Colors.ERROR,
+    },
 });
-
-
 
 export default ProfileInfoScreen;

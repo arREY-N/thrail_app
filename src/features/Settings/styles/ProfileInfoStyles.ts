@@ -305,7 +305,7 @@ export const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: Colors.STATUS_WARNING_BG,
+        backgroundColor: Colors.ERROR_BG,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 12,
@@ -318,7 +318,7 @@ export const styles = StyleSheet.create({
         lineHeight: 18,
     },
     setupEmergencyBtn: {
-        backgroundColor: Colors.PRIMARY,
+        backgroundColor: Colors.ERROR,
         paddingHorizontal: 20,
         paddingVertical: 10,
         borderRadius: 12,
@@ -476,5 +476,29 @@ export const styles = StyleSheet.create({
     toggleChipTextActive: {
         color: Colors.PRIMARY,
         fontWeight: 'bold',
+    },
+    cardAlertCallout: {
+        backgroundColor: Colors.ERROR_BG,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+        padding: 12,
+        marginTop: 16,
+        gap: 6,
+    },
+    cardAlertCalloutHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    cardAlertCalloutTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.ERROR,
+    },
+    cardAlertCalloutBody: {
+        fontSize: 11,
+        lineHeight: 16,
+        color: Colors.TEXT_PRIMARY,
     },
 });
