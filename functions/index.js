@@ -25,6 +25,10 @@ const LoginLimiter = require('./services/LoginLimiter');
 const authWebApiKey = defineString('AUTH_WEB_API_KEY');
 const PayMongoProvider = require('./services/providers/PayMongoProvider');
 const { approveReschedule } = require('./services/RescheduleManager');
+const {
+    removeUserFromGroupOnCancellation,
+    onDeleteBooking,
+} = require('./services/GroupChatManager');
 
 admin.initializeApp();
 
@@ -4334,3 +4338,5 @@ exports.onUserOnboardingComplete = functions.firestore
     });
 
 exports.approveReschedule = approveReschedule;
+exports.removeUserFromGroupOnCancellation = removeUserFromGroupOnCancellation;
+exports.onDeleteBooking = onDeleteBooking;
