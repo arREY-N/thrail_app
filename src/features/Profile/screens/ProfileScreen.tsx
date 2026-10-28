@@ -210,13 +210,28 @@ const ProfileScreen = ({
                         </View>
 
                         <View style={styles.identityTextGroup}>
-                            <CustomText variant="h2" style={styles.userNameText}>
+                            <CustomText 
+                                variant="h2" 
+                                style={styles.userNameText}
+                                numberOfLines={1}
+                                ellipsizeMode="tail"
+                            >
                                 {userName}
                             </CustomText>
-                            <CustomText variant="caption" style={styles.userHandleText}>
+                            <CustomText 
+                                variant="caption" 
+                                style={styles.userHandleText}
+                                numberOfLines={1}
+                                ellipsizeMode="tail"
+                            >
                                 {userHandle}
                             </CustomText>
-                            <CustomText variant="caption" style={styles.memberSinceText}>
+                            <CustomText 
+                                variant="caption" 
+                                style={styles.memberSinceText}
+                                numberOfLines={1}
+                                ellipsizeMode="tail"
+                            >
                                 Member since {createdDate}
                             </CustomText>
                         </View>
@@ -346,6 +361,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 16,
+        flex: 1,
+        minWidth: 0,
+        marginRight: 12,
     },
     avatarPlaceholder: {
         width: 60,
@@ -356,6 +374,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 2,
         borderColor: Colors.WHITE,
+        flexShrink: 0,
     },
     initialsText: {
         color: Colors.WHITE,
@@ -364,6 +383,8 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     identityTextGroup: {
+        flex: 1,
+        minWidth: 0,
         justifyContent: 'center',
         gap: 2,
     },
@@ -391,6 +412,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
+        flexShrink: 0,
     },
     stickyTabWrapper: {
         backgroundColor: Colors.BACKGROUND,

@@ -35,8 +35,10 @@ import { calculateVerificationValidity, formatVerificationExpiry } from '@/src/c
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { IEmergencyContact, useAuthStore } from "@/src/core/models/User/User";
 import { toDateOrNull } from '@/src/core/utility/date';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
-import { checkIfMinor } from '@/src/utils/dateFormatter';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { calculateAge } from '@/src/utils/dateFormatter';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -71,6 +73,8 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     isTutorialVisible,
 }) => {
     const profile = useAuthStore(s => s.profile);
+    const { onUserViewPress } = useAppNavigation();
+    const { isMobile } = useBreakpoints();
     const requiredDocuments = selectedOffer?.documents || [];
 
     const profileFullName = `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim();
@@ -200,7 +204,9 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
         prevTutorialVisible.current = isTutorialVisible;
     }, [isTutorialVisible]);
 
-    const isMinor = checkIfMinor(profile?.birthday);
+    const userAge = profile?.birthday ? calculateAge(profile.birthday) : 0;
+    const isInvalidOrUnsetBirthday = !profile?.birthday || userAge < 10;
+    const isMinor = !isInvalidOrUnsetBirthday && userAge < 18;
 
     const activeDocuments = [...requiredDocuments];
     if (isMinor && !activeDocuments.includes('Parent/Guardian Valid ID')) {
@@ -246,6 +252,14 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
 
     const handleReservePress = () => {
         if (isSubmitting || isConfirmingRef.current) return;
+
+        if (isInvalidOrUnsetBirthday) {
+            setHasAttemptedSubmit(true);
+            showToast.error("Please set your valid birthdate in Profile to complete reservation.", {
+                onHide: () => setHasAttemptedSubmit(false),
+            });
+            return;
+        }
 
         if (!isPhoneSet) {
             setHasAttemptedSubmit(true);
@@ -306,6 +320,45 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
             >
                 <View style={styles.constrainer}>
                     
+                    {/* Dedicated Birthdate Action Required Card */}
+                    {isInvalidOrUnsetBirthday && (
+                        <View style={styles.birthdateAlertCard}>
+                            <View style={isMobile ? styles.birthdateAlertColumn : styles.birthdateAlertRow}>
+                                <View style={styles.birthdateAlertTextContainer}>
+                                    <View style={styles.birthdateAlertHeader}>
+                                        <View style={styles.birthdateAlertIconCircle}>
+                                            <CustomIcon 
+                                                library="Feather" 
+                                                name="alert-circle" 
+                                                size={16} 
+                                                color={Colors.ERROR} 
+                                            />
+                                        </View>
+                                        <CustomText style={styles.birthdateAlertTitle}>
+                                            Birthdate Action Required
+                                        </CustomText>
+                                    </View>
+                                    <CustomText variant="caption" style={styles.birthdateAlertBody}>
+                                        Hikers must be at least 10 years old to reserve trail bookings. Your profile birthdate is unset or indicates an age under 10. Please update your birthdate before proceeding with this reservation.
+                                    </CustomText>
+                                </View>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.birthdateAlertButton,
+                                        isMobile && styles.birthdateAlertButtonMobile
+                                    ]}
+                                    onPress={() => onUserViewPress(profile?.id)}
+                                    activeOpacity={0.7}
+                                >
+                                    <CustomText style={styles.birthdateAlertButtonText}>
+                                        Update Profile Birthdate
+                                    </CustomText>
+                                    <CustomIcon library="Feather" name="arrow-right" size={13} color={Colors.ERROR} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+
                     {/* Section 1: Contact Details */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeaderRow}>
@@ -819,6 +872,73 @@ const styles = StyleSheet.create({
         color: Colors.PRIMARY,
         fontWeight: 'bold',
         fontSize: 13,
+    },
+    birthdateAlertCard: {
+        backgroundColor: Colors.ERROR_BG,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+        padding: 16,
+        marginBottom: 16,
+    },
+    birthdateAlertRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 16,
+    },
+    birthdateAlertColumn: {
+        flexDirection: 'column',
+        gap: 12,
+    },
+    birthdateAlertTextContainer: {
+        flex: 1,
+        gap: 6,
+    },
+    birthdateAlertHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    birthdateAlertIconCircle: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        backgroundColor: Colors.WHITE,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    birthdateAlertTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: Colors.ERROR,
+    },
+    birthdateAlertBody: {
+        fontSize: 12,
+        lineHeight: 18,
+        color: Colors.TEXT_PRIMARY,
+    },
+    birthdateAlertButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 8,
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1,
+        borderColor: Colors.ERROR_BORDER,
+        flexShrink: 0,
+    },
+    birthdateAlertButtonMobile: {
+        alignSelf: 'stretch',
+        marginTop: 4,
+    },
+    birthdateAlertButtonText: {
+        color: Colors.ERROR,
+        fontWeight: 'bold',
+        fontSize: 12,
     },
 });
 

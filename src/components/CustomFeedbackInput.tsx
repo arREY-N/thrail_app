@@ -18,7 +18,7 @@ import {
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomTextInput, { INVISIBLE_CHARS_REGEX } from '@/src/components/CustomTextInput';
+import CustomTextInput, { INVISIBLE_CHARS_REGEX, stripEmojis } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 import { useScrollFades } from '@/src/hooks/useScrollFades';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
@@ -96,12 +96,16 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
 
     const handleTextBlur = (): void => {
         const raw = value || '';
-        const cleaned = raw
+        let cleaned = raw
             .replace(INVISIBLE_CHARS_REGEX, '')
             .split('\n')
             .map((line: string) => line.trim())
             .filter((line: string) => line.length > 0)
             .join('\n');
+
+        if (!allowEmojis) {
+            cleaned = stripEmojis(cleaned);
+        }
 
         if (cleaned !== raw) {
             onChangeText(cleaned);
