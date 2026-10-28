@@ -8,7 +8,8 @@ import {
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
+    ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,6 +22,7 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { IReview } from '@/src/core/models/Review/Review';
 import { ITrail, useTrailStats } from '@/src/core/models/Trail/Trail';
 import { useWeatherStore } from '@/src/core/stores/weatherStore';
@@ -50,6 +52,8 @@ export interface TrailScreenProps {
     isOwned: (review: IReview) => boolean;
     offersCount?: number;
     initialTab?: string;
+    bookButtonTitle?: string;
+    isBookDisabled?: boolean;
 }
 
 const TrailScreen: React.FC<TrailScreenProps> = ({
@@ -70,6 +74,8 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
     isOwned,
     offersCount = 0,
     initialTab,
+    bookButtonTitle,
+    isBookDisabled,
 }) => {
     const canEdit = canEditProp ?? Boolean(isSuperadmin || isAdmin);
     const [activeTab, setActiveTab] = useState(initialTab || 'Details');
@@ -210,6 +216,10 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
             setIsRefreshing(false);
         }
     }, [latitude, longitude, trail]);
+
+    const hasOffers = (offersCount ?? 0) > 0;
+    const resolvedBookTitle = bookButtonTitle ?? (hasOffers ? "Book" : "Offers Coming Soon");
+    const resolvedBookDisabled = isBookDisabled ?? !hasOffers;
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -361,9 +371,19 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
 
             <CustomStickyFooter
                 primaryButton={{
-                    title: "Book",
-                    onPress: () => onBookPress(trail?.id),
-                    showIndicator: (offersCount ?? 0) > 0,
+                    title: resolvedBookTitle,
+                    onPress: () => {
+                        if (!resolvedBookDisabled) {
+                            onBookPress(trail?.id);
+                        }
+                    },
+                    disabled: resolvedBookDisabled,
+                    style: resolvedBookDisabled ? [
+                        { backgroundColor: Colors.PRIMARY, borderColor: Colors.PRIMARY },
+                        GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }) as ViewStyle,
+                    ] : undefined,
+                    textStyle: resolvedBookDisabled ? { color: Colors.WHITE } : undefined,
+                    showIndicator: !resolvedBookDisabled && (offersCount ?? 0) > 0,
                     badgeCount: offersCount,
                 }}
                 secondaryButton={Platform.OS !== 'web' ? {
