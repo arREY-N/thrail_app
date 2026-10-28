@@ -1,17 +1,21 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
     View
 } from 'react-native';
 
+import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 
+import { useBookingsStore } from '@/src/core/models/Booking/Booking';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import OfferCard, { OfferData } from '@/src/features/Book/components/OfferCard';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
@@ -21,14 +25,24 @@ export interface RescheduleModalProps {
     visible: boolean;
     /** Callback to close the modal */
     onClose: () => void;
-    /** Callback when user confirms selection */
-    onConfirm: (selectedOffer: IOffer | 'explore') => void;
+    /** Callback when user confirms selection with reason */
+    onConfirm: (selectedOffer: IOffer | 'explore', reason?: string) => void;
     /** Array of available future offers */
     availableFutureOffers?: IOffer[];
 }
 
+const RESCHEDULE_SUGGESTIONS = [
+    'Schedule conflict',
+    'Work commitment',
+    'Health / Medical concern',
+    'Weather forecast',
+    'Personal emergency',
+    'Transportation issue',
+    'Change of plans',
+];
+
 /**
- * Modal to select a new date from future offers to reschedule.
+ * Modal to select a reason and a new date from future offers to reschedule.
  * 
  * @param {RescheduleModalProps} props - Component props
  */
@@ -39,8 +53,26 @@ const RescheduleModal = ({
     availableFutureOffers = [] 
 }: RescheduleModalProps) => {
     const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
+    const [reason, setReason] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const isSubmittingRef = useRef(false);
+
+    // Safeguard: Filter out any offers that the user already has an active booking for
+    const userBookings = useBookingsStore(s => s.userBookings);
+    const activeBookedOfferIds = useMemo(() => {
+        const ids = new Set<string>();
+        for (const b of userBookings || []) {
+            if (!['cancelled', 'refunded', 'expired', 'rescheduled'].includes(b.status)) {
+                const offId = b.offer?.id || (b as any).offerId;
+                if (offId) ids.add(offId);
+            }
+        }
+        return ids;
+    }, [userBookings]);
+
+    const selectableOffers = useMemo(() => {
+        return availableFutureOffers.filter(o => o.id && !activeBookedOfferIds.has(o.id));
+    }, [availableFutureOffers, activeBookedOfferIds]);
 
     const [prevVisible, setPrevVisible] = useState(visible);
     if (visible !== prevVisible) {
@@ -48,17 +80,21 @@ const RescheduleModal = ({
         if (!visible) {
             setIsSubmitting(false);
             setSelectedOfferId(null);
+            setReason('');
         }
     }
 
+    const isReasonValid = reason.trim().length >= 5;
+
     const handleConfirm = () => {
         if (isSubmittingRef.current || isSubmitting) return;
-        const selected = availableFutureOffers.find(o => o.id === selectedOfferId);
+        const selected = selectableOffers.find(o => o.id === selectedOfferId);
         if (selected) {
             isSubmittingRef.current = true;
             setIsSubmitting(true);
-            onConfirm(selected);
+            onConfirm(selected, reason.trim());
             setSelectedOfferId(null);
+            setReason('');
         }
     };
 
@@ -66,6 +102,7 @@ const RescheduleModal = ({
         isSubmittingRef.current = false;
         setIsSubmitting(false);
         setSelectedOfferId(null);
+        setReason('');
         onClose();
     };
 
@@ -78,12 +115,15 @@ const RescheduleModal = ({
             animationType="slide" 
             onRequestClose={handleClose}
         >
-            <View style={styles.overlay}>
+            <KeyboardAvoidingView 
+                style={styles.overlay}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
                 <View style={styles.modalContent}>
                     
                     <View style={styles.header}>
                         <CustomText variant="h2" style={styles.title}>
-                            Select New Date
+                            Reschedule Hike
                         </CustomText>
                         <TouchableOpacity 
                             onPress={handleClose} 
@@ -101,10 +141,39 @@ const RescheduleModal = ({
 
                     <ScrollView 
                         showsVerticalScrollIndicator={false} 
-                        contentContainerStyle={styles.scrollContent}
+                        contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
+                        keyboardShouldPersistTaps="handled"
                     >
-                        {availableFutureOffers.length > 0 ? (
-                            availableFutureOffers.map((offer, idx) => (
+                        {/* Reschedule Reason Input Section */}
+                        <View style={styles.reasonSection}>
+                            <CustomFeedbackInput
+                                label="Reason for Reschedule"
+                                placeholder="Please explain why you need to reschedule this hike..."
+                                helperText="Tap a suggestion above or type your own reason."
+                                value={reason}
+                                onChangeText={setReason}
+                                suggestions={RESCHEDULE_SUGGESTIONS}
+                                variant="primary"
+                            />
+                            <View style={styles.counterRow}>
+                                <CustomText variant="caption" style={styles.counterText}>
+                                    {reason.length} / 300 characters
+                                </CustomText>
+                            </View>
+                        </View>
+
+                        {/* Offers Section Header */}
+                        <View style={styles.offersHeader}>
+                            <CustomText variant="h3" style={styles.sectionTitle}>
+                                Select New Date
+                            </CustomText>
+                            <CustomText variant="caption" style={styles.sectionSubtitle}>
+                                Choose an available upcoming schedule from this organizer.
+                            </CustomText>
+                        </View>
+
+                        {selectableOffers.length > 0 ? (
+                            selectableOffers.map((offer, idx) => (
                                 <View key={offer.id || `offer-${idx}`} style={styles.cardWrapper}>
                                     <CustomText variant="label" style={styles.trailLabel}>
                                         {offer.trail?.name || 'Hike'} — {formatDateToStandard(offer.date)}
@@ -140,6 +209,7 @@ const RescheduleModal = ({
 
                     <View style={styles.footerContainer}>
                         <CustomStickyFooter 
+                            style={{ backgroundColor: Colors.WHITE, borderTopWidth: 1, borderTopColor: Colors.GRAY_ULTRALIGHT }}
                             secondaryButton={{
                                 title: "Keep Current Date",
                                 onPress: handleClose,
@@ -147,10 +217,10 @@ const RescheduleModal = ({
                                 variant: "outline"
                             }}
                             primaryButton={{
-                                title: availableFutureOffers.length === 0 
+                                title: selectableOffers.length === 0 
                                     ? "Explore Mountains" 
                                     : (isSubmitting ? "Rescheduling..." : "Confirm Reschedule"),
-                                onPress: availableFutureOffers.length === 0 
+                                onPress: selectableOffers.length === 0 
                                     ? () => {
                                         if (isSubmittingRef.current || isSubmitting) return;
                                         isSubmittingRef.current = true;
@@ -158,14 +228,14 @@ const RescheduleModal = ({
                                         onConfirm('explore');
                                     } 
                                     : handleConfirm,
-                                disabled: (availableFutureOffers.length > 0 && !selectedOfferId) || isSubmitting,
+                                disabled: (selectableOffers.length > 0 && (!selectedOfferId || !isReasonValid)) || isSubmitting,
                                 isLoading: isSubmitting
                             }}
                         />
                     </View>
 
                 </View>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 };
@@ -205,6 +275,32 @@ const styles = StyleSheet.create({
         padding: 20, 
         paddingBottom: 100 
     },
+    reasonSection: {
+        marginBottom: 20,
+    },
+    counterRow: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        marginTop: 6,
+        marginRight: 4,
+    },
+    counterText: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+    },
+    offersHeader: {
+        marginBottom: 16,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+        marginBottom: 4,
+    },
+    sectionSubtitle: {
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 12,
+    },
     cardWrapper: { 
         marginBottom: 20 
     },
@@ -223,7 +319,9 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY 
     },
     footerContainer: { 
-        backgroundColor: 'transparent', 
+        backgroundColor: Colors.WHITE, 
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_ULTRALIGHT,
         paddingBottom: 20 
     }
 });
