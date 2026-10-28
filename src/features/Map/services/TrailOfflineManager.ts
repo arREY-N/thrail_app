@@ -211,6 +211,32 @@ export async function readGeoJsonFromUri(
 }
 
 const webBlobCache = new Map<string, string>();
+let activeWebAllMountainsBlobUrl: string | null = null;
+
+/**
+ * Clears and revokes all active blob URLs created for web GeoJSON caching.
+ */
+export function clearWebBlobCache(): void {
+  if (typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+    webBlobCache.forEach((url) => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.warn("Failed revoking blob URL:", e);
+      }
+    });
+    if (activeWebAllMountainsBlobUrl) {
+      try {
+        URL.revokeObjectURL(activeWebAllMountainsBlobUrl);
+      } catch (e) {
+        console.warn("Failed revoking all-mountains blob URL:", e);
+      }
+      activeWebAllMountainsBlobUrl = null;
+    }
+  }
+  webBlobCache.clear();
+  webAllMountainsPromise = null;
+}
 
 /**
  * Returns a local `file://` URI (or remote URL on web) for a mountain's GeoJSON trail file.
@@ -257,6 +283,14 @@ export async function getOrDownloadTrailGeoJson(
     if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${storagePath}`);
     const blob = await res.blob();
     const blobUrl = URL.createObjectURL(blob);
+    const existingUrl = webBlobCache.get(storagePath);
+    if (existingUrl && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+      try {
+        URL.revokeObjectURL(existingUrl);
+      } catch (revokeErr) {
+        console.warn("Failed to revoke previous blob URL:", revokeErr);
+      }
+    }
     webBlobCache.set(storagePath, blobUrl);
     return blobUrl;
   }
@@ -393,11 +427,20 @@ async function buildWebAllMountainsUrl(forceRefresh: boolean): Promise<string> {
     throw new Error("No mountain GeoJSON could be loaded on web.");
   }
 
+  if (activeWebAllMountainsBlobUrl && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+    try {
+      URL.revokeObjectURL(activeWebAllMountainsBlobUrl);
+    } catch (revokeErr) {
+      console.warn("Failed to revoke previous all-mountains blob URL:", revokeErr);
+    }
+  }
+
   const blob = new Blob(
     [JSON.stringify({ type: "FeatureCollection", features: allFeatures })],
     { type: "application/geo+json" },
   );
-  return URL.createObjectURL(blob);
+  activeWebAllMountainsBlobUrl = URL.createObjectURL(blob);
+  return activeWebAllMountainsBlobUrl;
 }
 
 /**
