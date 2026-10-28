@@ -1,3 +1,4 @@
+import { functions } from "@/src/core/config/Firebase";
 import { HandleGroupMemberFlow } from "@/src/core/flows/HandleGroupMemberFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { Booking, Requirements } from "@/src/core/models/Booking/interfaces/Booking.types";
@@ -6,18 +7,17 @@ import { BookingLogic } from "@/src/core/models/Booking/utils/Booking.logic";
 import { newBooking } from "@/src/core/models/Booking/utils/BookingFactory";
 import { IGroupMember } from "@/src/core/models/Group/Group";
 import { Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
+import { useRescheduleStore } from "@/src/core/models/Reschedule/Reschedule";
 import { useAuthHook } from "@/src/core/models/User/User";
-import { toDateOrNull } from "@/src/core/utility/date";
-import { catchError, logger, refactorCatcher } from "@/src/core/utility/errorFormatter";
 import { FileRepository, SelectedFile } from "@/src/core/repositories/fileRepository";
-import { functions } from "@/src/core/config/Firebase";
+import { toDateOrNull } from "@/src/core/utility/date";
+import { catchError, refactorCatcher } from "@/src/core/utility/errorFormatter";
 import { httpsCallable } from "firebase/functions";
 import { useState } from "react";
-import { Alert } from "react-native";
 
 export function useBookingAdmin() {
     const [localError, setLocalError] = useState<string>();
-    const { profile } = useAuthHook();
+    const { profile, businessId } = useAuthHook();
     const create = useBookingsStore(s => s.create);
     const error = useBookingsStore(s => s.error);
     const isLoading = useBookingsStore(s => s.isLoading);
@@ -307,34 +307,44 @@ export function useBookingAdmin() {
         }
     }
 
-    const onRescheduleBooking = (newOffer: Offer, booking?: Booking,) => {
+    const onRescheduleBooking = async (newOffer: Offer, booking?: Booking, adminNote?: string) => {
         try {
             if (!booking) {
-                refactorCatcher(`Refactored function signature. \n\nInclude booking as the parameter to onApproveBooking(). This function will not throw an error but it will not let the approval process continue until this change is handled.`);
+                refactorCatcher(`Refactored function signature. \n\nInclude booking as the parameter to onRescheduleBooking().`);
                 return;
             }
 
             if (!newOffer) throw new Error('A new offer must be provided to reschedule');
 
-            if (newOffer.price !== booking.offer.price) {
-                Alert.alert(`The new offer costs ${newOffer.price} while the old one is ${booking.offer.price}`)
-            }
-
-            const rescheduledBook = newBooking({
-                ...booking,
-                offer: {
-                    date: newOffer.date,
-                    price: newOffer.price,
-                    id: newOffer.id,
-                }
+            const approveRescheduleFn = httpsCallable(functions, 'approveReschedule');
+            const result = await approveRescheduleFn({
+                bookingId: booking.id,
+                userId: booking.user?.id,
+                newOfferId: newOffer.id,
+                businessId: booking.business?.id || businessId || undefined,
+                adminNote,
             });
 
-            logger('useBookingAdmin', 'New rescheduled offer', rescheduledBook.offer);
+            const resolvedBusinessId = booking.business?.id || businessId;
+            if (resolvedBusinessId) {
+                await Promise.all([
+                    useOfferStore.getState().fetchOfferByBusiness(resolvedBusinessId),
+                    useRescheduleStore.getState().fetchAllByBusinessId(resolvedBusinessId),
+                ]).catch(console.warn);
+            }
+
+            if (booking.offer?.id) {
+                await useBookingsStore.getState().refreshBookingItem(booking.id, booking.offer.id).catch(console.warn);
+            }
+
+            onBackPress();
+            return result.data;
         } catch (error) {
             catchError(error as Error, 'writingError', 'onRescheduleBooking()');
             setLocalError((error as Error).message || 'Failed to reschedule booking');
+            throw error;
         }
-    }
+    };
 
     return {
         onApproveBooking,
