@@ -5,6 +5,7 @@
  */
 
 import React, { createContext, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomToast from '@/src/components/CustomToast';
@@ -144,6 +145,13 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
             }
             // Standard fallback when footer height is pending measurement
             return isMobile ? Math.max(insets.bottom + 90, 94) : 94;
+        }
+
+        if (toastConfig.position === 'tabbar') {
+            if (!isMobile || Platform.OS === 'web') return 24;
+            const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 16);
+            const navBarHeight = 70 + bottomPadding;
+            return navBarHeight + 12;
         }
 
         return undefined;

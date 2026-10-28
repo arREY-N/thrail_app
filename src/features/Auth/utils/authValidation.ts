@@ -7,9 +7,9 @@ import { INVISIBLE_CHARS_REGEX } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 
 /**
- * Standard RFC-compliant email regular expression enforcing 2+ char TLD.
+ * Standard RFC-compliant email regular expression enforcing 2+ char TLD and standard delimiters.
  */
-export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+export const EMAIL_REGEX = /^[a-zA-Z0-9]+(?:[._-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+(?:[.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$/;
 
 /**
  * Strict username regular expression:
@@ -21,9 +21,9 @@ export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 export const USERNAME_REGEX = /^(?![._])(?!.*[._]{2})[a-zA-Z0-9._]{6,30}(?<![._])$/;
 
 /**
- * Approved special characters required by backend password validation.
+ * Approved special characters required by password validation (standard ASCII specials).
  */
-export const PASSWORD_SPECIAL_REGEX = /[!@#$%^&*]/;
+export const PASSWORD_SPECIAL_REGEX = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/;
 
 /**
  * Sanitizes username input by removing whitespace, zero-width characters,
@@ -43,6 +43,7 @@ export const sanitizeUsername = (text?: string): string => {
 /**
  * Sanitizes email input by removing whitespace, zero-width characters,
  * and characters not permissible in standard emails.
+ * Preserves user-typed casing (e.g. JuanDelaCruz@sample.com).
  *
  * @param text - The raw email input string.
  * @returns {string} The sanitized email string.
@@ -52,7 +53,7 @@ export const sanitizeEmail = (text?: string): string => {
     return text
         .replace(INVISIBLE_CHARS_REGEX, '')
         .replace(/\s/g, '')
-        .replace(/[^a-zA-Z0-9@._+-]/g, '');
+        .replace(/[^a-zA-Z0-9@._-]/g, '');
 };
 
 /**
@@ -162,7 +163,7 @@ export const validateSignUpFields = (
     const hasSpecial = PASSWORD_SPECIAL_REGEX.test(pass);
 
     if (!hasUpper || !hasLower || !hasNumber || !hasSpecial) {
-        return 'Password must contain uppercase, lowercase, numerical, and special characters (!@#$%^&*).';
+        return 'Password must contain uppercase, lowercase, numerical, and special characters (e.g. !@#$%^&*).';
     }
 
     if (pass !== confirmPass) {

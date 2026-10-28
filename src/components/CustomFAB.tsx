@@ -1,14 +1,20 @@
-import React from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import {
     GestureResponderEvent,
     Platform,
     StyleProp,
     StyleSheet,
     TouchableOpacity,
+    View,
     ViewStyle,
 } from "react-native";
 
 import CustomIcon from "@/src/components/CustomIcon";
+import {
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+} from "@/src/components/Tutorial/Tutorial";
 import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from "@/src/constants/globalStyles";
 import { IconLibrary } from "@/src/types/ui.types";
@@ -35,23 +41,52 @@ const CustomFAB: React.FC<CustomFABProps> = ({
   backgroundColor = Colors.PRIMARY,
   style,
 }) => {
+  const fabRef = useRef<View>(null);
+
+  const measureFabNow = useCallback(() => {
+    fabRef.current?.measureInWindow((x, y, width, height) => {
+      if (width > 0 && height > 0) {
+        registerTutorialLayout("fab_messages", { x, y, width, height });
+      }
+    });
+  }, []);
+
+  const handleLayout = useCallback(() => {
+    if (!isTutorialMeasurementActive()) return;
+    measureFabNow();
+  }, [measureFabNow]);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    return registerMeasureCallback("fab_messages", measureFabNow);
+  }, [measureFabNow]);
+
   if (Platform.OS === "web") {
     return null;
   }
 
   return (
-    <TouchableOpacity
+    <View
+      ref={fabRef}
+      onLayout={handleLayout}
+      collapsable={false}
       style={[styles.fab, { backgroundColor: backgroundColor }, style]}
-      onPress={onPress}
-      activeOpacity={0.9}
     >
-      <CustomIcon
-        library={iconLibrary}
-        name={iconName}
-        size={iconSize}
-        color={iconColor}
-      />
-    </TouchableOpacity>
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.9}
+        style={styles.touchable}
+        accessibilityRole="button"
+        accessibilityLabel="Messages and group chats"
+      >
+        <CustomIcon
+          library={iconLibrary}
+          name={iconName}
+          size={iconSize}
+          color={iconColor}
+        />
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -70,6 +105,13 @@ const styles = StyleSheet.create({
       radius: 6,
     }),
     zIndex: 1000,
+  },
+  touchable: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

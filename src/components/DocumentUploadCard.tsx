@@ -236,14 +236,10 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
             } else {
                 // Mobile and Web gallery image picker
                 if (Platform.OS !== 'web') {
-                    const { status, canAskAgain } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                    if (status !== 'granted') {
-                        if (!canAskAgain) {
-                            setIsPermissionBlocked(true);
-                            throw new Error('Photo gallery permission is disabled. Please enable photo access in Settings to upload.');
-                        }
-                        setIsPermissionBlocked(false);
-                        throw new Error('Permission to access photo gallery is required.');
+                    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                    if (perm.status !== 'granted') {
+                        setIsPermissionBlocked(true);
+                        throw new Error('Photo gallery permission is required. Please enable photo access in Settings to upload.');
                     }
                     setIsPermissionBlocked(false);
                 }
@@ -324,11 +320,14 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
             if (isCanceled) {
                 setIsError(false);
                 setErrorMessage('');
-                setIsPermissionBlocked(false);
             } else {
                 console.error(`Upload failed for ${docKey}:`, error);
                 setIsError(true);
                 setErrorMessage(msg);
+                const isPermissionErr = msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('settings');
+                if (isPermissionErr) {
+                    setIsPermissionBlocked(true);
+                }
                 if (onError) {
                     onError(msg);
                 }

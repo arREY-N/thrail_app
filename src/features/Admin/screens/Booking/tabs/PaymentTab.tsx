@@ -1,35 +1,31 @@
 /**
  * @file PaymentTab.tsx
- * @description Admin component displaying payment and transaction history for a booking.
- * Provides functions to verify downpayment and full payment amounts.
+ * @description Admin component displaying payment overview, receipt verification,
+ * onsite cash settlement, and expandable transaction history for a booking.
+ * Responsive for Web and Mobile.
  */
 
 import React, { useState } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 
+import ConfirmationModal from '@/src/components/ConfirmationModal';
+import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
-import CustomInfoRow from '@/src/components/CustomInfoRow';
-import CustomStatusBadge from '@/src/components/CustomStatusBadge';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
-import PaymentBreakdownPanel from '@/src/components/PaymentBreakdownPanel';
+import { useToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
-import { formatDate } from '@/src/core/utility/date';
-import { ManualQRVerificationCard } from '../components/ManualQRVerificationCard';
-
 import { SelectedFile } from '@/src/core/repositories/fileRepository';
+import { formatDateTime } from '@/src/core/utility/date';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { ManualQRVerificationCard } from '../components/ManualQRVerificationCard';
 
 /**
  * Props for PaymentTab component.
- * @param booking - The booking document being reviewed.
- * @param currentStatus - The derived current workflow status of the booking.
- * @param isApprovedStatus - Flag indicating if the booking is in an approved document state.
- * @param isRejectedStatus - Flag indicating if the booking has been rejected by admin.
- * @param isCancelledStatus - Flag indicating if the booking has been cancelled or expired.
- * @param onConfirmPaymentClick - Callback when admin triggers payment completion verification.
  */
 export interface PaymentTabProps {
     booking: Booking;
@@ -46,7 +42,58 @@ export interface PaymentTabProps {
 }
 
 /**
- * PaymentTab — Renders payment breakdown totals and payment gateway logs.
+ * Extracts the admin-verified reference code from payment records.
+ * Prioritizes the reference code entered and verified by the admin over auto-generated fallbacks.
+ */
+export const getDisplayReferenceCode = (payment: IPayment<Date>): { refCode: string; note?: string } => {
+    const rawNote = payment.adminNote || '';
+
+    // Look for "Ref: <value>" in adminNote
+    const refMatch = rawNote.match(/Ref:\s*([^\s|]+(?:\s+[^\s|]+)*)/i);
+    let refCode = refMatch ? refMatch[1].trim() : null;
+
+    // Clean out the Ref: portion from adminNote to extract the clean user note
+    const cleanNote = rawNote
+        .replace(/Ref:\s*[^\s|]+(?:\s+[^\s|]+)*/i, '')
+        .replace(/^\s*\|\s*|\s*\|\s*$/g, '')
+        .trim();
+
+    // If no ref in adminNote, check payment.referenceCode (skip generated MANUAL-, CASH-, manual_, REF-)
+    if (!refCode && payment.referenceCode) {
+        const isGenerated = payment.referenceCode.startsWith('MANUAL-') || 
+                            payment.referenceCode.startsWith('CASH-') || 
+                            payment.referenceCode.startsWith('manual_') ||
+                            payment.referenceCode.startsWith('REF-');
+        if (!isGenerated) {
+            refCode = payment.referenceCode;
+        }
+    }
+
+    // If still no refCode, check gatewayId (for PayMongo pay_...)
+    if (!refCode && payment.gatewayId) {
+        refCode = payment.gatewayId;
+    }
+
+    // Check if it's a cash transaction
+    const isCash = payment.method === 'cash' || 
+                   (payment.gateway || '').toLowerCase().includes('cash') || 
+                   (payment.referenceCode || '').startsWith('CASH-');
+
+    if (isCash) {
+        return {
+            refCode: refCode || 'Onsite Cash',
+            note: cleanNote || undefined,
+        };
+    }
+
+    return {
+        refCode: refCode || (payment.status === 'captured' ? 'Verified by Admin' : 'Pending Verification'),
+        note: cleanNote || undefined,
+    };
+};
+
+/**
+ * PaymentTab — Cleaned and improved UI for reviewing booking payments.
  */
 const PaymentTab: React.FC<PaymentTabProps> = ({ 
     booking, 
@@ -54,14 +101,27 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     isApprovedStatus, 
     isRejectedStatus,
     isCancelledStatus,
-    onConfirmPaymentClick,
     onVerifyManualPayment,
     onRejectManualPayment,
     onSettleRemainingBalance,
     onUploadOverpaymentProof,
     isProcessing = false,
 }) => {
+    const { isMobile, width } = useBreakpoints();
+    const isNarrow = isMobile && width < 380;
+    const { showToast } = useToast();
+
     const [previewReceiptUrl, setPreviewReceiptUrl] = useState<string | null>(null);
+    const [showPaidCashModal, setShowPaidCashModal] = useState<boolean>(false);
+    const [expandedIndices, setExpandedIndices] = useState<Record<number, boolean>>({});
+
+    const toggleAccordion = (idx: number) => {
+        setExpandedIndices(prev => ({
+            ...prev,
+            [idx]: !prev[idx],
+        }));
+    };
+
     const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
     const isLockedStatus = ['reservation-rejected', 'cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired', 'for-cancellation', 'for-reschedule'].includes(currentStatus);
 
@@ -99,6 +159,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
         : (booking?.payment?.reduce((sum: number, p: IPayment<Date>) => sum + (p.refundedAmount || (p.status === 'refunded' ? p.amount : 0)), 0) || 0);
     const netPaid = Math.max(0, grossPaid - totalRefunded);
     const remainingBalance = Math.max(0, price - netPaid);
+    const progressPercent = Math.min((netPaid / (price || 1)) * 100, 100);
 
     const renderGatewayBadge = (gatewayName: string) => {
         const name = (gatewayName || 'PayMongo').toLowerCase();
@@ -106,6 +167,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
         let textColor = Colors.TEXT_SECONDARY;
         let iconName = 'credit-card';
         let displayName = gatewayName;
+        const isCash = name.includes('cash');
 
         if (name.includes('manual_qr') || name.includes('manual')) {
             bgColor = Colors.PRIMARY_LIGHT;
@@ -116,21 +178,28 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
             bgColor = Colors.STATUS_PENDING_BG;
             textColor = Colors.STATUS_PENDING_TEXT;
             iconName = 'smartphone';
-            displayName = 'PayMongo (GCash)';
+            displayName = 'GCash';
         } else if (name.includes('maya') || name.includes('paymaya')) {
             bgColor = Colors.STATUS_APPROVED_BG;
             textColor = Colors.STATUS_APPROVED_TEXT;
             iconName = 'activity';
-            displayName = 'PayMongo (Maya)';
-        } else if (name === 'paymongo') {
-            displayName = 'PayMongo';
+            displayName = 'Maya';
+        } else if (isCash) {
+            bgColor = '#D1FAE5';
+            textColor = '#065F46';
+            iconName = 'check-circle';
+            displayName = 'Onsite Cash';
         } else {
             displayName = gatewayName;
         }
 
         return (
             <View style={[styles.gatewayBadge, { backgroundColor: bgColor }]}>
-                <CustomIcon library="Feather" name={iconName} size={12} color={textColor} />
+                {isCash ? (
+                    <CustomText style={[styles.badgePesoSign, { color: textColor }]}>₱</CustomText>
+                ) : (
+                    <CustomIcon library="Feather" name={iconName} size={11} color={textColor} />
+                )}
                 <CustomText style={[styles.gatewayText, { color: textColor }]}>
                     {displayName}
                 </CustomText>
@@ -147,11 +216,80 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     );
     const hasManualPayment = hasManualRecord || (!hasPaymongoCaptured && PAYMENT_CONFIG.PROVIDER === 'manual_qr');
 
+    const allPayments = (booking?.payment || []).filter((p: IPayment<Date>) => p.status !== 'abandoned');
+    const hasPendingPayment = allPayments.some((p: IPayment<Date>) => p.status === 'pending');
+    // Receipts history only shows verified/captured or refunded payments
+    const verifiedPaymentsList = allPayments.filter((p: IPayment<Date>) => p.status === 'captured' || p.status === 'refunded');
+
+    const showVerificationCard = hasManualPayment && onVerifyManualPayment && (
+        hasPendingPayment || 
+        booking.paymentVerificationStatus === 'pending_verification' || 
+        currentStatus === 'for-payment' || 
+        booking.paymentVerificationStatus === 'rejected' ||
+        Boolean(booking.overpayment)
+    );
+
+    const handleConfirmCashSettlement = async () => {
+        if (!onSettleRemainingBalance) return;
+        setShowPaidCashModal(false);
+        try {
+            await onSettleRemainingBalance({
+                method: 'cash',
+                referenceCode: `CASH-${Date.now()}`,
+                adminNote: 'Settled via Onsite Cash',
+            });
+            showToast.success('Remaining balance settled in cash.');
+        } catch {
+            showToast.error('Failed to settle balance in cash.');
+        }
+    };
+
     return (
         <View style={styles.tabContent}>
 
-            {/* Manual QR Verification Card for Admin */}
-            {hasManualPayment && onVerifyManualPayment && (
+            {/* ─── 1. PAYMENT SUMMARY CARD ────────────────────────────── */}
+            <View style={[styles.summaryCard, isMobile && styles.summaryCardMobile]}>
+                <View style={[styles.summaryHeaderRow, isNarrow && styles.summaryHeaderRowNarrow]}>
+                    <View style={styles.summaryTitleGroup}>
+                        <CustomIcon library="Feather" name="pie-chart" size={16} color={Colors.PRIMARY} />
+                        <CustomText style={styles.summaryCardTitle}>Payment Summary</CustomText>
+                    </View>
+                    <View style={[styles.paidTotalGroup, isNarrow && styles.paidTotalGroupNarrow]}>
+                        <CustomText style={styles.paidTotalValue}>
+                            ₱{netPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <CustomText style={styles.paidTotalDenominator}>
+                                {' / '}₱{price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </CustomText>
+                        </CustomText>
+                    </View>
+                </View>
+
+                {/* Fluid Progress Bar */}
+                <View style={styles.progressContainer}>
+                    <View 
+                        style={[
+                            styles.progressBarFill, 
+                            { width: `${progressPercent}%` }
+                        ]} 
+                    />
+                </View>
+
+                {/* Balance Row (Right-aligned under progress bar) */}
+                <View style={styles.balanceRow}>
+                    <View style={styles.balanceInfo}>
+                        <CustomText style={styles.balanceLabel}>Balance: </CustomText>
+                        <CustomText style={[
+                            styles.balanceAmount, 
+                            remainingBalance > 0 ? styles.balanceUnpaid : styles.balanceSettled
+                        ]}>
+                            ₱{remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </CustomText>
+                    </View>
+                </View>
+            </View>
+
+            {/* ─── 2. PENDING REVIEW & VERIFICATION CARD ──────────────── */}
+            {showVerificationCard && (
                 <ManualQRVerificationCard
                     booking={booking}
                     onVerifyPayment={onVerifyManualPayment}
@@ -161,7 +299,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                     isProcessing={isProcessing}
                 />
             )}
-            
+
             {currentStatus === 'for-payment' && !isLockedStatus && !hasManualPayment && (
                 <View style={styles.emptyPaymentBox}>
                     <CustomIcon 
@@ -177,394 +315,276 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                 </View>
             )}
 
-            {(currentStatus === 'paid' || currentStatus === 'downpayment' || currentStatus === 'completed' || isLockedStatus) && booking?.payment?.length > 0 && (
-                <View style={styles.paymentCard}>
-                    
-                    {/* Payment Summary Header & Integrated Status Badge */}
-                    <View style={styles.breakdownHeaderRow}>
-                        <CustomText style={styles.breakdownTitle}>Payment Summary</CustomText>
-                        <CustomStatusBadge
-                            status={booking?.status || currentStatus}
-                            isApproved={isApprovedStatus}
-                            isRejected={isRejectedStatus}
-                            isCancelled={isCancelledStatus}
-                            size="md"
-                        />
-                    </View>
-                    
-                    <View style={styles.breakdownDivider} />
-
-                    {/* Modern Price Breakdown Hero Panel with Progress Bar */}
-                    <View style={styles.priceHeroPanel}>
-                        <View style={styles.priceHeroHeader}>
-                            <CustomText style={styles.priceHeroLabel}>Total Hike Price</CustomText>
-                            <CustomText style={styles.priceHeroAmount}>₱{price.toFixed(2)}</CustomText>
-                        </View>
-                        <View style={styles.progressContainer}>
-                            <View style={[styles.progressBarFill, { width: `${Math.min((netPaid / (price || 1)) * 100, 100)}%` }]} />
-                        </View>
-                        <View style={styles.progressLabelRow}>
-                            <CustomText style={styles.progressText}>
-                                {Math.min((netPaid / (price || 1)) * 100, 100).toFixed(0)}% Net Collected
+            {/* ─── 3. RECEIPTS CARD (EXPANDABLE ACCORDIONS) ───────────── */}
+            <View style={[styles.receiptsCard, isMobile && styles.receiptsCardMobile]}>
+                <View style={styles.receiptsCardHeader}>
+                    <View style={styles.receiptsTitleGroup}>
+                        <CustomIcon library="MaterialCommunityIcons" name="receipt-text-outline" size={18} color={Colors.PRIMARY} />
+                        <CustomText style={styles.receiptsCardTitle}>
+                            RECEIPTS
+                        </CustomText>
+                        <View style={styles.receiptsCountBadge}>
+                            <CustomText style={styles.receiptsCountText}>
+                                {verifiedPaymentsList.length}
                             </CustomText>
                         </View>
                     </View>
-                    
-                    <View style={styles.breakdownDivider} />
-                    
-                    <PaymentBreakdownPanel
-                        totalPrice={price}
-                        amountPaid={netPaid}
-                        remainingBalance={remainingBalance}
-                        refundedAmount={totalRefunded}
-                        variant="compact"
-                    />
 
-                    <CustomText variant="h3" style={styles.summaryTitle}>
-                        Transaction Summary
-                    </CustomText>
-                    
-                    {booking?.payment?.filter((p: IPayment<Date>) => p.status !== 'abandoned').map((paymentRecord: IPayment<Date>, idx: number) => {
-                        const statusColor = paymentRecord.status === 'captured' 
-                            ? Colors.SUCCESS 
-                            : (paymentRecord.status === 'refunded' ? Colors.ERROR : Colors.STATUS_PENDING_TEXT);
-                        
-                        return (
-                            <View key={idx} style={styles.paymentRecordBox}>
-                                {/* Gateway Row */}
-                                <View style={styles.paymentRow}>
-                                    <CustomText style={styles.paymentLabel}>Gateway</CustomText>
-                                    <View style={styles.paymentValueContainer}>
-                                        {renderGatewayBadge(paymentRecord.gateway)}
-                                    </View>
-                                </View>
+                    {/* Paid Cash Button — Clean 'Paid Cash' only, no dollar icon */}
+                    {remainingBalance > 0 && !isLockedStatus && onSettleRemainingBalance && (
+                        <CustomButton
+                            title="Paid Cash"
+                            variant="outline"
+                            size="sm"
+                            autoWidth={true}
+                            onPress={() => setShowPaidCashModal(true)}
+                            isLoading={isProcessing}
+                        />
+                    )}
+                </View>
 
-                                {/* Method / Channel Row */}
-                                {paymentRecord.method && (
-                                    <View style={styles.paymentRow}>
-                                        <CustomText style={styles.paymentLabel}>Channel</CustomText>
-                                        <CustomText style={[styles.paymentValue, { textTransform: 'capitalize' }]}>
-                                            {paymentRecord.method === 'maya' || paymentRecord.method === 'paymaya' 
-                                                ? 'Maya' 
-                                                : paymentRecord.method === 'gcash' 
-                                                    ? 'GCash' 
-                                                    : paymentRecord.method}
-                                        </CustomText>
-                                    </View>
-                                )}
-                                                          {/* Status Row */}
-                                <View style={styles.paymentRow}>
-                                    <CustomText style={styles.paymentLabel}>Status</CustomText>
-                                    <CustomText 
-                                        style={[
-                                            styles.paymentValue,
-                                            { color: statusColor, textTransform: 'uppercase' }
-                                        ]}
+                <View style={styles.cardDivider} />
+
+                {/* Accordion Item Cards */}
+                {verifiedPaymentsList.length > 0 ? (
+                    <View style={styles.receiptsListContainer}>
+                        {verifiedPaymentsList.map((paymentRecord: IPayment<Date>, idx: number) => {
+                            const isExpanded = Boolean(expandedIndices[idx]);
+                            const { refCode, note } = getDisplayReferenceCode(paymentRecord);
+                            const isRefunded = paymentRecord.status === 'refunded' || ((paymentRecord.refundedAmount || 0) > 0);
+                            const isCashMethod = paymentRecord.method === 'cash' || 
+                                (paymentRecord.gateway || '').toLowerCase().includes('cash') || 
+                                (paymentRecord.referenceCode || '').startsWith('CASH-');
+
+                            return (
+                                <View key={idx} style={styles.accordionCard}>
+                                    {/* Collapsed Header (Always Visible, Tappable) */}
+                                    <TouchableOpacity
+                                        activeOpacity={0.7}
+                                        onPress={() => toggleAccordion(idx)}
+                                        style={styles.accordionHeader}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Receipt ${idx + 1}, amount ₱${paymentRecord.amount.toFixed(2)}`}
                                     >
-                                        {paymentRecord.status === 'refunded'
-                                            ? `REFUNDED${paymentRecord.refundedAmount && paymentRecord.amount > 0 ? ` (${Math.round((paymentRecord.refundedAmount / paymentRecord.amount) * 100)}%)` : ''}`
-                                            : (paymentRecord.refundedAmount && paymentRecord.refundedAmount > 0
-                                                ? `PARTIALLY REFUNDED (${Math.round((paymentRecord.refundedAmount / paymentRecord.amount) * 100)}%)`
-                                                : paymentRecord.status)
-                                        }
-                                    </CustomText>
-                                </View>
-
-                                {/* Payment Classification Row (Downpayment vs Full Payment) */}
-                                {paymentRecord.classification && (
-                                    <View style={styles.paymentRow}>
-                                        <CustomText style={styles.paymentLabel}>Payment Type</CustomText>
-                                        <View style={[
-                                            styles.classificationBadge,
-                                            paymentRecord.classification === 'downpayment'
-                                                ? styles.classificationBadgeDownpayment
-                                                : styles.classificationBadgeFull
-                                        ]}>
-                                            <CustomIcon
-                                                library="Feather"
-                                                name={paymentRecord.classification === 'downpayment' ? 'pie-chart' : 'check-circle'}
-                                                size={11}
-                                                color={paymentRecord.classification === 'downpayment' ? Colors.STATUS_DOWNPAYMENT_TEXT : Colors.SUCCESS}
-                                            />
-                                            <CustomText style={[
-                                                styles.classificationBadgeText,
-                                                { color: paymentRecord.classification === 'downpayment' ? Colors.STATUS_DOWNPAYMENT_TEXT : Colors.SUCCESS }
-                                            ]}>
-                                                {paymentRecord.classification === 'downpayment' ? 'DOWNPAYMENT' : 'FULL PAYMENT'}
-                                            </CustomText>
-                                        </View>
-                                    </View>
-                                )}
-
-                                {/* Original Amount Row */}
-                                <View style={styles.paymentRow}>
-                                    <CustomText style={styles.paymentLabel}>Original Amount</CustomText>
-                                    <CustomText 
-                                        style={[
-                                            styles.paymentValue, 
-                                            (paymentRecord.status === 'refunded' || (paymentRecord.refundedAmount && paymentRecord.refundedAmount > 0)) ? styles.strikethroughAmount : styles.totalValue
-                                        ]}
-                                    >
-                                        ₱{paymentRecord.amount.toFixed(2)}
-                                    </CustomText>
-                                </View>
-
-                                {/* Refunded Amount Row (if refunded) */}
-                                {(paymentRecord.status === 'refunded' || (paymentRecord.refundedAmount && paymentRecord.refundedAmount > 0)) && (
-                                    <View style={styles.paymentRow}>
-                                        <CustomText style={styles.paymentLabel}>Amount Refunded</CustomText>
-                                        <CustomText style={[styles.paymentValue, styles.errorText]}>
-                                            ₱{(paymentRecord.refundedAmount || paymentRecord.amount).toFixed(2)}
-                                        </CustomText>
-                                    </View>
-                                )}
-
-                                {/* Refund Reason (if refunded) */}
-                                {(paymentRecord.status === 'refunded' || (paymentRecord.refundedAmount && paymentRecord.refundedAmount > 0)) && paymentRecord.refundReason && (
-                                    <View style={styles.paymentRow}>
-                                        <CustomText style={styles.paymentLabel}>Refund Reason</CustomText>
-                                        <CustomText style={[styles.paymentValue, { textTransform: 'capitalize' }]}>
-                                            {paymentRecord.refundReason}
-                                        </CustomText>
-                                    </View>
-                                )}
-
-                                {/* Reference Code (stacked row - prioritizes pay_ ID) */}
-                                <CustomInfoRow
-                                    label="Reference No."
-                                    value={paymentRecord.gatewayId || paymentRecord.referenceCode || paymentRecord.sessionId || 'N/A'}
-                                    enableCopy={Boolean(paymentRecord.gatewayId || paymentRecord.referenceCode || paymentRecord.sessionId)}
-                                    stacked={true}
-                                    containerStyle={{ marginHorizontal: 12, marginVertical: 4 }}
-                                />
-
-                                {/* User Payment Receipt Screenshot (Documented for Audit) */}
-                                {paymentRecord.receiptUrl && (
-                                    <View style={styles.receiptProofSection}>
-                                        <View style={styles.receiptProofHeader}>
-                                            <View style={styles.receiptProofHeaderTitle}>
-                                                <CustomIcon library="MaterialCommunityIcons" name="receipt-text-outline" size={15} color={Colors.PRIMARY} />
-                                                <CustomText style={styles.receiptProofTitle}>
-                                                    Payment Receipt
+                                        <View style={styles.accordionHeaderLeft}>
+                                            {/* Index Badge */}
+                                            <View style={styles.indexBadge}>
+                                                <CustomText style={styles.indexBadgeText}>
+                                                    {idx + 1}
                                                 </CustomText>
                                             </View>
-                                            {(paymentRecord.paidAt || paymentRecord.createdAt) && (
-                                                <CustomText style={styles.receiptProofDate}>
-                                                    {formatDate(paymentRecord.paidAt || paymentRecord.createdAt)}
-                                                </CustomText>
+
+                                            {/* Thumbnail preview or Cash Icon */}
+                                            {paymentRecord.receiptUrl ? (
+                                                <TouchableOpacity
+                                                    activeOpacity={0.85}
+                                                    onPress={(e) => {
+                                                        e.stopPropagation();
+                                                        setPreviewReceiptUrl(paymentRecord.receiptUrl!);
+                                                    }}
+                                                    style={styles.collapsedThumbnailWrapper}
+                                                >
+                                                    <Image 
+                                                        source={{ uri: paymentRecord.receiptUrl }} 
+                                                        style={styles.collapsedThumbnail} 
+                                                        resizeMode="cover" 
+                                                    />
+                                                </TouchableOpacity>
+                                            ) : (
+                                                <View style={styles.collapsedIconBox}>
+                                                    {isCashMethod ? (
+                                                        <CustomText style={styles.pesoSignIcon}>₱</CustomText>
+                                                    ) : (
+                                                        <CustomIcon 
+                                                            library="Feather" 
+                                                            name="credit-card" 
+                                                            size={16} 
+                                                            color={Colors.PRIMARY} 
+                                                        />
+                                                    )}
+                                                </View>
                                             )}
+
+                                            {/* Amount & Date */}
+                                            <View style={styles.collapsedInfo}>
+                                                <CustomText style={styles.collapsedAmount}>
+                                                    ₱{paymentRecord.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </CustomText>
+                                                <CustomText style={styles.collapsedDate}>
+                                                    {formatDateTime(paymentRecord.paidAt || paymentRecord.createdAt)}
+                                                </CustomText>
+                                            </View>
                                         </View>
 
-                                        <View style={styles.receiptProofContent}>
-                                            <TouchableOpacity
-                                                activeOpacity={0.85}
-                                                onPress={() => setPreviewReceiptUrl(paymentRecord.receiptUrl!)}
-                                                style={styles.receiptThumbnailWrapper}
-                                                accessibilityRole="button"
-                                                accessibilityLabel="View payment receipt in full screen"
-                                            >
-                                                <Image 
-                                                    source={{ uri: paymentRecord.receiptUrl }} 
-                                                    style={styles.receiptThumbnail} 
-                                                    resizeMode="cover" 
-                                                />
-                                                <View style={styles.receiptZoomOverlay}>
-                                                    <CustomIcon library="Feather" name="maximize-2" size={11} color={Colors.WHITE} />
-                                                    <CustomText style={styles.receiptZoomText}>View</CustomText>
+                                        {/* Right: Dropdown Chevron */}
+                                        <View style={styles.accordionHeaderRight}>
+                                            <CustomIcon 
+                                                library="Feather" 
+                                                name={isExpanded ? "chevron-up" : "chevron-down"} 
+                                                size={20} 
+                                                color={Colors.TEXT_SECONDARY} 
+                                            />
+                                        </View>
+                                    </TouchableOpacity>
+
+                                    {/* Expanded Body (Full Details) */}
+                                    {isExpanded && (
+                                        <View style={styles.accordionBody}>
+                                            <View style={styles.accordionDivider} />
+
+                                            {/* Admin-Verified Reference Code Row */}
+                                            <View style={styles.detailRow}>
+                                                <CustomText style={styles.detailLabel}>Reference Code</CustomText>
+                                                <View style={styles.refCodeValueGroup}>
+                                                    <CustomText style={styles.refCodeText} selectable={true}>
+                                                        {refCode}
+                                                    </CustomText>
+                                                    {refCode !== 'Onsite Cash' && refCode !== 'Verified by Admin' && (
+                                                        <TouchableOpacity
+                                                            activeOpacity={0.7}
+                                                            style={styles.copyIconButton}
+                                                            onPress={async () => {
+                                                                await Clipboard.setStringAsync(refCode);
+                                                                showToast.success('Reference code copied.');
+                                                            }}
+                                                        >
+                                                            <CustomIcon library="Feather" name="copy" size={13} color={Colors.PRIMARY} />
+                                                        </TouchableOpacity>
+                                                    )}
                                                 </View>
-                                            </TouchableOpacity>
+                                            </View>
 
-                                            <View style={styles.receiptProofMeta}>
-                                                <CustomText style={styles.receiptTapHint}>
-                                                    User submitted payment receipt screenshot. Tap to view full size.
-                                                </CustomText>
+                                            {/* Channel / Gateway Row */}
+                                            <View style={styles.detailRow}>
+                                                <CustomText style={styles.detailLabel}>Channel</CustomText>
+                                                {renderGatewayBadge(isCashMethod ? 'cash' : (paymentRecord.method || paymentRecord.gateway))}
+                                            </View>
 
-                                                {paymentRecord.adminNote ? (
-                                                    <View style={styles.receiptAdminNoteBox}>
-                                                        <CustomText style={styles.receiptAdminNoteLabel}>Admin Note:</CustomText>
-                                                        <CustomText style={styles.receiptAdminNoteText}>
-                                                            {paymentRecord.adminNote}
+                                            {/* Payment Classification Badge (Downpayment vs Full Payment) */}
+                                            {paymentRecord.classification && (
+                                                <View style={styles.detailRow}>
+                                                    <CustomText style={styles.detailLabel}>Payment Type</CustomText>
+                                                    <View style={[
+                                                        styles.classificationPill,
+                                                        paymentRecord.classification === 'downpayment'
+                                                            ? styles.classificationDownpayment
+                                                            : styles.classificationFull
+                                                    ]}>
+                                                        <CustomIcon
+                                                            library="Feather"
+                                                            name={paymentRecord.classification === 'downpayment' ? 'pie-chart' : 'check-circle'}
+                                                            size={11}
+                                                            color={paymentRecord.classification === 'downpayment' ? Colors.STATUS_DOWNPAYMENT_TEXT : Colors.SUCCESS}
+                                                        />
+                                                        <CustomText style={[
+                                                            styles.classificationText,
+                                                            { color: paymentRecord.classification === 'downpayment' ? Colors.STATUS_DOWNPAYMENT_TEXT : Colors.SUCCESS }
+                                                        ]}>
+                                                            {paymentRecord.classification === 'downpayment' ? 'DOWNPAYMENT' : 'FULL PAYMENT'}
                                                         </CustomText>
                                                     </View>
-                                                ) : null}
+                                                </View>
+                                            )}
 
-                                                <TouchableOpacity
-                                                    activeOpacity={0.8}
-                                                    onPress={() => setPreviewReceiptUrl(paymentRecord.receiptUrl!)}
-                                                    style={styles.enlargeButton}
-                                                >
-                                                    <CustomIcon library="Feather" name="zoom-in" size={13} color={Colors.PRIMARY} />
-                                                    <CustomText style={styles.enlargeButtonText}>
-                                                        Enlarge Receipt
-                                                    </CustomText>
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-                                    </View>
-                                )}
-
-                                {/* Refund Payout Proof (if available) */}
-                                {paymentRecord.refundProofUrl && (
-                                    <View style={[styles.receiptProofSection, styles.refundProofSection]}>
-                                        <View style={styles.receiptProofHeader}>
-                                            <View style={styles.receiptProofHeaderTitle}>
-                                                <CustomIcon library="Feather" name="arrow-up-right" size={15} color={Colors.ERROR} />
-                                                <CustomText style={[styles.receiptProofTitle, { color: Colors.ERROR }]}>
-                                                    Refund Payout Proof
+                                            {/* Date & Time Row */}
+                                            <View style={styles.detailRow}>
+                                                <CustomText style={styles.detailLabel}>Paid At</CustomText>
+                                                <CustomText style={styles.detailValue}>
+                                                    {formatDateTime(paymentRecord.paidAt || paymentRecord.createdAt)}
                                                 </CustomText>
                                             </View>
-                                            {paymentRecord.refundedAt && (
-                                                <CustomText style={styles.receiptProofDate}>
-                                                    {formatDate(paymentRecord.refundedAt)}
-                                                </CustomText>
+
+                                            {/* Optional Admin Note */}
+                                            {Boolean(note) && (
+                                                <View style={styles.detailRowStacked}>
+                                                    <CustomText style={styles.detailLabel}>Admin Note</CustomText>
+                                                    <View style={styles.noteBox}>
+                                                        <CustomText style={styles.noteText}>
+                                                            {note}
+                                                        </CustomText>
+                                                    </View>
+                                                </View>
+                                            )}
+
+                                            {/* Receipt Preview Row if uploaded */}
+                                            {paymentRecord.receiptUrl && (
+                                                <View style={styles.receiptProofCard}>
+                                                    <TouchableOpacity
+                                                        activeOpacity={0.85}
+                                                        onPress={() => setPreviewReceiptUrl(paymentRecord.receiptUrl!)}
+                                                        style={styles.receiptProofWrapper}
+                                                    >
+                                                        <Image
+                                                            source={{ uri: paymentRecord.receiptUrl }}
+                                                            style={styles.receiptProofThumb}
+                                                            resizeMode="cover"
+                                                        />
+                                                        <View style={{ flex: 1 }}>
+                                                            <CustomText style={styles.receiptProofTitle}>
+                                                                Payment Receipt Screenshot
+                                                            </CustomText>
+                                                            <CustomText style={styles.receiptProofSubtext}>
+                                                                Tap to inspect full screenshot
+                                                            </CustomText>
+                                                        </View>
+                                                        <CustomIcon library="Feather" name="maximize-2" size={16} color={Colors.PRIMARY} />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            )}
+
+                                            {/* Refund Details (if refunded) */}
+                                            {isRefunded && (
+                                                <View style={styles.refundCalloutBox}>
+                                                    <CustomIcon library="Feather" name="alert-triangle" size={14} color={Colors.ERROR} />
+                                                    <View style={{ flex: 1 }}>
+                                                        <CustomText style={styles.refundCalloutTitle}>
+                                                            Amount Refunded: ₱{(paymentRecord.refundedAmount || paymentRecord.amount).toFixed(2)}
+                                                        </CustomText>
+                                                        {paymentRecord.refundedAt && (
+                                                            <CustomText style={styles.refundCalloutReason}>
+                                                                Refunded At: {formatDateTime(paymentRecord.refundedAt)}
+                                                            </CustomText>
+                                                        )}
+                                                        {paymentRecord.refundReason && (
+                                                            <CustomText style={styles.refundCalloutReason}>
+                                                                Reason: {paymentRecord.refundReason}
+                                                            </CustomText>
+                                                        )}
+                                                    </View>
+                                                </View>
                                             )}
                                         </View>
-
-                                        <View style={styles.receiptProofContent}>
-                                            <TouchableOpacity
-                                                activeOpacity={0.85}
-                                                onPress={() => setPreviewReceiptUrl(paymentRecord.refundProofUrl!)}
-                                                style={styles.receiptThumbnailWrapper}
-                                                accessibilityRole="button"
-                                                accessibilityLabel="View refund payout proof in full screen"
-                                            >
-                                                <Image 
-                                                    source={{ uri: paymentRecord.refundProofUrl }} 
-                                                    style={styles.receiptThumbnail} 
-                                                    resizeMode="cover" 
-                                                />
-                                                <View style={styles.receiptZoomOverlay}>
-                                                    <CustomIcon library="Feather" name="maximize-2" size={11} color={Colors.WHITE} />
-                                                    <CustomText style={styles.receiptZoomText}>View</CustomText>
-                                                </View>
-                                            </TouchableOpacity>
-
-                                            <View style={styles.receiptProofMeta}>
-                                                <CustomText style={styles.receiptTapHint}>
-                                                    Proof of refund transfer to hiker. Tap to view full size.
-                                                </CustomText>
-
-                                                <TouchableOpacity
-                                                    activeOpacity={0.8}
-                                                    onPress={() => setPreviewReceiptUrl(paymentRecord.refundProofUrl!)}
-                                                    style={styles.enlargeButton}
-                                                >
-                                                    <CustomIcon library="Feather" name="zoom-in" size={13} color={Colors.ERROR} />
-                                                    <CustomText style={[styles.enlargeButtonText, { color: Colors.ERROR }]}>
-                                                        Enlarge Proof
-                                                    </CustomText>
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-                                    </View>
-                                )}
-                            </View>
-                        );
-                    })}
-
-                    {currentStatus === 'completed' ? (
-                        <View style={[styles.lockBanner, styles.lockBannerSuccess]}>
-                            <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
-                            <CustomText style={[styles.lockBannerText, { color: Colors.SUCCESS }]}>
-                                Payment verified. This booking is finalized and completed.
-                            </CustomText>
-                        </View>
-                    ) : (
-                        isLockedStatus ? (
-                            <View style={[styles.lockBanner, styles.lockBannerError]}>
-                                <CustomIcon library="Feather" name="lock" size={16} color={Colors.ERROR} />
-                                <CustomText style={[styles.lockBannerText, { color: Colors.ERROR }]}>
-                                    {lockedMessage}
-                                </CustomText>
-                            </View>
-                        ) : null
-                    )}
-
-                    {/* Refund & Settlement Rules Card */}
-                    {PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? (
-                        <View style={styles.refundPolicyCard}>
-                            <View style={styles.refundPolicyHeader}>
-                                <CustomIcon library="Feather" name="info" size={16} color={Colors.PRIMARY} />
-                                <CustomText style={styles.refundPolicyTitle}>
-                                    Manual Refund & Cancellation Policy
-                                </CustomText>
-                            </View>
-                            <View style={styles.refundPolicyContent}>
-                                <View style={styles.refundPolicyRow}>
-                                    <CustomIcon library="Feather" name="check-circle" size={13} color={Colors.SUCCESS} style={styles.policyIcon} />
-                                    <CustomText style={styles.refundPolicyText}>
-                                        <CustomText style={styles.policyHighlight}>Direct E-Wallet Refund: </CustomText>
-                                        Refunds are sent directly to the hiker&apos;s GCash or Maya wallet.
-                                    </CustomText>
+                                    )}
                                 </View>
-                                <View style={styles.refundPolicyRow}>
-                                    <CustomIcon library="Feather" name="clock" size={13} color="#D97706" style={styles.policyIcon} />
-                                    <CustomText style={styles.refundPolicyText}>
-                                        <CustomText style={styles.policyHighlight}>Same-Day Processing: </CustomText>
-                                        Any refund amount (full, partial, or custom) can be issued immediately today without overnight settlement delays.
-                                    </CustomText>
-                                </View>
-                                <View style={styles.refundPolicyRow}>
-                                    <CustomIcon library="Feather" name="shield" size={13} color={Colors.TEXT_SECONDARY} style={styles.policyIcon} />
-                                    <CustomText style={styles.refundPolicyText}>
-                                        <CustomText style={styles.policyHighlight}>Proof of Transfer: </CustomText>
-                                        After approval, the hiker provides their wallet details and the organizer uploads a payout transfer receipt.
-                                    </CustomText>
-                                </View>
-                            </View>
-                        </View>
-                    ) : (
-                        <View style={styles.refundPolicyCard}>
-                            <View style={styles.refundPolicyHeader}>
-                                <CustomIcon library="Feather" name="info" size={16} color={Colors.PRIMARY} />
-                                <CustomText style={styles.refundPolicyTitle}>
-                                    PayMongo Refund & Settlement Rules
-                                </CustomText>
-                            </View>
-                            <View style={styles.refundPolicyContent}>
-                                <View style={styles.refundPolicyRow}>
-                                    <CustomIcon library="Feather" name="check-circle" size={13} color={Colors.SUCCESS} style={styles.policyIcon} />
-                                    <CustomText style={styles.refundPolicyText}>
-                                        <CustomText style={styles.policyHighlight}>Full Refund (100%): </CustomText>
-                                        Can be processed immediately at any time, including on the same calendar day.
-                                    </CustomText>
-                                </View>
-                                <View style={styles.refundPolicyRow}>
-                                    <CustomIcon library="Feather" name="clock" size={13} color="#D97706" style={styles.policyIcon} />
-                                    <CustomText style={styles.refundPolicyText}>
-                                        <CustomText style={styles.policyHighlight}>Partial Refunds: </CustomText>
-                                        PayMongo requires overnight daily settlement. Partial refunds become available on the next calendar day.
-                                    </CustomText>
-                                </View>
-                                <View style={styles.refundPolicyRow}>
-                                    <CustomIcon library="Feather" name="shield" size={13} color={Colors.TEXT_SECONDARY} style={styles.policyIcon} />
-                                    <CustomText style={styles.refundPolicyText}>
-                                        <CustomText style={styles.policyHighlight}>Custom Amounts: </CustomText>
-                                        Admins can refund exact sums (₱1.00 minimum up to total paid) under the same settlement rules.
-                                    </CustomText>
-                                </View>
-                            </View>
-                        </View>
-                    )}
-                </View>
-            )}
+                            );
+                        })}
+                    </View>
+                ) : (
+                    <View style={styles.emptyReceiptsBox}>
+                        <CustomText style={styles.emptyReceiptsText}>
+                            No payment receipts recorded yet.
+                        </CustomText>
+                    </View>
+                )}
+            </View>
 
-            {isLockedStatus && (!booking?.payment || booking.payment.length === 0) && (
-                <View style={[styles.emptyPaymentBox, styles.lockedErrorBox]}>
-                    <CustomIcon library="Feather" name="lock" size={32} color={Colors.ERROR} style={styles.iconSpacing} />
-                    <CustomText style={[styles.emptyPaymentText, styles.errorText]}>
-                        {lockedMessage}
+            {/* Lock / Completion Banners */}
+            {currentStatus === 'completed' ? (
+                <View style={[styles.lockBanner, styles.lockBannerSuccess]}>
+                    <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
+                    <CustomText style={[styles.lockBannerText, { color: Colors.SUCCESS }]}>
+                        Payment verified. This booking is finalized and completed.
                     </CustomText>
                 </View>
-            )}
-
-            {!isApprovedStatus && !isRejectedStatus && !isLockedStatus && currentStatus === 'for-reservation' && (
-                <View style={styles.emptyPaymentBox}>
-                    <CustomIcon library="Feather" name="lock" size={32} color={Colors.GRAY_MEDIUM} style={styles.iconSpacing} />
-                    <CustomText style={styles.emptyPaymentText}>
-                        You must approve all documents before accessing the payment verification phase.
-                    </CustomText>
-                </View>
+            ) : (
+                isLockedStatus ? (
+                    <View style={[styles.lockBanner, styles.lockBannerError]}>
+                        <CustomIcon library="Feather" name="lock" size={16} color={Colors.ERROR} />
+                        <CustomText style={[styles.lockBannerText, { color: Colors.ERROR }]}>
+                            {lockedMessage}
+                        </CustomText>
+                    </View>
+                ) : null
             )}
 
             {/* Fullscreen Image Preview Modal */}
@@ -575,451 +595,442 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                     onClose={() => setPreviewReceiptUrl(null)}
                 />
             )}
-            
+
+            {/* Cash Settlement Confirmation Modal */}
+            <ConfirmationModal
+                visible={showPaidCashModal}
+                title="Confirm Cash Settlement"
+                message={`Confirm that you received ₱${remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} in cash on-site from the hiker. This will settle the hike in full.`}
+                confirmText="Confirm Paid Cash"
+                cancelText="Cancel"
+                isDestructive={false}
+                isLoading={isProcessing}
+                iconName="check-circle"
+                iconLibrary="Feather"
+                onClose={() => setShowPaidCashModal(false)}
+                onConfirm={handleConfirmCashSettlement}
+            />
+
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     tabContent: { 
-        paddingTop: 4 
+        paddingTop: 4,
+        gap: 14,
     },
-    paymentCard: { 
-        backgroundColor: Colors.WHITE, 
-        padding: 20, 
-        borderRadius: 24, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_ULTRALIGHT,
-        ...GlobalStyles.dropShadow(2),
-    },
-    emptyPaymentBox: { 
-        backgroundColor: Colors.INFO_CHIP_BG, 
-        padding: 32, 
-        borderRadius: 12, 
-        borderWidth: 1, 
-        borderColor: Colors.GRAY_LIGHT, 
-        borderStyle: 'dashed', 
-        alignItems: 'center' 
-    },
-    emptyPaymentText: { 
-        textAlign: 'center', 
-        color: Colors.TEXT_SECONDARY 
-    },
-    paymentRecordBox: { 
-        backgroundColor: Colors.BACKGROUND, 
-        paddingHorizontal: 16,
-        paddingVertical: 12, 
-        borderRadius: 16, 
+
+    /* ── 1. Payment Summary Card ── */
+    summaryCard: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 16,
+        padding: 18,
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        marginBottom: 12 
-    },
-    summaryTitle: { 
-        marginTop: 20,
-        marginBottom: 16, 
-        fontWeight: '700', 
-        color: Colors.TEXT_PRIMARY 
-    },
-    totalValue: { 
-        color: Colors.PRIMARY 
-    },
-    errorText: { 
-        color: Colors.ERROR 
-    },
-    strikethroughAmount: { 
-        textDecorationLine: 'line-through', 
-        color: Colors.TEXT_SECONDARY, 
-        fontSize: 14 
-    },
-    lockedErrorBox: { 
-        borderColor: Colors.ERROR_BORDER, 
-        backgroundColor: Colors.ERROR_BG 
-    },
-    downpaymentNote: { 
-        color: Colors.TEXT_SECONDARY, 
-        fontStyle: 'italic', 
-        marginTop: 8, 
-        marginBottom: 16, 
-        textAlign: 'center' 
-    },
-    buttonSpacing: { 
-        marginTop: 16 
-    },
-    iconSpacing: { 
-        marginBottom: 12 
-    },
-    
-    // Gateway Badges
-    gatewayBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6
-    },
-    gatewayText: {
-        fontSize: 11,
-        fontWeight: 'bold'
-    },
-
-    // Breakdown Card Header
-    breakdownHeaderRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8
-    },
-    breakdownTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY
-    },
-    paymentStatusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6
-    },
-    paymentStatusBadgeText: {
-        fontSize: 10,
-        fontWeight: 'bold'
-    },
-
-    // Row-based totals
-    breakdownRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 10
-    },
-    breakdownLabel: {
-        fontSize: 13,
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: '500'
-    },
-    breakdownTotal: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY
-    },
-    breakdownDivider: {
-        height: 1,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        marginVertical: 10
-    },
-    breakdownColumns: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        ...GlobalStyles.dropShadow(2),
         gap: 12,
-        marginBottom: 8
     },
-    breakdownCol: {
-        flex: 1
+    summaryCardMobile: {
+        padding: 14,
     },
-    breakdownColLabel: {
-        fontSize: 11,
-        color: Colors.TEXT_SECONDARY,
-        marginBottom: 4
-    },
-    breakdownColPaid: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: Colors.SUCCESS
-    },
-    breakdownColBalance: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: Colors.STATUS_DOWNPAYMENT_TEXT
-    },
-    
-    // Price breakdown hero panel
-    priceHeroPanel: {
-        backgroundColor: Colors.WHITE,
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1.5,
-        borderColor: Colors.GRAY_LIGHT,
-    },
-    priceHeroHeader: {
+    summaryHeaderRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        flexWrap: 'wrap',
+        gap: 8,
     },
-    priceHeroLabel: {
-        fontSize: 13,
-        color: Colors.TEXT_SECONDARY,
+    summaryHeaderRowNarrow: {
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 4,
+    },
+    summaryTitleGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 7,
+    },
+    summaryCardTitle: {
+        fontSize: 14,
         fontWeight: '600',
+        color: '#374151',
+        marginBottom: 0,
+        includeFontPadding: false,
     },
-    priceHeroAmount: {
-        fontSize: 22,
-        fontWeight: '800',
-        color: Colors.TEXT_PRIMARY,
+    paidTotalGroup: {
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+    },
+    paidTotalGroupNarrow: {
+        alignItems: 'flex-start',
+    },
+    paidTotalValue: {
+        fontSize: 13.5,
+        fontWeight: '700',
+        color: Colors.SUCCESS,
+        includeFontPadding: false,
+    },
+    paidTotalDenominator: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: '#6B7280',
+        includeFontPadding: false,
     },
     progressContainer: {
-        height: 6,
+        width: '100%',
+        height: 8,
         backgroundColor: Colors.GRAY_ULTRALIGHT,
-        borderRadius: 3,
+        borderRadius: 9999,
         overflow: 'hidden',
-        marginBottom: 8,
     },
     progressBarFill: {
         height: '100%',
         backgroundColor: Colors.SUCCESS,
-        borderRadius: 3,
+        borderRadius: 9999,
     },
-    progressLabelRow: {
+    balanceRow: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
+        alignItems: 'center',
+        width: '100%',
     },
-    progressText: {
-        fontSize: 11,
-        fontWeight: 'bold',
-        color: Colors.TEXT_SECONDARY,
+    balanceInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    balanceLabel: {
+        fontSize: 12.5,
+        fontWeight: '500',
+        color: '#4B5563',
+        includeFontPadding: false,
+    },
+    balanceAmount: {
+        fontSize: 13.5,
+        fontWeight: '700',
+        includeFontPadding: false,
+    },
+    balanceUnpaid: {
+        color: Colors.TEXT_PRIMARY,
+    },
+    balanceSettled: {
+        color: Colors.SUCCESS,
     },
 
-    // Row-based transaction details (borderless inline spacing)
-    paymentRow: {
+    /* ── 2. Receipts Card ── */
+    receiptsCard: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 16,
+        padding: 18,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
+        ...GlobalStyles.dropShadow(2),
+        gap: 12,
+    },
+    receiptsCardMobile: {
+        padding: 14,
+    },
+    receiptsCardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 10,
-        flexWrap: 'wrap',
     },
-    paymentLabel: {
-        color: Colors.TEXT_SECONDARY,
-        fontSize: 12,
-        fontWeight: '500',
-        flexShrink: 1,
-        marginRight: 16,
-    },
-    paymentValue: {
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 13,
-        fontWeight: '700',
-        flex: 1,
-        textAlign: 'right',
-    },
-    paymentValueContainer: {
+    receiptsTitleGroup: {
         flexDirection: 'row',
-        justifyContent: 'flex-end',
+        alignItems: 'center',
+        gap: 7,
+    },
+    receiptsCardTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#374151',
+        letterSpacing: 0.5,
+        marginBottom: 0,
+        includeFontPadding: false,
+    },
+    cardDivider: {
+        height: 1,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+    },
+    emptyReceiptsBox: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderRadius: 12,
+        padding: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyReceiptsText: {
+        fontSize: 13,
+        color: Colors.TEXT_SECONDARY,
+    },
+    receiptsCountBadge: {
+        backgroundColor: Colors.PRIMARY_LIGHT,
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 10,
+    },
+    receiptsCountText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: Colors.PRIMARY,
+    },
+    receiptsListContainer: {
+        gap: 10,
+    },
+    accordionCard: {
+        backgroundColor: Colors.WHITE,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        overflow: 'hidden',
+    },
+    accordionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 14,
+    },
+    accordionHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
         flex: 1,
     },
-    paymentRowStacked: {
-        flexDirection: 'column',
-        paddingVertical: 10,
+    indexBadge: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    indexBadgeText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+    },
+    collapsedThumbnailWrapper: {
+        width: 38,
+        height: 38,
+        borderRadius: 8,
+        overflow: 'hidden',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    collapsedThumbnail: {
+        width: '100%',
+        height: '100%',
+    },
+    collapsedIconBox: {
+        width: 38,
+        height: 38,
+        borderRadius: 8,
+        backgroundColor: Colors.PRIMARY_LIGHT,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    pesoSignIcon: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.PRIMARY,
+        textAlign: 'center',
+        includeFontPadding: false,
+    },
+    collapsedInfo: {
+        flex: 1,
+        gap: 2,
+    },
+    collapsedAmount: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+    },
+    collapsedDate: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+    },
+    accordionHeaderRight: {
+        paddingLeft: 8,
+    },
+
+    /* ── Accordion Expanded Body ── */
+    accordionBody: {
+        paddingHorizontal: 16,
+        paddingBottom: 16,
+        gap: 10,
+    },
+    accordionDivider: {
+        height: 1,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        marginBottom: 4,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    detailRowStacked: {
         gap: 4,
     },
-    paymentLabelStacked: {
+    detailLabel: {
+        fontSize: 12,
+        fontWeight: '500',
         color: Colors.TEXT_SECONDARY,
+    },
+    detailValue: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.TEXT_PRIMARY,
+    },
+    refCodeValueGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    refCodeText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+    },
+    copyIconButton: {
+        padding: 4,
+        backgroundColor: Colors.PRIMARY_LIGHT,
+        borderRadius: 4,
+    },
+    gatewayBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    badgePesoSign: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        includeFontPadding: false,
+        lineHeight: 14,
+    },
+    gatewayText: {
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    classificationPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    classificationFull: {
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+    },
+    classificationDownpayment: {
+        backgroundColor: Colors.STATUS_DOWNPAYMENT_BG,
+    },
+    classificationText: {
         fontSize: 10,
         fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
     },
-    paymentValueStacked: {
-        color: Colors.TEXT_PRIMARY,
+    noteBox: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        padding: 8,
+        borderRadius: 6,
+    },
+    noteText: {
         fontSize: 12,
-        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 16,
     },
-    noBorder: {
-        borderBottomWidth: 0,
+    receiptProofCard: {
+        marginTop: 4,
+    },
+    receiptProofWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        padding: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    receiptProofThumb: {
+        width: 44,
+        height: 44,
+        borderRadius: 6,
+    },
+    receiptProofTitle: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.TEXT_PRIMARY,
+    },
+    receiptProofSubtext: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+    },
+    refundCalloutBox: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        padding: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: Colors.ERROR,
+        marginTop: 4,
+    },
+    refundCalloutTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.ERROR,
+    },
+    refundCalloutReason: {
+        fontSize: 11,
+        color: Colors.TEXT_PRIMARY,
+        marginTop: 2,
+    },
+
+    /* ── Empty & Lock Banners ── */
+    emptyPaymentBox: { 
+        backgroundColor: Colors.INFO_CHIP_BG, 
+        padding: 24, 
+        borderRadius: 12, 
+        borderWidth: 1, 
+        borderColor: Colors.GRAY_LIGHT, 
+        alignItems: 'center', 
+        justifyContent: 'center',
+    },
+    emptyPaymentText: { 
+        fontSize: 13, 
+        color: Colors.TEXT_SECONDARY, 
+        textAlign: 'center',
+        lineHeight: 18,
+    },
+    iconSpacing: { 
+        marginBottom: 8 
     },
     lockBanner: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
         padding: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        marginTop: 16,
+        borderRadius: 10,
     },
     lockBannerSuccess: {
         backgroundColor: Colors.STATUS_APPROVED_BG,
-        borderColor: Colors.SUCCESS,
     },
     lockBannerError: {
-        backgroundColor: Colors.ERROR_BG,
-        borderColor: Colors.ERROR_BORDER,
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
     },
     lockBannerText: {
         fontSize: 12,
         fontWeight: '600',
         flex: 1,
-    },
-    refundPolicyCard: {
-        backgroundColor: '#F8FAFC',
-        borderRadius: 16,
-        padding: 16,
-        marginTop: 16,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-    },
-    refundPolicyHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 10,
-    },
-    refundPolicyTitle: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: Colors.TEXT_PRIMARY,
-    },
-    refundPolicyContent: {
-        gap: 8,
-    },
-    refundPolicyRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 8,
-    },
-    policyIcon: {
-        marginTop: 2,
-    },
-    refundPolicyText: {
-        flex: 1,
-        fontSize: 12,
-        lineHeight: 17,
-        color: Colors.TEXT_SECONDARY,
-    },
-    policyHighlight: {
-        fontWeight: '700',
-        color: Colors.TEXT_PRIMARY,
-    },
-
-    // Classification Badge
-    classificationBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 6,
-    },
-    classificationBadgeDownpayment: {
-        backgroundColor: Colors.STATUS_DOWNPAYMENT_BG,
-    },
-    classificationBadgeFull: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-    },
-    classificationBadgeText: {
-        fontSize: 10,
-        fontWeight: '700',
-    },
-
-    // Receipt Proof Section inside Transaction Box
-    receiptProofSection: {
-        marginTop: 10,
-        paddingTop: 10,
-        borderTopWidth: 1,
-        borderTopColor: Colors.GRAY_ULTRALIGHT,
-    },
-    refundProofSection: {
-        borderTopColor: Colors.ERROR_BORDER,
-    },
-    receiptProofHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    receiptProofHeaderTitle: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    receiptProofTitle: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: Colors.TEXT_PRIMARY,
-    },
-    receiptProofDate: {
-        fontSize: 11,
-        color: Colors.TEXT_SECONDARY,
-    },
-    receiptProofContent: {
-        flexDirection: 'row',
-        gap: 12,
-        alignItems: 'flex-start',
-    },
-    receiptThumbnailWrapper: {
-        width: 84,
-        height: 110,
-        borderRadius: 8,
-        overflow: 'hidden',
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-        position: 'relative',
-    },
-    receiptThumbnail: {
-        width: '100%',
-        height: '100%',
-    },
-    receiptZoomOverlay: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 3,
-        gap: 3,
-    },
-    receiptZoomText: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: Colors.WHITE,
-    },
-    receiptProofMeta: {
-        flex: 1,
-        justifyContent: 'space-between',
-        gap: 6,
-    },
-    receiptTapHint: {
-        fontSize: 11,
-        color: Colors.TEXT_SECONDARY,
-        lineHeight: 15,
-    },
-    receiptAdminNoteBox: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 6,
-        padding: 6,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_ULTRALIGHT,
-    },
-    receiptAdminNoteLabel: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: Colors.TEXT_SECONDARY,
-    },
-    receiptAdminNoteText: {
-        fontSize: 11,
-        color: Colors.TEXT_PRIMARY,
-        marginTop: 2,
-    },
-    enlargeButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        alignSelf: 'flex-start',
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        borderRadius: 6,
-        backgroundColor: Colors.WHITE,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-    },
-    enlargeButtonText: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: Colors.PRIMARY,
     },
 });
 

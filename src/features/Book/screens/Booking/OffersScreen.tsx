@@ -323,6 +323,9 @@ const OffersScreen = ({
         targetOfferId: string;
     } | null>(null);
 
+    // Over-capacity / full slots confirmation modal state
+    const [isOverCapacityModalOpen, setIsOverCapacityModalOpen] = useState(false);
+
     const [prevSelectedOfferId, setPrevSelectedOfferId] = useState(selectedOfferId);
     if (selectedOfferId !== prevSelectedOfferId) {
         setPrevSelectedOfferId(selectedOfferId);
@@ -362,6 +365,9 @@ const OffersScreen = ({
         const isToday = formatDateToStandard(candidate.date) === todayFormatted;
         const isPastDate = candidateSpan.startDate < todayMidnight;
         const isWithinAdvanceCutoff = candidateSpan.startDate >= todayMidnight && candidateSpan.startDate < minBookingDate;
+        const candidateMaxPax = Number(candidate.maxPax) || 0;
+        const candidateReservedPax = Number(candidate.reservedPax) || 0;
+        const isFull = candidateMaxPax > 0 && candidateReservedPax >= candidateMaxPax;
         const isClosed = isPastDate || isWithinAdvanceCutoff;
 
         // Check for date-span overlap against any booked offer
@@ -400,6 +406,7 @@ const OffersScreen = ({
             isExactBooked,
             isDateConflict,
             isClosed,
+            isFull,
             isToday,
             isWithinAdvanceCutoff,
             isConsecutive,
@@ -492,6 +499,12 @@ const OffersScreen = ({
             return;
         }
 
+        // If full capacity, open confirmation modal to warn user about admin approval risk
+        if (selectedOfferStatus.isFull) {
+            setIsOverCapacityModalOpen(true);
+            return;
+        }
+
         if (selectedOfferStatus.isClosed) {
             setHasAttemptedBlockedSubmit(true);
             showToast.error("This date is closed for reservations. Please choose an upcoming date at least 1 week ahead.", {
@@ -523,6 +536,26 @@ const OffersScreen = ({
         }
     };
 
+    const handleConfirmOverCapacity = () => {
+        setIsOverCapacityModalOpen(false);
+        if (!localSelectedId || !selectedOffer || !selectedOfferStatus) return;
+
+        // If back-to-back hike also applies, chain to consecutive modal next
+        if (selectedOfferStatus.isConsecutive) {
+            const existingDate = selectedOfferStatus.consecutiveSourceBooking?.formattedSpan || "an existing reservation";
+            const newDate = formatDateToStandard(selectedOffer.date);
+            setConsecutiveNoticeDetails({
+                existingDate,
+                newDate,
+                targetOfferId: localSelectedId,
+            });
+            setIsConsecutiveModalOpen(true);
+            return;
+        }
+
+        onContinue(localSelectedId);
+    };
+
     // Compute footer button label
     const getFooterButtonTitle = () => {
         if (!localSelectedId) return "Select an Offer";
@@ -534,6 +567,7 @@ const OffersScreen = ({
             return selectedOfferStatus.isToday ? "Booking Closed for Today" : "Advance Notice Required (1 Week)";
         }
         if (selectedOfferStatus?.isClosed) return "Booking Closed";
+        if (selectedOfferStatus?.isFull) return "Proceed (Request Slot)";
         return "Continue";
     };
 
@@ -661,6 +695,21 @@ const OffersScreen = ({
                 cancelText="Review Dates"
                 iconName="calendar"
                 iconLibrary="Feather"
+            />
+
+            {/* Over-Capacity / Full Slots Confirmation Modal */}
+            <ConfirmationModal
+                visible={isOverCapacityModalOpen}
+                onClose={() => setIsOverCapacityModalOpen(false)}
+                onConfirm={handleConfirmOverCapacity}
+                title="Maximum Slots Reached"
+                message="This package has reached its maximum participant limit. You can still submit your reservation request, but approval is strictly subject to organizer and administrator discretion and carries a risk of being declined. Would you like to proceed anyway?"
+                confirmText="Proceed Anyway"
+                cancelText="Choose Another Offer"
+                iconName="alert-triangle"
+                iconLibrary="Feather"
+                iconColor={Colors.STATUS_WARNING_TEXT}
+                badgeBgColor={Colors.STATUS_WARNING_BG}
             />
         </View>
     );
