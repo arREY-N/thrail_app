@@ -136,12 +136,16 @@ function computeBounds(geojson: unknown): maplibregl.LngLatBounds | null {
 }
 
 function getFirstSymbolLayerId(map: maplibregl.Map): string | undefined {
-  const style = map.getStyle();
-  if (!style || !style.layers) return undefined;
-  for (const layer of style.layers) {
-    if (layer.type === "symbol") {
-      return layer.id;
+  try {
+    const style = map.getStyle();
+    if (!style || !style.layers) return undefined;
+    for (const layer of style.layers) {
+      if (layer.type === "symbol" && map.getLayer(layer.id)) {
+        return layer.id;
+      }
     }
+  } catch {
+    return undefined;
   }
   return undefined;
 }
@@ -175,6 +179,25 @@ function ensureMapLibreCss() {
 function ensureMapLibreWorker() {
   maplibregl.setWorkerUrl("/maplibre-gl-worker.mjs");
 }
+
+const UNUSED_SHIELD_LAYERS = new Set([
+  "highway-shield-non-us",
+  "highway-shield-us-interstate",
+  "road_shield_us",
+]);
+
+/**
+ * Passed to map.setStyle(..., { transformStyle }). MapLibre calls it with the
+ * fully loaded style JSON, so it works whether the style is an object OR a URL
+ * string (a plain filter on the object would silently skip URL styles).
+ */
+const stripShieldLayers = (
+  _previous: maplibregl.StyleSpecification | undefined,
+  next: maplibregl.StyleSpecification,
+): maplibregl.StyleSpecification => ({
+  ...next,
+  layers: (next.layers ?? []).filter((l) => !UNUSED_SHIELD_LAYERS.has(l.id)),
+});
 
 /* -------------------------------------------------------------------------- */
 /*  DOM marker construction (maplibre-gl markers are plain HTMLElements)       */
@@ -316,6 +339,7 @@ function animateEntryTo(entry: HikerEntry, target: [number, number]) {
 let sharedMap: maplibregl.Map | null = null;
 let sharedContainer: HTMLDivElement | null = null;
 let sharedLoaded = false;
+let sharedAppliedStyle: unknown = null;
 let sharedContextUrl: string | null = null;
 let sharedActiveUrl: string | null = null;
 
@@ -345,7 +369,6 @@ const TrailMap = memo(
 
       const [isOffline, setIsOffline] = useState(isOfflineProp ?? true);
       const isOfflineRef = useRef(isOffline);
-      const currentAppliedStyleRef = useRef<string | null>(null);
       const [styleVersion, setStyleVersion] = useState(0);
 
       useEffect(() => {
@@ -396,14 +419,15 @@ const TrailMap = memo(
 
           map = new maplibregl.Map({
             container: sharedContainer,
-            style: initialStyle,
             center: hasInitialCoords ? [parsedLon, parsedLat] : [120.9842, 14.5995],
             zoom: hasInitialCoords ? 12 : 14,
             minZoom: 10,
             maxZoom: 20,
             attributionControl: { compact: true },
           });
-          currentAppliedStyleRef.current = isOffline ? FREE_OFFLINE_STYLE : onlineStyle;
+          // Style is set right after construction so transformStyle can filter it
+          map.setStyle(initialStyle, { transformStyle: stripShieldLayers });
+          sharedAppliedStyle = isOffline ? FREE_OFFLINE_STYLE : onlineStyle;
           map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
           map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
           map.once("load", () => {
@@ -418,22 +442,18 @@ const TrailMap = memo(
         mapRef.current = map;
 
         // Per-mount listeners, removed on unmount so they never point at a dead component
-        const onLoad = () => setMapReady(true);
-        const onStyleLoad = () => {
-          sharedContextUrl = null;
-          sharedActiveUrl = null;
+        const onLoad = () => {
+          setMapReady(true);
           setStyleVersion((v) => v + 1);
         };
         const onDragStart = () => {
           isFollowingRef.current = false;
         };
-        if (!sharedLoaded) {
-          if (map.loaded()) requestAnimationFrame(onLoad); // setState happens in a callback
-          else map.once("load", onLoad);
+        if (map.loaded() || sharedLoaded) {
+          requestAnimationFrame(onLoad);
         } else {
           map.once("load", onLoad);
         }
-        map.on("style.load", onStyleLoad);
         map.on("dragstart", onDragStart);
 
         const ro = new ResizeObserver(() => map.resize());
@@ -443,7 +463,6 @@ const TrailMap = memo(
         return () => {
           ro.disconnect();
           map.off("load", onLoad);
-          map.off("style.load", onStyleLoad);
           map.off("dragstart", onDragStart);
           hikerEntries.forEach((e) => {
             if (e.raf !== null) cancelAnimationFrame(e.raf);
@@ -467,12 +486,16 @@ const TrailMap = memo(
         const map = mapRef.current;
         if (!map || !mapReady) return;
         const targetStyle = isOffline ? FREE_OFFLINE_STYLE : onlineStyle;
-        if (currentAppliedStyleRef.current === targetStyle) return;
-
-        currentAppliedStyleRef.current = targetStyle;
+        if (sharedAppliedStyle === targetStyle) return;
+        sharedAppliedStyle = targetStyle;
+        map.setStyle(targetStyle as unknown as maplibregl.StyleSpecification | string, {
+          transformStyle: stripShieldLayers,
+        });
+        // setStyle wipes our custom sources/layers: forget what was applied and
+        // re-run the trail layer effect once the new style has finished loading.
         sharedContextUrl = null;
         sharedActiveUrl = null;
-        map.setStyle(targetStyle as unknown as maplibregl.StyleSpecification | string);
+        map.once("idle", () => setStyleVersion((v) => v + 1));
       }, [isOffline, mapReady]);
 
       /* --------------------------- Resolve trail URLs ------------------------ */
@@ -493,26 +516,39 @@ const TrailMap = memo(
             let contextUrl: string | null = null;
 
             if (hasExplicitTrail) {
-              // 1. Resolve Active Selected Trail
+              // 1. Resolve Active Selected Trail immediately
               if (geoJsonPath && typeof geoJsonPath === "string" && geoJsonPath.trim().length > 0) {
                 activeUrl = await getOrDownloadTrailGeoJson(geoJsonPath.trim());
               } else if (targetMountain && trailFileName) {
                 activeUrl = await getOrDownloadTrailGeoJson(targetMountain, trailFileName);
               }
 
-              // 2. Resolve Context Trail Network (e.g. Mountain network or All Mountains)
-              if (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile) {
-                contextUrl = await getOrDownloadTrailGeoJson(
-                  targetMountain,
-                  MOUNTAIN_TRAIL_REGISTRY[targetMountain].allFile
-                );
+              if (!cancelled && activeUrl) {
+                setActiveGeoJsonUrl(activeUrl);
               }
-              if (!contextUrl) {
-                contextUrl = await getOrDownloadAllMountainsGeoJson();
-              }
+
+              // 2. Resolve Context Trail Network in the background (non-blocking)
+              (async () => {
+                try {
+                  let ctxUrl: string | null = null;
+                  if (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile) {
+                    ctxUrl = await getOrDownloadTrailGeoJson(
+                      targetMountain,
+                      MOUNTAIN_TRAIL_REGISTRY[targetMountain].allFile
+                    );
+                  }
+                  if (!ctxUrl) {
+                    ctxUrl = await getOrDownloadAllMountainsGeoJson();
+                  }
+                  if (!cancelled && ctxUrl && ctxUrl !== activeUrl) {
+                    setContextGeoJsonUrl(ctxUrl);
+                  }
+                } catch (ctxErr) {
+                  console.warn("⚠️ Non-critical: Failed to resolve background context trail network:", ctxErr);
+                }
+              })();
             } else {
               // Overview mode: no specific trail selected
-              activeUrl = null;
               if (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile) {
                 contextUrl = await getOrDownloadTrailGeoJson(
                   targetMountain,
@@ -522,16 +558,9 @@ const TrailMap = memo(
               if (!contextUrl) {
                 contextUrl = await getOrDownloadAllMountainsGeoJson();
               }
-            }
-
-            // If active and context point to the exact same file, treat as single-layer overview
-            if (activeUrl && activeUrl === contextUrl) {
-              activeUrl = null;
-            }
-
-            if (!cancelled) {
-              setActiveGeoJsonUrl(activeUrl);
-              setContextGeoJsonUrl(contextUrl);
+              if (!cancelled) {
+                setContextGeoJsonUrl(contextUrl);
+              }
             }
           } catch (err) {
             console.warn("Failed to resolve trail GeoJSON layers:", err);
@@ -545,9 +574,30 @@ const TrailMap = memo(
       /* ----------------------------- Trail layers --------------------------- */
       useEffect(() => {
         const map = mapRef.current;
-        if (!map || !mapReady || !map.isStyleLoaded()) return;
+        if (!map || !mapReady) return;
+
+        if (!map.isStyleLoaded()) {
+          const retry = () => setStyleVersion((v) => v + 1);
+          map.once("idle", retry);
+          return () => { map.off("idle", retry); };
+        }
 
         const beforeLayerId = getFirstSymbolLayerId(map);
+        const addSafeLayer = (layer: maplibregl.LayerSpecification) => {
+          try {
+            if (beforeLayerId && map.getLayer(beforeLayerId)) {
+              map.addLayer(layer, beforeLayerId);
+            } else {
+              map.addLayer(layer);
+            }
+          } catch {
+            try {
+              map.addLayer(layer);
+            } catch (err) {
+              console.warn(`Failed to add layer ${layer.id}:`, err);
+            }
+          }
+        };
 
         // 1. Context Trail Source & Layers (Surrounding trail network)
         if (contextGeoJsonUrl) {
@@ -559,34 +609,28 @@ const TrailMap = memo(
             }
           } else {
             map.addSource(CONTEXT_TRAIL_SOURCE, { type: "geojson", data: contextGeoJsonUrl });
-            map.addLayer(
-              {
-                id: CONTEXT_TRAIL_CASING,
-                type: "line",
-                source: CONTEXT_TRAIL_SOURCE,
-                layout: { "line-cap": "round", "line-join": "round" },
-                paint: {
-                  "line-color": "#FFFFFF",
-                  "line-width": activeGeoJsonUrl ? 4 : 6,
-                  "line-opacity": activeGeoJsonUrl ? 0.2 : 0.55,
-                },
+            addSafeLayer({
+              id: CONTEXT_TRAIL_CASING,
+              type: "line",
+              source: CONTEXT_TRAIL_SOURCE,
+              layout: { "line-cap": "round", "line-join": "round" },
+              paint: {
+                "line-color": "#FFFFFF",
+                "line-width": activeGeoJsonUrl ? 4 : 6,
+                "line-opacity": activeGeoJsonUrl ? 0.2 : 0.55,
               },
-              beforeLayerId
-            );
-            map.addLayer(
-              {
-                id: CONTEXT_TRAIL_MAIN,
-                type: "line",
-                source: CONTEXT_TRAIL_SOURCE,
-                layout: { "line-cap": "round", "line-join": "round" },
-                paint: {
-                  "line-color": activeGeoJsonUrl ? "#94A3B8" : "#16A34A",
-                  "line-width": activeGeoJsonUrl ? 2.5 : 4,
-                  "line-opacity": activeGeoJsonUrl ? 0.55 : 0.88,
-                },
+            });
+            addSafeLayer({
+              id: CONTEXT_TRAIL_MAIN,
+              type: "line",
+              source: CONTEXT_TRAIL_SOURCE,
+              layout: { "line-cap": "round", "line-join": "round" },
+              paint: {
+                "line-color": activeGeoJsonUrl ? "#94A3B8" : "#a0c10fff",
+                "line-width": activeGeoJsonUrl ? 2.5 : 4,
+                "line-opacity": activeGeoJsonUrl ? 0.55 : 0.88,
               },
-              beforeLayerId
-            );
+            });
             sharedContextUrl = contextGeoJsonUrl;
           }
 
@@ -604,34 +648,27 @@ const TrailMap = memo(
 
         // 2. Active Highlight Trail Source & Layers (Foreground selected route)
         const existingActive = map.getSource(ACTIVE_TRAIL_SOURCE) as maplibregl.GeoJSONSource | undefined;
-        const activeData = activeGeoJsonUrl || EMPTY_GEOJSON;
         if (existingActive) {
           if (sharedActiveUrl !== activeGeoJsonUrl) {
-            existingActive.setData(activeData);
+            existingActive.setData(activeGeoJsonUrl || EMPTY_GEOJSON);
             sharedActiveUrl = activeGeoJsonUrl;
           }
         } else {
-          map.addSource(ACTIVE_TRAIL_SOURCE, { type: "geojson", data: activeData });
-          map.addLayer(
-            {
-              id: ACTIVE_TRAIL_CASING,
-              type: "line",
-              source: ACTIVE_TRAIL_SOURCE,
-              layout: { "line-cap": "round", "line-join": "round" },
-              paint: { "line-color": "#FFFFFF", "line-width": 8, "line-opacity": 0.9 },
-            },
-            beforeLayerId
-          );
-          map.addLayer(
-            {
-              id: ACTIVE_TRAIL_MAIN,
-              type: "line",
-              source: ACTIVE_TRAIL_SOURCE,
-              layout: { "line-cap": "round", "line-join": "round" },
-              paint: { "line-color": "#16A34A", "line-width": 5.5, "line-opacity": 1.0 },
-            },
-            beforeLayerId
-          );
+          map.addSource(ACTIVE_TRAIL_SOURCE, { type: "geojson", data: activeGeoJsonUrl || EMPTY_GEOJSON });
+          addSafeLayer({
+            id: ACTIVE_TRAIL_CASING,
+            type: "line",
+            source: ACTIVE_TRAIL_SOURCE,
+            layout: { "line-cap": "round", "line-join": "round" },
+            paint: { "line-color": "#FFFFFF", "line-width": 8.5, "line-opacity": 0.95 },
+          });
+          addSafeLayer({
+            id: ACTIVE_TRAIL_MAIN,
+            type: "line",
+            source: ACTIVE_TRAIL_SOURCE,
+            layout: { "line-cap": "round", "line-join": "round" },
+            paint: { "line-color": "#16A34A", "line-width": 5.5, "line-opacity": 1.0 },
+          });
           sharedActiveUrl = activeGeoJsonUrl;
         }
 

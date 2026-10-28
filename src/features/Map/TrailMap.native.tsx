@@ -576,7 +576,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         let contextUri: string | null = null;
 
         if (hasExplicitTrail) {
-          // 1. Resolve Active Selected Trail
+          // 1. Resolve Active Selected Trail immediately
           if (geoJsonPath && typeof geoJsonPath === "string" && geoJsonPath.trim().length > 0) {
             activeUri = await getOrDownloadTrailGeoJson(geoJsonPath.trim());
           } else if (targetMountain && trailFileName) {
@@ -586,19 +586,32 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
             );
           }
 
-          // 2. Resolve Context Trail Network (e.g. Mountain network or All Mountains)
-          if (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile) {
-            contextUri = await getOrDownloadTrailGeoJson(
-              targetMountain,
-              MOUNTAIN_TRAIL_REGISTRY[targetMountain].allFile,
-            );
+          if (isMounted && activeUri) {
+            setActiveGeoJsonUrl(activeUri);
           }
-          if (!contextUri) {
-            contextUri = await getOrDownloadAllMountainsGeoJson();
-          }
+
+          // 2. Resolve Context Trail Network in the background (non-blocking)
+          (async () => {
+            try {
+              let ctxUri: string | null = null;
+              if (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile) {
+                ctxUri = await getOrDownloadTrailGeoJson(
+                  targetMountain,
+                  MOUNTAIN_TRAIL_REGISTRY[targetMountain].allFile,
+                );
+              }
+              if (!ctxUri) {
+                ctxUri = await getOrDownloadAllMountainsGeoJson();
+              }
+              if (isMounted && ctxUri && ctxUri !== activeUri) {
+                setContextGeoJsonUrl(ctxUri);
+              }
+            } catch (ctxErr) {
+              console.warn("⚠️ Non-critical: Failed to resolve background context trail network:", ctxErr);
+            }
+          })();
         } else {
           // Overview mode: no specific trail selected
-          activeUri = null;
           if (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile) {
             contextUri = await getOrDownloadTrailGeoJson(
               targetMountain,
@@ -608,16 +621,9 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
           if (!contextUri) {
             contextUri = await getOrDownloadAllMountainsGeoJson();
           }
-        }
-
-        // If active and context point to the exact same file, treat as single-layer overview
-        if (activeUri && activeUri === contextUri) {
-          activeUri = null;
-        }
-
-        if (isMounted) {
-          setActiveGeoJsonUrl(activeUri);
-          setContextGeoJsonUrl(contextUri);
+          if (isMounted) {
+            setContextGeoJsonUrl(contextUri);
+          }
         }
       } catch (err) {
         console.warn("⚠️ Failed to resolve trail GeoJSON layers from offline cache or Firebase trail_routes/:", err);
