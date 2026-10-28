@@ -355,10 +355,11 @@ const ACTIVE_TRAIL_SOURCE = "active-trail-source";
 const ACTIVE_TRAIL_CASING = "active-trail-casing";
 const ACTIVE_TRAIL_MAIN = "active-trail-main";
 const EMPTY_GEOJSON: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+const EMPTY_HIKER_LOCATIONS: HikerLocation[] = [];
 
 const TrailMap = memo(
   forwardRef<TrailMapRef, TrailMapProps>(
-    ({ initialLon, initialLat, mountainId, trailFileName, geoJsonPath, showControls = true, bottomInset = 24, hikerLocations = [], currentUserId, isOffline: isOfflineProp }, ref) => {
+    ({ initialLon, initialLat, mountainId, trailFileName, geoJsonPath, showControls = true, bottomInset = 24, hikerLocations = EMPTY_HIKER_LOCATIONS, currentUserId, isOffline: isOfflineProp }, ref) => {
       const containerRef = useRef<HTMLDivElement | null>(null);
       const mapRef = useRef<maplibregl.Map | null>(null);
       const hikerEntriesRef = useRef<Map<string, HikerEntry>>(new Map());
@@ -366,6 +367,9 @@ const TrailMap = memo(
       const userCoordsRef = useRef<[number, number] | null>(null);
       const geoWatchRef = useRef<number | null>(null);
       const isFollowingRef = useRef(false);
+      const isMountedRef = useRef(true);
+      const noticeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+      const loadRafRef = useRef<number | null>(null);
 
       const [isOffline, setIsOffline] = useState(isOfflineProp ?? true);
       const isOfflineRef = useRef(isOffline);
@@ -400,7 +404,10 @@ const TrailMap = memo(
 
       const showNotice = useCallback((msg: string) => {
         setNotice(msg);
-        setTimeout(() => setNotice(null), 3500);
+        if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
+        noticeTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) setNotice(null);
+        }, 3500);
       }, []);
 
       /* ---------------------------- Map lifecycle --------------------------- */
@@ -443,6 +450,7 @@ const TrailMap = memo(
 
         // Per-mount listeners, removed on unmount so they never point at a dead component
         const onLoad = () => {
+          if (!isMountedRef.current) return;
           setMapReady(true);
           setStyleVersion((v) => v + 1);
         };
@@ -450,7 +458,7 @@ const TrailMap = memo(
           isFollowingRef.current = false;
         };
         if (map.loaded() || sharedLoaded) {
-          requestAnimationFrame(onLoad);
+          loadRafRef.current = requestAnimationFrame(onLoad);
         } else {
           map.once("load", onLoad);
         }
@@ -461,6 +469,15 @@ const TrailMap = memo(
 
         const hikerEntries = hikerEntriesRef.current;
         return () => {
+          isMountedRef.current = false;
+          if (loadRafRef.current !== null) {
+            cancelAnimationFrame(loadRafRef.current);
+            loadRafRef.current = null;
+          }
+          if (noticeTimeoutRef.current) {
+            clearTimeout(noticeTimeoutRef.current);
+            noticeTimeoutRef.current = null;
+          }
           ro.disconnect();
           map.off("load", onLoad);
           map.off("dragstart", onDragStart);
@@ -495,7 +512,12 @@ const TrailMap = memo(
         // re-run the trail layer effect once the new style has finished loading.
         sharedContextUrl = null;
         sharedActiveUrl = null;
-        map.once("idle", () => setStyleVersion((v) => v + 1));
+        const handleIdleStyle = () => {
+          if (isMountedRef.current) {
+            setStyleVersion((v) => v + 1);
+          }
+        };
+        map.once("idle", handleIdleStyle);
       }, [isOffline, mapReady]);
 
       /* --------------------------- Resolve trail URLs ------------------------ */
@@ -577,7 +599,11 @@ const TrailMap = memo(
         if (!map || !mapReady) return;
 
         if (!map.isStyleLoaded()) {
-          const retry = () => setStyleVersion((v) => v + 1);
+          const retry = () => {
+            if (isMountedRef.current) {
+              setStyleVersion((v) => v + 1);
+            }
+          };
           map.once("idle", retry);
           return () => { map.off("idle", retry); };
         }
@@ -805,13 +831,14 @@ const TrailMap = memo(
 
       // 10s ticker so LKL state flips even if no new pings arrive
       useEffect(() => {
+        if (!hikerLocations || hikerLocations.length === 0) return;
         const id = setInterval(() => {
           const now = Date.now();
           hikerEntriesRef.current.forEach((e) => refreshHikerEntry(e, now));
-          forceTick((n) => n + 1);
+          if (isMountedRef.current) forceTick((n) => n + 1);
         }, 10000);
         return () => clearInterval(id);
-      }, []);
+      }, [hikerLocations]);
 
       const liveSelectedHiker = useMemo(() => {
         if (!selectedHiker) return null;
