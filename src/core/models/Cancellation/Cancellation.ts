@@ -10,6 +10,7 @@ export {
 
 // UTILITIES
 export { flagCancellationRequest } from "@/src/core/models/Cancellation/utils/Cancellation.utils";
+export { removeUserFromGroupOnCancellation } from "@/src/core/models/Cancellation/utils/removeUserFromGroupOnCancellation";
 
 // STORES
 export { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
