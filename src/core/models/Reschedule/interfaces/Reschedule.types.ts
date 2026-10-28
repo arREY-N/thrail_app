@@ -2,12 +2,15 @@ import { FieldValue, Timestamp } from "firebase/firestore";
 
 export interface IRescheduleBase<T> {
     id: string;
-    cancellationId: string;
+    bookingId: string;
     businessId: string;
     oldOfferId: string;
     newOfferId: string;
     userId: string;
     status: "pending" | "approved" | "rejected";
+    cancellationId?: string;
+    reason?: string;
+    adminNote?: string;
     createdAt: T;
     updatedAt: T;
 }
