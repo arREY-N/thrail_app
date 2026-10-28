@@ -113,17 +113,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        alignSelf: 'flex-start',
         flexShrink: 1,
     },
     size_sm: {
         paddingHorizontal: 8,
-        paddingVertical: 3,
+        paddingVertical: 4,
         gap: 3,
     },
     size_md: {
         paddingHorizontal: 10,
-        paddingVertical: 5,
+        paddingVertical: 6,
         gap: 4,
     },
     variant_pill: {
