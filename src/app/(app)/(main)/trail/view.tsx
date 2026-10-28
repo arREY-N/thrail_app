@@ -60,6 +60,8 @@ export default function ViewTrail() {
         return getTrailOffersCount(tId, candidateOffers);
     }, [offers, trailOffers, tId]);
 
+    const hasOffers = offersCount > 0;
+
     if (!trail) return <LoadingScreen />;
 
     return (
@@ -70,7 +72,11 @@ export default function ViewTrail() {
                 onBackPress={onBackPress}
                 onDownloadPress={() => onDownloadPress(tId)}
                 onHikePress={(id?: string) => onHikePress(id || tId)}
-                onBookPress={(id?: string) => onSeeTrailOffers(id || tId)}
+                onBookPress={(id?: string) => {
+                    if (hasOffers) {
+                        onSeeTrailOffers(id || tId);
+                    }
+                }}
                 onEditPress={() => onWriteTrail(tId)}
                 isSuperadmin={isSuperadmin}
                 isAdmin={isAdmin}
@@ -84,6 +90,8 @@ export default function ViewTrail() {
                 isLiked={isLiked}
                 offersCount={offersCount}
                 initialTab={initialTab}
+                bookButtonTitle={hasOffers ? "Book" : "Offers Coming Soon"}
+                isBookDisabled={!hasOffers}
             />
         </View>
     )
