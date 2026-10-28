@@ -9,10 +9,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
     Modal,
     Platform,
+    StyleProp,
     StyleSheet,
     TouchableOpacity,
     useWindowDimensions,
     View,
+    ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Polygon, Rect } from 'react-native-svg';
@@ -24,6 +26,7 @@ import {
     TooltipPlacement,
     TutorialStep,
     TutorialTourConfig,
+    TutorialTourId,
 } from '@/src/components/Tutorial/interfaces/Tutorial.types';
 import {
     getTutorialLayout,
@@ -36,6 +39,7 @@ import {
 import {
     getDrawerItemLayout,
     requestDrawerMeasurements,
+    setActiveDrawerTarget,
     subscribeDrawerItemLayouts,
 } from '@/src/components/Tutorial/utils/webDrawerLayoutRegistry';
 import { Colors } from '@/src/constants/colors';
@@ -72,9 +76,15 @@ export interface CustomTutorialModalProps {
  * Props for the TutorialHelpButton component placed in screen headers.
  *
  * @param onPress - Handler invoked when the user taps the '?' replay icon
+ * @param hasGuide - Optional gate; if false, the button will not render
+ * @param tourId - Optional tour identifier
+ * @param style - Optional custom wrapper style
  */
 export interface TutorialHelpButtonProps {
-    onPress: () => void;
+    onPress?: () => void;
+    hasGuide?: boolean;
+    tourId?: TutorialTourId;
+    style?: StyleProp<ViewStyle>;
 }
 
 const TAB_NAMES = ['Home', 'Explore', 'Hike', 'Community', 'Profile'] as const;
@@ -87,9 +97,15 @@ const DRAWER_TARGET_TO_ID: Record<string, string> = {
     web_drawer_profile: 'profile',
     web_drawer_messages: 'messages',
     web_drawer_settings: 'settings',
+    web_drawer_dashboard: 'dashboard',
     web_drawer_offers: 'business',
     web_drawer_trails: 'trail',
     web_drawer_personnel: 'personnel',
+    web_drawer_application: 'application',
+    web_drawer_business: 'business',
+    web_drawer_mountain: 'mountain',
+    web_drawer_user: 'user',
+    web_drawer_recommendation: 'recommendation',
     web_drawer_0: 'home',
     web_drawer_1: 'explore',
     web_drawer_2: 'navigate',
@@ -105,17 +121,25 @@ const DRAWER_FALLBACK_COORDS: Record<string, { y: number; height: number }> = {
     profile: { y: 295, height: 42 },
     messages: { y: 341, height: 42 },
     settings: { y: 425, height: 42 },
-    business: { y: 509, height: 42 },
-    trail: { y: 555, height: 42 },
-    personnel: { y: 601, height: 42 },
+    dashboard: { y: 467, height: 42 },
+    application: { y: 509, height: 42 },
+    business: { y: 551, height: 42 },
+    trail: { y: 593, height: 42 },
+    personnel: { y: 635, height: 42 },
+    mountain: { y: 635, height: 42 },
+    user: { y: 677, height: 42 },
+    recommendation: { y: 719, height: 42 },
 };
 
 /**
  * TutorialHelpButton — Compact '?' icon button for CustomHeader to replay a screen's tutorial anytime.
+ * Strictly renders null if no guide is placed for this screen or if onPress is omitted.
  */
 export const TutorialHelpButton = ({
     onPress,
-}: TutorialHelpButtonProps): React.JSX.Element => {
+    hasGuide = true,
+    style,
+}: TutorialHelpButtonProps): React.JSX.Element | null => {
     const helpBtnRef = useRef<View>(null);
 
     const measureHelpBtnNow = useCallback(() => {
@@ -132,14 +156,21 @@ export const TutorialHelpButton = ({
     }, [measureHelpBtnNow]);
 
     useEffect(() => {
+        if (!hasGuide || !onPress) return;
         return registerMeasureCallback('header_help', measureHelpBtnNow);
-    }, [measureHelpBtnNow]);
+    }, [hasGuide, measureHelpBtnNow, onPress]);
+
+    // Strictly hide the '?' icon button if no guide exists for this screen
+    if (!hasGuide || !onPress) {
+        return null;
+    }
 
     return (
         <View
             ref={helpBtnRef}
             onLayout={handleLayout}
             collapsable={false}
+            style={style}
         >
             <TouchableOpacity
                 onPress={onPress}
@@ -147,6 +178,7 @@ export const TutorialHelpButton = ({
                 accessibilityRole="button"
                 accessibilityLabel="Replay screen tutorial guide"
                 style={styles.helpIconButton}
+                {...(Platform.OS === 'web' ? { title: 'Replay Screen Guide' } : {})}
             >
                 <CustomIcon
                     library="Feather"
@@ -169,7 +201,7 @@ interface TargetGeometry {
 }
 
 /**
- * ActiveTutorialModalContent — Only mounted when `visible === true` so hidden tutorial modals
+ * ActiveTutorialModalContent â€” Only mounted when `visible === true` so hidden tutorial modals
  * on active or backgrounded stack screens attach zero listeners and perform zero geometry work.
  */
 const ActiveTutorialModalContent = ({
@@ -236,15 +268,25 @@ const ActiveTutorialModalContent = ({
         return 'content_center';
     }, [currentStep]);
 
-    // Request on-demand measurement for the active spotlight target
+    // Request on-demand measurement and auto-scroll for the active spotlight target
     useEffect(() => {
         measureOverlayOrigin();
         if (targetSpotlightType.startsWith('web_drawer_')) {
+            const drawerItemId = DRAWER_TARGET_TO_ID[targetSpotlightType] || null;
+            setActiveDrawerTarget(drawerItemId);
             requestDrawerMeasurements();
             return;
         }
+        setActiveDrawerTarget(null);
         requestTargetMeasurement(targetSpotlightType);
     }, [targetSpotlightType, isDrawerOpen, measureOverlayOrigin]);
+
+    // Reset drawer target on unmount
+    useEffect(() => {
+        return () => {
+            setActiveDrawerTarget(null);
+        };
+    }, []);
 
     // Automatically synchronize the Web navigation drawer when moving into/out of drawer steps
     useEffect(() => {
@@ -260,6 +302,7 @@ const ActiveTutorialModalContent = ({
     }, [hasProvider, toggleDrawer, targetSpotlightType, isDrawerOpen]);
 
     const handleSkip = (): void => {
+        setActiveDrawerTarget(null);
         if (hasProvider && isDrawerOpen && toggleDrawer) {
             toggleDrawer();
         }
@@ -860,18 +903,55 @@ const ActiveTutorialModalContent = ({
                         )}
 
                         <View style={styles.dotsRow}>
-                            {tourConfig.steps.map((_, idx) => {
-                                const isActive = idx === currentStepIndex;
-                                return (
-                                    <View
-                                        key={idx}
-                                        style={[
-                                            styles.dot,
-                                            isActive ? styles.dotActive : styles.dotInactive,
-                                        ]}
-                                    />
-                                );
-                            })}
+                            {(() => {
+                                const stepCount = tourConfig.steps.length;
+                                if (stepCount <= 7) {
+                                    return tourConfig.steps.map((_, idx) => {
+                                        const isActive = idx === currentStepIndex;
+                                        return (
+                                            <View
+                                                key={idx}
+                                                style={[
+                                                    styles.dot,
+                                                    isActive ? styles.dotActive : styles.dotInactive,
+                                                ]}
+                                            />
+                                        );
+                                    });
+                                }
+
+                                // Adaptive sliding window capped at 7 dots
+                                const WINDOW_SIZE = 7;
+                                let windowStart = Math.max(0, currentStepIndex - 3);
+                                let windowEnd = windowStart + WINDOW_SIZE - 1;
+                                if (windowEnd >= stepCount) {
+                                    windowEnd = stepCount - 1;
+                                    windowStart = Math.max(0, windowEnd - WINDOW_SIZE + 1);
+                                }
+
+                                const visibleDots: React.JSX.Element[] = [];
+                                for (let i = windowStart; i <= windowEnd; i++) {
+                                    const isActive = i === currentStepIndex;
+                                    const isLeftEdge = i === windowStart && windowStart > 0;
+                                    const isRightEdge = i === windowEnd && windowEnd < stepCount - 1;
+                                    const isEdge = isLeftEdge || isRightEdge;
+
+                                    visibleDots.push(
+                                        <View
+                                            key={i}
+                                            style={[
+                                                styles.dot,
+                                                isActive
+                                                    ? styles.dotActive
+                                                    : isEdge
+                                                        ? styles.dotEdge
+                                                        : styles.dotInactive,
+                                            ]}
+                                        />
+                                    );
+                                }
+                                return visibleDots;
+                            })()}
                         </View>
 
                         <TouchableOpacity
@@ -919,7 +999,7 @@ const ActiveTutorialModalContent = ({
 };
 
 /**
- * CustomTutorialModal — Fast-path outer gate that returns `null` immediately when hidden,
+ * CustomTutorialModal â€” Fast-path outer gate that returns `null` immediately when hidden,
  * avoiding any hook subscriptions, dimension listeners, or SVG geometry calculations.
  */
 const CustomTutorialModal = (
@@ -1068,6 +1148,12 @@ const styles = StyleSheet.create({
     dotInactive: {
         width: 6,
         backgroundColor: Colors.GRAY_LIGHT,
+    },
+    dotEdge: {
+        width: 4,
+        height: 4,
+        backgroundColor: Colors.GRAY_LIGHT,
+        opacity: 0.5,
     },
     nextButton: {
         paddingVertical: 6,
