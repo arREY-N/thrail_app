@@ -3,8 +3,8 @@ import { toDate } from "@/src/core/utility/date";
 import { FirestoreDataConverter, QueryDocumentSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 
 export const newReschedule = (
-    required: Pick<Reschedule, "businessId" | "userId" | "cancellationId" | "oldOfferId" | "newOfferId">,
-    optional: Partial<Pick<Reschedule, "id" | "status" | "createdAt" | "updatedAt">> = {}
+    required: Pick<Reschedule, "businessId" | "userId" | "bookingId" | "oldOfferId" | "newOfferId">,
+    optional: Partial<Pick<Reschedule, "id" | "cancellationId" | "status" | "reason" | "adminNote" | "createdAt" | "updatedAt">> = {}
 ): Reschedule => {
     if (!required.businessId) {
         throw new Error("Business ID is required to create a reschedule request.");
@@ -14,8 +14,8 @@ export const newReschedule = (
         throw new Error("User ID is required to create a reschedule request.");
     }
 
-    if (!required.cancellationId) {
-        throw new Error("Cancellation ID is required to create a reschedule request.");
+    if (!required.bookingId) {
+        throw new Error("Booking ID is required to create a reschedule request.");
     }
 
     if (!required.oldOfferId) {
@@ -39,22 +39,25 @@ export const newReschedule = (
 const rescheduleFromFirestore = (id: string, data: IRescheduleDB): Reschedule => {
     return {
         id,
+        bookingId: data.bookingId,
         businessId: data.businessId,
         cancellationId: data.cancellationId,
         oldOfferId: data.oldOfferId,
         newOfferId: data.newOfferId,
         userId: data.userId,
         status: data.status,
+        reason: data.reason,
+        adminNote: data.adminNote,
         createdAt: toDate(data.createdAt),
         updatedAt: toDate(data.updatedAt),
     };
 };
 
 const rescheduleToFirestore = (reschedule: Reschedule): IRescheduleDB => {
-    return {
+    const data: IRescheduleDB = {
         id: reschedule.id,
+        bookingId: reschedule.bookingId,
         businessId: reschedule.businessId,
-        cancellationId: reschedule.cancellationId,
         oldOfferId: reschedule.oldOfferId,
         newOfferId: reschedule.newOfferId,
         userId: reschedule.userId,
@@ -62,6 +65,18 @@ const rescheduleToFirestore = (reschedule: Reschedule): IRescheduleDB => {
         createdAt: reschedule.createdAt ? Timestamp.fromDate(toDate(reschedule.createdAt)) : serverTimestamp(),
         updatedAt: reschedule.updatedAt ? Timestamp.fromDate(toDate(reschedule.updatedAt)) : serverTimestamp(),
     };
+
+    if (reschedule.cancellationId !== undefined) {
+        data.cancellationId = reschedule.cancellationId;
+    }
+    if (reschedule.reason !== undefined) {
+        data.reason = reschedule.reason;
+    }
+    if (reschedule.adminNote !== undefined) {
+        data.adminNote = reschedule.adminNote;
+    }
+
+    return data;
 };
 
 export const rescheduleConverter: FirestoreDataConverter<Reschedule> = {

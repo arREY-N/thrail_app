@@ -280,8 +280,12 @@ const CustomToast: React.FC<CustomToastProps> = ({
             case 'floating':
                 return isMobile ? Math.max(insets.bottom + 16, 20) : 24;
             case 'tabbar':
-            default:
-                return isMobile ? Math.max(insets.bottom + 16, 20) : 24;
+            default: {
+                if (!isMobile || Platform.OS === 'web') return 24;
+                const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 16);
+                const navBarHeight = 70 + bottomPadding;
+                return navBarHeight + 12;
+            }
         }
     };
 

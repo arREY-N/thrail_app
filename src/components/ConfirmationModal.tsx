@@ -8,6 +8,7 @@
 
 import React, { ReactNode } from 'react';
 import {
+    ActivityIndicator,
     Modal,
     Platform,
     StyleSheet,
@@ -49,6 +50,7 @@ export type ConfirmationModalButtonRatio = 'auto' | 'guided' | 'equal';
  * @param iconName - Name of the icon to display inside the circular header badge.
  * @param iconLibrary - Icon library for the header badge (defaults to Feather).
  * @param iconColor - Custom color override for the badge icon.
+ * @param badgeBgColor - Custom background color override for the header badge.
  * @param children - Optional custom body elements to render below the title.
  * @param testID - Optional accessibility/test identifier.
  */
@@ -64,9 +66,11 @@ export interface ConfirmationModalProps {
     stackedButtons?: boolean;
     buttonRatio?: ConfirmationModalButtonRatio;
     isLoading?: boolean;
+    loadingMessage?: string;
     iconName?: string;
     iconLibrary?: IconLibrary;
     iconColor?: string;
+    badgeBgColor?: string;
     children?: ReactNode;
     testID?: string;
 }
@@ -108,16 +112,18 @@ const ConfirmationModal = ({
     stackedButtons,
     buttonRatio = 'auto',
     isLoading = false,
+    loadingMessage,
     iconName,
     iconLibrary = 'Feather',
     iconColor,
+    badgeBgColor,
     children,
     testID,
 }: ConfirmationModalProps): React.JSX.Element => {
     const { isMobile, width } = useBreakpoints();
 
     // Semantic accents (always rendered against clean white card surface)
-    const badgeBgColor = isDestructive ? Colors.ERROR_BG : Colors.STATUS_APPROVED_BG;
+    const resolvedBadgeBgColor = badgeBgColor || (isDestructive ? Colors.ERROR_BG : Colors.STATUS_APPROVED_BG);
     const resolvedIconColor = iconColor || (isDestructive ? Colors.ERROR : Colors.PRIMARY);
     const primaryButtonVariant: 'destructive' | 'primary' = isDestructive ? 'destructive' : 'primary';
 
@@ -153,7 +159,7 @@ const ConfirmationModal = ({
                                 style={[
                                     styles.iconBadge,
                                     !isMobile && styles.iconBadgeDesktop,
-                                    { backgroundColor: badgeBgColor }
+                                    { backgroundColor: resolvedBadgeBgColor }
                                 ]}
                             >
                                 <CustomIcon
@@ -188,6 +194,28 @@ const ConfirmationModal = ({
                         >
                             {message}
                         </CustomText>
+                    )}
+
+                    {isLoading && (
+                        <View
+                            style={[
+                                styles.loadingBanner,
+                                { backgroundColor: isDestructive ? Colors.ERROR_BG : Colors.STATUS_APPROVED_BG }
+                            ]}
+                        >
+                            <ActivityIndicator
+                                size="small"
+                                color={isDestructive ? Colors.ERROR : Colors.PRIMARY}
+                            />
+                            <CustomText
+                                style={[
+                                    styles.loadingBannerText,
+                                    { color: isDestructive ? Colors.ERROR : Colors.PRIMARY }
+                                ]}
+                            >
+                                {loadingMessage || 'Processing request, please wait...'}
+                            </CustomText>
+                        </View>
                     )}
 
                     {shouldStack ? (
@@ -351,6 +379,21 @@ const styles = StyleSheet.create({
     cancelButton: {
         borderColor: Colors.GRAY_LIGHT,
         borderWidth: 1.5,
+    },
+    loadingBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderRadius: 12,
+        marginBottom: 20,
+    },
+    loadingBannerText: {
+        fontSize: 13,
+        fontWeight: '600',
+        flex: 1,
+        lineHeight: 18,
     },
 });
 

@@ -85,19 +85,15 @@ export const INVISIBLE_CHARS_REGEX = /[\u200B-\u200D\uFEFF\u200E\u200F\u202A-\u2
 
 /**
  * Strips all emoji characters, compound emoji sequences, variation selectors,
- * zero-width invisible characters, and keyboard-inserted ghost spaces from a string.
+ * and zero-width invisible characters from a string without leaving ghost spaces.
  *
  * @param text - The raw input text.
- * @returns {string} The text stripped of emojis, zero-width characters, and ghost spaces.
+ * @returns {string} The text stripped of emojis and zero-width characters.
  */
 export const stripEmojis = (text: string): string => {
     if (!text) return '';
     return text
-        .replace(/(?:[ \t]*(?:(?:\p{Extended_Pictographic}|\p{Regional_Indicator})[\u{1F3FB}-\u{1F3FF}\u{E0020}-\u{E007F}\uFE00-\uFE0F\u200D\u20E3]*|[#*0-9]\uFE0F?\u20E3|[\uFE0E\uFE0F\u200D\u20E3])[ \t]*)/gu, (match, offset, fullStr) => {
-            const hasPrev = offset > 0 && !/\s/.test(fullStr[offset - 1]);
-            const hasNext = offset + match.length < fullStr.length && !/\s/.test(fullStr[offset + match.length]);
-            return hasPrev && hasNext ? ' ' : '';
-        })
+        .replace(EMOJI_REGEX, '')
         .replace(INVISIBLE_CHARS_REGEX, '');
 };
 
@@ -136,6 +132,7 @@ interface CustomTextInputProps extends Omit<TextInputProps, 'value' | 'onChangeT
     sanitizeText?: (text: string) => string;
     containerStyle?: StyleProp<ViewStyle>;
     hasError?: boolean;
+    helperText?: string;
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({ 
@@ -173,6 +170,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
     autoCorrect,
     containerStyle,
     hasError = false,
+    helperText,
     ...props
 }) => {
     const inputRef = useRef<TextInput>(null);
@@ -257,7 +255,6 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                     }
                 }
             }
-            inputRef.current?.setNativeProps?.({ text: processedText });
         }
 
         setLocalValue(processedText);
@@ -389,6 +386,13 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                     }}
                     onBlur={(e) => {
                         setIsFocused(false);
+                        if (!allowEmojis) {
+                            const cleaned = stripEmojis(localValue);
+                            if (cleaned !== localValue) {
+                                setLocalValue(cleaned);
+                                (onChangeText as ((val: string) => void) | undefined)?.(cleaned);
+                            }
+                        }
                         onBlur?.(e);
                     }}
                     multiline={Boolean(multiline)}
@@ -421,6 +425,12 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
                     </TouchableOpacity>
                 )}
             </View>
+
+            {Boolean(helperText) && (
+                <CustomText variant="caption" style={styles.helperText}>
+                    {helperText}
+                </CustomText>
+            )}
             
             {children}
 
@@ -509,6 +519,11 @@ const styles = StyleSheet.create({
     },
     eyeIcon: {
         padding: 8,
+    },
+    helperText: {
+        marginTop: 4,
+        marginLeft: 2,
+        color: Colors.TEXT_SECONDARY,
     },
 });
 

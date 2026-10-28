@@ -1,7 +1,7 @@
 import { CancellationState, cancellationStoreCreator } from "@/src/core/models/Cancellation/stores/cancellationStoreCreator";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createThrottledJSONStorage } from "@/src/core/utility/createThrottledAsyncStorage";
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
 export const useCancellationStore = create<CancellationState>()(
@@ -9,7 +9,11 @@ export const useCancellationStore = create<CancellationState>()(
         immer(cancellationStoreCreator),
         {
             name: 'cancellation-storage',
-            storage: createJSONStorage(() => AsyncStorage),
+            storage: createThrottledJSONStorage(500),
+            partialize: (state) => ({
+                offerCancellations: state.offerCancellations,
+                userCancellations: state.userCancellations,
+            }),
         }
     )
 );

@@ -1,8 +1,7 @@
-import { useBookingAdminList } from "@/src/core/models/Booking/Booking";
-import { useBusinessAdminList } from "@/src/core/models/Business/hooks/useBusinessAdminList";
+import { useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useBusinessState } from "@/src/core/models/Business/hooks/useBusinessState";
 import { useBusinessesStore } from "@/src/core/models/Business/stores/businessStore";
-import { useOfferAdminList } from "@/src/core/models/Offer/Offer";
+import { useOfferStore } from "@/src/core/models/Offer/Offer";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { useCallback, useEffect, useMemo } from "react";
 
@@ -16,14 +15,16 @@ export function useBusinessAdmin() {
     const { isLoading, isFetching, error } = useBusinessState();
 
     const businessAccount = useBusinessesStore(s => s.current);
-
-    const { businessAdmins } = useBusinessAdminList();
-    const { businessOffers } = useOfferAdminList();
-    const { businessBookings } = useBookingAdminList();
+    const businessAdmins = useBusinessesStore(s => s.businessAdmins);
+    const businessOffers = useOfferStore(s => s.businessOffers);
+    const businessBookings = useBookingsStore(s => s.businessBookings);
 
     useEffect(() => {
         const fetch = async () => {
             if (!profile?.id || !businessId) return;
+
+            const current = useBusinessesStore.getState().current;
+            if (current?.id === businessId) return;
 
             await useBusinessesStore.getState().load(businessId);
         };

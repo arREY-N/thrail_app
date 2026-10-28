@@ -1,6 +1,7 @@
 import { Cancellation } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { CancellationRepo } from "@/src/core/models/Cancellation/repositories/CancellationRepository";
 import { upsertItem } from "@/src/core/models/utils/upsert";
+import { deepEqual } from "@/src/core/utility/deepEqual";
 import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
 
@@ -12,6 +13,8 @@ export interface CancellationState {
     error: string | null;
     isFetching: boolean;
     isWriting: boolean;
+
+    reset: () => void;
 
     write: (writeData: WriteCancellationParams) => Promise<void>;
     delete: (businessId: string, cancellation: Cancellation, userId?: string) => Promise<void>;
@@ -42,20 +45,104 @@ export type WriteCancellationParams = {
     isAdmin: boolean;
 };
 
+// Module-level listener bookkeeping to prevent reactive re-renders and persist thrashing
+const activeBusinessCancellationsListeners = new Map<string, Unsubscribe>();
+const businessCancellationsListenerCounts = new Map<string, number>();
+
+export function _getCancellationListenersForTesting() {
+    return {
+        activeListeners: activeBusinessCancellationsListeners,
+        listenerCounts: businessCancellationsListenerCounts,
+    };
+}
+
+function areCancellationsEqual(a?: Cancellation[], b?: Cancellation[]): boolean {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+        const itemA = a[i];
+        const itemB = b[i];
+        if (itemA === itemB) continue;
+        if (!itemA || !itemB || itemA.id !== itemB.id) return false;
+        if (!deepEqual(itemA, itemB)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 export const cancellationStoreCreator: StateCreator<CancellationState, [["zustand/immer", never]]> = (set, get) => ({
     ...init,
 
+    reset: () => {
+        activeBusinessCancellationsListeners.forEach((unsub) => {
+            try {
+                unsub();
+            } catch (e) {
+                console.error("Error unsubscribing cancellation listener on reset:", e);
+            }
+        });
+        activeBusinessCancellationsListeners.clear();
+        businessCancellationsListenerCounts.clear();
+        set(init);
+    },
+
     subscribeToBusinessCancellations(businessId: string): Unsubscribe {
+        if (!businessId) {
+            return () => {};
+        }
+
+        const currentCount = businessCancellationsListenerCounts.get(businessId) || 0;
+
+        // If listener is already active, increment reference count and return unregister function without calling set()
+        if (activeBusinessCancellationsListeners.has(businessId)) {
+            businessCancellationsListenerCounts.set(businessId, currentCount + 1);
+
+            return () => {
+                const count = businessCancellationsListenerCounts.get(businessId) || 0;
+                const newCount = count - 1;
+                if (newCount > 0) {
+                    businessCancellationsListenerCounts.set(businessId, newCount);
+                } else {
+                    businessCancellationsListenerCounts.delete(businessId);
+                    const unsub = activeBusinessCancellationsListeners.get(businessId);
+                    activeBusinessCancellationsListeners.delete(businessId);
+                    if (unsub) unsub();
+                }
+            };
+        }
+
         try {
-            return CancellationRepo.listenToBusinessCancellations(
+            const unsub = CancellationRepo.listenToBusinessCancellations(
                 businessId,
-                (cancellations) =>
-                    set({
-                        businessCancellations: cancellations,
-                    }),
-            )
+                (cancellations) => {
+                    const current = get().businessCancellations;
+                    if (!areCancellationsEqual(current, cancellations)) {
+                        set({
+                            businessCancellations: cancellations,
+                        });
+                    }
+                },
+            );
+
+            activeBusinessCancellationsListeners.set(businessId, unsub);
+            businessCancellationsListenerCounts.set(businessId, currentCount + 1);
+
+            return () => {
+                const count = businessCancellationsListenerCounts.get(businessId) || 0;
+                const newCount = count - 1;
+                if (newCount > 0) {
+                    businessCancellationsListenerCounts.set(businessId, newCount);
+                } else {
+                    businessCancellationsListenerCounts.delete(businessId);
+                    const activeUnsub = activeBusinessCancellationsListeners.get(businessId);
+                    activeBusinessCancellationsListeners.delete(businessId);
+                    if (activeUnsub) activeUnsub();
+                }
+            };
         } catch (error) {
-            set({ error: (error as Error).message })
+            set({ error: (error as Error).message });
             throw error;
         }
     },
@@ -64,13 +151,17 @@ export const cancellationStoreCreator: StateCreator<CancellationState, [["zustan
         try {
             return CancellationRepo.listenToUserCancellations(
                 userId,
-                (cancellations) =>
-                    set({
-                        userCancellations: cancellations,
-                    }),
-            )
+                (cancellations) => {
+                    const current = get().userCancellations;
+                    if (!areCancellationsEqual(current, cancellations)) {
+                        set({
+                            userCancellations: cancellations,
+                        });
+                    }
+                },
+            );
         } catch (error) {
-            set({ error: (error as Error).message })
+            set({ error: (error as Error).message });
             throw error;
         }
     },

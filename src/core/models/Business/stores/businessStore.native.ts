@@ -1,7 +1,7 @@
 import { BusinessState, businessStoreCreator } from "@/src/core/models/Business/stores/businessStoreCreator";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createThrottledJSONStorage } from "@/src/core/utility/createThrottledAsyncStorage";
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 
 export const useBusinessesStore = create<BusinessState>()(
@@ -9,7 +9,13 @@ export const useBusinessesStore = create<BusinessState>()(
         immer(businessStoreCreator),
         {
             name: "business-storage",
-            storage: createJSONStorage(() => AsyncStorage),
+            storage: createThrottledJSONStorage(500),
+            partialize: (state) => ({
+                data: state.data,
+                current: state.current,
+                businessAdmins: state.businessAdmins,
+                lastFetchedAt: state.lastFetchedAt,
+            }),
         }
     )
 );

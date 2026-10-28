@@ -4,6 +4,7 @@
  * Composes database states, user permissions, and passes clean props to the ReviewScreen.
  */
 
+import { useEffect } from "react";
 import { Stack, useLocalSearchParams } from "expo-router";
 
 import CustomLoading from "@/src/components/CustomLoading";
@@ -16,7 +17,7 @@ import {
     useCancellationAdmin
 } from "@/src/core/models/Cancellation/Cancellation";
 import {
-    useOfferList
+    useOfferStore
 } from "@/src/core/models/Offer/Offer";
 import { usePaymentAdmin } from "@/src/core/models/Payment/Payment";
 import { useHikerProfile } from "@/src/core/models/User/User";
@@ -34,12 +35,19 @@ export default function AdminViewBooking() {
 
     const { onBackPress } = useAppNavigation();
 
-    const { offers } = useOfferList();
+    const businessOffers = useOfferStore(s => s.businessOffers);
 
     const {
         booking,
         isFetching
     } = useBookingAdminItem(bookingId, offerId);
+
+    const businessId = booking?.business?.id;
+    useEffect(() => {
+        if (businessId && (!businessOffers || businessOffers.length === 0)) {
+            useOfferStore.getState().fetchOfferByBusiness(businessId);
+        }
+    }, [businessId, businessOffers]);
 
     const {
         onApproveBooking,
@@ -92,7 +100,7 @@ export default function AdminViewBooking() {
 
             <ReviewScreen
                 booking={booking}
-                offers={offers}
+                offers={businessOffers}
                 onBackPress={onBackPress}
                 onApprove={onApproveBooking}
                 onConfirmPayment={onConfirmPayment}
@@ -136,10 +144,10 @@ export default function AdminViewBooking() {
                         await onRejectManualPayment(targetBooking, reason);
                     }
                 }}
-                onSettleRemainingBalance={async (b) => {
+                onSettleRemainingBalance={async (b, options) => {
                     const targetBooking = b || booking;
                     if (targetBooking) {
-                        await onSettleRemainingBalance(targetBooking);
+                        await onSettleRemainingBalance(targetBooking, options);
                     }
                 }}
                 onUploadRefundProof={async (file, req, b) => {

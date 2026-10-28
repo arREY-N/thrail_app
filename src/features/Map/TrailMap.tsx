@@ -19,6 +19,7 @@ export interface TrailMapProps {
     initialLat?: number | string | (number | string)[];
     mountainId?: string;
     trailFileName?: string;
+    geoJsonPath?: string;
     showControls?: boolean;
     showRecenter?: boolean;
     bottomInset?: number;
@@ -26,6 +27,7 @@ export interface TrailMapProps {
     attributionPosition?: { top: number; left: number } | { top: number; right: number } | { bottom: number; right: number } | { bottom: number; left: number };
     hikerLocations?: HikerLocation[];
     currentUserId?: string;
+    isOffline?: boolean;
 }
 
 export interface TrailMapRef {

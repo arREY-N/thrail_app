@@ -4,6 +4,7 @@ import {
     ScrollView,
     StyleSheet,
     TextInput,
+    TextStyle,
     TouchableOpacity,
     View
 } from 'react-native';
@@ -34,15 +35,16 @@ import { Layout } from '@/src/constants/layout';
 import ScheduleBuilderModal from '@/src/features/Admin/screens/Offer/components/ScheduleBuilderModal';
 
 import { TEdit } from '@/src/core/interface/domainHookInterface';
-import { Offer } from '@/src/core/models/Offer/Offer';
+import { IActivity, ISchedule, Offer } from '@/src/core/models/Offer/Offer';
+import { Trail } from '@/src/core/models/Trail/Trail';
 
 const PRESET_DOCS = ["Valid ID", "Medical Certificate"];
 const PRESET_INC = ["Guide Fee"];
 const PRESET_BRING = ["Water (2L+)", "Trail Snacks", "Extra Clothes", "First-aid kit", "Headlamp", "Tent"];
 
 export interface OfferWriteScreenProps {
-    offer: any;
-    trails: any[];
+    offer: Offer;
+    trails: Trail[];
     isLoading: boolean;
     error?: string | null;
     onSubmitOffer: () => void;
@@ -164,7 +166,11 @@ const OfferWriteScreen = ({
         onUpdateOffer(params);
     };
 
-    const computeDuration = (startVal?: any, endVal?: any, sched?: any[]) => {
+    const computeDuration = (
+        startVal?: Date | string | number | null, 
+        endVal?: Date | string | number | null, 
+        sched?: ISchedule<Date | string>[] | null
+    ) => {
         if (startVal && endVal) {
             const start = new Date(startVal);
             start.setHours(0, 0, 0, 0);
@@ -215,7 +221,7 @@ const OfferWriteScreen = ({
     const days = computedDays > 0 ? String(computedDays) : '';
     const nights = computedDays > 1 ? String(computedDays - 1) : computedDays === 1 ? '0' : '';
 
-    const handleStartDateChange = (val: any) => {
+    const handleStartDateChange = (val: Date | null) => {
         handleUpdate({ section: 'root', id: 'date', value: val });
         
         const scheduleLength = offer?.schedule?.length || 0;
@@ -231,7 +237,7 @@ const OfferWriteScreen = ({
         handleUpdate({ section: 'root', id: 'duration', value: dur });
     };
 
-    const handleEndDateChange = (val: any) => {
+    const handleEndDateChange = (val: Date | null) => {
         let validEnd = val;
         if (offer?.date && val) {
             const start = new Date(offer.date);
@@ -261,7 +267,7 @@ const OfferWriteScreen = ({
                     for (let i = 0; i < daysToAdd; i++) {
                         currentSchedule.push({ 
                             day: currentSchedule.length + 1, 
-                            activities: [{ hourVal: '', minuteVal: '', periodVal: 'AM', event: '' }] 
+                            activities: [{ time: new Date(), event: '' }] 
                         });
                     }
                     handleUpdate({ section: 'root', id: 'schedule', value: currentSchedule });
@@ -316,12 +322,9 @@ const OfferWriteScreen = ({
     const isReadyToSubmit = isFormValid() && !isLoading;
 
     const totalDays = Number(days) || 0;
-    const totalActivities = offer?.schedule?.reduce((acc: number, curr: any) => {
-        const validActivies = curr.activities?.reduce((actAcc: any[], act: any) => {
-            if (act.event.trim() !== '') actAcc.push(act);
-            return actAcc;
-        }, []) || [];
-        return acc + validActivies.length;
+    const totalActivities = offer?.schedule?.reduce((acc: number, curr: ISchedule<Date>) => {
+        const validActivities = (curr.activities || []).filter((act: IActivity<Date>) => act.event.trim() !== '');
+        return acc + validActivities.length;
     }, 0) || 0;
 
     const handleHeaderBack = () => {
@@ -685,11 +688,11 @@ const OfferWriteScreen = ({
                 title="Select Trail"
                 options={trailOptions}
                 selectedValue={offer?.trail?.id}
-                onSelect={(selected: any) => {
+                onSelect={(selected: { label: string; value?: string | number }) => {
                     handleUpdate({ 
                         section: 'root', 
                         id: 'trail', 
-                        value: { id: selected.value, name: selected.label } 
+                        value: { id: String(selected.value || ''), name: selected.label } 
                     });
                     setShowTrailModal(false);
                 }}
@@ -700,7 +703,7 @@ const OfferWriteScreen = ({
                 onClose={() => setShowScheduleModal(false)}
                 initialSchedule={offer.schedule}
                 offerDays={Number(days) || 0}
-                onSave={(newSchedule: any[]) => {
+                onSave={(newSchedule: ISchedule<Date>[]) => {
                     handleUpdate({ section: 'root', id: 'schedule', value: newSchedule });
                     setShowScheduleModal(false);
 
@@ -894,9 +897,7 @@ const styles = StyleSheet.create({
         fontSize: 16, 
         color: Colors.TEXT_PRIMARY, 
         textAlign: 'center', 
-        ...Platform.select({
-            web: { outlineStyle: 'none' } as any
-        })
+        ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : {})
     },
     verticalDivider: { 
         width: 1, 

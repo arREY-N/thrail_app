@@ -58,6 +58,16 @@ export const mobileTabsTourSteps: TutorialStep[] = [
         actionTip: 'Open Profile anytime to manage your account details or apply to become a verified Admin/Organizer.',
         highlightTabIndex: 4,
     },
+    {
+        id: 'fab-messages',
+        category: 'Floating Action Button • Messages',
+        targetSpotlight: 'fab_messages',
+        spotlightShape: 'circle',
+        title: 'Messages — Quick Group Chats',
+        description:
+            'Notice this green floating chat button! It floats conveniently across Home, Explore, Community, and Profile (except Navigation) so you can quickly jump into your hike group chats and message your guides anytime.',
+        actionTip: 'Tap this floating chat bubble anytime to open your active hike conversations and group rooms.',
+    },
 ];
 
 export const getWebNavTourSteps = (role?: string | null): TutorialStep[] => {
@@ -90,6 +100,15 @@ export const getWebNavTourSteps = (role?: string | null): TutorialStep[] => {
             description:
                 'Browse all mountains and hiking trails across Region IV-A (CALABARZON). Filter trails by province, difficulty level, or hiking duration to find your next climb.',
             actionTip: 'Use search and filter chips to find trails tailored to your hiking level.',
+        },
+        {
+            id: 'web-drawer-navigate',
+            category: 'Sidebar • Navigate',
+            targetSpotlight: 'web_drawer_navigate',
+            title: 'Navigate — Trail Navigation & Maps',
+            description:
+                'Access GPS trail route navigation, topographic trail maps, and emergency coordinates. Note: Active live navigation is primarily used on mobile devices during trail day.',
+            actionTip: 'View trail routes and GPS tracking tools for your scheduled mountain climbs.',
         },
         {
             id: 'web-drawer-community',

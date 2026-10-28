@@ -105,8 +105,16 @@ export const getBookingFooterConfig = ({
         };
     }
 
-    const isPaymentVerifying = booking?.paymentVerificationStatus === 'pending_verification' ||
-        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+    const isCompletedOrFullyPaid = 
+        booking?.status === 'completed' || 
+        booking?.paymentVerificationStatus === 'fully_paid' ||
+        booking?.status === 'cancelled' || 
+        booking?.status === 'refunded';
+
+    const isPaymentVerifying = !isCompletedOrFullyPaid && (
+        booking?.paymentVerificationStatus === 'pending_verification' ||
+        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'))
+    );
 
     if (isPaymentVerifying) {
         return {
@@ -127,6 +135,20 @@ export const getBookingFooterConfig = ({
                 onPress: () => {},
             }
         };
+    }
+
+    if (displayStatus === 'for-reschedule' || displayStatus === 'rescheduled') {
+        if (hasHistoricalPayments) {
+            return {
+                primaryButton: {
+                    title: "View Receipt",
+                    variant: "primary" as const,
+                    style: { borderRadius: 12 },
+                    onPress: () => onViewReceipt(booking)
+                }
+            };
+        }
+        return null;
     }
 
     if (displayStatus === 'for-payment' || displayStatus === 'approved-docs') {

@@ -1,11 +1,12 @@
+import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 
 import CustomButton from '@/src/components/CustomButton';
+import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomInfoRow from '@/src/components/CustomInfoRow';
 import CustomText from '@/src/components/CustomText';
-import { useToast } from '@/src/components/Toast/Toast';
 import ExpandableText from '@/src/components/ExpandableText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
@@ -14,8 +15,8 @@ import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { IPayment } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { SelectedFile } from '@/src/core/repositories/fileRepository';
+import { CANCELLATION_DECLINE_REASONS } from '@/src/features/Admin/utils/reviewMessages';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
-import * as Clipboard from 'expo-clipboard';
 
 /**
  * Props for AdminCancellationCard.
@@ -47,6 +48,12 @@ export interface AdminCancellationCardProps {
     onApproveWithManualRefund?: (amount: number) => Promise<void> | void;
     payments?: IPayment<Date>[];
     isPayMongo?: boolean;
+    onDeclineClick?: () => void;
+    onCancelDeclineClick?: () => void;
+    onSubmitDeclineClick?: () => void;
+    isDeclining?: boolean;
+    declineInputText?: string;
+    onDeclineInputChange?: (text: string) => void;
 }
 
 /**
@@ -70,8 +77,13 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
     onApproveWithManualRefund,
     payments,
     isPayMongo,
+    onDeclineClick,
+    onCancelDeclineClick,
+    onSubmitDeclineClick,
+    isDeclining = false,
+    declineInputText = '',
+    onDeclineInputChange,
 }) => {
-    const { showToast } = useToast();
     const [previewAdminProof, setPreviewAdminProof] = useState<string | null>(null);
 
     const handlePickReceipt = async () => {
@@ -146,71 +158,75 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
 
     const headerTitle = isDirectCancellation
         ? 'Reservation Cancelled'
-        : isCancelledByAdmin
-        ? 'Hike Cancelled by Organizer'
-        : isDeclined
-        ? 'Cancellation Request Declined'
         : isRefundDisputed
-        ? `Refund Disputed by Hiker (Attempt ${cancellation?.disputeCount || 1}/3)`
-        : isAwaitingUserConfirmation
-        ? 'Payout Proof Uploaded — Awaiting Hiker Confirmation'
-        : isApproved
-        ? (isRefundComplete
-            ? 'Cancellation Approved & Refunded'
-            : (isAwaitingPayout
-                ? 'Cancellation Approved — Send Payout'
-                : (isAwaitingWallet
-                    ? 'Cancellation Approved — Awaiting Hiker Wallet'
-                    : (isAwaitingRefundDecision ? 'Awaiting Refund Decision' : 'Cancellation Approved'))))
-        : 'Cancellation Review';
+            ? `Refund Disputed by Hiker (Attempt ${cancellation?.disputeCount || 1}/3)`
+            : isAwaitingUserConfirmation
+                ? 'Payout Proof Uploaded — Awaiting Hiker Confirmation'
+                : isApproved
+                    ? (isRefundComplete
+                        ? 'Cancellation Approved & Refunded'
+                        : (isAwaitingPayout
+                            ? 'Cancellation Approved — Send Payout'
+                            : (isAwaitingWallet
+                                ? 'Cancellation Approved — Awaiting Hiker Wallet'
+                                : (isAwaitingRefundDecision ? 'Awaiting Refund Decision' : (isCancelledByAdmin ? 'Hike Cancelled by Organizer' : 'Cancellation Approved')))))
+                    : isCancelledByAdmin
+                        ? 'Hike Cancelled by Organizer'
+                        : isDeclined
+                            ? 'Cancellation Request Declined'
+                            : 'Cancellation Review';
 
     const headerIcon = isDirectCancellation
         ? 'x-circle'
-        : isCancelledByAdmin
-        ? 'slash'
-        : isDeclined
-        ? 'x-circle'
-        : isRefundDisputed
-        ? 'alert-triangle'
-        : isAwaitingUserConfirmation
-        ? 'clock'
-        : isApproved
-        ? (isRefundComplete ? 'check-circle' : 'clock')
-        : 'alert-triangle';
+        : isCancelledByAdmin && !isApproved
+            ? 'slash'
+            : isDeclined
+                ? 'x-circle'
+                : isRefundDisputed
+                    ? 'alert-triangle'
+                    : isAwaitingUserConfirmation
+                        ? 'clock'
+                        : isApproved
+                            ? (isRefundComplete ? 'check-circle' : 'clock')
+                            : 'alert-triangle';
 
-    const iconColor = isDirectCancellation || isCancelledByAdmin || isDeclined || isPending || isRefundDisputed
+    const iconColor = isDirectCancellation || (isCancelledByAdmin && !isApproved) || isDeclined || isPending || isRefundDisputed
         ? Colors.ERROR
         : (isRefundComplete ? Colors.SUCCESS : '#B45309');
 
     const subtitleText = isDirectCancellation
         ? 'Booking cancelled by Hiker. Reserved slot released.'
         : isRefundDisputed
-        ? `Hiker reported not receiving the refund payout (Attempt ${cancellation?.disputeCount || 1}/3). Please check the recipient number below, send payment, and upload a new receipt proof.`
-        : isAwaitingUserConfirmation
-        ? 'Payout receipt proof uploaded. Waiting for hiker to inspect and confirm receipt.'
-        : isCancelledByAdmin
-        ? (isPending
-            ? 'You cancelled this reservation. Hiker has been notified.'
-            : isAwaitingRefundDecision
-            ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr'
-                ? 'The hiker accepted your cancellation. Please issue a refund or finalize without refund if resolved offline.'
-                : 'The hiker accepted your cancellation. Please issue a refund via PayMongo or finalize without refund if resolved offline.')
-            : isRefundComplete
-            ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr'
-                ? 'Hike cancelled by organizer. Refund issued.'
-                : 'Hike cancelled by organizer. Refund issued via PayMongo.')
-            : 'Booking cancelled by organizer. Reserved slot released.')
-        : (isPending
-            ? 'Hiker requested to cancel this reservation. Review reason and inventory status.'
-            : isDeclined
-            ? 'Organizer declined this request. Hiker can submit an appeal.'
-            : isAwaitingRefundDecision
-            ? 'Cancellation approved. Please select a refund option below to complete resolution.'
-            : isRefundComplete
-            ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr'
-                ? 'Cancellation approved and refund issued.'
-                : 'Cancellation approved and refund issued via PayMongo.')
-            : `Booking cancelled by ${cancelledBy && cancelledBy !== 'admin' ? cancelledBy : 'Hiker'}. Reserved slot released.`);
+            ? `Hiker reported not receiving the refund payout (Attempt ${cancellation?.disputeCount || 1}/3). Please check the recipient number below, send payment, and upload a new receipt proof.`
+            : isAwaitingUserConfirmation
+                ? 'Payout receipt proof uploaded. Waiting for hiker to inspect and confirm receipt.'
+                : isCancelledByAdmin
+                    ? (isPending
+                        ? 'You cancelled this reservation. Hiker has been notified.'
+                        : isAwaitingPayout
+                            ? 'Cancellation approved. Hiker submitted e-wallet details — send payout below.'
+                            : isAwaitingWallet
+                                ? `Cancellation approved with refund of ₱${(cancellation?.refundAmount || totalAmountPaid).toFixed(2)}. Waiting for hiker to submit wallet.`
+                                : isAwaitingRefundDecision
+                                    ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr'
+                                        ? 'The hiker accepted your cancellation. Please issue a refund or finalize without refund if resolved offline.'
+                                        : 'The hiker accepted your cancellation. Please issue a refund via PayMongo or finalize without refund if resolved offline.')
+                                    : isRefundComplete
+                                        ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr'
+                                            ? 'Hike cancelled by organizer. Refund issued.'
+                                            : 'Hike cancelled by organizer. Refund issued via PayMongo.')
+                                        : 'Booking cancelled by organizer. Reserved slot released.')
+                    : (isPending
+                        ? 'Hiker requested to cancel this reservation. Review reason and inventory status.'
+                        : isDeclined
+                            ? 'Organizer declined this request. Hiker can submit an appeal.'
+                            : isAwaitingRefundDecision
+                                ? 'Cancellation approved. Please select a refund option below to complete resolution.'
+                                : isRefundComplete
+                                    ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr'
+                                        ? 'Cancellation approved and refund issued.'
+                                        : 'Cancellation approved and refund issued via PayMongo.')
+                                    : `Booking cancelled by ${cancelledBy && cancelledBy !== 'admin' ? cancelledBy : 'Hiker'}. Reserved slot released.`);
 
     const resolvedReason = isDirectCancellation
         ? undefined
@@ -245,19 +261,33 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                         styles.approvedBadge,
                         isAwaitingRefundDecision && styles.actionRequiredBadge
                     ]}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name={isAwaitingRefundDecision ? "alert-circle" : "check"} 
-                            size={12} 
-                            color={isAwaitingRefundDecision ? "#B45309" : Colors.SUCCESS} 
+                        <CustomIcon
+                            library="Feather"
+                            name={isAwaitingRefundDecision ? "alert-circle" : "check"}
+                            size={12}
+                            color={isAwaitingRefundDecision ? "#B45309" : Colors.SUCCESS}
                         />
                         <CustomText style={[
                             styles.approvedBadgeText,
                             isAwaitingRefundDecision && styles.actionRequiredBadgeText
                         ]}>
-                            {isAwaitingRefundDecision 
-                                ? (isCancelledByAdmin ? 'ACCEPTED BY HIKER' : 'NEEDS REFUND DECISION') 
+                            {isAwaitingRefundDecision
+                                ? (isCancelledByAdmin ? 'ACCEPTED BY HIKER' : 'NEEDS REFUND DECISION')
                                 : 'APPROVED'}
+                        </CustomText>
+                    </View>
+                )}
+
+                {isDeclined && (
+                    <View style={styles.declinedBadge}>
+                        <CustomIcon
+                            library="Feather"
+                            name="x-circle"
+                            size={12}
+                            color={Colors.ERROR}
+                        />
+                        <CustomText style={styles.declinedBadgeText}>
+                            DECLINED
                         </CustomText>
                     </View>
                 )}
@@ -276,7 +306,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                         </CustomText>
                         {resolvedTimestamp && (
                             <CustomText variant="caption" style={styles.infoBoxTimestamp}>
-                                {formatBookingDate(resolvedTimestamp)}
+                                {formatBookingDate(resolvedTimestamp, null, true)}
                             </CustomText>
                         )}
                     </View>
@@ -321,10 +351,10 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                                 PAYMENT CAPTURED
                             </CustomText>
                             <CustomText style={styles.impactValue}>
-                                {totalAmountPaid > 0 
-                                    ? `₱${totalAmountPaid.toFixed(2)}` 
-                                    : (resolvedRefunded > 0 
-                                        ? `₱${resolvedRefunded.toFixed(2)} (Refunded)` 
+                                {totalAmountPaid > 0
+                                    ? `₱${totalAmountPaid.toFixed(2)}`
+                                    : (resolvedRefunded > 0
+                                        ? `₱${resolvedRefunded.toFixed(2)} (Refunded)`
                                         : '₱0.00 (Unpaid)')}
                             </CustomText>
                         </View>
@@ -438,54 +468,95 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
             )}
 
             {/* Manual QR Handshake: Hiker Wallet Details & Upload Action */}
-            {isManualRefund && cancellation?.userWallet && (!cancellation?.adminRefundReceiptUrl || isRefundDisputed) && (
-                <View style={styles.walletDetailsAdminBox}>
-                    <View style={styles.manualRefundHeader}>
-                        <CustomIcon library="Feather" name="credit-card" size={16} color={Colors.PRIMARY} />
-                        <CustomText style={styles.walletDetailsTitle}>
-                            Hiker E-Wallet for Refund
-                        </CustomText>
-                    </View>
-                    <View style={styles.walletFieldRow}>
-                        <CustomText style={styles.walletLabel}>Provider:</CustomText>
-                        <CustomText style={styles.walletValue}>{cancellation.userWallet.walletType}</CustomText>
-                    </View>
-                    <View style={styles.walletFieldRow}>
-                        <CustomText style={styles.walletLabel}>Mobile Number:</CustomText>
-                        <View style={styles.numberCopyRow}>
-                            <CustomText style={styles.walletValue} selectable={true}>{cancellation.userWallet.accountNumber}</CustomText>
-                            <TouchableOpacity
-                                onPress={async () => {
-                                    if (cancellation?.userWallet?.accountNumber) {
-                                        await Clipboard.setStringAsync(cancellation.userWallet.accountNumber);
-                                        showToast.success('Mobile number copied to clipboard');
-                                    }
-                                }}
-                                style={styles.copyIconBtn}
-                                activeOpacity={0.7}
-                            >
-                                <CustomIcon library="Feather" name="copy" size={14} color={Colors.PRIMARY} />
-                            </TouchableOpacity>
+            {isManualRefund && !isDeclined && cancellation?.userWallet && (!cancellation?.adminRefundReceiptUrl || isRefundDisputed) && (
+                <View style={{ marginTop: 10 }}>
+                    <View style={styles.walletDetailsAdminBox}>
+                        <View style={styles.manualRefundHeader}>
+                            <CustomIcon library="Feather" name="credit-card" size={16} color={Colors.PRIMARY} />
+                            <CustomText style={styles.walletDetailsTitle}>
+                                Hiker E-Wallet for Refund
+                            </CustomText>
                         </View>
-                    </View>
-                    <View style={styles.walletFieldRow}>
-                        <CustomText style={styles.walletLabel}>Account Name:</CustomText>
-                        <CustomText style={styles.walletValue}>{cancellation.userWallet.accountName || 'N/A'}</CustomText>
-                    </View>
-                    <View style={styles.walletFieldRow}>
-                        <CustomText style={styles.walletLabel}>Amount to Send:</CustomText>
-                        <CustomText style={styles.walletAmount}>₱{(cancellation.refundAmount || totalAmountPaid).toFixed(2)}</CustomText>
+                        <CustomInfoRow
+                            label="Provider"
+                            value={cancellation.userWallet.walletType}
+                            compact={true}
+                        />
+                        <CustomInfoRow
+                            label="Mobile Number"
+                            value={cancellation.userWallet.accountNumber}
+                            enableCopy={true}
+                            compact={true}
+                        />
+                        <CustomInfoRow
+                            label="Account Name"
+                            value={cancellation.userWallet.accountName || 'N/A'}
+                            compact={true}
+                        />
+                        <CustomInfoRow
+                            label="Amount to Send"
+                            value={`₱${(cancellation.refundAmount || totalAmountPaid).toFixed(2)}`}
+                            compact={true}
+                            isLast={true}
+                            valueStyle={{ color: Colors.ERROR, fontWeight: 'bold' }}
+                        />
                     </View>
 
-                    <CustomButton
-                        title={isUploadingProof ? "Uploading Proof..." : (isRefundDisputed ? "Re-Initiate & Upload New Receipt" : "Upload Proof of Refund Receipt")}
-                        variant={isRefundDisputed ? "destructive" : "primary"}
-                        icon="upload"
-                        iconLibrary="Feather"
-                        onPress={handlePickReceipt}
-                        isLoading={isUploadingProof}
-                        style={{ marginTop: 8 }}
-                    />
+                    {isDeclining ? (
+                        <View style={{ marginTop: 10 }}>
+                            <CustomFeedbackInput
+                                label="Decline Reason *"
+                                helperText="Explain why the cancellation request is declined. The hiker will receive this message and can appeal."
+                                placeholder="Explain why cancellation cannot be approved..."
+                                value={declineInputText}
+                                onChangeText={onDeclineInputChange || (() => { })}
+                                suggestions={[...CANCELLATION_DECLINE_REASONS]}
+                                variant="danger"
+                            />
+                            <View style={styles.twoColumnRow}>
+                                <CustomButton
+                                    title="Cancel"
+                                    variant="outline"
+                                    size="md"
+                                    onPress={onCancelDeclineClick}
+                                    style={styles.twoColumnBtn}
+                                    disabled={isUploadingProof}
+                                />
+                                <CustomButton
+                                    title="Submit"
+                                    variant="destructive"
+                                    size="md"
+                                    onPress={onSubmitDeclineClick}
+                                    style={styles.twoColumnBtn}
+                                    disabled={!declineInputText?.trim() || isUploadingProof}
+                                />
+                            </View>
+                        </View>
+                    ) : (
+                        <View style={styles.twoColumnRow}>
+                            {Boolean(onDeclineClick) && (
+                                <CustomButton
+                                    title="Decline Cancellation"
+                                    variant="outline"
+                                    size="md"
+                                    onPress={onDeclineClick}
+                                    style={[styles.twoColumnBtn, { borderColor: Colors.ERROR }]}
+                                    textStyle={{ color: Colors.ERROR }}
+                                    disabled={isUploadingProof}
+                                />
+                            )}
+                            <CustomButton
+                                title={isUploadingProof ? "Uploading Proof..." : (isRefundDisputed ? "Re-Initiate & Refund" : "Approve & Refund")}
+                                variant="primary"
+                                size="md"
+                                icon="upload"
+                                iconLibrary="Feather"
+                                onPress={handlePickReceipt}
+                                isLoading={isUploadingProof}
+                                style={styles.twoColumnBtn}
+                            />
+                        </View>
+                    )}
                 </View>
             )}
 
@@ -637,10 +708,12 @@ const styles = StyleSheet.create({
     headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
+        gap: 8,
         marginBottom: 6,
     },
     headerLeft: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
@@ -649,6 +722,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: 'bold',
         color: Colors.TEXT_PRIMARY,
+        flexShrink: 1,
     },
     approvedBadge: {
         flexDirection: 'row',
@@ -663,6 +737,21 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: 'bold',
         color: Colors.SUCCESS,
+        letterSpacing: 0.5,
+    },
+    declinedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+    },
+    declinedBadgeText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: Colors.ERROR,
         letterSpacing: 0.5,
     },
     actionRequiredBadge: {
@@ -680,10 +769,10 @@ const styles = StyleSheet.create({
     infoBox: {
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderRadius: 10,
-        padding: 12,
+        padding: 14,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        marginBottom: 10,
+        marginBottom: 12,
     },
     declineBox: {
         backgroundColor: Colors.STATUS_CANCELLED_BG,
@@ -692,8 +781,11 @@ const styles = StyleSheet.create({
     infoBoxHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 6,
+        alignItems: 'baseline',
+        flexWrap: 'wrap',
+        rowGap: 4,
+        columnGap: 8,
+        marginBottom: 10,
     },
     infoBoxLabel: {
         fontWeight: 'bold',
@@ -710,28 +802,31 @@ const styles = StyleSheet.create({
     infoBoxTimestamp: {
         color: Colors.TEXT_SECONDARY,
         fontSize: 11,
+        fontWeight: '500',
     },
     infoBoxText: {
         fontSize: 13,
         fontStyle: 'italic',
         color: Colors.TEXT_PRIMARY,
-        lineHeight: 18,
+        lineHeight: 20,
     },
     declineBoxText: {
         fontSize: 13,
         fontStyle: 'italic',
         color: Colors.ERROR,
         fontWeight: '500',
-        lineHeight: 18,
+        lineHeight: 20,
     },
     impactRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderRadius: 10,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        padding: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
         marginTop: 2,
     },
     impactItem: {
@@ -753,7 +848,7 @@ const styles = StyleSheet.create({
         width: 1,
         height: 28,
         backgroundColor: Colors.GRAY_LIGHT,
-        marginHorizontal: 12,
+        marginHorizontal: 8,
     },
     slotPendingText: {
         color: Colors.ERROR,
@@ -880,17 +975,25 @@ const styles = StyleSheet.create({
         color: Colors.PRIMARY,
     },
     walletDetailsAdminBox: {
-        backgroundColor: '#EFF6FF',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#BFDBFE',
+        borderColor: Colors.GRAY_LIGHT,
         padding: 12,
-        marginTop: 10,
     },
     walletDetailsTitle: {
         fontSize: 13,
         fontWeight: 'bold',
-        color: '#1E40AF',
+        color: Colors.TEXT_PRIMARY,
+    },
+    twoColumnRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 10,
+    },
+    twoColumnBtn: {
+        flex: 1,
     },
     walletFieldRow: {
         flexDirection: 'row',
@@ -914,6 +1017,7 @@ const styles = StyleSheet.create({
     },
     waitingWalletBox: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: '#FEF3C7',
@@ -922,12 +1026,14 @@ const styles = StyleSheet.create({
         borderColor: '#FDE68A',
         padding: 12,
         marginTop: 10,
+        gap: 8,
     },
     waitingWalletLeft: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
         flex: 1,
+        minWidth: 180,
     },
     waitingWalletText: {
         fontSize: 12,

@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     buttonNotificationDot: { 
         position: 'absolute', 
         top: -8, 
-        right: -8, 
+        right: 0, 
         backgroundColor: Colors.ERROR, 
         minWidth: 24, 
         height: 24, 

@@ -14,6 +14,8 @@ import { toDateOrNull } from '@/src/core/utility/date';
 import { checkIfMinor, formatDateToStandard } from '@/src/utils/dateFormatter';
 import { useEffect, useMemo, useState } from 'react';
 
+export type ReviewTab = 'documents' | 'payment' | 'cancellation' | 'reschedule';
+
 const mapDocument = (
     name: string, 
     file: string, 
@@ -72,12 +74,28 @@ export default function useReviewLogic(
     const isAdminCancellationPending = isCancellationPending && (cancellationRequest?.cancelledBy === 'admin' || booking?.cancelledBy === 'admin');
     const isCancellationRejected = (cancellationRequest?.status === 'rejected') || currentStatus === 'cancellation-rejected';
 
-    const isApprovedStatus = ['for-payment', 'paid', 'downpayment', 'completed'].includes(currentStatus);
+    const isApprovedStatus = [
+        'approved-docs',
+        'for-payment',
+        'verifying-payment',
+        'paid',
+        'downpayment',
+        'completed',
+        'for-reschedule',
+        'rescheduled',
+        'reschedule-rejected',
+        'for-cancellation',
+        'cancellation-rejected',
+    ].includes(currentStatus);
     const isRejectedStatus = currentStatus === 'reservation-rejected';
     const isCancelledStatus = ['cancelled', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(currentStatus) || isAdminCancellationPending;
-    const isReviewComplete = isApprovedStatus || isRejectedStatus || isCancelledStatus || isAdminCancellationPending;
+    const isReviewComplete = !['for-reservation', 'pending-docs'].includes(currentStatus);
 
-    const [activeTab, setActiveTab] = useState<'documents' | 'payment'>(() => isApprovedStatus ? 'payment' : 'documents'); 
+    const [activeTab, setActiveTab] = useState<ReviewTab>(() => {
+        if (isHikerCancellationPending) return 'cancellation';
+        if (currentStatus === 'for-reschedule') return 'reschedule';
+        return isApprovedStatus ? 'payment' : 'documents';
+    }); 
     const [docStates, setDocStates] = useState<Requirements[]>(() => extractDocs(booking, isApprovedStatus, isRejectedStatus));
     const [viewedDocs, setViewedDocs] = useState<Record<number, boolean>>(() => {
         const initialDocs = extractDocs(booking, isApprovedStatus, isRejectedStatus);
@@ -165,7 +183,11 @@ export default function useReviewLogic(
             if (d.valid !== 'pending') initialViewed[i] = true; 
         });
         setViewedDocs(initialViewed);
-        if (isApprovedStatus) {
+        if (isHikerCancellationPending) {
+            setActiveTab('cancellation');
+        } else if (currentStatus === 'for-reschedule') {
+            setActiveTab('reschedule');
+        } else if (isApprovedStatus) {
             setActiveTab('payment');
         }
     }

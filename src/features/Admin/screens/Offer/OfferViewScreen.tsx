@@ -3,7 +3,7 @@
  * @description Admin screen displaying detailed information for an offer and its filtered, sortable recent bookings list.
  */
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
     Platform,
     ScrollView,
@@ -140,6 +140,16 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
         requestTargetMeasurement(step);
     }, [tutorial.isVisible, tutorial.currentStep?.targetSpotlight]);
 
+    const cancellationsByBookingId = useMemo(() => {
+        const map = new Map<string, Cancellation>();
+        (cancellations || []).forEach(c => {
+            if (!c.isDeleted && c.bookingId && !map.has(c.bookingId)) {
+                map.set(c.bookingId, c);
+            }
+        });
+        return map;
+    }, [cancellations]);
+
     if (!offer) return null;
     
     const offerDate = new Date(offer.date || offer.hikeDate || 0);
@@ -236,7 +246,7 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
 
                     {filteredBookings && filteredBookings.length > 0 ? (
                         filteredBookings.map((b: Booking, index: number) => {
-                            const cancellation = cancellations.find(c => c.bookingId === b.id && !c.isDeleted);
+                            const cancellation = cancellationsByBookingId.get(b.id);
                             return (
                                 <View
                                     key={b.id}

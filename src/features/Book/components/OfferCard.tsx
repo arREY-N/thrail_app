@@ -70,6 +70,13 @@ const OfferCard: React.FC<OfferCardProps> = ({
     const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({ 0: true });
     const [expandedActivities, setExpandedActivities] = useState<Record<number, boolean>>({});
 
+    const reservedCount = Number(offer.reservedPax) || 0;
+    const maxPax = Number(offer.maxPax) || 0;
+    const minPax = Number(offer.minPax) || 0;
+    const hasPaxLimit = maxPax > 0;
+    const remainingSlots = hasPaxLimit ? Math.max(0, maxPax - reservedCount) : null;
+    const isFullyBooked = hasPaxLimit && remainingSlots === 0;
+
     const totalDays = offer.schedule?.length ?? 0;
     const allDaysExpanded = totalDays > 0 && Array.from({ length: totalDays }).every((_, i) => expandedDays[i]);
 
@@ -204,8 +211,24 @@ const OfferCard: React.FC<OfferCardProps> = ({
                     </CustomText>
                     
                     {Boolean(offer.minPax || offer.maxPax) && (
-                        <CustomText variant="caption" style={styles.paxText}>
-                            {offer.minPax}-{offer.maxPax} Pax required
+                        <CustomText variant="caption" style={styles.paxText} numberOfLines={1}>
+                            {remainingSlots !== null && (
+                                <CustomText 
+                                    variant="caption" 
+                                    style={[
+                                        styles.slotsHighlight,
+                                        isFullyBooked && styles.slotsFullHighlight
+                                    ]}
+                                >
+                                    {isFullyBooked ? "No slots left" : `${remainingSlots} ${remainingSlots === 1 ? 'slot' : 'slots'} left`}
+                                </CustomText>
+                            )}
+                            {remainingSlots !== null && Boolean(minPax || maxPax) && " • "}
+                            {Boolean(minPax || maxPax) && (
+                                minPax && maxPax
+                                    ? `${minPax}-${maxPax} Pax`
+                                    : `${maxPax || minPax} Pax`
+                            )}
                         </CustomText>
                     )}
                 </View>
@@ -545,6 +568,16 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         marginTop: 4,
+        textAlign: 'right',
+    },
+    slotsHighlight: {
+        fontSize: 12,
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
+    },
+    slotsFullHighlight: {
+        color: Colors.ERROR,
+        fontWeight: 'bold',
     },
     
     expandedContent: {

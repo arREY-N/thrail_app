@@ -229,18 +229,17 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
                 const url = await pickDocument(safeDocKey);
                 if (url) {
                     uploadedUrls.push(url);
+                } else {
+                    setIsUploading(false);
+                    return;
                 }
             } else {
                 // Mobile and Web gallery image picker
                 if (Platform.OS !== 'web') {
-                    const { status, canAskAgain } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                    if (status !== 'granted') {
-                        if (!canAskAgain) {
-                            setIsPermissionBlocked(true);
-                            throw new Error('Photo gallery permission is disabled. Please enable photo access in Settings to upload.');
-                        }
-                        setIsPermissionBlocked(false);
-                        throw new Error('Permission to access photo gallery is required.');
+                    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                    if (perm.status !== 'granted') {
+                        setIsPermissionBlocked(true);
+                        throw new Error('Photo gallery permission is required. Please enable photo access in Settings to upload.');
                     }
                     setIsPermissionBlocked(false);
                 }
@@ -321,11 +320,14 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
             if (isCanceled) {
                 setIsError(false);
                 setErrorMessage('');
-                setIsPermissionBlocked(false);
             } else {
                 console.error(`Upload failed for ${docKey}:`, error);
                 setIsError(true);
                 setErrorMessage(msg);
+                const isPermissionErr = msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('settings');
+                if (isPermissionErr) {
+                    setIsPermissionBlocked(true);
+                }
                 if (onError) {
                     onError(msg);
                 }
@@ -411,7 +413,7 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
                                 {displayDocName}
                             </CustomText>
                             {displaySubtitle ? (
-                                <CustomText variant="caption" style={styles.docSubtitle} numberOfLines={1}>
+                                <CustomText variant="caption" style={styles.docSubtitle} numberOfLines={2}>
                                     {displaySubtitle}
                                 </CustomText>
                             ) : null}
@@ -607,7 +609,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row', 
         alignItems: 'center', 
         flex: 1,
-        paddingRight: 12,
+        paddingRight: 8,
     },
     textContainer: {
         flex: 1,
@@ -641,10 +643,10 @@ const styles = StyleSheet.create({
         flexShrink: 0,
     },
     uploadBtn: { 
-        paddingVertical: 8, 
-        paddingHorizontal: 16, 
+        paddingVertical: 7, 
+        paddingHorizontal: 12, 
         borderRadius: 20, 
-        minWidth: 80, 
+        minWidth: 68, 
         alignItems: 'center', 
         backgroundColor: Colors.PRIMARY, 
     },
@@ -656,10 +658,10 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE, 
         borderWidth: 1, 
         borderColor: Colors.SUCCESS, 
-        paddingVertical: 8, 
-        paddingHorizontal: 16, 
+        paddingVertical: 7, 
+        paddingHorizontal: 12, 
         borderRadius: 20, 
-        minWidth: 80, 
+        minWidth: 68, 
         alignItems: 'center', 
     },
     uploadedBtnText: { 
@@ -668,10 +670,10 @@ const styles = StyleSheet.create({
     },
     errorBtn: { 
         backgroundColor: Colors.ERROR, 
-        paddingVertical: 8, 
-        paddingHorizontal: 16, 
+        paddingVertical: 7, 
+        paddingHorizontal: 12, 
         borderRadius: 20, 
-        minWidth: 80, 
+        minWidth: 68, 
         alignItems: 'center', 
     },
     errorBtnText: { 
@@ -680,16 +682,18 @@ const styles = StyleSheet.create({
     },
     settingsBtn: {
         backgroundColor: Colors.PRIMARY,
-        paddingVertical: 8,
-        paddingHorizontal: 16,
+        paddingVertical: 7,
+        paddingHorizontal: 12,
         borderRadius: 20,
-        minWidth: 80,
+        minWidth: 68,
         alignItems: 'center',
     },
     viewBtn: { 
-        paddingVertical: 8, 
-        paddingHorizontal: 12, 
+        paddingVertical: 7, 
+        paddingHorizontal: 10, 
         borderRadius: 20, 
+        minWidth: 54,
+        alignItems: 'center',
         backgroundColor: Colors.STATUS_APPROVED_BG, 
         borderWidth: 1, 
         borderColor: Colors.SUCCESS, 
@@ -699,9 +703,11 @@ const styles = StyleSheet.create({
         fontWeight: 'bold', 
     },
     viewBtnNeutral: { 
-        paddingVertical: 8, 
-        paddingHorizontal: 12, 
+        paddingVertical: 7, 
+        paddingHorizontal: 10, 
         borderRadius: 20, 
+        minWidth: 54,
+        alignItems: 'center',
         backgroundColor: Colors.WHITE, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_MEDIUM, 

@@ -208,6 +208,16 @@ const bookingToFirestore = (booking: Booking): IBookingDB => {
         data.cancelledBy = booking.cancelledBy;
     }
 
+    if (booking.rescheduleRequestId !== undefined && booking.rescheduleRequestId !== null) {
+        data.rescheduleRequestId = booking.rescheduleRequestId;
+    }
+    if (booking.rescheduleDeclineReason !== undefined && booking.rescheduleDeclineReason !== null) {
+        data.rescheduleDeclineReason = booking.rescheduleDeclineReason;
+    }
+    if (booking.previousStatus !== undefined && booking.previousStatus !== null) {
+        data.previousStatus = booking.previousStatus;
+    }
+
     if (booking.remainingBalance !== undefined && booking.remainingBalance !== null) {
         data.remainingBalance = booking.remainingBalance;
     }

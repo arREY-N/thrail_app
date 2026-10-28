@@ -22,9 +22,9 @@ const { Buffer } = require('buffer');
 const PaymentManager = require('./services/PaymentManager');
 const LoginLimiter = require('./services/LoginLimiter');
 
-// Firebase Web API key (public value) used to verify passwords via the Identity Toolkit REST API.
 const authWebApiKey = defineString('AUTH_WEB_API_KEY');
 const PayMongoProvider = require('./services/providers/PayMongoProvider');
+const { approveReschedule } = require('./services/RescheduleManager');
 
 admin.initializeApp();
 
@@ -83,6 +83,8 @@ exports.onNewMessage = functions.firestore
                 priority: 'high',
                 notification: {
                     channelId: 'default',
+                    icon: 'notification_icon',
+                    color: '#2E7D32',
                     clickAction: 'fcm.ACTION.HELLO',
                 }
             },
@@ -254,6 +256,8 @@ async function notifyBusinessAdmins(db, businessId, {
                 priority: 'high',
                 notification: {
                     channelId: 'default',
+                    icon: 'notification_icon',
+                    color: '#2E7D32',
                     sound: 'default',
                     defaultSound: true,
                     defaultVibrateTimings: true,
@@ -363,6 +367,8 @@ async function notifyUser(db, userId, { title, body, inAppTitle, inAppMessage, t
                     priority: 'high',
                     notification: {
                         channelId: 'default',
+                        icon: 'notification_icon',
+                        color: '#2E7D32',
                         sound: 'default',
                         defaultSound: true,
                         defaultVibrateTimings: true,
@@ -429,10 +435,10 @@ exports.onBookingStatusChange = functions.firestore
                 after.paymentVerificationStatus === 'pending_verification' &&
                 before.paymentVerificationStatus !== 'pending_verification'
             ) || (
-                (after.payment?.length || 0) > (before.payment?.length || 0) &&
-                after.payment?.some(p => (p.gateway === 'manual_qr' || p.receiptUrl) && p.status === 'pending') &&
-                !before.payment?.some(p => (p.gateway === 'manual_qr' || p.receiptUrl) && p.status === 'pending')
-            );
+                    (after.payment?.length || 0) > (before.payment?.length || 0) &&
+                    after.payment?.some(p => (p.gateway === 'manual_qr' || p.receiptUrl) && p.status === 'pending') &&
+                    !before.payment?.some(p => (p.gateway === 'manual_qr' || p.receiptUrl) && p.status === 'pending')
+                );
 
             if (before.status === after.status && !isDocResubmission && !isPaymentSubmitted) return;
 
@@ -754,19 +760,6 @@ exports.onNewCancellationRequest = functions.firestore
                     adminCancelNotifiedAt: FieldValue.serverTimestamp()
                 });
 
-                if (bookingId) {
-                    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
-                    const bookingDoc = await bookingRef.get();
-                    if (bookingDoc.exists && bookingDoc.data()?.status !== 'cancelled') {
-                        await bookingRef.update({
-                            status: 'cancelled',
-                            cancelledBy: 'admin',
-                            cancellationReason: reason || 'Cancelled by organizer',
-                            updatedAt: FieldValue.serverTimestamp()
-                        });
-                    }
-                }
-
                 const notifTitle = `Hike Cancelled by Organizer`;
                 const notifMessage = `Your hike for ${trailName} was cancelled by ${businessName}.${reasonText} Go to your booking to choose between a refund or reschedule options.`;
                 const adminCancelDocId = bookingId ? `admin_cancel_${bookingId}` : `admin_cancel_${cancellationId}`;
@@ -813,18 +806,6 @@ exports.onNewCancellationRequest = functions.firestore
                     notificationSent: true,
                     notifiedAt: FieldValue.serverTimestamp()
                 });
-
-                if (userId && bookingId) {
-                    const bookingRef = db.collection('users').doc(userId).collection('bookings').doc(bookingId);
-                    const bookingDoc = await bookingRef.get();
-                    if (bookingDoc.exists && bookingDoc.data()?.status !== 'for-cancellation') {
-                        await bookingRef.update({
-                            status: 'for-cancellation',
-                            cancellationReason: reason || 'User cancellation requested',
-                            updatedAt: FieldValue.serverTimestamp()
-                        });
-                    }
-                }
 
                 // Notify Business Admins
                 await notifyBusinessAdmins(db, businessId, {
@@ -916,6 +897,15 @@ exports.sendUserReminder = functions.https.onRequest(async (req, res) => {
             notification: {
                 title: "Booking Reminder",
                 body: `This is a reminder of your booking for ${trailName} on ${reminderDate}. Prepare and plan ahead!`
+            },
+            android: {
+                priority: 'high',
+                notification: {
+                    channelId: 'default',
+                    icon: 'notification_icon',
+                    color: '#2E7D32',
+                    sound: 'default',
+                }
             }
         });
 
@@ -2651,7 +2641,7 @@ exports.verifyManualPayment = https.onCall(async (request) => {
     }
 
     const bookingUpdates = {
-        status: isFull ? 'paid' : 'downpayment',
+        status: isFull ? 'completed' : 'downpayment',
         remainingBalance: remaining,
         paymentVerificationStatus: isFull ? 'fully_paid' : 'downpayment',
         paymentRejectionReason: FieldValue.delete(),
@@ -2726,6 +2716,17 @@ exports.verifyManualPayment = https.onCall(async (request) => {
                 userId,
             }
         });
+    } else if (isFull) {
+        const trailName = bookingData.trail?.name || 'your tour';
+        await notifyUser(db, userId, {
+            title: 'Payment Verified · Booking Completed',
+            body: `Your payment for ${trailName} has been verified and your reservation is completed!`,
+            inAppTitle: 'Booking Completed',
+            inAppMessage: `Your payment for ${trailName} was verified. Your booking is 100% completed!`,
+            type: 'booking_completed',
+            metadata: { bookingId, trailName },
+            data: { bookingId, userId }
+        });
     }
 
     return {
@@ -2735,8 +2736,8 @@ exports.verifyManualPayment = https.onCall(async (request) => {
         remainingBalance: remaining,
         isOverpaid,
         excessAmount,
-        message: isOverpaid 
-            ? `Full payment verified and excess of ₱${excessAmount.toFixed(2)} marked for refund.` 
+        message: isOverpaid
+            ? `Full payment verified and excess of ₱${excessAmount.toFixed(2)} marked for refund.`
             : (isFull ? 'Full payment verified.' : 'Downpayment verified.'),
     };
 });
@@ -3481,7 +3482,15 @@ exports.disputeOverpaymentRefund = https.onCall(async (request) => {
  * Atomically marks remaining balance for a booking as paid on-site or via cash.
  */
 exports.settleManualBalance = https.onCall(async (request) => {
-    const { bookingId, userId, businessId: inputBusinessId } = request.data || {};
+    const {
+        bookingId,
+        userId,
+        businessId: inputBusinessId,
+        offerId: inputOfferId,
+        method = 'cash',
+        referenceCode = '',
+        adminNote = '',
+    } = request.data || {};
     const caller = request.auth;
 
     if (!caller) throw new HttpsError('unauthenticated', 'Authentication required.');
@@ -3494,6 +3503,7 @@ exports.settleManualBalance = https.onCall(async (request) => {
     const bookingData = bookingSnap.data();
 
     const businessId = inputBusinessId || bookingData.business?.id;
+    const offerId = inputOfferId || bookingData.offer?.id;
 
     // Authorization Check
     const adminBusinessId = caller.token.businessId || caller.token.owner;
@@ -3505,18 +3515,28 @@ exports.settleManualBalance = https.onCall(async (request) => {
         throw new HttpsError('permission-denied', 'Only administrators can settle balances.');
     }
 
-    if (bookingData.status === 'paid' || bookingData.remainingBalance === 0) {
-        throw new HttpsError('failed-precondition', 'Remaining balance is already settled.');
+    if (bookingData.status === 'completed' && bookingData.remainingBalance === 0) {
+        throw new HttpsError('failed-precondition', 'Remaining balance is already settled and booking is completed.');
     }
 
+    const totalPrice = bookingData.totalPrice || bookingData.offer?.price || 0;
+    const payments = bookingData.payment || [];
+    const previouslyCaptured = payments.reduce((sum, p) => (p.status === 'captured' ? sum + (p.amount || 0) : sum), 0);
     const balAmount = typeof bookingData.remainingBalance === 'number'
         ? bookingData.remainingBalance
-        : (bookingData.offer?.price ? bookingData.offer.price / 2 : 0);
+        : Math.max(0, totalPrice - previouslyCaptured);
+
+    const isCash = method === 'cash';
+    const fallbackRef = isCash ? `CASH-${Date.now()}` : `SETTLE-${Date.now()}`;
+    const resolvedReference = (referenceCode && referenceCode.trim()) ? referenceCode.trim() : fallbackRef;
+    const defaultNote = isCash ? 'Settled via Onsite Cash' : 'Remaining Balance Settled';
+    const resolvedNote = (adminNote && adminNote.trim()) ? adminNote.trim() : defaultNote;
 
     const balancePayment = {
         gateway: 'manual_qr',
+        method: isCash ? 'cash' : 'manual_qr',
         sessionId: `manual_balance_${Date.now()}`,
-        referenceCode: `CASH-BAL-${Date.now()}`,
+        referenceCode: resolvedReference,
         amount: balAmount,
         status: 'captured',
         classification: 'full',
@@ -3524,22 +3544,94 @@ exports.settleManualBalance = https.onCall(async (request) => {
         paidAt: Timestamp.now(),
         verifiedBy: caller.uid,
         verifiedAt: Timestamp.now(),
+        adminNote: resolvedNote,
     };
+
+    let hasPendingPayment = false;
+    const updatedPayments = payments.map(p => {
+        if (p.status === 'pending') {
+            hasPendingPayment = true;
+            return {
+                ...p,
+                amount: p.amount || balAmount,
+                status: 'captured',
+                classification: 'full',
+                method: isCash ? 'cash' : (p.method || 'manual_qr'),
+                referenceCode: p.referenceCode || resolvedReference,
+                verifiedBy: caller.uid,
+                verifiedAt: Timestamp.now(),
+                adminNote: resolvedNote,
+            };
+        }
+        return p;
+    });
+
+    if (!hasPendingPayment) {
+        updatedPayments.push(balancePayment);
+    }
 
     const batch = db.batch();
     batch.update(bookingRef, {
-        status: 'paid',
+        status: 'completed',
         remainingBalance: 0,
         paymentVerificationStatus: 'fully_paid',
-        payment: [...(bookingData.payment || []), balancePayment],
+        paymentRejectionReason: FieldValue.delete(),
+        payment: updatedPayments,
         updatedAt: FieldValue.serverTimestamp(),
     });
 
+    // Atomically add hiker to tour group chat
+    if (offerId) {
+        try {
+            const groupRef = db.collection('groups').doc(offerId);
+            const groupSnap = await groupRef.get();
+            if (groupSnap.exists) {
+                const groupData = groupSnap.data();
+                const members = groupData.members || [];
+                const alreadyMember = members.some(m => m.id === userId);
+                const hikerUser = bookingData.user || {};
+
+                const newMember = {
+                    id: userId,
+                    username: hikerUser.username || '',
+                    firstname: hikerUser.firstname || '',
+                    lastname: hikerUser.lastname || '',
+                    email: hikerUser.email || '',
+                    bookingId,
+                };
+
+                const updatedMembers = alreadyMember ? members : [...members, newMember];
+
+                batch.update(groupRef, {
+                    participantsIds: FieldValue.arrayUnion(userId),
+                    members: updatedMembers,
+                    updatedAt: FieldValue.serverTimestamp(),
+                });
+            }
+        } catch (groupErr) {
+            console.warn(`[settleManualBalance] Could not update group chat:`, groupErr.message);
+        }
+    }
+
     await batch.commit();
     console.log(`[settleManualBalance] Settled remaining balance for booking ${bookingId}`);
+
+    const trailName = bookingData.trail?.name || 'your tour';
+    await notifyUser(db, userId, {
+        title: 'Balance Settled · Booking Completed',
+        body: `Your remaining balance for ${trailName} has been settled in full. Your reservation is completed!`,
+        inAppTitle: 'Balance Settled',
+        inAppMessage: `Your remaining balance of ₱${balAmount.toFixed(2)} for ${trailName} was settled. Your booking is 100% completed!`,
+        type: 'booking_completed',
+        metadata: { bookingId, trailName },
+        data: { bookingId, userId }
+    });
+
     return {
         success: true,
-        message: 'Remaining balance marked as paid.',
+        remainingBalance: 0,
+        status: 'completed',
+        message: 'Remaining balance marked as settled and booking completed.',
     };
 });
 
@@ -4006,6 +4098,8 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
                 priority: 'high',
                 notification: {
                     channelId: 'default',
+                    icon: 'notification_icon',
+                    color: '#2E7D32',
                     clickAction: 'fcm.ACTION.HELLO',
                 },
             },
@@ -4238,3 +4332,5 @@ exports.onUserOnboardingComplete = functions.firestore
             return null;
         }
     });
+
+exports.approveReschedule = approveReschedule;

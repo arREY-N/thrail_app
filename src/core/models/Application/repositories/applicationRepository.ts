@@ -1,20 +1,33 @@
 import { db } from "@/src/core/config/Firebase";
 import { Application } from "@/src/core/models/Application/interfaces/Application.types";
 import { applicationConverter } from "@/src/core/models/Application/utils/ApplicationFactory";
-import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
+import {
+    collection,
+    deleteDoc,
+    doc,
+    Firestore,
+    getDoc,
+    getDocs,
+    limit,
+    orderBy,
+    query,
+    setDoc,
+    where
+} from "firebase/firestore";
 
-const createApplicationCollection = (db: any) => {
-    return collection(db, "applications").withConverter(applicationConverter);
+const createApplicationCollection = (firestore: Firestore) => {
+    return collection(firestore, "applications").withConverter(applicationConverter);
 };
 
-export const ApplicationRepository = (db: any) => ({
+export const ApplicationRepository = (firestore: Firestore) => ({
     /**
-     * Fetches all submitted applications.
+     * Fetches all submitted applications (latest 20).
      */
     async fetchAll(): Promise<Application[]> {
         try {
-            const col = createApplicationCollection(db);
-            const snapshot = await getDocs(col);
+            const col = createApplicationCollection(firestore);
+            const q = query(col, orderBy("createdAt", "desc"), limit(20));
+            const snapshot = await getDocs(q);
             if (snapshot.empty) return [];
             return snapshot.docs.map((docSnap) => docSnap.data());
         } catch (err) {
@@ -28,7 +41,7 @@ export const ApplicationRepository = (db: any) => ({
      */
     async fetchById(id: string): Promise<Application | null> {
         try {
-            const col = createApplicationCollection(db);
+            const col = createApplicationCollection(firestore);
             const docRef = doc(col, id);
             const docSnap = await getDoc(docRef);
             return docSnap.data() || null;
@@ -43,21 +56,25 @@ export const ApplicationRepository = (db: any) => ({
      */
     async write(data: Application): Promise<Application> {
         try {
-            const col = createApplicationCollection(db);
+            const col = createApplicationCollection(firestore);
             const docRef = data.id ? doc(col, data.id) : doc(col);
 
-            const q = query(col, where("applicant.id", "==", data.owner.id));
+            const q = query(col, where("owner.id", "==", data.owner.id));
             const querySnapshot = await getDocs(q);
 
             const app = querySnapshot.docs.find((a) => a.data().owner.id === data.owner.id);
 
             if (app) {
-                throw new Error(`Application is ${app?.data().status}`);
+                const existingStatus = app.data().status;
+                if (existingStatus === 'pending' || existingStatus === 'approved') {
+                    throw new Error(`Application is ${existingStatus}`);
+                }
             }
 
-            const newApp: Application = { ...data, id: docRef.id };
+            const targetDocRef = app ? doc(col, app.id) : docRef;
+            const newApp: Application = { ...data, id: targetDocRef.id, status: 'pending' };
 
-            await setDoc(docRef, newApp, { merge: true });
+            await setDoc(targetDocRef, newApp, { merge: true });
 
             return newApp;
         } catch (err) {

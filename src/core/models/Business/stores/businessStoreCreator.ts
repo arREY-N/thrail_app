@@ -110,21 +110,17 @@ export const businessStoreCreator: StateCreator<
         }
 
         const data = get().data;
+        const cachedBusiness = data.find(d => d.id === id);
+        if (cachedBusiness) {
+            set({ current: cachedBusiness });
+        }
 
         try {
-            set({ isFetching: true, isLoading: true, error: null });
+            set({ isFetching: true, isLoading: !cachedBusiness, error: null });
 
-            let business = null;
+            const freshBusiness = await BusinessRepo.fetchById(id);
 
-            if (data.length > 0) {
-                business = data.find(d => d.id === id);
-            }
-
-            if (!business) {
-                business = await BusinessRepo.fetchById(id);
-            }
-
-            if (!business) {
+            if (!freshBusiness && !cachedBusiness) {
                 set({
                     error: 'Business not found',
                     isLoading: false,
@@ -133,12 +129,14 @@ export const businessStoreCreator: StateCreator<
                 return;
             }
 
+            const business = freshBusiness || cachedBusiness;
+
             set((state) => {
                 const updated = state.data.filter(u => u.id !== id);
 
                 return {
                     current: business,
-                    data: [...updated, business],
+                    data: [...updated, business!],
                     isLoading: false,
                     isFetching: false,
                 };

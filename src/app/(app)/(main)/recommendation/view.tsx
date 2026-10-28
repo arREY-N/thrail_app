@@ -17,6 +17,7 @@ import ResponsiveScrollView from "@/src/components/ResponsiveScrollView";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors, Palette } from "@/src/constants/colors";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { useOfferList, useOfferTrails } from "@/src/core/models/Offer/Offer";
 import {
     IAITrailReasoning,
     IRecommendedTrailItem,
@@ -29,11 +30,14 @@ import { resolveRecommendationReasoning } from "@/src/features/Recommendation/se
 import {
     getHeroImageSource
 } from "@/src/features/Trail/utils/TrailDetailsHelpers";
+import { useBreakpoints } from "@/src/hooks/useBreakpoints";
+import { safeParseDateString } from "@/src/utils/dateFormatter";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View,
@@ -111,9 +115,48 @@ export default function RecommendationViewScreen() {
     const monthId = (Array.isArray(month) ? month[0] : month) as string | undefined;
 
     const { onBackPress, onTrailPress } = useAppNavigation();
+    const { isDesktop, isTablet } = useBreakpoints();
+    const isWideScreen = isDesktop || isTablet;
     const { profile: user, } = useAuthHook();
     const { trail, trailLoading: isTrailLoading } = useTrailItem(tId);
     const { recommendation } = useRecommendationItem();
+    const { offers } = useOfferList();
+    const { trailOffers } = useOfferTrails(tId);
+
+    // Check if there are available offers for this trail that are not expired and have at least 1 week before the hike
+    const hasBookableOffers = useMemo(() => {
+        if (!tId) return false;
+        const candidateOffers = (trailOffers && trailOffers.length > 0)
+            ? trailOffers
+            : (offers || []).filter((o) => (o.trail?.id === tId || (o as any).trailId === tId));
+
+        if (!candidateOffers || candidateOffers.length === 0) return false;
+
+        const nowMidnight = new Date();
+        nowMidnight.setHours(0, 0, 0, 0);
+
+        const minHikeDate = new Date(nowMidnight.getTime());
+        minHikeDate.setDate(minHikeDate.getDate() + 7);
+
+        return candidateOffers.some((o) => {
+            if (!o?.date) return false;
+            if (o.status === "cancelled" || o.status === "inactive") return false;
+
+            const offerDate = safeParseDateString(o.date);
+            offerDate.setHours(0, 0, 0, 0);
+
+            // Must not be expired AND must have at least 7 days (1 week) before the hike
+            const isAtLeastOneWeekAhead = offerDate.getTime() >= minHikeDate.getTime();
+            if (!isAtLeastOneWeekAhead) return false;
+
+            // Ensure available slots if pax limits exist
+            if (typeof o.maxPax === "number" && typeof o.reservedPax === "number") {
+                if (o.reservedPax >= o.maxPax) return false;
+            }
+
+            return true;
+        });
+    }, [tId, trailOffers, offers]);
 
     const [aiReasoning, setAiReasoning] = useState<IAITrailReasoning | null>(null);
     const [isAiLoading, setIsAiLoading] = useState<boolean>(true);
@@ -291,420 +334,464 @@ export default function RecommendationViewScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Hero Header & Cover Image */}
-                <View style={styles.heroSection}>
+                <View style={styles.imageContainer}>
+                    {/* Background Trail Photo Cover */}
                     <CustomImage
                         source={imageSource}
-                        style={styles.heroImage}
+                        style={styles.cardImage}
                         resizeMode="cover"
                     />
-                    {/* Pure Gradient Overlay (no children) */}
-                    <LinearGradient
-                        colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.88)"]}
-                        locations={[0, 0.45, 1]}
-                        style={styles.heroGradient}
-                    />
 
-                    {/* Sibling Content Layer (renders reliably on Android) */}
-                    <View style={styles.heroContent}>
-                        <View style={styles.heroBadgeRow}>
-                            <View style={styles.monthBadge}>
-                                <CustomIcon library="Feather" name={isChallengeSpotlight ? "award" : "star"} size={13} color={Palette.Amber600} />
-                                <CustomText style={styles.monthBadgeText}>
-                                    {isChallengeSpotlight ? `Challenge • ${formattedMonth}` : formattedMonth}
+                    {/* Gradient Overlay wrapping the texts */}
+                    <LinearGradient
+                        colors={["transparent", "rgba(0, 0, 0, 0.25)", `${Colors.BLACK}E6`]}
+                        style={styles.gradientOverlay}
+                    >
+                        <View style={styles.contentContainer}>
+                            <View style={styles.heroBadgeRow}>
+                                <View style={styles.monthBadge}>
+                                    <CustomIcon
+                                        library="Feather"
+                                        name={isChallengeSpotlight ? "award" : "star"}
+                                        size={13}
+                                        color={Palette.Amber600}
+                                    />
+                                    <CustomText style={styles.monthBadgeText}>
+                                        {isChallengeSpotlight ? `Challenge • ${formattedMonth}` : formattedMonth}
+                                    </CustomText>
+                                </View>
+
+                                <View style={styles.matchPill}>
+                                    <CustomIcon library="Feather" name="check-circle" size={13} color={Colors.WHITE} />
+                                    <CustomText style={styles.matchPillText}>{profileMatch}% Profile Match</CustomText>
+                                </View>
+                            </View>
+
+                            <CustomText variant="body" style={styles.trailNameTitle} numberOfLines={2}>
+                                {trailName}
+                            </CustomText>
+
+                            <View style={styles.heroLocationRow}>
+                                <CustomIcon library="Feather" name="map-pin" size={14} color={Colors.WHITE} />
+                                <CustomText variant="caption" style={styles.metaText}>{province}</CustomText>
+                            </View>
+                        </View>
+                    </LinearGradient>
+                </View>
+
+                {/* Main Body - responsive container matching HomeScreen width */}
+                <View style={[styles.mainBody, isWideScreen && styles.mainBodyWide]}>
+                    {/* Key Specs Bar */}
+                    <View style={styles.specsCard}>
+                        <View style={styles.specItem}>
+                            <CustomIcon library="Feather" name="navigation" size={16} color={Colors.PRIMARY} />
+                            <CustomText style={styles.specItemLabel}>Distance</CustomText>
+                            <CustomText style={styles.specItemVal}>{distanceStr}</CustomText>
+                        </View>
+
+                        <View style={styles.specDivider} />
+
+                        <View style={styles.specItem}>
+                            <CustomIcon library="Feather" name="trending-up" size={16} color={Colors.PRIMARY} />
+                            <CustomText style={styles.specItemLabel}>Peak</CustomText>
+                            <CustomText style={styles.specItemVal}>{elevStr}</CustomText>
+                        </View>
+
+                        <View style={styles.specDivider} />
+
+                        <View style={styles.specItem}>
+                            <CustomIcon library="Feather" name="bar-chart-2" size={16} color={Colors.PRIMARY} />
+                            <CustomText style={styles.specItemLabel}>Gain</CustomText>
+                            <CustomText style={styles.specItemVal}>{gainStr}</CustomText>
+                        </View>
+
+                        <View style={styles.specDivider} />
+
+                        <View style={styles.specItem}>
+                            <CustomIcon library="Feather" name="percent" size={16} color={Colors.PRIMARY} />
+                            <CustomText style={styles.specItemLabel}>Gradient</CustomText>
+                            <CustomText style={styles.specItemVal}>{slopeStr}</CustomText>
+                        </View>
+                    </View>
+
+                    {/* No Easy Trails - Challenge Notice Banner */}
+                    {isChallengeOnlyMode && (
+                        <View style={styles.challengeNoticeBox}>
+                            <View style={styles.challengeNoticeHeader}>
+                                <View style={styles.challengeNoticeIconWrap}>
+                                    <CustomIcon library="Feather" name="alert-triangle" size={15} color="#92400E" />
+                                </View>
+                                <CustomText style={styles.challengeNoticeTitle}>
+                                    Challenge Spotlight Notice
+                                </CustomText>
+                            </View>
+                            <CustomText style={styles.challengeNoticeBody}>
+                                None of the trails in our current catalog are predicted to be easy for your physical baseline. Instead of forcing a demanding trail as an easy one, we are featuring the nearest accessible challenge trail to your profile as your Challenge of the Month. Please review the physical requirements and prepare thoroughly before hiking.
+                            </CustomText>
+                        </View>
+                    )}
+
+                    {/* THARESYS Profile Alignment Scoreboard */}
+                    <View style={styles.scoreboardCard}>
+                        <View style={styles.scoreboardHeader}>
+                            <View style={styles.iconCircle}>
+                                <CustomIcon library="Feather" name="cpu" size={16} color={Colors.PRIMARY} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <CustomText style={styles.scoreboardTitle}>THARESYS Profile Alignment</CustomText>
+                                <CustomText style={styles.scoreboardSub}>
+                                    {isChallengeOnlyMode
+                                        ? "Evaluated as the nearest accessible challenge to your Easy Anchor"
+                                        : "Evaluated against your calibrated Easy Anchor vector"}
+                                </CustomText>
+                            </View>
+                            <View style={styles.similarityScoreBox}>
+                                <CustomText style={styles.similarityScoreNum}>{profileMatch}%</CustomText>
+                                <CustomText style={styles.similarityScoreLabel}>Match</CustomText>
+                            </View>
+                        </View>
+
+                        <View style={styles.scoreRow}>
+                            <View style={styles.scoreMetric}>
+                                <CustomText style={styles.metricLabel}>Profile Match</CustomText>
+                                <CustomText style={styles.metricVal}>
+                                    {cbfScore}
                                 </CustomText>
                             </View>
 
-                            <View style={styles.matchPill}>
-                                <CustomIcon library="Feather" name="check-circle" size={13} color={Colors.WHITE} />
-                                <CustomText style={styles.matchPillText}>{profileMatch}% Profile Match</CustomText>
+                            <View style={styles.scoreMetric}>
+                                <CustomText style={styles.metricLabel}>Peer Similarities</CustomText>
+                                <CustomText style={styles.metricVal}>
+                                    {cfScore}
+                                </CustomText>
                             </View>
                         </View>
-
-                        <CustomText style={styles.heroTitle} numberOfLines={2}>
-                            {trailName}
-                        </CustomText>
-
-                        <View style={styles.heroLocationRow}>
-                            <CustomIcon library="Feather" name="map-pin" size={14} color={Colors.WHITE} />
-                            <CustomText style={styles.heroLocationText}>{province}</CustomText>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Key Specs Bar */}
-                <View style={styles.specsCard}>
-                    <View style={styles.specItem}>
-                        <CustomIcon library="Feather" name="navigation" size={16} color={Colors.PRIMARY} />
-                        <CustomText style={styles.specItemLabel}>Distance</CustomText>
-                        <CustomText style={styles.specItemVal}>{distanceStr}</CustomText>
                     </View>
 
-                    <View style={styles.specDivider} />
-
-                    <View style={styles.specItem}>
-                        <CustomIcon library="Feather" name="trending-up" size={16} color={Colors.PRIMARY} />
-                        <CustomText style={styles.specItemLabel}>Peak</CustomText>
-                        <CustomText style={styles.specItemVal}>{elevStr}</CustomText>
-                    </View>
-
-                    <View style={styles.specDivider} />
-
-                    <View style={styles.specItem}>
-                        <CustomIcon library="Feather" name="bar-chart-2" size={16} color={Colors.PRIMARY} />
-                        <CustomText style={styles.specItemLabel}>Gain</CustomText>
-                        <CustomText style={styles.specItemVal}>{gainStr}</CustomText>
-                    </View>
-
-                    <View style={styles.specDivider} />
-
-                    <View style={styles.specItem}>
-                        <CustomIcon library="Feather" name="percent" size={16} color={Colors.PRIMARY} />
-                        <CustomText style={styles.specItemLabel}>Gradient</CustomText>
-                        <CustomText style={styles.specItemVal}>{slopeStr}</CustomText>
-                    </View>
-                </View>
-
-                {/* No Easy Trails - Challenge Notice Banner */}
-                {isChallengeOnlyMode && (
-                    <View style={styles.challengeNoticeBox}>
-                        <View style={styles.challengeNoticeHeader}>
-                            <View style={styles.challengeNoticeIconWrap}>
-                                <CustomIcon library="Feather" name="alert-triangle" size={15} color="#92400E" />
+                    {/* AI Reasoning Section (Gemini AI Coach) */}
+                    <View style={styles.aiReasoningCard}>
+                        <View style={styles.aiHeader}>
+                            <View style={styles.aiSparkleBox}>
+                                <CustomIcon library="Ionicons" name="sparkles" size={16} color={Palette.Amber600} />
                             </View>
-                            <CustomText style={styles.challengeNoticeTitle}>
-                                Challenge Spotlight Notice
-                            </CustomText>
-                        </View>
-                        <CustomText style={styles.challengeNoticeBody}>
-                            None of the trails in our current catalog are predicted to be easy for your physical baseline. Instead of forcing a demanding trail as an easy one, we are featuring the nearest accessible challenge trail to your profile as your Challenge of the Month. Please review the physical requirements and prepare thoroughly before hiking.
-                        </CustomText>
-                    </View>
-                )}
-
-                {/* THARESYS Profile Alignment Scoreboard */}
-                <View style={styles.scoreboardCard}>
-                    <View style={styles.scoreboardHeader}>
-                        <View style={styles.iconCircle}>
-                            <CustomIcon library="Feather" name="cpu" size={16} color={Colors.PRIMARY} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <CustomText style={styles.scoreboardTitle}>THARESYS Profile Alignment</CustomText>
-                            <CustomText style={styles.scoreboardSub}>
-                                {isChallengeOnlyMode
-                                    ? "Evaluated as the nearest accessible challenge to your Easy Anchor"
-                                    : "Evaluated against your calibrated Easy Anchor vector"}
-                            </CustomText>
-                        </View>
-                        <View style={styles.similarityScoreBox}>
-                            <CustomText style={styles.similarityScoreNum}>{profileMatch}%</CustomText>
-                            <CustomText style={styles.similarityScoreLabel}>Match</CustomText>
-                        </View>
-                    </View>
-
-                    <View style={styles.scoreRow}>
-                        <View style={styles.scoreMetric}>
-                            <CustomText style={styles.metricLabel}>Profile Match</CustomText>
-                            <CustomText style={styles.metricVal}>
-                                {cbfScore}
-                            </CustomText>
+                            <View style={{ flex: 1 }}>
+                                <CustomText style={styles.aiTitle}>Why THARESYS Recommended This</CustomText>
+                                <CustomText style={styles.aiSubtitle}>
+                                    {aiReasoning?.source === "gemini" ? "Powered by Gemini AI" : "THARESYS Mountaineering Analysis"}
+                                </CustomText>
+                            </View>
+                            {aiReasoning?.source === "gemini" && (
+                                <View style={styles.aiBadge}>
+                                    <CustomText style={styles.aiBadgeText}>Gemini AI</CustomText>
+                                </View>
+                            )}
                         </View>
 
-                        <View style={styles.scoreMetric}>
-                            <CustomText style={styles.metricLabel}>Peer Similarities</CustomText>
-                            <CustomText style={styles.metricVal}>
-                                {cfScore}
-                            </CustomText>
-                        </View>
-                    </View>
-                </View>
+                        {isAiLoading ? (
+                            <View style={styles.aiLoadingBox}>
+                                <ActivityIndicator size="small" color={Palette.Amber600} />
+                                <CustomText style={styles.aiLoadingText}>
+                                    Synthesizing personalized AI recommendation insights...
+                                </CustomText>
+                            </View>
+                        ) : (
+                            <View style={styles.aiBodyBox}>
+                                {/* Executive Summary */}
+                                <CustomText style={styles.aiNarrativeText}>
+                                    {aiReasoning?.summary ||
+                                        `Based on your calibrated average length of ${baselineMetrics.userBaseKm} km, ${trailName} (${distanceStr}) is an ideal profile match for ${formattedMonth}. Its ascent (${gainStr}) and gradient (${slopeStr}) sit comfortably within your cardiovascular comfort zone.`}
+                                </CustomText>
 
-                {/* AI Reasoning Section (Gemini AI Coach) */}
-                <View style={styles.aiReasoningCard}>
-                    <View style={styles.aiHeader}>
-                        <View style={styles.aiSparkleBox}>
-                            <CustomIcon library="Ionicons" name="sparkles" size={16} color={Palette.Amber600} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <CustomText style={styles.aiTitle}>Why THARESYS Recommended This</CustomText>
-                            <CustomText style={styles.aiSubtitle}>
-                                {aiReasoning?.source === "gemini" ? "Powered by Gemini AI" : "THARESYS Mountaineering Analysis"}
-                            </CustomText>
-                        </View>
-                        {aiReasoning?.source === "gemini" && (
-                            <View style={styles.aiBadge}>
-                                <CustomText style={styles.aiBadgeText}>Gemini AI</CustomText>
+                                {/* Numerical Profile Baseline vs. Trail Demands */}
+                                <View style={styles.benchmarkCard}>
+                                    <View style={styles.benchmarkHeader}>
+                                        <View style={styles.benchmarkHeaderLeft}>
+                                            <CustomIcon library="Feather" name="bar-chart-2" size={13} color={Palette.Slate700} />
+                                            <CustomText style={styles.benchmarkHeaderTitle}>Numerical Fit vs. Your Baseline</CustomText>
+                                        </View>
+                                        <View style={styles.benchmarkPill}>
+                                            <CustomText style={styles.benchmarkPillText}>Calibrated Metrics</CustomText>
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.benchmarkGrid}>
+                                        {/* 3 Column Headers */}
+                                        <View style={styles.benchmarkColHeaderRow}>
+                                            <View style={styles.benchmarkColA}>
+                                                <CustomText style={[styles.benchmarkColHeaderLabel, { textAlign: "center" }]}>
+                                                    Metric
+                                                </CustomText>
+                                            </View>
+                                            <View style={styles.benchmarkColB}>
+                                                <CustomText style={[styles.benchmarkColHeaderLabel, { textAlign: "center" }]}>
+                                                    Your Profile
+                                                </CustomText>
+                                            </View>
+                                            <View style={styles.benchmarkColC}>
+                                                <CustomText style={[styles.benchmarkColHeaderLabel, { textAlign: "center" }]} numberOfLines={2}>
+                                                    {trailName}
+                                                </CustomText>
+                                            </View>
+                                        </View>
+
+                                        {/* Row 1: Length / Distance */}
+                                        <View style={styles.benchmarkRow}>
+                                            <View style={styles.benchmarkColA}>
+                                                <CustomText style={styles.benchmarkMetricLabel}>Length</CustomText>
+                                            </View>
+
+                                            <View style={styles.benchmarkColB}>
+                                                <CustomText style={styles.benchmarkProfileVal}>
+                                                    {baselineMetrics.userBaseKm} km
+                                                </CustomText>
+                                            </View>
+
+                                            <View style={styles.benchmarkColC}>
+                                                <CustomText style={styles.benchmarkTrailVal}>{distanceStr}</CustomText>
+                                            </View>
+                                        </View>
+
+                                        <View style={styles.benchmarkDivider} />
+
+                                        {/* Row 2: Elevation Gain */}
+                                        <View style={styles.benchmarkRow}>
+                                            <View style={styles.benchmarkColA}>
+                                                <CustomText style={styles.benchmarkMetricLabel}>Elevation Gain</CustomText>
+                                            </View>
+
+                                            <View style={styles.benchmarkColB}>
+                                                <CustomText style={styles.benchmarkProfileVal}>
+                                                    +{baselineMetrics.userBaseGain} m
+                                                </CustomText>
+                                            </View>
+
+                                            <View style={styles.benchmarkColC}>
+                                                <CustomText style={styles.benchmarkTrailVal}>{gainStr}</CustomText>
+                                            </View>
+                                        </View>
+
+                                        <View style={styles.benchmarkDivider} />
+
+                                        {/* Row 3: Gradient / Slope */}
+                                        <View style={styles.benchmarkRow}>
+                                            <View style={styles.benchmarkColA}>
+                                                <CustomText style={styles.benchmarkMetricLabel}>Gradient</CustomText>
+                                            </View>
+
+                                            <View style={styles.benchmarkColB}>
+                                                <CustomText style={styles.benchmarkProfileVal}>
+                                                    ~{baselineMetrics.userBaseSlope}%
+                                                </CustomText>
+                                            </View>
+
+                                            <View style={styles.benchmarkColC}>
+                                                <CustomText style={styles.benchmarkTrailVal}>{slopeStr}</CustomText>
+                                            </View>
+                                        </View>
+                                    </View>
+                                </View>
+
+                                {/* Dimension 1: Physical Dimension Fit */}
+                                {aiReasoning?.physicalFit && (
+                                    <View style={styles.aiSectionBox}>
+                                        <View style={styles.aiSectionHeader}>
+                                            <CustomIcon library="Feather" name="activity" size={14} color={Palette.Green700} />
+                                            <CustomText style={styles.aiSectionTitle}>Physical Dimension Fit</CustomText>
+                                        </View>
+                                        <CustomText style={styles.aiSectionBody}>{aiReasoning.physicalFit}</CustomText>
+                                    </View>
+                                )}
+
+                                {/* Dimension 2: Terrain & Route Alignment */}
+                                {aiReasoning?.terrainFit && (
+                                    <View style={styles.aiSectionBox}>
+                                        <View style={styles.aiSectionHeader}>
+                                            <CustomIcon library="Feather" name="compass" size={14} color={Palette.Green700} />
+                                            <CustomText style={styles.aiSectionTitle}>Terrain & Route Alignment</CustomText>
+                                        </View>
+                                        <CustomText style={styles.aiSectionBody}>{aiReasoning.terrainFit}</CustomText>
+                                    </View>
+                                )}
+
+                                {/* Dimension 3: Regional & Province Match */}
+                                {aiReasoning?.provinceFit && (
+                                    <View style={styles.aiSectionBox}>
+                                        <View style={styles.aiSectionHeader}>
+                                            <CustomIcon library="Feather" name="map-pin" size={14} color={Palette.Green700} />
+                                            <CustomText style={styles.aiSectionTitle}>Regional & Province Match</CustomText>
+                                        </View>
+                                        <CustomText style={styles.aiSectionBody}>{aiReasoning.provinceFit}</CustomText>
+                                    </View>
+                                )}
+
+                                {/* Dimension 4: Safety & Trail Tips */}
+                                {aiReasoning?.safetyTips && (
+                                    <View style={styles.safetyBox}>
+                                        <View style={styles.safetyHeader}>
+                                            <CustomIcon library="Feather" name="shield" size={14} color={Palette.Slate700} />
+                                            <CustomText style={styles.safetyTitle}>Practical Trail Insights & Safety</CustomText>
+                                        </View>
+                                        <CustomText style={styles.safetyBody}>{aiReasoning.safetyTips}</CustomText>
+                                    </View>
+                                )}
                             </View>
                         )}
                     </View>
 
-                    {isAiLoading ? (
-                        <View style={styles.aiLoadingBox}>
-                            <ActivityIndicator size="small" color={Palette.Amber600} />
-                            <CustomText style={styles.aiLoadingText}>
-                                Synthesizing personalized AI recommendation insights...
+                    {/* Call to Action Card(s) */}
+                    <View style={styles.actionGrid}>
+                        {/* Column 1: Browse Offers (same primary design; with offers: prompt + button; without offers: centered text, no button) */}
+                        <TouchableOpacity
+                            style={[
+                                styles.actionCard,
+                                styles.actionCardPrimary,
+                                !hasBookableOffers && styles.actionCardCentered,
+                            ]}
+                            activeOpacity={hasBookableOffers ? 0.85 : 1}
+                            onPress={hasBookableOffers ? handleBookGuide : undefined}
+                            disabled={!hasBookableOffers}
+                        >
+                            {hasBookableOffers ? (
+                                <>
+                                    <CustomText style={styles.actionPromptPrimary}>
+                                        Ready to explore this trail recommendation?
+                                    </CustomText>
+                                    <View style={styles.actionFooter}>
+                                        <CustomText style={styles.actionLabelPrimary} numberOfLines={1}>
+                                            Browse Offers
+                                        </CustomText>
+                                        <View style={styles.actionCircleWhite}>
+                                            <CustomIcon
+                                                library="FontAwesome6"
+                                                name="chevron-right"
+                                                size={16}
+                                                color={Palette.Neutral950}
+                                            />
+                                        </View>
+                                    </View>
+                                </>
+                            ) : (
+                                <CustomText style={[styles.actionPromptPrimaryCentered, { fontWeight: '700' }]}>
+                                    More offers coming soon!
+                                </CustomText>
+                            )}
+                        </TouchableOpacity>
+
+                        {/* Column 2: View trail */}
+                        <TouchableOpacity
+                            style={[styles.actionCard, styles.actionCardSecondary]}
+                            activeOpacity={0.85}
+                            onPress={() => onTrailPress(tId)}
+                        >
+                            <CustomText style={styles.actionPromptSecondary}>
+                                Want to read more about the trail?
+                            </CustomText>
+                            <View style={styles.actionFooter}>
+                                <CustomText style={styles.actionLabelSecondary} numberOfLines={1}>
+                                    View trail
+                                </CustomText>
+                                <View style={styles.actionCirclePrimary}>
+                                    <CustomIcon
+                                        library="FontAwesome6"
+                                        name="chevron-right"
+                                        size={16}
+                                        color={Colors.WHITE}
+                                    />
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Recommendation Advisory & Safety Warning Box */}
+                    <View style={styles.warningBox}>
+                        <View style={styles.warningHeader}>
+                            <View style={styles.warningIconContainer}>
+                                <CustomIcon
+                                    library="Feather"
+                                    name="alert-triangle"
+                                    size={16}
+                                    color="#D97706"
+                                />
+                            </View>
+                            <CustomText style={styles.warningTitle}>
+                                Advisory & Safety Caution
                             </CustomText>
                         </View>
-                    ) : (
-                        <View style={styles.aiBodyBox}>
-                            {/* Executive Summary */}
-                            <CustomText style={styles.aiNarrativeText}>
-                                {aiReasoning?.summary ||
-                                    `Based on your calibrated average length of ${baselineMetrics.userBaseKm} km, ${trailName} (${distanceStr}) is an ideal profile match for ${formattedMonth}. Its ascent (${gainStr}) and gradient (${slopeStr}) sit comfortably within your cardiovascular comfort zone.`}
+                        <View style={styles.warningContent}>
+                            <CustomText style={styles.warningBody}>
+                                All trail recommendations are based on the profile survey you have answered upon sign up and your recorded hiking activity within the application. As this approach is only based on your recorded experiences, the more trails you hike with us, the better our recommendations will be.
+                            </CustomText>
+                        </View>
+                    </View>
+
+                    {/* Top 2 and 3 Trail Recommendations Section */}
+                    {runnerUpRecommendations.length > 0 && (
+                        <View style={styles.runnerUpSection}>
+                            <CustomText style={styles.runnerUpSectionTitle}>
+                                Other Recommendations
                             </CustomText>
 
-                            {/* Numerical Profile Baseline vs. Trail Demands */}
-                            <View style={styles.benchmarkCard}>
-                                <View style={styles.benchmarkHeader}>
-                                    <View style={styles.benchmarkHeaderLeft}>
-                                        <CustomIcon library="Feather" name="bar-chart-2" size={13} color={Palette.Slate700} />
-                                        <CustomText style={styles.benchmarkHeaderTitle}>Numerical Fit vs. Your Baseline</CustomText>
+                            <View style={styles.runnerUpCardsList}>
+                                {runnerUpRecommendations.map((item) => (
+                                    <RunnerUpRecommendationCard
+                                        key={item.id}
+                                        item={item}
+                                        onPress={onTrailPress}
+                                    />
+                                ))}
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Challenging Recommendation Section (Difficult Profile) */}
+                    {recommendation?.difficult && recommendation.difficult.length > 0 && (
+                        <View style={styles.challengingSection}>
+                            <CustomText style={styles.challengingSectionTitle}>
+                                Challenge of the Month
+                            </CustomText>
+
+                            {/* Challenge Advisory & Safety Caution */}
+                            <View style={styles.warningBox}>
+                                <View style={styles.warningHeader}>
+                                    <View style={styles.warningIconContainer}>
+                                        <CustomIcon
+                                            library="Feather"
+                                            name="alert-triangle"
+                                            size={16}
+                                            color="#D97706"
+                                        />
                                     </View>
-                                    <View style={styles.benchmarkPill}>
-                                        <CustomText style={styles.benchmarkPillText}>Calibrated Metrics</CustomText>
-                                    </View>
+                                    <CustomText style={styles.warningTitle}>
+                                        Challenge Advisory & Safety Caution
+                                    </CustomText>
                                 </View>
-
-                                <View style={styles.benchmarkGrid}>
-                                    {/* 3 Column Headers */}
-                                    <View style={styles.benchmarkColHeaderRow}>
-                                        <View style={styles.benchmarkColA}>
-                                            <CustomText style={[styles.benchmarkColHeaderLabel, { textAlign: "center" }]}>
-                                                Metric
-                                            </CustomText>
-                                        </View>
-                                        <View style={styles.benchmarkColB}>
-                                            <CustomText style={[styles.benchmarkColHeaderLabel, { textAlign: "center" }]}>
-                                                Your Profile
-                                            </CustomText>
-                                        </View>
-                                        <View style={styles.benchmarkColC}>
-                                            <CustomText style={[styles.benchmarkColHeaderLabel, { textAlign: "center" }]} numberOfLines={2}>
-                                                {trailName}
-                                            </CustomText>
-                                        </View>
-                                    </View>
-
-                                    {/* Row 1: Length / Distance */}
-                                    <View style={styles.benchmarkRow}>
-                                        <View style={styles.benchmarkColA}>
-                                            <CustomText style={styles.benchmarkMetricLabel}>Length</CustomText>
-                                        </View>
-
-                                        <View style={styles.benchmarkColB}>
-                                            <CustomText style={styles.benchmarkProfileVal}>
-                                                {baselineMetrics.userBaseKm} km
-                                            </CustomText>
-                                        </View>
-
-                                        <View style={styles.benchmarkColC}>
-                                            <CustomText style={styles.benchmarkTrailVal}>{distanceStr}</CustomText>
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.benchmarkDivider} />
-
-                                    {/* Row 2: Elevation Gain */}
-                                    <View style={styles.benchmarkRow}>
-                                        <View style={styles.benchmarkColA}>
-                                            <CustomText style={styles.benchmarkMetricLabel}>Elevation Gain</CustomText>
-                                        </View>
-
-                                        <View style={styles.benchmarkColB}>
-                                            <CustomText style={styles.benchmarkProfileVal}>
-                                                +{baselineMetrics.userBaseGain} m
-                                            </CustomText>
-                                        </View>
-
-                                        <View style={styles.benchmarkColC}>
-                                            <CustomText style={styles.benchmarkTrailVal}>{gainStr}</CustomText>
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.benchmarkDivider} />
-
-                                    {/* Row 3: Gradient / Slope */}
-                                    <View style={styles.benchmarkRow}>
-                                        <View style={styles.benchmarkColA}>
-                                            <CustomText style={styles.benchmarkMetricLabel}>Gradient</CustomText>
-                                        </View>
-
-                                        <View style={styles.benchmarkColB}>
-                                            <CustomText style={styles.benchmarkProfileVal}>
-                                                ~{baselineMetrics.userBaseSlope}%
-                                            </CustomText>
-                                        </View>
-
-                                        <View style={styles.benchmarkColC}>
-                                            <CustomText style={styles.benchmarkTrailVal}>{slopeStr}</CustomText>
-                                        </View>
-                                    </View>
+                                <View style={styles.warningContent}>
+                                    <CustomText style={styles.warningBody}>
+                                        The &quot;Challenge of the Month&quot; simply represents the most difficult trail that we&apos;ve calculated based on your profile and the available trail sets. It is not an invitation, especially if you are a beginner.
+                                    </CustomText>
+                                    <CustomText style={styles.warningBody}>
+                                        For everyone&apos;s safety, we suggest staying on easy trails on your 1st to 3rd hikes to help us calibrate more your profile safely.
+                                        Whether easy or not, hiking these trail without proper preparation and sufficient experience may cause injuries or accidents. As always, please proceed with caution.
+                                    </CustomText>
+                                    <CustomText style={styles.warningBody}>
+                                        As always, please proceed with caution.
+                                    </CustomText>
                                 </View>
                             </View>
 
-                            {/* Dimension 1: Physical Dimension Fit */}
-                            {aiReasoning?.physicalFit && (
-                                <View style={styles.aiSectionBox}>
-                                    <View style={styles.aiSectionHeader}>
-                                        <CustomIcon library="Feather" name="activity" size={14} color={Palette.Green700} />
-                                        <CustomText style={styles.aiSectionTitle}>Physical Dimension Fit</CustomText>
-                                    </View>
-                                    <CustomText style={styles.aiSectionBody}>{aiReasoning.physicalFit}</CustomText>
-                                </View>
-                            )}
-
-                            {/* Dimension 2: Terrain & Route Alignment */}
-                            {aiReasoning?.terrainFit && (
-                                <View style={styles.aiSectionBox}>
-                                    <View style={styles.aiSectionHeader}>
-                                        <CustomIcon library="Feather" name="compass" size={14} color={Palette.Green700} />
-                                        <CustomText style={styles.aiSectionTitle}>Terrain & Route Alignment</CustomText>
-                                    </View>
-                                    <CustomText style={styles.aiSectionBody}>{aiReasoning.terrainFit}</CustomText>
-                                </View>
-                            )}
-
-                            {/* Dimension 3: Regional & Province Match */}
-                            {aiReasoning?.provinceFit && (
-                                <View style={styles.aiSectionBox}>
-                                    <View style={styles.aiSectionHeader}>
-                                        <CustomIcon library="Feather" name="map-pin" size={14} color={Palette.Green700} />
-                                        <CustomText style={styles.aiSectionTitle}>Regional & Province Match</CustomText>
-                                    </View>
-                                    <CustomText style={styles.aiSectionBody}>{aiReasoning.provinceFit}</CustomText>
-                                </View>
-                            )}
-
-                            {/* Dimension 4: Safety & Trail Tips */}
-                            {aiReasoning?.safetyTips && (
-                                <View style={styles.safetyBox}>
-                                    <View style={styles.safetyHeader}>
-                                        <CustomIcon library="Feather" name="shield" size={14} color={Palette.Slate700} />
-                                        <CustomText style={styles.safetyTitle}>Practical Trail Insights & Safety</CustomText>
-                                    </View>
-                                    <CustomText style={styles.safetyBody}>{aiReasoning.safetyTips}</CustomText>
-                                </View>
-                            )}
+                            <TrailOfTheMonthCard
+                                recommendation={recommendation}
+                                category="difficult"
+                                showHeaderTitle={false}
+                                onPress={(trailId) => onTrailPress(trailId)}
+                                onExplorePress={() => {
+                                    const diffTrail = recommendation.difficult[0];
+                                    if (diffTrail?.id) onTrailPress(diffTrail.id);
+                                }}
+                            />
                         </View>
                     )}
                 </View>
-
-                {/* 2-Column Call to Action Cards */}
-                <View style={styles.actionGrid}>
-                    {/* Column 1: Browse Offers */}
-                    <TouchableOpacity
-                        style={[styles.actionCard, styles.actionCardPrimary]}
-                        activeOpacity={0.85}
-                        onPress={handleBookGuide}
-                    >
-                        <CustomText style={styles.actionPromptPrimary}>
-                            Ready to explore this trail recommendation?
-                        </CustomText>
-                        <View style={styles.actionFooter}>
-                            <CustomText style={styles.actionLabelPrimary} numberOfLines={1}>
-                                Browse Offers
-                            </CustomText>
-                            <View style={styles.actionCircleWhite}>
-                                <CustomIcon
-                                    library="FontAwesome6"
-                                    name="chevron-right"
-                                    size={16}
-                                    color={Palette.Neutral950}
-                                />
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-
-                    {/* Column 2: View trail */}
-                    <TouchableOpacity
-                        style={[styles.actionCard, styles.actionCardSecondary]}
-                        activeOpacity={0.85}
-                        onPress={() => onTrailPress(tId)}
-                    >
-                        <CustomText style={styles.actionPromptSecondary}>
-                            Want to read more about the trail?
-                        </CustomText>
-                        <View style={styles.actionFooter}>
-                            <CustomText style={styles.actionLabelSecondary} numberOfLines={1}>
-                                View trail
-                            </CustomText>
-                            <View style={styles.actionCirclePrimary}>
-                                <CustomIcon
-                                    library="FontAwesome6"
-                                    name="chevron-right"
-                                    size={16}
-                                    color={Colors.WHITE}
-                                />
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Recommendation Advisory & Safety Warning Box */}
-                <View style={styles.warningBox}>
-                    <View style={styles.warningHeader}>
-                        <View style={styles.warningIconContainer}>
-                            <CustomIcon
-                                library="Feather"
-                                name="alert-triangle"
-                                size={16}
-                                color="#D97706"
-                            />
-                        </View>
-                        <CustomText style={styles.warningTitle}>
-                            Advisory & Safety Caution
-                        </CustomText>
-                    </View>
-                    <View style={styles.warningContent}>
-                        <CustomText style={styles.warningBody}>
-                            All trail recommendations are based on the profile survey you have answered upon sign up and your recorded hiking activity within the application. As this approach is only based on your recorded experiences, the more trails you hike with us, the better our recommendations will be.
-                        </CustomText>
-                        <CustomText style={styles.warningBody}>
-                            Moreover, the &quot;Challenge of the Month&quot; simply represents the most difficult trail that we&apos;ve calculated based on your profile and the available trail sets. For everyone&apos;s safety, we suggest staying on easy trails on your 1st to 3rd hikes to help us calibrate more your profile safely. Whether easy or not, hiking these trail without proper preparation and sufficient experience may cause injuries or accidents.
-                        </CustomText>
-                        <CustomText style={styles.warningBody}>
-                            As always, please proceed with caution.
-                        </CustomText>
-                    </View>
-                </View>
-
-                {/* Top 2 and 3 Trail Recommendations Section */}
-                {runnerUpRecommendations.length > 0 && (
-                    <View style={styles.runnerUpSection}>
-                        <CustomText style={styles.runnerUpSectionTitle}>
-                            Other Recommendations
-                        </CustomText>
-
-                        <View style={styles.runnerUpCardsList}>
-                            {runnerUpRecommendations.map((item) => (
-                                <RunnerUpRecommendationCard
-                                    key={item.id}
-                                    item={item}
-                                    onPress={onTrailPress}
-                                />
-                            ))}
-                        </View>
-                    </View>
-                )}
-
-                {/* Challenging Recommendation Section (Difficult Profile) */}
-                {recommendation?.difficult && recommendation.difficult.length > 0 && (
-                    <View style={styles.challengingSection}>
-                        <CustomText style={styles.challengingSectionTitle}>
-                            Challenge of the Month
-                        </CustomText>
-
-                        <TrailOfTheMonthCard
-                            recommendation={recommendation}
-                            category="difficult"
-                            showHeaderTitle={false}
-                            onPress={(trailId) => onTrailPress(trailId)}
-                            onExplorePress={() => {
-                                const diffTrail = recommendation.difficult[0];
-                                if (diffTrail?.id) onTrailPress(diffTrail.id);
-                            }}
-                        />
-                    </View>
-                )}
             </ResponsiveScrollView>
         </ScreenWrapper>
     );
@@ -718,6 +805,15 @@ const styles = StyleSheet.create({
         paddingBottom: 36,
         gap: 16,
     },
+    mainBody: {
+        width: "100%",
+        gap: 16,
+    },
+    mainBodyWide: {
+        maxWidth: 860,
+        width: "100%",
+        alignSelf: "center",
+    },
     centerContainer: {
         flex: 1,
         alignItems: "center",
@@ -729,24 +825,28 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: Colors.TEXT_SECONDARY,
     },
-    heroSection: {
-        width: "100%",
+    imageContainer: {
         height: 260,
+        width: "100%",
         position: "relative",
-        backgroundColor: Palette.Slate900,
+        backgroundColor: Colors.GRAY_LIGHT,
         overflow: "hidden",
     },
-    heroImage: {
+    cardImage: {
         width: "100%",
         height: "100%",
+        backgroundColor: Colors.GRAY_LIGHT,
     },
-    heroGradient: {
-        ...StyleSheet.absoluteFillObject,
-    },
-    heroContent: {
-        ...StyleSheet.absoluteFillObject,
+    gradientOverlay: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: "100%",
         justifyContent: "flex-end",
         padding: 16,
+    },
+    contentContainer: {
         gap: 6,
     },
     heroBadgeRow: {
@@ -783,25 +883,53 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: Colors.WHITE,
     },
-    heroTitle: {
+    trailNameTitle: {
         fontSize: 24,
         fontWeight: "800",
+        color: Colors.TEXT_INVERSE,
+        textAlign: "left",
         lineHeight: 32,
-        paddingBottom: 4,
-        color: Colors.WHITE,
-        textShadowColor: "rgba(0, 0, 0, 0.75)",
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
+        letterSpacing: 0.2,
+        ...Platform.select({
+            ios: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            android: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            web: {
+                textShadow: `0px 1px 4px ${Colors.BLACK}80`,
+            },
+        }),
     },
     heroLocationRow: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 5,
+        gap: 6,
     },
-    heroLocationText: {
+    metaText: {
         fontSize: 13,
         fontWeight: "600",
-        color: "rgba(255, 255, 255, 0.95)",
+        color: Colors.TEXT_INVERSE,
+        ...Platform.select({
+            ios: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            android: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            web: {
+                textShadow: `0px 1px 4px ${Colors.BLACK}80`,
+            },
+        }),
     },
     specsCard: {
         flexDirection: "row",
@@ -1157,6 +1285,17 @@ const styles = StyleSheet.create({
     },
     actionCardSecondary: {
         backgroundColor: "#F4F5F5",
+    },
+    actionCardCentered: {
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    actionPromptPrimaryCentered: {
+        fontSize: 14,
+        fontWeight: "500",
+        color: Colors.WHITE,
+        lineHeight: 20,
+        textAlign: "center",
     },
     actionPromptPrimary: {
         fontSize: 14,
