@@ -47,6 +47,7 @@ import { ActivityLog } from '@/src/features/Admin/screens/Booking/components/Act
 import AdminActionMenu from '@/src/features/Admin/screens/Booking/components/AdminActionMenu';
 import AdminCancelBookingModal from '@/src/features/Admin/screens/Booking/components/AdminCancelBookingModal';
 import AdminCancellationCard from '@/src/features/Admin/screens/Booking/components/AdminCancellationCard';
+import AdminRescheduleCard from '@/src/features/Admin/screens/Booking/components/AdminRescheduleCard';
 import AdminRefundModal, { RefundType } from '@/src/features/Admin/screens/Booking/components/AdminRefundModal';
 import HikerProfileCard from '@/src/features/Admin/screens/Booking/components/HikerProfileCard';
 import DocumentTab, { DocState } from '@/src/features/Admin/screens/Booking/tabs/DocumentTab';
@@ -55,6 +56,7 @@ import PaymentTab from '@/src/features/Admin/screens/Booking/tabs/PaymentTab';
 import { VerificationStatus } from '@/src/core/flows/PhoneVerificationFlow';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
+import { Reschedule } from '@/src/core/models/Reschedule/interfaces/Reschedule.types';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { User } from '@/src/core/models/User/User';
 import { SelectedFile } from '@/src/core/repositories/fileRepository';
@@ -110,6 +112,9 @@ export interface ReviewScreenProps {
     onUploadRefundProof?: (file: SelectedFile, request?: Cancellation | null, booking?: Booking | null) => Promise<void | string>;
     onUploadOverpaymentProof?: (file: SelectedFile, booking?: Booking | null) => Promise<void | string>;
     onApproveWithManualRefund?: (amount: number, request?: Cancellation | null, booking?: Booking | null) => Promise<void | Cancellation>;
+    rescheduleRequest?: Reschedule | null;
+    onApproveReschedule?: (newOffer: Offer, booking?: Booking, adminNote?: string) => Promise<void>;
+    onDeclineReschedule?: (reason: string, reschedule?: Reschedule | null, booking?: Booking) => Promise<void>;
 }
 
 /**
@@ -139,6 +144,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     onUploadRefundProof,
     onUploadOverpaymentProof,
     onApproveWithManualRefund,
+    rescheduleRequest,
+    onApproveReschedule,
+    onDeclineReschedule,
 }) => {
     const { width } = useWindowDimensions();
     const isWide = width >= 768;
@@ -697,6 +705,15 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
                         {/* Right Column: Documents and Payment Verification */}
                         <View style={isWide ? styles.rightColumn : styles.fullWidthContainer}>
+                            <AdminRescheduleCard
+                                booking={booking}
+                                offers={offers}
+                                reschedule={rescheduleRequest}
+                                totalAmountPaid={totalAmountPaid}
+                                onApproveReschedule={onApproveReschedule || onReschedule}
+                                onDeclineReschedule={onDeclineReschedule}
+                            />
+
                             <AdminCancellationCard
                                 status={currentStatus}
                                 cancellation={cancellationRequest}
