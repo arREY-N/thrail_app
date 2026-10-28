@@ -92,15 +92,19 @@ const tutorial = useTutorialGuide(
 
 ---
 
-## 4. Replay (`?`) Guidance Pattern
+## 4. Replay (`?`) Guidance & Conditional Help Button Pattern
 
-Every tutorial ensures users know they can replay the walkthrough on demand via the `?` (`TutorialHelpButton`) in `CustomHeader`:
+To prevent modal fatigue and respect user autonomy, the guide system adheres to non-intrusive discovery principles:
 
-1. **Standalone Screens (`createReplayHelpStep(screenLabel)`):**
-   - Appended as the final step in `constants/index.ts` (`highlightHeaderHelp: true`, `targetSpotlight: 'header_help'`).
-   - If a user taps **"Skip"** before reaching the end of a tour that has a final `?` step, `onSkipTour()` jumps directly to the final `?` spotlight step first so the user sees where the replay button lives before dismissing.
-2. **Multi-Step Wizard Flows (Early Step 1 Replay Guidance):**
-   - On multi-step flows like `OffersScreen` (`bookingOffersTour.ts`), Step 1 immediately spotlights `header_help` (`?`) so first-time hikers know right away that a help safety net is available throughout the entire booking flow.
+1. **Natural Tour Completion & Immediate Skip:**
+   - Every tour ends naturally on its true functional final step (e.g., Save Offer, Submit Booking, Got It).
+   - Tapping **"Skip"** immediately completes and dismisses the walkthrough cleanly without intercepting or jumping to an extra step.
+2. **Conditional '?' Help Button Visibility:**
+   - The top-right `?` (`TutorialHelpButton`) only appears if a guide is actively placed/configured with steps for that screen (`hasGuide={tutorial.hasGuide}`).
+   - If a screen has no guide registered or `tutorial.hasGuide === false`, the button returns `null` and is not rendered.
+3. **On-Demand Discoverability:**
+   - On web, hovering over the `?` button reveals a native tooltip: `"Replay Screen Guide"`.
+   - On mobile, `accessibilityLabel="Replay screen tutorial guide"` provides full screen-reader support. Users can tap `?` anytime to replay the walkthrough on demand.
 
 ---
 
@@ -283,7 +287,7 @@ Capture `secondSectionOffsetY.current` on the section container's `onLayout`:
 
 In your screen or controller:
 
-1. Pass `<TutorialHelpButton onPress={tutorial.onReplayTour} />` to `CustomHeader`'s `rightElement` (or `onHelpPress={tutorial.onReplayTour}` if the header supports it directly).
+1. Pass `<TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />` to `CustomHeader`'s `rightElement` or `rightActions`.
 2. Pass `activeTutorialStep={tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined}` and `isTutorialVisible={tutorial.isVisible}` down to the screen view if it needs auto-scroll.
 3. Render `<CustomTutorialModal />` at the root of the view:
 
@@ -295,7 +299,7 @@ return (
         <CustomHeader
             title="Trail Summary"
             showBackButton={true}
-            rightElement={<TutorialHelpButton onPress={tutorial.onReplayTour} />}
+            rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />}
         />
 
         <MyNewScreen
