@@ -175,7 +175,6 @@ const SettingsScreen = ({
             >
                 <View style={styles.section}>
                     <SectionHeader title="Account & Security" />
-                    <SettingsItem icon="user" title="Profile Information" onPress={onProfileInfoPress} />
                     <SettingsItem icon="shield" title="Security" onPress={onSecurityPress} />
 
                     {role === 'superadmin' && (
@@ -199,7 +198,7 @@ const SettingsScreen = ({
                     <SectionHeader title="App Information" />
                     <SettingsItem icon="info" title="About The App" onPress={onAboutPress} />
                     {__DEV__ && (
-                        <SettingsItem icon="sliders" title="Test Screen" onPress={onTestPress || (() => {})} />
+                        <SettingsItem icon="sliders" title="Test Screen" onPress={onTestPress || (() => { })} />
                     )}
                 </View>
 
