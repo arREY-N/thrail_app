@@ -124,7 +124,7 @@ export class GpsKalmanFilter {
    * Allows shaded canopy fixes up to 65m into the Kalman estimator (damped)
    * while rejecting gross cell-tower / Wi-Fi scatter > 65m.
    */
-  private readonly maxAcceptableAccuracyM = 65;
+  private readonly maxAcceptableAccuracyM = 120;
 
   /**
    * Maximum physically plausible hiking/trail-running speed (m/s) (~27 km/h).
@@ -180,7 +180,7 @@ export class GpsKalmanFilter {
     const hasValidAccuracy =
       typeof rawAccuracy === "number" && !isNaN(rawAccuracy) && rawAccuracy > 0;
 
-    // Allow initial cold-start lock up to 100m accuracy; enforce 65m gate once initialized
+    // Allow initial cold-start lock up to 100m accuracy; enforce 120m gate once initialized
     const maxAllowedAccuracy =
       this.estLat === null ? 100 : this.maxAcceptableAccuracyM;
     if (hasValidAccuracy && rawAccuracy > maxAllowedAccuracy) {
@@ -236,6 +236,12 @@ export class GpsKalmanFilter {
 
     // 3. Time Delta & Multipath Teleportation Gate
     const dtSec = Math.max(0.5, (timestamp - this.lastTimestampMs) / 1000);
+    const rawDistFromAnchor = haversineDistanceMeters(
+      this.anchorLat,
+      this.anchorLon,
+      rawLat,
+      rawLon
+    );
     const rawDistFromEst = haversineDistanceMeters(
       this.estLat,
       this.estLon,
@@ -244,17 +250,22 @@ export class GpsKalmanFilter {
     );
     const apparentSpeedMps = rawDistFromEst / dtSec;
 
+    // Hardware Doppler speed confirms high-speed vehicle transit (> 6.0 m/s)
+    const isConfirmedHighSpeed = validSpeed !== undefined && validSpeed > 6.0;
+
     // Single-point canopy multipath reflections bounce sideways at impossible speeds (> 7.5 m/s)
     // and snap back on the next fix. However, if 2+ consecutive fixes confirm the new location
     // (e.g., coarse-to-fine GPS lock, vehicle transit, or emulator coordinate injection),
     // re-anchor immediately instead of freezing the indicator.
     if (
+      !isConfirmedHighSpeed &&
       dtSec < 60 &&
       apparentSpeedMps > this.maxPlausibleSpeedMps &&
       rawDistFromEst > Math.max(20, effectiveAccuracy * 1.8)
     ) {
       this.consecutiveRejectedJumps += 1;
       if (this.consecutiveRejectedJumps < 2) {
+        this.lastTimestampMs = timestamp;
         return null;
       }
 
@@ -288,10 +299,10 @@ export class GpsKalmanFilter {
     const isDopplerStationary = validSpeed !== undefined && validSpeed < 0.35;
     const isDopplerMoving = validSpeed !== undefined && validSpeed >= 0.55;
     const processNoiseMps = isDopplerStationary
-      ? 0.45
+      ? 0.25
       : isDopplerMoving
-        ? Math.max(1.8, Math.min(4.5, validSpeed))
-        : 1.8;
+        ? Math.max(2.2, Math.min(6.0, validSpeed))
+        : 2.0;
 
     // Cap dtSec at 30s for variance growth to avoid numerical blowup after long pauses
     const cappedDt = Math.min(30, dtSec);
@@ -303,13 +314,13 @@ export class GpsKalmanFilter {
 
     // 5. Kalman Update Step (Measurement Noise R scaled under degraded canopy accuracy)
     const canopyPenalty =
-      effectiveAccuracy > 12 ? 1 + (effectiveAccuracy - 12) * 0.08 : 1.0;
+      effectiveAccuracy > 12 ? 1 + (effectiveAccuracy - 12) * 0.04 : 1.0;
     const measurementNoiseR =
-      effectiveAccuracy * effectiveAccuracy * canopyPenalty * canopyPenalty;
+      effectiveAccuracy * effectiveAccuracy * canopyPenalty;
 
     const rawKalmanGain = this.variance / (this.variance + measurementNoiseR);
     // Ensure a minimum responsiveness floor so the blue dot never lags behind real walking
-    const minGain = isDopplerStationary ? 0.08 : 0.24;
+    const minGain = isDopplerStationary ? 0.08 : 0.38;
     const kalmanGain = Math.max(minGain, rawKalmanGain);
 
     const prevEstLat = this.estLat;
@@ -346,10 +357,14 @@ export class GpsKalmanFilter {
       const breakoutDeadbandM = isDopplerMoving
         ? 1.5
         : isDopplerStationary
-          ? Math.max(3.5, Math.min(8.5, effectiveAccuracy * 0.45))
-          : Math.max(2.0, Math.min(4.8, 2.0 + Math.max(0, effectiveAccuracy - 5) * 0.2));
+          ? Math.max(3.0, Math.min(6.5, effectiveAccuracy * 0.35))
+          : Math.max(2.0, Math.min(4.0, 2.0 + Math.max(0, effectiveAccuracy - 5) * 0.15));
 
-      if (distFromAnchor < breakoutDeadbandM && !(isDopplerMoving && rawDistFromEst >= 2.0)) {
+      const isImmediateBreakout =
+        (isDopplerMoving && rawDistFromAnchor >= 1.5) ||
+        rawDistFromAnchor >= breakoutDeadbandM * 1.35;
+
+      if (!isImmediateBreakout && distFromAnchor < breakoutDeadbandM) {
         // Hiker is still within the stationary uncertainty envelope: keep anchor locked
         return {
           latitude: this.anchorLat,
