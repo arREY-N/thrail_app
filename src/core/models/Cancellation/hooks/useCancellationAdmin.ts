@@ -273,7 +273,8 @@ export function useCancellationAdmin(bookingId: string) {
     const uploadRefundProof = async (
         file: SelectedFile,
         request?: Cancellation | null,
-        targetBooking?: Booking | null
+        targetBooking?: Booking | null,
+        adminNote?: string
     ) => {
         try {
             setWritingError(null);
@@ -294,6 +295,7 @@ export function useCancellationAdmin(bookingId: string) {
                 cancellationId: target.id,
                 receiptUrl: downloadUrl,
                 refundAmount: target.refundAmount || targetBooking?.offer?.price,
+                adminNote: adminNote?.trim(),
             });
 
             const resolvedBizId = target.businessId || businessId;
