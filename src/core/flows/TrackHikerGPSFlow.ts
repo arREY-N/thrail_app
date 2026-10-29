@@ -40,6 +40,86 @@ const userLocationListeners = new Set<(loc: [number, number] | null) => void>();
 const userHeadingListeners = new Set<(heading: number | null) => void>();
 const permissionListeners = new Set<(granted: boolean) => void>();
 
+const ensureNetInfoMonitoring = (): void => {
+    if (Platform.OS === "web") return;
+    if (globalNetInfoSub) return;
+
+    NetInfo.fetch()
+        .then((state) => {
+            const reach = state.isInternetReachable === null ? (state.isConnected ?? true) : !!state.isInternetReachable;
+            globalLastReach = reach;
+            onlineListeners.forEach((fn) => fn(reach));
+        })
+        .catch(() => {});
+
+    globalNetInfoSub = NetInfo.addEventListener((state) => {
+        const reach = state.isInternetReachable === null ? (state.isConnected ?? true) : !!state.isInternetReachable;
+        const wasOffline = !globalLastReach;
+        globalLastReach = reach;
+        onlineListeners.forEach((fn) => fn(reach));
+        if (reach && wasOffline) {
+            console.log("[TrackHikerGPSFlow] Internet restored, syncing offline data...");
+            useHikeStore.getState().syncOfflineData();
+        }
+    });
+};
+
+const releaseNetInfoMonitoringIfIdle = (): void => {
+    if (globalActiveInstances === 0 && onlineListeners.size === 0) {
+        if (globalNetInfoSub) {
+            globalNetInfoSub();
+            globalNetInfoSub = null;
+        }
+    }
+};
+
+/**
+ * Standalone hook to subscribe to real-time network reachability status.
+ * Reuses the singleton NetInfo subscription and onlineListeners set from TrackHikerGPSFlow
+ * without subscribing to high-frequency (80ms) compass heading or GPS coordinate watchers.
+ */
+export const useNetworkStatus = (): { isOnline: boolean } => {
+    const [isOnline, setIsOnline] = useState<boolean>(() => {
+        if (Platform.OS === "web") {
+            return typeof navigator !== "undefined" ? navigator.onLine : true;
+        }
+        return globalLastReach;
+    });
+
+    useEffect(() => {
+        if (Platform.OS === "web") {
+            if (typeof window === "undefined") return;
+            const handleOnline = () => {
+                globalLastReach = true;
+                setIsOnline(true);
+                onlineListeners.forEach((fn) => fn(true));
+            };
+            const handleOffline = () => {
+                globalLastReach = false;
+                setIsOnline(false);
+                onlineListeners.forEach((fn) => fn(false));
+            };
+            window.addEventListener("online", handleOnline);
+            window.addEventListener("offline", handleOffline);
+            return () => {
+                window.removeEventListener("online", handleOnline);
+                window.removeEventListener("offline", handleOffline);
+            };
+        }
+
+        const handleStatus = (online: boolean) => setIsOnline(online);
+        onlineListeners.add(handleStatus);
+        ensureNetInfoMonitoring();
+
+        return () => {
+            onlineListeners.delete(handleStatus);
+            releaseNetInfoMonitoringIfIdle();
+        };
+    }, []);
+
+    return { isOnline };
+};
+
 /**
  * Returns true if the foreground watchPositionAsync subscription is active and the app is in the foreground.
  */
@@ -131,7 +211,7 @@ export const TrackHikerGPSFlow = () => {
     const routeCoordinates = useHikeStore((state) => state.walkedRoute);
 
     const [permissionGranted, setPermissionGranted] = useState(globalPermissionGranted);
-    const [isOnline, setIsOnline] = useState(true);
+    const [isOnline, setIsOnline] = useState(globalLastReach);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(globalUserLocation);
     const [userHeading, setUserHeading] = useState<number | null>(globalUserHeading);
 
@@ -409,7 +489,17 @@ export const TrackHikerGPSFlow = () => {
 
     // Set up listeners on mount and clean up on unmount
     useEffect(() => {
-        if (Platform.OS === "web") return;
+        if (Platform.OS === "web") {
+            if (typeof window === "undefined") return;
+            const handleOnline = () => setIsOnline(true);
+            const handleOffline = () => setIsOnline(false);
+            window.addEventListener("online", handleOnline);
+            window.addEventListener("offline", handleOffline);
+            return () => {
+                window.removeEventListener("online", handleOnline);
+                window.removeEventListener("offline", handleOffline);
+            };
+        }
 
         const handleOnlineChange = (online: boolean) => setIsOnline(online);
         const handleLocationChange = (loc: [number, number] | null) => setUserLocation(loc);
@@ -429,16 +519,7 @@ export const TrackHikerGPSFlow = () => {
         globalActiveInstances++;
 
         if (globalActiveInstances === 1) {
-            globalNetInfoSub = NetInfo.addEventListener((state) => {
-                const reach = state.isInternetReachable === null ? true : !!state.isInternetReachable;
-                const wasOffline = !globalLastReach;
-                globalLastReach = reach;
-                onlineListeners.forEach((fn) => fn(reach));
-                if (reach && wasOffline) {
-                    console.log('[TrackHikerGPSFlow] Internet restored, syncing offline data...');
-                    useHikeStore.getState().syncOfflineData();
-                }
-            });
+            ensureNetInfoMonitoring();
 
             globalAppStateSub = AppState.addEventListener(
                 "change",
@@ -472,10 +553,7 @@ export const TrackHikerGPSFlow = () => {
                     globalAppStateSub.remove();
                     globalAppStateSub = null;
                 }
-                if (globalNetInfoSub) {
-                    globalNetInfoSub();
-                    globalNetInfoSub = null;
-                }
+                releaseNetInfoMonitoringIfIdle();
                 if (globalLocationSub) {
                     globalLocationSub.remove();
                     globalLocationSub = null;
