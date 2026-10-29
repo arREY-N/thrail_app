@@ -11,6 +11,7 @@ export {
 export { useRescheduleStore } from "@/src/core/models/Reschedule/stores/rescheduleStore";
 
 // HOOKS
+export { useRescheduleAdmin } from "@/src/core/models/Reschedule/hooks/useRescheduleAdmin";
 export { useRescheduleAdminList } from "@/src/core/models/Reschedule/hooks/useRescheduleAdminList";
 export { useRescheduleUser } from "@/src/core/models/Reschedule/hooks/useRescheduleUser";
 export { useRescheduleUserList } from "@/src/core/models/Reschedule/hooks/useRescheduleUserList";
