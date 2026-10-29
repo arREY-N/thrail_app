@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useRef } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import {
     isTutorialMeasurementActive,
@@ -38,7 +38,7 @@ export const useHikeRecordingTutorial = ({
         : 'recording_diy';
 
     // The tutorial only auto-launches on initial unhiked state when screen is fully ready
-    const isReady = hikeStatus === 'unhiked' && !isLoading;
+    const isReady = Platform.OS !== 'web' && hikeStatus === 'unhiked' && !isLoading;
     const tutorial = useTutorialGuide(activeTourId, isReady);
 
     const headerTrailRef = useRef<View>(null);

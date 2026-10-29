@@ -236,63 +236,80 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 ]}
                 pointerEvents="box-none"
             >
-                <View
-                    style={[
-                        styles.searchRowWrapper,
-                        Platform.OS === 'web' && (
+                {Platform.OS === 'web' ? (
+                    <View
+                        style={
                             isLargeScreen
                                 ? { paddingLeft: 48, paddingRight: 60 }
                                 : { paddingLeft: 50, paddingRight: 40 }
-                        ),
-                        isFullscreen && { justifyContent: 'flex-end' },
-                    ]}
-                >
-                    {!isFullscreen ? (
-                        <>
-                            <View
-                                ref={searchBarRef}
-                                collapsable={false}
-                                onLayout={handlers.handleSearchBarLayout}
-                                style={styles.searchBarFlex}
-                            >
-                                <CustomSearchBar
-                                    searchPlaceholder="Search mountains or trails..."
-                                    searchValue={searchQuery}
-                                    onSearchChange={onSearchChange}
-                                    onSubmitEditing={onSearchSubmit}
-                                    activeTab={undefined}
-                                    onTabSelect={undefined}
-                                    containerStyle={styles.customSearchBarContainer}
+                        }
+                    >
+                        <CustomSearchBar
+                            searchPlaceholder="Search mountains or trails..."
+                            searchValue={searchQuery}
+                            onSearchChange={onSearchChange}
+                            onSubmitEditing={onSearchSubmit}
+                            activeTab={undefined}
+                            onTabSelect={undefined}
+                        />
+                    </View>
+                ) : (
+                    <View
+                        style={[
+                            styles.searchRowWrapper,
+                            isFullscreen && { justifyContent: 'flex-end' },
+                        ]}
+                    >
+                        {!isFullscreen ? (
+                            <>
+                                <View
+                                    ref={searchBarRef}
+                                    collapsable={false}
+                                    onLayout={handlers.handleSearchBarLayout}
+                                    style={styles.searchBarFlex}
+                                >
+                                    <CustomSearchBar
+                                        searchPlaceholder="Search mountains or trails..."
+                                        searchValue={searchQuery}
+                                        onSearchChange={onSearchChange}
+                                        onSubmitEditing={onSearchSubmit}
+                                        activeTab={undefined}
+                                        onTabSelect={undefined}
+                                        containerStyle={styles.customSearchBarContainer}
+                                    />
+                                </View>
+
+                                <TutorialHelpButton
+                                    onPress={tutorial.onReplayTour}
+                                    hasGuide={tutorial.hasGuide}
+                                    style={styles.searchHelpBtn}
                                 />
-                            </View>
-
-                            <TutorialHelpButton
-                                onPress={tutorial.onReplayTour}
-                                hasGuide={tutorial.hasGuide}
+                            </>
+                        ) : (
+                            <TouchableOpacity
                                 style={styles.searchHelpBtn}
-                            />
-                        </>
-                    ) : (
-                        <TouchableOpacity
-                            style={styles.searchHelpBtn}
-                            onPress={() => setIsFullscreen(false)}
-                            activeOpacity={0.8}
-                            accessibilityLabel="Exit Fullscreen Map"
-                        >
-                            <CustomIcon library="Feather" name="minimize-2" size={19} color={Colors.PRIMARY} />
-                        </TouchableOpacity>
-                    )}
-                </View>
+                                onPress={() => setIsFullscreen(false)}
+                                activeOpacity={0.8}
+                                accessibilityLabel="Exit Fullscreen Map"
+                            >
+                                <CustomIcon library="Feather" name="minimize-2" size={19} color={Colors.PRIMARY} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
 
-                {!isFullscreen && showDropdown && (
+                {(!isFullscreen || Platform.OS === 'web') && showDropdown && (
                     <View
                         style={[
                             styles.dropdownContainer,
-                            Platform.OS === 'web' && (
-                                isLargeScreen
-                                    ? { marginHorizontal: 16 }
-                                    : { marginHorizontal: 12 }
-                            ),
+                            Platform.OS === 'web'
+                                ? [
+                                    { marginTop: -14 },
+                                    isLargeScreen
+                                        ? { marginLeft: 48, marginRight: 60, marginHorizontal: 0 }
+                                        : { marginLeft: 50, marginRight: 40, marginHorizontal: 0 },
+                                ]
+                                : { marginTop: 8 },
                         ]}
                     >
                         <FlatList
@@ -350,20 +367,22 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
 
             {!isFullscreen && (
                 <View style={[styles.mapControlsColumn, { bottom: controlsHeight + 36 }]}>
-                    <View
-                        ref={fullscreenBtnRef}
-                        collapsable={false}
-                        onLayout={handlers.handleFullscreenBtnLayout}
-                    >
-                        <TouchableOpacity
-                            style={styles.floatingIconBtn}
-                            onPress={() => setIsFullscreen(true)}
-                            activeOpacity={0.8}
-                            accessibilityLabel="Enter Fullscreen Map"
+                    {Platform.OS !== 'web' && (
+                        <View
+                            ref={fullscreenBtnRef}
+                            collapsable={false}
+                            onLayout={handlers.handleFullscreenBtnLayout}
                         >
-                            <CustomIcon library="Feather" name="maximize-2" size={19} color={Colors.PRIMARY} />
-                        </TouchableOpacity>
-                    </View>
+                            <TouchableOpacity
+                                style={styles.floatingIconBtn}
+                                onPress={() => setIsFullscreen(true)}
+                                activeOpacity={0.8}
+                                accessibilityLabel="Enter Fullscreen Map"
+                            >
+                                <CustomIcon library="Feather" name="maximize-2" size={19} color={Colors.PRIMARY} />
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     {Platform.OS !== 'web' && upcomingBookings.length > 0 && (
                         <View
@@ -630,16 +649,18 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
 
             )}
 
-            <CustomTutorialModal
-                visible={tutorial.isVisible && !isFullscreen}
-                tourConfig={tutorial.tourConfig}
-                currentStep={tutorial.currentStep}
-                currentStepIndex={tutorial.currentStepIndex}
-                totalSteps={tutorial.totalSteps}
-                onNext={tutorial.onNextStep}
-                onPrev={tutorial.onPrevStep}
-                onSkip={tutorial.onSkipTour}
-            />
+            {Platform.OS !== 'web' && (
+                <CustomTutorialModal
+                    visible={tutorial.isVisible && !isFullscreen}
+                    tourConfig={tutorial.tourConfig}
+                    currentStep={tutorial.currentStep}
+                    currentStepIndex={tutorial.currentStepIndex}
+                    totalSteps={tutorial.totalSteps}
+                    onNext={tutorial.onNextStep}
+                    onPrev={tutorial.onPrevStep}
+                    onSkip={tutorial.onSkipTour}
+                />
+            )}
         </View>
     );
 };
