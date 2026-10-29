@@ -7,6 +7,11 @@ import ConfirmationModal from "@/src/components/ConfirmationModal";
 import CustomHeader from "@/src/components/CustomHeader";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
+import {
+    CustomTutorialModal,
+    TutorialHelpButton,
+} from "@/src/components/Tutorial/Tutorial";
+import { useHikeRecordingTutorial } from "@/src/features/Navigation/hooks/useHikeRecordingTutorial";
 import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
@@ -128,6 +133,26 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         setPrevError(error);
         setLocalError(error);
     }
+
+    const {
+        tutorial,
+        headerTrailRef,
+        headerSosRef,
+        trailInfoBtnRef,
+        groupChatBtnRef,
+        teamStatusBtnRef,
+        mapOptionsBtnRef,
+        mapStyleBtnRef,
+        recenterBtnRef,
+        metricsHudRef,
+        startBtnRef,
+        helpBtnRef,
+        handlers,
+    } = useHikeRecordingTutorial({
+        booking,
+        hikeStatus: hike.status,
+        isLoading,
+    });
 
     const [isOfflineMode, setIsOfflineMode] = useState(true);
     const [modeToast, setModeToast] = useState<string | null>(null);
@@ -438,7 +463,12 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                     <CustomIcon library="Feather" name="chevron-left" size={24} color={Colors.TEXT_PRIMARY} />
                 </TouchableOpacity>
 
-                <View style={styles.glassPillCenter}>
+                <View
+                    ref={headerTrailRef}
+                    collapsable={false}
+                    onLayout={handlers.handleHeaderTrailLayout}
+                    style={styles.glassPillCenter}
+                >
                     <CustomText style={styles.headerTitle} numberOfLines={1}>{hike.trail?.name || "Independent Route"}</CustomText>
                     <View style={styles.liveStatusRow}>
                         {isStarted && <CustomIcon library="Feather" name="play-circle" size={10} color={Colors.PRIMARY} />}
@@ -449,9 +479,15 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                     </View>
                 </View>
 
-                <TouchableOpacity style={[styles.glassPillRound, { backgroundColor: Colors.WHITE }]} onPress={() => setShowSosMenu(true)}>
-                    <CustomIcon library="Feather" name="alert-triangle" size={20} color={Colors.ERROR} />
-                </TouchableOpacity>
+                <View
+                    ref={headerSosRef}
+                    collapsable={false}
+                    onLayout={handlers.handleHeaderSosLayout}
+                >
+                    <TouchableOpacity style={[styles.glassPillRound, { backgroundColor: Colors.WHITE }]} onPress={() => setShowSosMenu(true)}>
+                        <CustomIcon library="Feather" name="alert-triangle" size={20} color={Colors.ERROR} />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {modeToast && (
@@ -471,42 +507,90 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
             )}
 
             <View style={[styles.mapControls, { bottom: dashboardHeight + 16 }]}>
-                {booking && (
-                    <TouchableOpacity style={styles.fabBtn} onPress={() => setShowTrailInfo(true)}>
-                        <CustomIcon library="Feather" name="info" size={20} color={Colors.PRIMARY} />
-                    </TouchableOpacity>
-                )}
-                {isGuidedHike && currentGroup && (
-                    <TouchableOpacity style={styles.fabBtn} onPress={() => router.push({ pathname: '/(app)/(main)/group/room', params: { roomId: currentGroup.id } })}>
-                        <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
-                    </TouchableOpacity>
-                )}
-                {isGuidedHike && currentGroup && (
-                    <TouchableOpacity style={styles.fabBtn} onPress={() => setShowTeamStatus(true)}>
-                        <CustomIcon library="Feather" name="users" size={20} color={Colors.PRIMARY} />
-                    </TouchableOpacity>
-                )}
-                {isGuidedHike && currentGroup && (
-                    <TouchableOpacity style={styles.fabBtn} onPress={() => setShowMapOptions(true)}>
-                        <CustomIcon library="Feather" name="settings" size={20} color={Colors.PRIMARY} />
-                    </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                    style={styles.fabBtn}
-                    onPress={handleToggleOffline}
-                    activeOpacity={0.8}
-                    accessibilityLabel={`Toggle map mode. Currently ${isOfflineMode ? "Offline" : "Online"}`}
+                <View
+                    ref={helpBtnRef}
+                    collapsable={false}
+                    onLayout={handlers.handleHelpBtnLayout}
                 >
-                    <CustomIcon
-                        library="Feather"
-                        name={isOfflineMode ? "hard-drive" : "cloud"}
-                        size={20}
-                        color={Colors.PRIMARY}
+                    <TutorialHelpButton
+                        onPress={tutorial.onReplayTour}
+                        hasGuide={tutorial.hasGuide}
+                        style={styles.floatingHelpBtn}
                     />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.fabBtn} onPress={() => mapRef.current?.centerOnUser()}>
-                    <CustomIcon library="Ionicons" name="locate" size={22} color={Colors.TEXT_PRIMARY} />
-                </TouchableOpacity>
+                </View>
+
+                {booking && (
+                    <View
+                        ref={trailInfoBtnRef}
+                        collapsable={false}
+                        onLayout={handlers.handleTrailInfoBtnLayout}
+                    >
+                        <TouchableOpacity style={styles.fabBtn} onPress={() => setShowTrailInfo(true)}>
+                            <CustomIcon library="Feather" name="info" size={20} color={Colors.PRIMARY} />
+                        </TouchableOpacity>
+                    </View>
+                )}
+                {isGuidedHike && currentGroup && (
+                    <View
+                        ref={groupChatBtnRef}
+                        collapsable={false}
+                        onLayout={handlers.handleGroupChatBtnLayout}
+                    >
+                        <TouchableOpacity style={styles.fabBtn} onPress={() => router.push({ pathname: '/(app)/(main)/group/room', params: { roomId: currentGroup.id } })}>
+                            <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
+                        </TouchableOpacity>
+                    </View>
+                )}
+                {isGuidedHike && currentGroup && (
+                    <View
+                        ref={teamStatusBtnRef}
+                        collapsable={false}
+                        onLayout={handlers.handleTeamStatusBtnLayout}
+                    >
+                        <TouchableOpacity style={styles.fabBtn} onPress={() => setShowTeamStatus(true)}>
+                            <CustomIcon library="Feather" name="users" size={20} color={Colors.PRIMARY} />
+                        </TouchableOpacity>
+                    </View>
+                )}
+                {isGuidedHike && currentGroup && (
+                    <View
+                        ref={mapOptionsBtnRef}
+                        collapsable={false}
+                        onLayout={handlers.handleMapOptionsBtnLayout}
+                    >
+                        <TouchableOpacity style={styles.fabBtn} onPress={() => setShowMapOptions(true)}>
+                            <CustomIcon library="Feather" name="settings" size={20} color={Colors.PRIMARY} />
+                        </TouchableOpacity>
+                    </View>
+                )}
+                <View
+                    ref={mapStyleBtnRef}
+                    collapsable={false}
+                    onLayout={handlers.handleMapStyleBtnLayout}
+                >
+                    <TouchableOpacity
+                        style={styles.fabBtn}
+                        onPress={handleToggleOffline}
+                        activeOpacity={0.8}
+                        accessibilityLabel={`Toggle map mode. Currently ${isOfflineMode ? "Offline" : "Online"}`}
+                    >
+                        <CustomIcon
+                            library="Feather"
+                            name={isOfflineMode ? "hard-drive" : "cloud"}
+                            size={20}
+                            color={Colors.PRIMARY}
+                        />
+                    </TouchableOpacity>
+                </View>
+                <View
+                    ref={recenterBtnRef}
+                    collapsable={false}
+                    onLayout={handlers.handleRecenterBtnLayout}
+                >
+                    <TouchableOpacity style={styles.fabBtn} onPress={() => mapRef.current?.centerOnUser()}>
+                        <CustomIcon library="Ionicons" name="locate" size={22} color={Colors.TEXT_PRIMARY} />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <View
@@ -526,7 +610,12 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                     </TouchableOpacity>
                 )}
 
-                <View style={styles.metricsCard}>
+                <View
+                    ref={metricsHudRef}
+                    collapsable={false}
+                    onLayout={handlers.handleMetricsHudLayout}
+                    style={styles.metricsCard}
+                >
                     <View style={styles.metricsGrid}>
                         <View style={styles.metricItem}>
                             <CustomText style={styles.metricValue}>{liveDistanceStr}</CustomText>
@@ -548,23 +637,30 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
                 <View style={styles.actionRow}>
                     {hike.status === "unhiked" && (
-                        <TouchableOpacity
-                            style={[styles.lightGreenBtn, isStartLoading && { opacity: 0.7 }]}
-                            onPress={handleStartHike}
-                            disabled={isStartLoading}
+                        <View
+                            ref={startBtnRef}
+                            collapsable={false}
+                            onLayout={handlers.handleStartBtnLayout}
+                            style={{ flex: 1 }}
                         >
-                            {isStartLoading ? (
-                                <>
-                                    <ActivityIndicator size="small" color={Colors.PRIMARY} />
-                                    <CustomText style={styles.lightGreenBtnText}>Starting Recording...</CustomText>
-                                </>
-                            ) : (
-                                <>
-                                    <CustomIcon library="Feather" name="play" size={20} color={Colors.PRIMARY} />
-                                    <CustomText style={styles.lightGreenBtnText}>Start Recording</CustomText>
-                                </>
-                            )}
-                        </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.lightGreenBtn, isStartLoading && { opacity: 0.7 }]}
+                                onPress={handleStartHike}
+                                disabled={isStartLoading}
+                            >
+                                {isStartLoading ? (
+                                    <>
+                                        <ActivityIndicator size="small" color={Colors.PRIMARY} />
+                                        <CustomText style={styles.lightGreenBtnText}>Starting Recording...</CustomText>
+                                    </>
+                                ) : (
+                                    <>
+                                        <CustomIcon library="Feather" name="play" size={20} color={Colors.PRIMARY} />
+                                        <CustomText style={styles.lightGreenBtnText}>Start Recording</CustomText>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                        </View>
                     )}
 
                     {isStarted && (
@@ -911,6 +1007,17 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                     </View>
                 </View>
             </Modal>
+
+            <CustomTutorialModal
+                visible={tutorial.isVisible}
+                tourConfig={tutorial.tourConfig}
+                currentStep={tutorial.currentStep}
+                currentStepIndex={tutorial.currentStepIndex}
+                totalSteps={tutorial.totalSteps}
+                onNext={tutorial.onNextStep}
+                onPrev={tutorial.onPrevStep}
+                onSkip={tutorial.onSkipTour}
+            />
         </View>
     );
 };
@@ -929,6 +1036,15 @@ const styles = StyleSheet.create({
 
     mapControls: { position: 'absolute', right: 16, gap: 12, zIndex: 30 },
     fabBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: 'center', justifyContent: 'center', ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
+    floatingHelpBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.WHITE,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }),
+    },
 
     dashboardWrapper: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 16, zIndex: 40, alignItems: 'center' },
     errorBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.WHITE, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8, width: '100%', maxWidth: Layout.MAX_WIDTH, ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },

@@ -7,6 +7,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+    Animated,
     Modal,
     Platform,
     StyleProp,
@@ -222,6 +223,16 @@ const ActiveTutorialModalContent = ({
     const [measuredCardHeight, setMeasuredCardHeight] = useState<number>(235);
     const [registryVersion, setRegistryVersion] = useState<number>(0);
     const containerRef = useRef<View>(null);
+    const [stepFadeAnim] = useState(() => new Animated.Value(1));
+
+    useEffect(() => {
+        stepFadeAnim.setValue(0.2);
+        Animated.timing(stepFadeAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: Platform.OS !== 'web',
+        }).start();
+    }, [currentStepIndex, stepFadeAnim]);
     const [overlayOrigin, setOverlayOrigin] = useState<{ x: number; y: number }>({
         x: 0,
         y: 0,
@@ -279,7 +290,10 @@ const ActiveTutorialModalContent = ({
         }
         setActiveDrawerTarget(null);
         requestTargetMeasurement(targetSpotlightType);
-    }, [targetSpotlightType, isDrawerOpen, measureOverlayOrigin]);
+        if (currentStep?.secondaryTargetSpotlight) {
+            requestTargetMeasurement(currentStep.secondaryTargetSpotlight);
+        }
+    }, [targetSpotlightType, currentStep?.secondaryTargetSpotlight, isDrawerOpen, measureOverlayOrigin]);
 
     // Reset drawer target on unmount
     useEffect(() => {
@@ -323,7 +337,20 @@ const ActiveTutorialModalContent = ({
                 targetSpotlightType === 'header_help' ||
                 targetSpotlightType === 'web_nav_menu' ||
                 targetSpotlightType === 'admin_offer_add_btn' ||
-                targetSpotlightType === 'fab_messages';
+                targetSpotlightType === 'fab_messages' ||
+                targetSpotlightType === 'navigation_upcoming_tickets_btn' ||
+                targetSpotlightType === 'navigation_card_chat_btn' ||
+                targetSpotlightType === 'navigation_column_chat_btn' ||
+                targetSpotlightType === 'navigation_map_style_btn' ||
+                targetSpotlightType === 'navigation_recenter_btn' ||
+                targetSpotlightType === 'recording_header_sos' ||
+                targetSpotlightType === 'recording_trail_info_btn' ||
+                targetSpotlightType === 'recording_group_chat_btn' ||
+                targetSpotlightType === 'recording_team_status_btn' ||
+                targetSpotlightType === 'recording_map_options_btn' ||
+                targetSpotlightType === 'recording_map_style_btn' ||
+                targetSpotlightType === 'recording_recenter_btn' ||
+                targetSpotlightType === 'recording_help_btn';
             const isTightCard = targetSpotlightType.startsWith('my_booking_');
             const pad = isSmallControl ? 4 : isTightCard ? 0 : 2;
 
@@ -361,22 +388,44 @@ const ActiveTutorialModalContent = ({
                 targetSpotlightType === 'booking_status_primary' ||
                 targetSpotlightType === 'legal_scroll_bottom' ||
                 targetSpotlightType === 'emergency_save_btn' ||
-                targetSpotlightType.startsWith('admin_action_');
+                targetSpotlightType.startsWith('admin_action_') ||
+                targetSpotlightType === 'navigation_start_hike_btn' ||
+                targetSpotlightType === 'recording_start_btn';
 
             const isCircleControl =
                 targetSpotlightType === 'header_help' ||
-                targetSpotlightType === 'fab_messages';
+                targetSpotlightType === 'fab_messages' ||
+                targetSpotlightType === 'navigation_fullscreen_btn' ||
+                targetSpotlightType === 'navigation_upcoming_tickets_btn' ||
+                targetSpotlightType === 'navigation_card_chat_btn' ||
+                targetSpotlightType === 'navigation_column_chat_btn' ||
+                targetSpotlightType === 'navigation_map_style_btn' ||
+                targetSpotlightType === 'navigation_recenter_btn' ||
+                targetSpotlightType === 'recording_header_sos' ||
+                targetSpotlightType === 'recording_trail_info_btn' ||
+                targetSpotlightType === 'recording_group_chat_btn' ||
+                targetSpotlightType === 'recording_team_status_btn' ||
+                targetSpotlightType === 'recording_map_options_btn' ||
+                targetSpotlightType === 'recording_map_style_btn' ||
+                targetSpotlightType === 'recording_recenter_btn' ||
+                targetSpotlightType === 'recording_help_btn';
 
             const rx =
                 isCircleControl
                     ? Math.min(finalWidth, finalHeight) / 2
                     : isSmallControl
                         ? 12
-                        : targetSpotlightType.startsWith('tab_')
-                            ? 20
-                            : isButton || isTightCard
-                                ? 16
-                                : 20;
+                        : targetSpotlightType === 'navigation_search_bar'
+                            ? 12
+                            : targetSpotlightType === 'recording_header_trail' || targetSpotlightType === 'recording_start_btn'
+                                ? Math.min(finalWidth, finalHeight) / 2
+                                : targetSpotlightType === 'recording_metrics_hud'
+                                    ? 24
+                                    : targetSpotlightType.startsWith('tab_')
+                                        ? 20
+                                        : isButton || isTightCard
+                                            ? 16
+                                            : 20;
 
             return {
                 x: finalX,
@@ -668,11 +717,56 @@ const ActiveTutorialModalContent = ({
         };
     }, [targetSpotlightType, width, height, insets, registryVersion, overlayOrigin]);
 
+    const secondaryGeom = useMemo<TargetGeometry | null>(() => {
+        void registryVersion;
+        const secTarget = currentStep?.secondaryTargetSpotlight;
+        if (!secTarget) return null;
+        const liveLayout = getTutorialLayout(secTarget);
+        if (!liveLayout || liveLayout.width <= 0 || liveLayout.height <= 0) return null;
+
+        const isSmallControl =
+            secTarget === 'header_help' ||
+            secTarget === 'web_nav_menu' ||
+            secTarget === 'admin_offer_add_btn' ||
+            secTarget === 'fab_messages' ||
+            secTarget === 'navigation_upcoming_tickets_btn' ||
+            secTarget === 'navigation_card_chat_btn' ||
+            secTarget === 'navigation_column_chat_btn' ||
+            secTarget === 'navigation_map_style_btn' ||
+            secTarget === 'navigation_recenter_btn';
+
+        const pad = isSmallControl ? 4 : 2;
+        const rawX = liveLayout.x - overlayOrigin.x - pad;
+        const rawY = liveLayout.y - overlayOrigin.y - pad;
+        const rawW = liveLayout.width + pad * 2;
+        const rawH = liveLayout.height + pad * 2;
+
+        const minVisibleY = Math.max(4, insets.top);
+        const maxVisibleBottom = height - Math.max(4, insets.bottom);
+
+        const finalX = Math.max(4, rawX);
+        const finalWidth = Math.min(rawW, width - finalX - 4);
+        const finalY = Math.max(minVisibleY, rawY);
+        const clippedBottom = Math.min(rawY + rawH, maxVisibleBottom);
+        const finalHeight = Math.max(28, clippedBottom - finalY);
+
+        const rx = isSmallControl ? Math.min(finalWidth, finalHeight) / 2 : 16;
+
+        return {
+            x: finalX,
+            y: finalY,
+            width: finalWidth,
+            height: finalHeight,
+            rx,
+            placement: 'top',
+        };
+    }, [currentStep?.secondaryTargetSpotlight, width, height, insets, registryVersion, overlayOrigin]);
+
     // Universal vector path with evenodd fill rule
     const cutoutPath = useMemo(() => {
         const { x, y, width: w, height: h, rx: rawRx } = targetGeom;
         const rx = Math.max(0, Math.min(rawRx, w / 2, h / 2));
-        return [
+        const paths = [
             `M 0 0`,
             `H ${width}`,
             `V ${height}`,
@@ -688,8 +782,27 @@ const ActiveTutorialModalContent = ({
             `V ${y + rx}`,
             `A ${rx} ${rx} 0 0 1 ${x + rx} ${y}`,
             `Z`,
-        ].join(' ');
-    }, [targetGeom, width, height]);
+        ];
+
+        if (secondaryGeom) {
+            const { x: sx, y: sy, width: sw, height: sh, rx: srawRx } = secondaryGeom;
+            const srx = Math.max(0, Math.min(srawRx, sw / 2, sh / 2));
+            paths.push(
+                `M ${sx + srx} ${sy}`,
+                `H ${sx + sw - srx}`,
+                `A ${srx} ${srx} 0 0 1 ${sx + sw} ${sy + srx}`,
+                `V ${sy + sh - srx}`,
+                `A ${srx} ${srx} 0 0 1 ${sx + sw - srx} ${sy + sh}`,
+                `H ${sx + srx}`,
+                `A ${srx} ${srx} 0 0 1 ${sx} ${sy + sh - srx}`,
+                `V ${sy + srx}`,
+                `A ${srx} ${srx} 0 0 1 ${sx + srx} ${sy}`,
+                `Z`
+            );
+        }
+
+        return paths.join(' ');
+    }, [targetGeom, secondaryGeom, width, height]);
 
     const isFirstStep = currentStepIndex === 0;
     const isLastStep = currentStepIndex === totalSteps - 1;
@@ -757,8 +870,61 @@ const ActiveTutorialModalContent = ({
         }
     }
 
-    const arrowX = Math.max(18, Math.min(cardMaxWidth - 30, targetCenterX - cardLeft - 8));
+    // When a secondary spotlight exists, avoid covering it with the tooltip card
+    if (secondaryGeom) {
+        const overlapsSecondaryY =
+            cardTop < secondaryGeom.y + secondaryGeom.height + 8 &&
+            cardTop + measuredCardHeight > secondaryGeom.y - 8;
+        const overlapsSecondaryX =
+            cardLeft < secondaryGeom.x + secondaryGeom.width + 8 &&
+            cardLeft + cardMaxWidth > secondaryGeom.x - 8;
+
+        if (overlapsSecondaryX && overlapsSecondaryY) {
+            // If secondary spotlight is on the right side of the screen, anchor the tooltip card to the left
+            if (secondaryGeom.x > width / 2 && secondaryGeom.x - 24 >= 250) {
+                cardLeft = 16;
+                cardMaxWidth = Math.min(cardMaxWidth, secondaryGeom.x - 24);
+            } else if (secondaryGeom.y - measuredCardHeight - 14 >= minSafeTop) {
+                cardTop = secondaryGeom.y - measuredCardHeight - 14;
+                arrowDirection = 'down';
+            }
+        }
+    }
+
+    const arrowX = Math.max(18, Math.min(cardMaxWidth - 24, targetCenterX - cardLeft - 8));
     const arrowY = Math.max(16, Math.min(measuredCardHeight - 24, targetCenterY - cardTop - 8));
+
+    const secondaryArrow = useMemo<{
+        direction: 'left' | 'right' | 'up' | 'down';
+        offset: number;
+    } | null>(() => {
+        if (!secondaryGeom) return null;
+
+        const secCenterX = secondaryGeom.x + secondaryGeom.width / 2;
+        const secCenterY = secondaryGeom.y + secondaryGeom.height / 2;
+
+        if (secondaryGeom.x >= cardLeft + cardMaxWidth - 16) {
+            const offsetY = Math.max(16, Math.min(measuredCardHeight - 24, secCenterY - cardTop - 8));
+            return { direction: 'right', offset: offsetY };
+        }
+
+        if (secondaryGeom.x + secondaryGeom.width <= cardLeft + 16) {
+            const offsetY = Math.max(16, Math.min(measuredCardHeight - 24, secCenterY - cardTop - 8));
+            return { direction: 'left', offset: offsetY };
+        }
+
+        if (secondaryGeom.y >= cardTop + measuredCardHeight - 16) {
+            const offsetX = Math.max(18, Math.min(cardMaxWidth - 24, secCenterX - cardLeft - 8));
+            return { direction: 'down', offset: offsetX };
+        }
+
+        if (secondaryGeom.y + secondaryGeom.height <= cardTop + 16) {
+            const offsetX = Math.max(18, Math.min(cardMaxWidth - 24, secCenterX - cardLeft - 8));
+            return { direction: 'up', offset: offsetX };
+        }
+
+        return null;
+    }, [secondaryGeom, cardLeft, cardMaxWidth, cardTop, measuredCardHeight]);
 
     const categoryLabel =
         currentStep.category ||
@@ -799,6 +965,19 @@ const ActiveTutorialModalContent = ({
                     stroke={Colors.PRIMARY}
                     strokeWidth={2.5}
                 />
+                {secondaryGeom && (
+                    <Rect
+                        x={secondaryGeom.x - 1}
+                        y={secondaryGeom.y - 1}
+                        width={secondaryGeom.width + 2}
+                        height={secondaryGeom.height + 2}
+                        rx={secondaryGeom.rx}
+                        ry={secondaryGeom.rx}
+                        fill="none"
+                        stroke={Colors.PRIMARY}
+                        strokeWidth={2.5}
+                    />
+                )}
             </Svg>
 
             {/* 2. Interactive Backdrop: Tapping outside the tooltip advances to the next step */}
@@ -811,13 +990,14 @@ const ActiveTutorialModalContent = ({
             />
 
             {/* 3. Floating Speech-Bubble Tooltip */}
-            <View
+            <Animated.View
                 style={[
                     styles.tooltipWrapper,
                     {
                         left: cardLeft,
                         top: cardTop,
                         width: cardMaxWidth,
+                        opacity: stepFadeAnim,
                     },
                 ]}
             >
@@ -825,6 +1005,22 @@ const ActiveTutorialModalContent = ({
                     <View style={[styles.arrowContainerLeft, { top: arrowY }]}>
                         <Svg width={9} height={16} viewBox="0 0 9 16">
                             <Polygon points="9,0 0,8 9,16" fill={Colors.WHITE} />
+                        </Svg>
+                    </View>
+                )}
+
+                {secondaryArrow?.direction === 'left' && arrowDirection !== 'left' && (
+                    <View style={[styles.arrowContainerLeft, { top: secondaryArrow.offset }]}>
+                        <Svg width={9} height={16} viewBox="0 0 9 16">
+                            <Polygon points="9,0 0,8 9,16" fill={Colors.WHITE} />
+                        </Svg>
+                    </View>
+                )}
+
+                {secondaryArrow?.direction === 'right' && (
+                    <View style={[styles.arrowContainerRight, { top: secondaryArrow.offset }]}>
+                        <Svg width={9} height={16} viewBox="0 0 9 16">
+                            <Polygon points="0,0 9,8 0,16" fill={Colors.WHITE} />
                         </Svg>
                     </View>
                 )}
@@ -973,7 +1169,15 @@ const ActiveTutorialModalContent = ({
                         </Svg>
                     </View>
                 )}
-            </View>
+
+                {secondaryArrow?.direction === 'down' && arrowDirection !== 'down' && (
+                    <View style={[styles.arrowContainerDown, { left: secondaryArrow.offset }]}>
+                        <Svg width={16} height={9} viewBox="0 0 16 9">
+                            <Polygon points="0,0 8,9 16,0" fill={Colors.WHITE} />
+                        </Svg>
+                    </View>
+                )}
+            </Animated.View>
         </View>
     );
 
@@ -1050,6 +1254,11 @@ const styles = StyleSheet.create({
     arrowContainerLeft: {
         position: 'absolute',
         left: -8,
+        zIndex: 102,
+    },
+    arrowContainerRight: {
+        position: 'absolute',
+        right: -8,
         zIndex: 102,
     },
     bubbleCard: {
