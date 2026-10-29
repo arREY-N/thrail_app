@@ -12,7 +12,7 @@ export const mobileTabsTourSteps: TutorialStep[] = [
         id: 'tab-home',
         category: 'Bottom Tab 1 of 5 â€¢ Home',
         targetSpotlight: 'tab_0',
-        title: 'Home Tab â€” Your Trail Hub',
+        title: 'Home Tab • Your Trail Hub',
         description:
             'Your starting dashboard! Check live mountain weather safety alerts, personalized trail recommendations based on your preferences, and trails with upcoming organizer offers.',
         actionTip: 'Tap any mountain card to inspect trail stats, or use the top icons to check Notifications and My Bookings.',
@@ -22,7 +22,7 @@ export const mobileTabsTourSteps: TutorialStep[] = [
         id: 'tab-explore',
         category: 'Bottom Tab 2 of 5 â€¢ Explore',
         targetSpotlight: 'tab_1',
-        title: 'Explore Tab â€” Search & Filter Trails',
+        title: 'Explore Tab • Search & Filter Trails',
         description:
             'Browse all mountains and hiking trails across Region IV-A (CALABARZON). Filter trails by province, difficulty level, or hiking duration to find your next climb.',
         actionTip: 'Use the search bar or filter chips at the top of Explore to narrow down mountains.',
@@ -32,7 +32,7 @@ export const mobileTabsTourSteps: TutorialStep[] = [
         id: 'tab-hike',
         category: 'Bottom Tab 3 of 5 â€¢ Hike',
         targetSpotlight: 'tab_2',
-        title: 'Hike Tab â€” Live GPS Trail Navigation',
+        title: 'Hike Tab • Live GPS Trail Navigation',
         description:
             'Used on hike day for offline-ready trail maps, GPS route recording, and Emergency SOS alerts. Note: Live hike navigation unlocks after your booking reservation and payment are completed.',
         actionTip: 'Once you have a confirmed & paid booking, open this tab on hike day to start tracking.',
@@ -42,7 +42,7 @@ export const mobileTabsTourSteps: TutorialStep[] = [
         id: 'tab-community',
         category: 'Bottom Tab 4 of 5 â€¢ Community',
         targetSpotlight: 'tab_3',
-        title: 'Community Tab â€” Reviews & Groups',
+        title: 'Community Tab • Reviews & Groups',
         description:
             'Read authentic trail reviews and photos from fellow hikers, check the monthly top hiker leaderboards, and access your hike group chat rooms.',
         actionTip: 'Tap the trophy icon for Leaderboards or the chat icon to open your Group Rooms.',
@@ -52,7 +52,7 @@ export const mobileTabsTourSteps: TutorialStep[] = [
         id: 'tab-profile',
         category: 'Bottom Tab 5 of 5 â€¢ Profile',
         targetSpotlight: 'tab_4',
-        title: 'Profile Tab â€” Milestones & Settings',
+        title: 'Profile Tab • Milestones & Settings',
         description:
             'Track your personal hiking statistics, completed hike logs, and achievement milestones. You can also update your medical profile, emergency contact, or apply as a Tour Organizer in Settings.',
         actionTip: 'Open Profile anytime to manage your account details or apply to become a verified Admin/Organizer.',
@@ -63,7 +63,7 @@ export const mobileTabsTourSteps: TutorialStep[] = [
         category: 'Floating Action Button â€¢ Messages',
         targetSpotlight: 'fab_messages',
         spotlightShape: 'circle',
-        title: 'Messages â€” Quick Group Chats',
+        title: 'Messages • Quick Group Chats',
         description:
             'Notice this green floating chat button! It floats conveniently across Home, Explore, Community, and Profile (except Navigation) so you can quickly jump into your hike group chats and message your guides anytime.',
         actionTip: 'Tap this floating chat bubble anytime to open your active hike conversations and group rooms.',

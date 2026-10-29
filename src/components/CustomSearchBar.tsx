@@ -12,6 +12,8 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    StyleProp,
+    ViewStyle,
 } from 'react-native';
 
 import CustomFilterTabs from '@/src/components/CustomFilterTabs';
@@ -53,6 +55,7 @@ export interface CustomSearchBarProps {
     variant?: 'standard' | 'compact';
     autoFocus?: boolean;
     isMobile?: boolean;
+    containerStyle?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -79,6 +82,7 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
     variant = 'standard',
     autoFocus = false,
     isMobile = false,
+    containerStyle,
 }) => {
     const [prevSearchValue, setPrevSearchValue] = useState(searchValue || "");
     const [localQuery, setLocalQuery] = useState(searchValue || "");
@@ -161,8 +165,8 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
 
     // ── Standard Variant (full search bar with tabs) ──
     return (
-        <View style={styles.container}>
-            <View style={styles.searchRow}>
+        <View style={[styles.container, containerStyle]}>
+            <View style={[styles.searchRow, !(tabs && tabs.length > 0) && { marginBottom: 0 }]}>
                 <View style={styles.inputWrapper}>
                     <CustomTextInput
                         placeholder={searchPlaceholder}
