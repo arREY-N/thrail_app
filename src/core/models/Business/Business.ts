@@ -15,8 +15,8 @@ export { useBusinessesStore } from "@/src/core/models/Business/stores/businessSt
 // HOOKS
 export { useBusiness } from "@/src/core/models/Business/hooks/useBusiness";
 export { useBusinessAdmin } from "@/src/core/models/Business/hooks/useBusinessAdmin";
+export { useBusinessAdminList } from "@/src/core/models/Business/hooks/useBusinessAdminList";
 export { useBusinessList } from "@/src/core/models/Business/hooks/useBusinessList";
-
 // REPOSITORIES
 export { BusinessRepo } from "@/src/core/models/Business/repositories/businessRepository";
 

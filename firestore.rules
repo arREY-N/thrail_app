@@ -16,6 +16,12 @@ service cloud.firestore {
         allow read, write: if false;
     }
 
+    // Audit logs. Readable by superadmins only; written server-side via Admin SDK.
+    match /auditLogs/{logId} {
+        allow read: if request.auth != null && request.auth.token.role == 'superadmin';
+        allow write: if false;
+    }
+
     match /leaderboards/{leaderboardId} {
         allow read: if request.auth != null;
         allow create, update, delete: 
