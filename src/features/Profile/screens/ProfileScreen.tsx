@@ -5,6 +5,7 @@ import {
     NativeSyntheticEvent,
     Platform,
     RefreshControl,
+    ScrollView,
     StyleSheet,
     TouchableOpacity,
     View
@@ -129,11 +130,27 @@ const ProfileScreen = ({
     onCancelPress: propOnCancelPress,
 }: ProfileScreenProps) => {
 
-    const [activeTab, setActiveTab] = useState<'Information' | 'Milestones' | 'Hike Log'>('Information');
+    const [activeTab, setActiveTab] = useState<'Information' | 'Milestones' | 'Hike Log'>('Milestones');
     const [localIsEditing, setLocalIsEditing] = useState(false);
     const isEditing = propIsEditing !== undefined ? propIsEditing : localIsEditing;
     const onEditPress = propOnEditPress || (() => setLocalIsEditing(true));
     const onCancelPress = propOnCancelPress || (() => setLocalIsEditing(false));
+
+    const scrollViewRef = useRef<ScrollView>(null);
+
+    const handleTabChange = useCallback((tab: 'Information' | 'Milestones' | 'Hike Log') => {
+        if (isEditing) return;
+        if (tab === activeTab) {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            return;
+        }
+        setActiveTab(tab);
+        scrollYRef.current = 0;
+        scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+        requestAnimationFrame(() => {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+        });
+    }, [isEditing, activeTab]);
 
     // Stable refs so the scroll handler always reads fresh values
     // without causing re-renders. Synced in useEffect after each commit.
@@ -310,9 +327,8 @@ const ProfileScreen = ({
 
     const cardContentWidth = (() => {
         if (isMobile) return width - 80;
-        const contentAreaWidth = Math.min(width, Layout.MAX_WIDTH);
-        const cardWidth = (contentAreaWidth - 32 - 20) / 2;
-        return cardWidth - 48;
+        const maxWidthNum = typeof contentMaxWidth === 'number' ? contentMaxWidth : Math.min(width, Layout.MAX_WIDTH);
+        return maxWidthNum - 48;
     })();
 
     const checkSectionRequiresStack = (fields: { label: string; value?: string | null }[]) => {
@@ -390,15 +406,37 @@ const ProfileScreen = ({
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
 
             <CustomHeader
-                title={isEditing ? "Edit Profile" : "Profile"}
+                title="Profile"
                 showDefaultIcons={!isEditing}
-                onBackPress={isEditing ? handleCancelPress : undefined}
+                leftAction={
+                    isEditing ? (
+                        <View style={styles.headerLeftEditing}>
+                            <TouchableOpacity
+                                onPress={handleCancelPress}
+                                style={styles.headerBackButton}
+                                activeOpacity={0.7}
+                                accessibilityLabel="Back to Profile"
+                            >
+                                <CustomIcon
+                                    library="Feather"
+                                    name="chevron-left"
+                                    size={24}
+                                    color={Colors.PRIMARY}
+                                />
+                            </TouchableOpacity>
+                            <CustomText variant="title" style={styles.headerTitleText} numberOfLines={1}>
+                                Profile
+                            </CustomText>
+                        </View>
+                    ) : undefined
+                }
                 style={styles.transparentHeader}
             />
 
             <ResponsiveScrollView
+                ref={scrollViewRef}
                 contentContainerStyle={styles.scrollContent}
-                stickyHeaderIndices={[1]}
+                stickyHeaderIndices={[0]}
                 onScroll={handleScroll}
                 scrollEventThrottle={200}
                 onContentSizeChange={(_w, h) => { contentHeightRef.current = h; }}
@@ -416,58 +454,58 @@ const ProfileScreen = ({
                     ) : undefined
                 }
             >
-                <View style={[styles.userBanner, responsiveAlignStyle]}>
-                    <View style={styles.userInfoLeft}>
-                        <View style={styles.avatarPlaceholder}>
-                            <CustomText style={styles.initialsText}>
-                                {userInitials}
-                            </CustomText>
-                        </View>
+                <View style={styles.stickyHeaderSection}>
+                    <View style={[styles.userBanner, responsiveAlignStyle]}>
+                        <View style={styles.userInfoLeft}>
+                            <View style={styles.avatarPlaceholder}>
+                                <CustomText style={styles.initialsText}>
+                                    {userInitials}
+                                </CustomText>
+                            </View>
 
-                        <View style={styles.identityTextGroup}>
-                            <CustomText
-                                variant="h2"
-                                style={styles.userNameText}
-                                numberOfLines={1}
-                                ellipsizeMode="tail"
-                            >
-                                {userName}
-                            </CustomText>
-                            <CustomText
-                                variant="caption"
-                                style={styles.userHandleText}
-                                numberOfLines={1}
-                                ellipsizeMode="tail"
-                            >
-                                {userHandle}
-                            </CustomText>
-                            <CustomText
-                                variant="caption"
-                                style={styles.memberSinceText}
-                                numberOfLines={1}
-                                ellipsizeMode="tail"
-                            >
-                                Member since {createdDate}
-                            </CustomText>
+                            <View style={styles.identityTextGroup}>
+                                <CustomText
+                                    variant="h2"
+                                    style={styles.userNameText}
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                >
+                                    {userName}
+                                </CustomText>
+                                <CustomText
+                                    variant="caption"
+                                    style={styles.userHandleText}
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                >
+                                    {userHandle}
+                                </CustomText>
+                                <CustomText
+                                    variant="caption"
+                                    style={styles.memberSinceText}
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                >
+                                    Member since {createdDate}
+                                </CustomText>
+                            </View>
                         </View>
+                        {Platform.OS !== 'web' && (
+                            <TouchableOpacity
+                                style={styles.settingsButton}
+                                onPress={onSettingsPress}
+                                activeOpacity={0.7}
+                            >
+                                <CustomIcon
+                                    library="Feather"
+                                    name="settings"
+                                    size={22}
+                                    color={Colors.TEXT_PRIMARY}
+                                />
+                            </TouchableOpacity>
+                        )}
                     </View>
-                    {Platform.OS !== 'web' && (
-                        <TouchableOpacity
-                            style={styles.settingsButton}
-                            onPress={onSettingsPress}
-                            activeOpacity={0.7}
-                        >
-                            <CustomIcon
-                                library="Feather"
-                                name="settings"
-                                size={22}
-                                color={Colors.TEXT_PRIMARY}
-                            />
-                        </TouchableOpacity>
-                    )}
-                </View>
 
-                <View style={styles.stickyTabWrapper}>
                     <View style={[styles.floatingTabsContainer, responsiveAlignStyle]}>
                         <TouchableOpacity
                             style={[
@@ -475,9 +513,7 @@ const ProfileScreen = ({
                                 activeTab === 'Milestones' && styles.tabButtonActive,
                                 isEditing && { opacity: 0.5 }
                             ]}
-                            onPress={() => {
-                                if (!isEditing) setActiveTab('Milestones');
-                            }}
+                            onPress={() => handleTabChange('Milestones')}
                             disabled={isEditing}
                             activeOpacity={0.9}
                         >
@@ -505,9 +541,7 @@ const ProfileScreen = ({
                                 activeTab === 'Hike Log' && styles.tabButtonActive,
                                 isEditing && { opacity: 0.5 }
                             ]}
-                            onPress={() => {
-                                if (!isEditing) setActiveTab('Hike Log');
-                            }}
+                            onPress={() => handleTabChange('Hike Log')}
                             disabled={isEditing}
                             activeOpacity={0.9}
                         >
@@ -531,9 +565,11 @@ const ProfileScreen = ({
                         <TouchableOpacity
                             style={[
                                 styles.tabButton,
-                                activeTab === 'Information' && styles.tabButtonActive
+                                activeTab === 'Information' && styles.tabButtonActive,
+                                isEditing && { opacity: 0.5 }
                             ]}
-                            onPress={() => setActiveTab('Information')}
+                            onPress={() => handleTabChange('Information')}
+                            disabled={isEditing}
                             activeOpacity={0.9}
                         >
                             <CustomIcon
@@ -564,166 +600,176 @@ const ProfileScreen = ({
                             <ErrorMessage error={formError} />
                         )}
 
-                        <View style={!isMobile ? infoStyles.desktopColumns : infoStyles.mobileStack}>
-                            {/* LEFT COLUMN */}
-                            <View style={[infoStyles.column, isWideScreen && infoStyles.columnWide]}>
-                                {/* Personal Details Card */}
-                                <View style={infoStyles.card}>
-                                    <View style={infoStyles.cardHeader}>
-                                        <CustomIcon library="Feather" name="user" size={18} color={Colors.PRIMARY} />
-                                        <CustomText variant="h3" style={infoStyles.cardTitle} numberOfLines={1} adjustsFontSizeToFit>Personal Details</CustomText>
+                        <View style={infoStyles.card}>
+                            {/* Personal Details Subsection Header */}
+                            <View style={styles.cardSectionHeaderWithAction}>
+                                <View style={styles.cardHeaderTitleGroup}>
+                                    <CustomIcon library="Feather" name="user" size={18} color={Colors.PRIMARY} />
+                                    <CustomText variant="h3" style={infoStyles.cardTitle} numberOfLines={1} adjustsFontSizeToFit>
+                                        Personal Details
+                                    </CustomText>
+                                </View>
+                                {!isEditing && (
+                                    <TouchableOpacity
+                                        style={styles.editIconButton}
+                                        onPress={() => setIsEditModalVisible(true)}
+                                        activeOpacity={0.7}
+                                        accessibilityLabel="Edit Profile"
+                                    >
+                                        <CustomIcon library="Feather" name="edit-2" size={16} color={Colors.PRIMARY} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            {/* Personal Details Subsection Body */}
+                            <View style={infoStyles.cardBody}>
+                                {isEditing ? (
+                                    <View style={infoStyles.editForm}>
+                                        <CustomTextInput label="Username" placeholder="Enter username" value={username} onChangeText={setUsername} />
+                                        <CustomTextInput label="Phone Number" placeholder="Enter phone number" value={phoneNumber} onChangeText={setPhoneNumber} type="phone" prefix="+63" />
+                                        <CustomTextInput
+                                            label="Birthday"
+                                            placeholder="Select birthday"
+                                            value={birthday}
+                                            onChangeText={(val: string | Date | null) => {
+                                                setFormError(null);
+                                                setBirthday(val instanceof Date ? val : (val ? safeParseDateString(val) : null));
+                                            }}
+                                            type="calendar"
+                                            dateFormat="MM/DD/YYYY"
+                                            defaultMode="year"
+                                            maximumDate={maxAllowedBirthday}
+                                            helperText="Minimum age requirement is 10 years old."
+                                        />
+                                        <CustomTextInput label="Address" placeholder="Enter address" value={address} onChangeText={setAddress} style={infoStyles.noMarginBottom} />
                                     </View>
+                                ) : (
+                                    <View>
+                                        <InfoRow label="Username" value={effectiveUser?.username ? `@${effectiveUser.username}` : ''} forceStack={personalDetailsRequiresStack} />
+                                        <InfoRow
+                                            label="Phone Number"
+                                            value={formatPhoneWithPrefix(effectiveUser?.phoneNumber)}
+                                            badge={renderVerificationBadge(phoneValidity)}
+                                            badgePosition="before_value"
+                                            subValue={personalExpiryText}
+                                            forceStack={personalDetailsRequiresStack}
+                                        />
+                                        <InfoRow
+                                            label="Birthday"
+                                            value={effectiveUser?.birthday ? formatDateToStandard(effectiveUser.birthday) : 'Not provided'}
+                                            badge={
+                                                isPlaceholderOrUnderageBirthday ? (
+                                                    <View style={badgeStyles.actionRequiredPill}>
+                                                        <CustomIcon library="Feather" name="alert-triangle" size={10} color={Colors.ERROR} />
+                                                        <CustomText style={badgeStyles.actionRequiredPillText}>Action Required</CustomText>
+                                                    </View>
+                                                ) : undefined
+                                            }
+                                            badgePosition="before_value"
+                                            forceStack={personalDetailsRequiresStack}
+                                        />
+                                        <InfoRow label="Email Address" value={effectiveUser?.email} forceStack={personalDetailsRequiresStack} />
+                                        <InfoRow
+                                            label="Address"
+                                            value={effectiveUser?.address}
+                                            noMargin={!isPlaceholderOrUnderageBirthday}
+                                            forceStack={personalDetailsRequiresStack}
+                                        />
 
-                                    <View style={infoStyles.cardBody}>
-                                        {isEditing ? (
-                                            <View style={infoStyles.editForm}>
-                                                <CustomTextInput label="Username" placeholder="Enter username" value={username} onChangeText={setUsername} />
-                                                <CustomTextInput label="Phone Number" placeholder="Enter phone number" value={phoneNumber} onChangeText={setPhoneNumber} type="phone" prefix="+63" />
-                                                <CustomTextInput
-                                                    label="Birthday"
-                                                    placeholder="Select birthday"
-                                                    value={birthday}
-                                                    onChangeText={(val: string | Date | null) => {
-                                                        setFormError(null);
-                                                        setBirthday(val instanceof Date ? val : (val ? safeParseDateString(val) : null));
-                                                    }}
-                                                    type="calendar"
-                                                    dateFormat="MM/DD/YYYY"
-                                                    defaultMode="year"
-                                                    maximumDate={maxAllowedBirthday}
-                                                    helperText="Minimum age requirement is 10 years old."
-                                                />
-                                                <CustomTextInput label="Address" placeholder="Enter address" value={address} onChangeText={setAddress} style={infoStyles.noMarginBottom} />
-                                            </View>
-                                        ) : (
-                                            <View>
-                                                <InfoRow label="Username" value={effectiveUser?.username ? `@${effectiveUser.username}` : ''} forceStack={personalDetailsRequiresStack} />
-                                                <InfoRow
-                                                    label="Phone Number"
-                                                    value={formatPhoneWithPrefix(effectiveUser?.phoneNumber)}
-                                                    badge={renderVerificationBadge(phoneValidity)}
-                                                    badgePosition="before_value"
-                                                    subValue={personalExpiryText}
-                                                    forceStack={personalDetailsRequiresStack}
-                                                />
-                                                <InfoRow
-                                                    label="Birthday"
-                                                    value={effectiveUser?.birthday ? formatDateToStandard(effectiveUser.birthday) : 'Not provided'}
-                                                    badge={
-                                                        isPlaceholderOrUnderageBirthday ? (
-                                                            <View style={badgeStyles.actionRequiredPill}>
-                                                                <CustomIcon library="Feather" name="alert-triangle" size={10} color={Colors.ERROR} />
-                                                                <CustomText style={badgeStyles.actionRequiredPillText}>Action Required</CustomText>
-                                                            </View>
-                                                        ) : undefined
-                                                    }
-                                                    badgePosition="before_value"
-                                                    forceStack={personalDetailsRequiresStack}
-                                                />
-                                                <InfoRow label="Email Address" value={effectiveUser?.email} forceStack={personalDetailsRequiresStack} />
-                                                <InfoRow
-                                                    label="Address"
-                                                    value={effectiveUser?.address}
-                                                    noMargin={!isPlaceholderOrUnderageBirthday}
-                                                    forceStack={personalDetailsRequiresStack}
-                                                />
-
-                                                {isPlaceholderOrUnderageBirthday && (
-                                                    <TouchableOpacity
-                                                        style={infoStyles.cardAlertCallout}
-                                                        activeOpacity={0.8}
-                                                        onPress={() => setIsEditModalVisible(true)}
-                                                    >
-                                                        <View style={infoStyles.cardAlertCalloutHeader}>
-                                                            <CustomIcon library="Feather" name="alert-circle" size={14} color={Colors.ERROR} />
-                                                            <CustomText style={infoStyles.cardAlertCalloutTitle}>
-                                                                Minimum Age Requirement
-                                                            </CustomText>
-                                                        </View>
-                                                        <CustomText variant="caption" style={infoStyles.cardAlertCalloutBody}>
-                                                            {!effectiveUser?.birthday
-                                                                ? 'Hikers must be at least 10 years old to register. Your birthdate is currently unset. Tap here to update it.'
-                                                                : 'Hikers must be at least 10 years old to register. Your current birthdate indicates an age under 10. Tap here to update it.'}
-                                                        </CustomText>
-                                                    </TouchableOpacity>
-                                                )}
-                                            </View>
+                                        {isPlaceholderOrUnderageBirthday && (
+                                            <TouchableOpacity
+                                                style={infoStyles.cardAlertCallout}
+                                                activeOpacity={0.8}
+                                                onPress={() => setIsEditModalVisible(true)}
+                                            >
+                                                <View style={infoStyles.cardAlertCalloutHeader}>
+                                                    <CustomIcon library="Feather" name="alert-circle" size={14} color={Colors.ERROR} />
+                                                    <CustomText style={infoStyles.cardAlertCalloutTitle}>
+                                                        Minimum Age Requirement
+                                                    </CustomText>
+                                                </View>
+                                                <CustomText variant="caption" style={infoStyles.cardAlertCalloutBody}>
+                                                    {!effectiveUser?.birthday
+                                                        ? 'Hikers must be at least 10 years old to register. Your birthdate is currently unset. Tap here to update it.'
+                                                        : 'Hikers must be at least 10 years old to register. Your current birthdate indicates an age under 10. Tap here to update it.'}
+                                                </CustomText>
+                                            </TouchableOpacity>
                                         )}
                                     </View>
+                                )}
+                            </View>
+
+                            {/* Section Divider */}
+                            <View style={styles.sectionDivider} />
+
+                            {/* Emergency Contact Subsection Header */}
+                            <View style={infoStyles.cardHeader}>
+                                <View style={styles.cardHeaderTitleGroup}>
+                                    <CustomIcon library="Feather" name="phone-call" size={18} color={Colors.PRIMARY} />
+                                    <CustomText variant="h3" style={infoStyles.cardTitle} numberOfLines={1} adjustsFontSizeToFit>Emergency Contact</CustomText>
                                 </View>
                             </View>
 
-                            {/* RIGHT COLUMN */}
-                            <View style={[infoStyles.column, isWideScreen && infoStyles.columnWide]}>
-                                {/* Emergency Contact Card */}
-                                <View style={infoStyles.card}>
-                                    <View style={infoStyles.cardHeader}>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                                            <CustomIcon library="Feather" name="phone-call" size={18} color={Colors.PRIMARY} />
-                                            <CustomText variant="h3" style={infoStyles.cardTitle} numberOfLines={1} adjustsFontSizeToFit>Emergency Contact</CustomText>
+                            {/* Emergency Contact Subsection Body */}
+                            <View style={infoStyles.cardBody}>
+                                {isEditing ? (
+                                    <View style={infoStyles.editForm}>
+                                        {/* Search Row */}
+                                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 0 }}>
+                                            <View style={{ flex: 1 }}>
+                                                <CustomTextInput label="Search by Email (Optional)" placeholder="contact@email.com" value={searchEmail} onChangeText={handleSearchEmailChange} keyboardType="email-address" autoCapitalize="none" />
+                                            </View>
+                                            <TouchableOpacity onPress={handleEmergencySearch} disabled={isSearching} style={{ backgroundColor: Colors.PRIMARY, height: 54, width: 54, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginTop: 28 }} activeOpacity={0.8}>
+                                                {isSearching ? (
+                                                    <ActivityIndicator color={Colors.WHITE} size="small" />
+                                                ) : (
+                                                    <CustomIcon library="Feather" name="search" size={20} color={Colors.WHITE} />
+                                                )}
+                                            </TouchableOpacity>
                                         </View>
-                                    </View>
-                                    <View style={infoStyles.cardBody}>
-                                        {isEditing ? (
-                                            <View style={infoStyles.editForm}>
-                                                {/* Search Row */}
-                                                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 0 }}>
-                                                    <View style={{ flex: 1 }}>
-                                                        <CustomTextInput label="Search by Email (Optional)" placeholder="contact@email.com" value={searchEmail} onChangeText={handleSearchEmailChange} keyboardType="email-address" autoCapitalize="none" />
-                                                    </View>
-                                                    <TouchableOpacity onPress={handleEmergencySearch} disabled={isSearching} style={{ backgroundColor: Colors.PRIMARY, height: 54, width: 54, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginTop: 28 }} activeOpacity={0.8}>
-                                                        {isSearching ? (
-                                                            <ActivityIndicator color={Colors.WHITE} size="small" />
-                                                        ) : (
-                                                            <CustomIcon library="Feather" name="search" size={20} color={Colors.WHITE} />
-                                                        )}
-                                                    </TouchableOpacity>
-                                                </View>
 
-                                                {searchError && <ErrorMessage error={searchError} style={{ marginBottom: 12 }} />}
-                                                {searchSuccess && (
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.STATUS_APPROVED_BG, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8 }}>
-                                                        <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.PRIMARY} />
-                                                        <CustomText style={{ color: Colors.PRIMARY, fontSize: 13, fontWeight: '500', flex: 1 }}>{searchSuccess}</CustomText>
-                                                    </View>
-                                                )}
-                                                {searchInfo && (
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.STATUS_PENDING_BG, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8 }}>
-                                                        <CustomIcon library="Feather" name="info" size={16} color={Colors.STATUS_PENDING_TEXT} />
-                                                        <CustomText style={{ color: Colors.STATUS_PENDING_TEXT, fontSize: 13, fontWeight: '500', flex: 1 }}>{searchInfo}</CustomText>
-                                                    </View>
-                                                )}
-
-                                                <CustomTextInput label="Contact Name" placeholder="Enter emergency contact name" value={emergencyContact.name} onChangeText={handleContactNameChange} />
-                                                <CustomTextInput label="Contact Number" placeholder="Enter emergency contact number" value={emergencyContact.contactNumber} onChangeText={handleContactNumberChange} type="phone" prefix="+63" />
-                                                <CustomTextInput label="Email Address" placeholder="Enter emergency contact email" value={emergencyContact.email} onChangeText={handleContactEmailChange} style={infoStyles.noMarginBottom} />
-                                            </View>
-                                        ) : effectiveUser?.emergencyContact?.name ? (
-                                            <View>
-                                                <InfoRow label="Contact Name" value={effectiveUser.emergencyContact.name} forceStack={emergencyContactRequiresStack} />
-                                                <InfoRow
-                                                    label="Contact Number"
-                                                    value={formatPhoneWithPrefix(effectiveUser.emergencyContact.contactNumber)}
-                                                    badge={renderVerificationBadge(emergencyValidity, !!effectiveUser.emergencyContact.userId)}
-                                                    badgePosition="before_value"
-                                                    subValue={emergencyExpiryText}
-                                                    forceStack={emergencyContactRequiresStack}
-                                                />
-                                                <InfoRow label="Email Address" value={effectiveUser.emergencyContact.email} noMargin={true} forceStack={emergencyContactRequiresStack} />
-                                            </View>
-                                        ) : (
-                                            <View style={infoStyles.emptyEmergencyContainer}>
-                                                <View style={infoStyles.emptyEmergencyIconContainer}>
-                                                    <CustomIcon library="Feather" name="alert-triangle" size={24} color={Colors.ERROR} />
-                                                </View>
-                                                <CustomText style={infoStyles.emptyEmergencyText}>No emergency contact set up. In case of emergencies, having a contact helps guides reach your family.</CustomText>
-                                                <TouchableOpacity onPress={() => setIsEmergencyModalVisible(true)} style={infoStyles.setupEmergencyBtn} activeOpacity={0.8}>
-                                                    <CustomText style={infoStyles.setupEmergencyBtnText}>Set up Emergency Contact</CustomText>
-                                                </TouchableOpacity>
+                                        {searchError && <ErrorMessage error={searchError} style={{ marginBottom: 12 }} />}
+                                        {searchSuccess && (
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.STATUS_APPROVED_BG, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8 }}>
+                                                <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.PRIMARY} />
+                                                <CustomText style={{ color: Colors.PRIMARY, fontSize: 13, fontWeight: '500', flex: 1 }}>{searchSuccess}</CustomText>
                                             </View>
                                         )}
+                                        {searchInfo && (
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.STATUS_PENDING_BG, padding: 12, borderRadius: 12, marginBottom: 12, gap: 8 }}>
+                                                <CustomIcon library="Feather" name="info" size={16} color={Colors.STATUS_PENDING_TEXT} />
+                                                <CustomText style={{ color: Colors.STATUS_PENDING_TEXT, fontSize: 13, fontWeight: '500', flex: 1 }}>{searchInfo}</CustomText>
+                                            </View>
+                                        )}
+
+                                        <CustomTextInput label="Contact Name" placeholder="Enter emergency contact name" value={emergencyContact.name} onChangeText={handleContactNameChange} />
+                                        <CustomTextInput label="Contact Number" placeholder="Enter emergency contact number" value={emergencyContact.contactNumber} onChangeText={handleContactNumberChange} type="phone" prefix="+63" />
+                                        <CustomTextInput label="Email Address" placeholder="Enter emergency contact email" value={emergencyContact.email} onChangeText={handleContactEmailChange} style={infoStyles.noMarginBottom} />
                                     </View>
-                                </View>
+                                ) : effectiveUser?.emergencyContact?.name ? (
+                                    <View>
+                                        <InfoRow label="Contact Name" value={effectiveUser.emergencyContact.name} forceStack={emergencyContactRequiresStack} />
+                                        <InfoRow
+                                            label="Contact Number"
+                                            value={formatPhoneWithPrefix(effectiveUser.emergencyContact.contactNumber)}
+                                            badge={renderVerificationBadge(emergencyValidity, !!effectiveUser.emergencyContact.userId)}
+                                            badgePosition="before_value"
+                                            subValue={emergencyExpiryText}
+                                            forceStack={emergencyContactRequiresStack}
+                                        />
+                                        <InfoRow label="Email Address" value={effectiveUser.emergencyContact.email} noMargin={true} forceStack={emergencyContactRequiresStack} />
+                                    </View>
+                                ) : (
+                                    <View style={infoStyles.emptyEmergencyContainer}>
+                                        <View style={infoStyles.emptyEmergencyIconContainer}>
+                                            <CustomIcon library="Feather" name="alert-triangle" size={24} color={Colors.ERROR} />
+                                        </View>
+                                        <CustomText style={infoStyles.emptyEmergencyText}>No emergency contact set up. In case of emergencies, having a contact helps guides reach your family.</CustomText>
+                                        <TouchableOpacity onPress={() => setIsEmergencyModalVisible(true)} style={infoStyles.setupEmergencyBtn} activeOpacity={0.8}>
+                                            <CustomText style={infoStyles.setupEmergencyBtnText}>Set up Emergency Contact</CustomText>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
                             </View>
                         </View>
 
@@ -754,29 +800,19 @@ const ProfileScreen = ({
 
             </ResponsiveScrollView>
 
-            {activeTab === 'Information' ? (
+            {isEditing ? (
                 <CustomStickyFooter
-                    primaryButton={
-                        isEditing
-                            ? {
-                                title: 'Save Changes',
-                                onPress: handleSavePress,
-                                disabled: !isDirty,
-                            }
-                            : {
-                                title: 'Edit Profile',
-                                onPress: () => setIsEditModalVisible(true),
-                            }
-                    }
-                    secondaryButton={
-                        isEditing
-                            ? {
-                                title: 'Cancel',
-                                onPress: handleCancelPress,
-                                variant: 'outline',
-                            }
-                            : undefined
-                    }
+                    style={[styles.editingFooter, { paddingBottom: Math.max(insets.bottom, 6) }]}
+                    primaryButton={{
+                        title: 'Save Changes',
+                        onPress: handleSavePress,
+                        disabled: !isDirty,
+                    }}
+                    secondaryButton={{
+                        title: 'Cancel',
+                        onPress: handleCancelPress,
+                        variant: 'outline',
+                    }}
                 />
             ) : (
                 <CustomFAB onPress={onGroupPress} />
@@ -838,19 +874,26 @@ const styles = StyleSheet.create({
         borderBottomWidth: 0,
     },
     scrollContent: {
+        paddingBottom: 32,
+    },
+    stickyHeaderSection: {
+        backgroundColor: Colors.BACKGROUND,
         paddingHorizontal: 16,
         paddingTop: 16,
-        paddingBottom: 32,
+        paddingBottom: 12,
+        zIndex: 10,
     },
     tabContentContainer: {
         flex: 1,
+        paddingHorizontal: 16,
+        paddingTop: 16,
         marginBottom: 24,
     },
     userBanner: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 12,
     },
     userInfoLeft: {
         flexDirection: 'row',
@@ -947,6 +990,49 @@ const styles = StyleSheet.create({
     },
     hidden: {
         display: 'none',
+    },
+    cardSectionHeaderWithAction: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    cardHeaderTitleGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        flex: 1,
+    },
+    editIconButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    sectionDivider: {
+        height: 1,
+        backgroundColor: Colors.GRAY_LIGHT,
+        marginVertical: 20,
+    },
+    headerLeftEditing: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    headerBackButton: {
+        padding: 6,
+        marginLeft: -6,
+    },
+    headerTitleText: {
+        textAlign: 'left',
+        marginBottom: 0,
+    },
+    editingFooter: {
+        paddingTop: 4,
     },
 });
 
