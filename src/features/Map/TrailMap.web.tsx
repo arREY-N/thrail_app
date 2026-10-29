@@ -371,6 +371,22 @@ const TrailMap = memo(
       const noticeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
       const loadRafRef = useRef<number | null>(null);
 
+      const [isOnline, setIsOnline] = useState<boolean>(() =>
+        typeof navigator !== "undefined" ? navigator.onLine : true
+      );
+
+      useEffect(() => {
+        if (typeof window === "undefined") return;
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+        window.addEventListener("online", handleOnline);
+        window.addEventListener("offline", handleOffline);
+        return () => {
+          window.removeEventListener("online", handleOnline);
+          window.removeEventListener("offline", handleOffline);
+        };
+      }, []);
+
       const [isOffline, setIsOffline] = useState(isOfflineProp ?? true);
       const isOfflineRef = useRef(isOffline);
       const [styleVersion, setStyleVersion] = useState(0);
@@ -381,6 +397,8 @@ const TrailMap = memo(
           setIsOffline(isOfflineProp);
         }
       }, [isOfflineProp]);
+
+      const actuallyOffline = isOffline || !isOnline;
 
       const [mapReady, setMapReady] = useState(() => sharedLoaded);
       const [contextGeoJsonUrl, setContextGeoJsonUrl] = useState<string | null>(null);
@@ -502,7 +520,7 @@ const TrailMap = memo(
       useEffect(() => {
         const map = mapRef.current;
         if (!map || !mapReady) return;
-        const targetStyle = isOffline ? FREE_OFFLINE_STYLE : onlineStyle;
+        const targetStyle = actuallyOffline ? FREE_OFFLINE_STYLE : onlineStyle;
         if (sharedAppliedStyle === targetStyle) return;
         sharedAppliedStyle = targetStyle;
         map.setStyle(targetStyle as unknown as maplibregl.StyleSpecification | string, {
@@ -518,7 +536,7 @@ const TrailMap = memo(
           }
         };
         map.once("idle", handleIdleStyle);
-      }, [isOffline, mapReady]);
+      }, [actuallyOffline, mapReady]);
 
       /* --------------------------- Resolve trail URLs ------------------------ */
       useEffect(() => {
@@ -872,6 +890,10 @@ const TrailMap = memo(
           mapRef.current?.flyTo({ center: o.center, zoom: o.zoom ?? 17, duration: o.duration ?? 800 });
         },
         toggleOffline: () => {
+          if (!isOnline) {
+            showNotice("Cannot switch to online map while offline.");
+            return;
+          }
           setIsOffline((prev) => {
             const next = !prev;
             isOfflineRef.current = next;

@@ -8,10 +8,12 @@ import CustomIcon from "@/src/components/CustomIcon";
 import CustomSearchBar from "@/src/components/CustomSearchBar";
 import CustomText from "@/src/components/CustomText";
 
-import { Colors } from "@/src/constants/colors";
+import { Colors, Palette } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
 import { Trail, computeTrailMidpoint } from "@/src/core/models/Trail/Trail";
+import NetworkStatusBanner from "@/src/components/NetworkStatusBanner";
+import { useNetworkStatus } from "@/src/core/flows/TrackHikerGPSFlow";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
@@ -86,7 +88,9 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     };
 
     const mapRef = useRef<TrailMapRef | null>(null);
+    const { isOnline } = useNetworkStatus();
     const [isOfflineMode, setIsOfflineMode] = useState(true);
+    const isEffectiveOffline = !isOnline || isOfflineMode;
     const [isDevBypassModalVisible, setDevBypassModalVisible] = useState(false);
     const [isUpcomingModalVisible, setUpcomingModalVisible] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -165,7 +169,8 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleToggleOffline = () => {
-        const nextMode = !isOfflineMode;
+        if (!isOnline) return;
+        const nextMode = !isEffectiveOffline;
         setIsOfflineMode(nextMode);
         mapRef.current?.toggleOffline();
 
@@ -208,7 +213,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         <View style={styles.container}>
             <TrailMap
                 ref={mapRef}
-                isOffline={isOfflineMode}
+                isOffline={isEffectiveOffline}
                 initialLon={trailCenter?.longitude}
                 initialLat={trailCenter?.latitude}
                 geoJsonPath={selectedTrail?.geography?.geoJsonPath}
@@ -349,6 +354,8 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 )}
             </View>
 
+            <NetworkStatusBanner isOnline={isOnline} top={Platform.OS === 'web' ? 70 : searchTopPadding + 56} />
+
             {modeToast && (
                 <View style={[styles.modeToastBanner, { top: Platform.OS === 'web' ? 70 : searchTopPadding + 56 }]} pointerEvents="none">
                     <View style={[styles.modeToastContent, styles.toastOnline]}>
@@ -410,25 +417,27 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    <View
-                        ref={mapStyleBtnRef}
-                        collapsable={false}
-                        onLayout={handlers.handleMapStyleBtnLayout}
-                    >
-                        <TouchableOpacity
-                            style={styles.floatingIconBtn}
-                            onPress={handleToggleOffline}
-                            activeOpacity={0.8}
-                            accessibilityLabel={`Toggle map mode. Currently ${isOfflineMode ? "Offline" : "Online"}`}
+                    {isOnline && (
+                        <View
+                            ref={mapStyleBtnRef}
+                            collapsable={false}
+                            onLayout={handlers.handleMapStyleBtnLayout}
                         >
-                            <CustomIcon
-                                library="Feather"
-                                name={isOfflineMode ? "hard-drive" : "cloud"}
-                                size={20}
-                                color={Colors.PRIMARY}
-                            />
-                        </TouchableOpacity>
-                    </View>
+                            <TouchableOpacity
+                                style={styles.floatingIconBtn}
+                                onPress={handleToggleOffline}
+                                activeOpacity={0.8}
+                                accessibilityLabel={`Toggle map mode. Currently ${isEffectiveOffline ? "Offline" : "Online"}`}
+                            >
+                                <CustomIcon
+                                    library="Feather"
+                                    name={isEffectiveOffline ? "hard-drive" : "cloud"}
+                                    size={20}
+                                    color={Colors.PRIMARY}
+                                />
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     <View
                         ref={recenterBtnRef}
@@ -833,28 +842,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: Colors.WHITE,
+        backgroundColor: Palette.Green50,
+        borderColor: Palette.Green200,
         gap: 8,
         ...GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }),
         borderWidth: 1,
     },
-    toastOffline: {
-        borderColor: '#FDE68A',
-        backgroundColor: '#FFFBEB',
-    },
     toastOnline: {
-        borderColor: '#A7F3D0',
-        backgroundColor: '#ECFDF5',
+        borderColor: Palette.Green200,
+        backgroundColor: Palette.Green50,
     },
     modeToastText: {
         fontSize: 12,
         fontWeight: '700',
     },
-    textAmber: {
-        color: '#92400E',
-    },
     textEmerald: {
-        color: '#065F46',
+        color: Palette.Green900,
     },
     cardDismissBtn: {
         width: 32,
