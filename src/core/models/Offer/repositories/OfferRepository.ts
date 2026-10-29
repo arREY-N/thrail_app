@@ -101,10 +101,7 @@ export const OfferRepository = (db: any) => ({
             const ref = query(offerCollection, where('id', '==', offerId));
             const snap = await getDocs(ref);
 
-            if (snap.empty) {
-                console.log('No offer found in repo', offerId);
-                return null
-            };
+            if (snap.empty) return null
 
             return snap.docs[0].data();
         } catch (err: any) {
