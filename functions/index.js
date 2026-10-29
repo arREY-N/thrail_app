@@ -2499,7 +2499,15 @@ exports.verifyManualPayment = https.onCall(async (request) => {
         verifiedAmount,
         note,
         isRejection = false,
-        rejectionReason = ''
+        rejectionReason = '',
+        isRevert = false,
+        revertRejection = false,
+        isEdit = false,
+        paymentIndex,
+        newAmount,
+        newReferenceCode,
+        newClassification,
+        newAdminNote,
     } = request.data || {};
 
     const caller = request.auth;
@@ -2528,6 +2536,200 @@ exports.verifyManualPayment = https.onCall(async (request) => {
     const batch = db.batch();
     const payments = bookingData.payment || [];
     const pendingPaymentIndex = payments.findIndex(p => p.gateway === 'manual_qr' && p.status === 'pending');
+
+    // ─── REVERT PAYMENT (Approved or Rejected) ──────────────────────────────
+    if (isRevert) {
+        if (revertRejection || bookingData.paymentVerificationStatus === 'rejected') {
+            const updatedPayments = payments.map((p) => {
+                if (p.status === 'rejected') {
+                    return {
+                        ...p,
+                        status: 'pending',
+                        adminNote: null,
+                    };
+                }
+                return p;
+            });
+
+            batch.update(bookingRef, {
+                status: 'for-payment',
+                paymentVerificationStatus: 'pending_verification',
+                paymentRejectionReason: FieldValue.delete(),
+                payment: updatedPayments,
+                updatedAt: FieldValue.serverTimestamp(),
+            });
+
+            await batch.commit();
+            console.log(`[verifyManualPayment] Reverted payment rejection for booking ${bookingId}`);
+
+            return { success: true, message: 'Payment rejection reverted back to pending review.' };
+        }
+
+        // Reverting a captured / approved payment
+        let targetIdx = typeof paymentIndex === 'number' ? paymentIndex : -1;
+        if (targetIdx < 0 || targetIdx >= payments.length) {
+            for (let i = payments.length - 1; i >= 0; i--) {
+                if (payments[i].status === 'captured') {
+                    targetIdx = i;
+                    break;
+                }
+            }
+        }
+
+        if (targetIdx === -1) {
+            throw new HttpsError('not-found', 'No captured payment found to revert.');
+        }
+
+        const targetPayment = payments[targetIdx];
+        const updatedPayments = [...payments];
+
+        if (targetPayment.receiptUrl) {
+            updatedPayments[targetIdx] = {
+                ...targetPayment,
+                status: 'pending',
+                amount: 0,
+                classification: null,
+                paidAt: null,
+                verifiedAt: null,
+                verifiedBy: null,
+                revertedAt: FieldValue.serverTimestamp(),
+                revertedBy: caller.uid,
+            };
+        } else {
+            updatedPayments[targetIdx] = {
+                ...targetPayment,
+                status: 'abandoned',
+                revertedAt: FieldValue.serverTimestamp(),
+                revertedBy: caller.uid,
+            };
+        }
+
+        const totalPrice = bookingData.totalPrice || bookingData.offer?.price || 0;
+        const remainingCaptured = updatedPayments.reduce((sum, p) => p.status === 'captured' ? sum + (p.amount || 0) : sum, 0);
+        const newRemainingBalance = Math.max(0, totalPrice - remainingCaptured);
+
+        let newStatus = 'for-payment';
+        let newVerificationStatus = 'pending_verification';
+        if (remainingCaptured > 0) {
+            if (newRemainingBalance === 0) {
+                newStatus = 'completed';
+                newVerificationStatus = 'fully_paid';
+            } else {
+                newStatus = 'downpayment';
+                newVerificationStatus = 'downpayment';
+            }
+        }
+
+        const bookingUpdates = {
+            status: newStatus,
+            paymentVerificationStatus: newVerificationStatus,
+            remainingBalance: newRemainingBalance,
+            payment: updatedPayments,
+            updatedAt: FieldValue.serverTimestamp(),
+        };
+
+        if (bookingData.overpayment) {
+            bookingUpdates.overpayment = FieldValue.delete();
+        }
+
+        batch.update(bookingRef, bookingUpdates);
+        await batch.commit();
+
+        console.log(`[verifyManualPayment] Successfully reverted captured payment for booking ${bookingId}`);
+        return {
+            success: true,
+            message: 'Payment verification reverted successfully.',
+            remainingBalance: newRemainingBalance,
+            status: newStatus,
+        };
+    }
+
+    // ─── EDIT PAYMENT DETAILS ────────────────────────────────────────────────
+    if (isEdit) {
+        const resolvedNewAmount = typeof newAmount === 'number' ? newAmount : parseFloat(newAmount);
+        if (isNaN(resolvedNewAmount) || resolvedNewAmount <= 0) {
+            throw new HttpsError('invalid-argument', 'A valid positive payment amount is required.');
+        }
+
+        let targetIdx = typeof paymentIndex === 'number' ? paymentIndex : -1;
+        if (targetIdx < 0 || targetIdx >= payments.length) {
+            for (let i = payments.length - 1; i >= 0; i--) {
+                if (payments[i].status === 'captured') {
+                    targetIdx = i;
+                    break;
+                }
+            }
+        }
+
+        if (targetIdx === -1) {
+            throw new HttpsError('not-found', 'No captured payment found to edit.');
+        }
+
+        const totalPrice = bookingData.totalPrice || bookingData.offer?.price || 0;
+        const otherCaptured = payments.reduce((sum, p, idx) => {
+            if (idx !== targetIdx && p.status === 'captured') {
+                return sum + (p.amount || 0);
+            }
+            return sum;
+        }, 0);
+
+        const balanceNeededForThis = Math.max(0, totalPrice - otherCaptured);
+        const isOverpaid = resolvedNewAmount > balanceNeededForThis;
+        const excessAmount = isOverpaid ? (resolvedNewAmount - balanceNeededForThis) : 0;
+        const approvedAmount = isOverpaid ? balanceNeededForThis : resolvedNewAmount;
+
+        const totalCaptured = otherCaptured + approvedAmount;
+        const newRemainingBalance = Math.max(0, totalPrice - totalCaptured);
+        const isFull = isOverpaid || newRemainingBalance === 0 || (newClassification === 'full' && approvedAmount >= balanceNeededForThis);
+        const effectiveClassification = isFull ? 'full' : (newClassification || 'downpayment');
+
+        const targetPayment = payments[targetIdx];
+        const updatedPayments = [...payments];
+
+        updatedPayments[targetIdx] = {
+            ...targetPayment,
+            amount: approvedAmount,
+            classification: effectiveClassification,
+            referenceCode: newReferenceCode !== undefined ? (newReferenceCode ? newReferenceCode.trim() : targetPayment.referenceCode) : targetPayment.referenceCode,
+            adminNote: newAdminNote !== undefined ? (newAdminNote ? newAdminNote.trim() : null) : targetPayment.adminNote,
+            editedAt: FieldValue.serverTimestamp(),
+            editedBy: caller.uid,
+        };
+
+        const bookingUpdates = {
+            status: isFull ? 'completed' : 'downpayment',
+            remainingBalance: newRemainingBalance,
+            paymentVerificationStatus: isFull ? 'fully_paid' : 'downpayment',
+            payment: updatedPayments,
+            updatedAt: FieldValue.serverTimestamp(),
+        };
+
+        if (isOverpaid) {
+            bookingUpdates.overpayment = {
+                excessAmount,
+                originalVerifiedAmount: resolvedNewAmount,
+                hikeAmountCaptured: approvedAmount,
+                status: 'awaiting_hiker_wallet',
+                createdAt: FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp(),
+            };
+        } else if (bookingData.overpayment) {
+            bookingUpdates.overpayment = FieldValue.delete();
+        }
+
+        batch.update(bookingRef, bookingUpdates);
+        await batch.commit();
+
+        console.log(`[verifyManualPayment] Successfully edited captured payment details for booking ${bookingId}`);
+        return {
+            success: true,
+            message: 'Payment verification details updated successfully.',
+            remainingBalance: newRemainingBalance,
+            classification: effectiveClassification,
+            isOverpaid,
+            excessAmount,
+        };
+    }
 
     if (isRejection) {
         if (!rejectionReason || !rejectionReason.trim()) {
@@ -2745,6 +2947,9 @@ exports.verifyManualPayment = https.onCall(async (request) => {
             : (isFull ? 'Full payment verified.' : 'Downpayment verified.'),
     };
 });
+
+exports.revertManualPayment = exports.verifyManualPayment;
+exports.editManualPayment = exports.verifyManualPayment;
 
 /**
  * Atomically completes a manual refund payout.
