@@ -7,7 +7,11 @@ export function useOfferItem(offerId?: string) {
     useEffect(() => {
         if (!offerId) return;
         const fetch = async () => {
-            await useOfferStore.getState().fetchOfferById(offerId);
+            try {
+                await useOfferStore.getState().fetchOfferById(offerId);
+            } catch (error) {
+
+            }
         };
         fetch();
     }, [offerId]);
