@@ -34,6 +34,14 @@ import {
     paymentStatusTourSteps,
     paymentTourSteps,
 } from '@/src/components/Tutorial/constants/paymentTour';
+import {
+    navigationBookedTourSteps,
+    navigationDiyTourSteps,
+} from '@/src/components/Tutorial/constants/navigationTour';
+import {
+    recordingBookedTourSteps,
+    recordingDiyTourSteps,
+} from '@/src/components/Tutorial/constants/recordingTour';
 import { tabsTourSteps } from '@/src/components/Tutorial/constants/tabsTour';
 
 export {
@@ -41,6 +49,10 @@ export {
     adminBookingReviewPaymentSteps,
     emergencyModalOnlySteps,
     emergencyModalUnifiedSteps,
+    navigationBookedTourSteps,
+    navigationDiyTourSteps,
+    recordingBookedTourSteps,
+    recordingDiyTourSteps,
 };
 
 /**
@@ -165,5 +177,29 @@ export const TUTORIAL_TOURS: Record<TutorialTourId, TutorialTourConfig> = {
         tourTitle: 'How to Review & Approve a Booking',
         roleScope: 'admin',
         steps: [...adminBookingReviewSteps],
+    },
+    navigation_booked: {
+        tourId: 'navigation_booked',
+        tourTitle: 'Hike Navigation — Booked Climb Guide',
+        roleScope: 'user',
+        steps: [...navigationBookedTourSteps],
+    },
+    navigation_diy: {
+        tourId: 'navigation_diy',
+        tourTitle: 'Hike Navigation — Free Roam & DIY Guide',
+        roleScope: 'user',
+        steps: [...navigationDiyTourSteps],
+    },
+    recording_booked: {
+        tourId: 'recording_booked',
+        tourTitle: 'Live Hike — Scheduled Climb Guide',
+        roleScope: 'user',
+        steps: [...recordingBookedTourSteps],
+    },
+    recording_diy: {
+        tourId: 'recording_diy',
+        tourTitle: 'Live Hike — Free Roam & DIY Guide',
+        roleScope: 'user',
+        steps: [...recordingDiyTourSteps],
     },
 };

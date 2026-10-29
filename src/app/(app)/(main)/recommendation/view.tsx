@@ -476,15 +476,7 @@ export default function RecommendationViewScreen() {
                             </View>
                             <View style={{ flex: 1 }}>
                                 <CustomText style={styles.aiTitle}>Why THARESYS Recommended This</CustomText>
-                                <CustomText style={styles.aiSubtitle}>
-                                    {aiReasoning?.source === "gemini" ? "Powered by Gemini AI" : "THARESYS Mountaineering Analysis"}
-                                </CustomText>
                             </View>
-                            {aiReasoning?.source === "gemini" && (
-                                <View style={styles.aiBadge}>
-                                    <CustomText style={styles.aiBadgeText}>Gemini AI</CustomText>
-                                </View>
-                            )}
                         </View>
 
                         {isAiLoading ? (
