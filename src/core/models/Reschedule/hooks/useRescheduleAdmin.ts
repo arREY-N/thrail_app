@@ -23,17 +23,36 @@ export const useRescheduleAdmin = (bookingId?: string, businessId?: string, resc
     // 1. Locate reschedule from store
     const storeReschedule = useMemo(() => {
         if (!bookingId && !rescheduleRequestId) return null;
-        return businessReschedules.find(r => 
-            (rescheduleRequestId && r.id === rescheduleRequestId) ||
-            (bookingId && r.bookingId === bookingId && r.status === 'pending') ||
-            (bookingId && r.bookingId === bookingId)
-        ) || null;
+
+        // Priority 1: Match by explicit rescheduleRequestId
+        if (rescheduleRequestId) {
+            const foundById = businessReschedules.find(r => r.id === rescheduleRequestId);
+            if (foundById) return foundById;
+        }
+
+        // Priority 2: Match by bookingId with status 'pending'
+        if (bookingId) {
+            const pending = businessReschedules.find(r => r.bookingId === bookingId && r.status === 'pending');
+            if (pending) return pending;
+
+            // Priority 3: Fallback to most recent reschedule request for this booking
+            const matching = businessReschedules
+                .filter(r => r.bookingId === bookingId)
+                .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+            if (matching.length > 0) return matching[0];
+        }
+
+        return null;
     }, [businessReschedules, bookingId, rescheduleRequestId]);
 
     // 2. Real-time snapshot listener on the reschedule document
+    const targetId = rescheduleRequestId || storeReschedule?.id;
+
     useEffect(() => {
-        const targetId = rescheduleRequestId || storeReschedule?.id;
-        if (!effectiveBusinessId || !targetId) return;
+        if (!effectiveBusinessId || !targetId) {
+            setFetchedReschedule(null);
+            return;
+        }
 
         setIsFetchingLocal(true);
         const unsubscribe = RescheduleRepo.listenToRescheduleById(
@@ -54,9 +73,9 @@ export const useRescheduleAdmin = (bookingId?: string, businessId?: string, resc
         return () => {
             if (unsubscribe) unsubscribe();
         };
-    }, [effectiveBusinessId, rescheduleRequestId, storeReschedule?.id]);
+    }, [effectiveBusinessId, targetId]);
 
-    const activeReschedule = fetchedReschedule || storeReschedule;
+    const activeReschedule = (fetchedReschedule && fetchedReschedule.id === targetId) ? fetchedReschedule : storeReschedule;
 
     const onApproveReschedule = async (newOffer: Offer, booking: Booking, adminNote?: string) => {
         try {

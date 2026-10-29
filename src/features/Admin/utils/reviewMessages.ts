@@ -41,6 +41,18 @@ export const CANCELLATION_DECLINE_REASONS: readonly string[] = [
 ] as const;
 
 /**
+ * Suggestions for cancellation approval notes and messages.
+ */
+export const CANCELLATION_APPROVE_SUGGESTIONS: readonly string[] = [
+    "Approved without refund",
+    "Approved per cancellation policy",
+    "Refund sent via GCash",
+    "Refund sent via Maya",
+    "Full refund approved",
+    "Offline resolution agreed with hiker",
+] as const;
+
+/**
  * Priority cancellation reasons initiated by organizer / admin.
  */
 export const ORGANIZER_CANCEL_REASONS: readonly string[] = [

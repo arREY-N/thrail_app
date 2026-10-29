@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { emitFilteredUserLocation, isForegroundGpsActive } from "@/src/core/flows/TrackHikerGPSFlow";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { newLocation } from "@/src/core/models/Location/Location";
 import { sharedGpsKalmanFilter } from "@/src/core/utility/gpsKalmanFilter";
@@ -31,6 +32,13 @@ if (Platform.OS !== 'web') {
       return;
     }
     try {
+      // When the app is active in the foreground and watchPositionAsync is already streaming
+      // 1Hz BestForNavigation fixes, skip duplicate deferred batch processing to avoid
+      // Kalman filter state contention.
+      if (isForegroundGpsActive()) {
+        return;
+      }
+
       const rawLocations = data?.locations;
       if (!rawLocations || rawLocations.length === 0) return;
 
@@ -63,6 +71,9 @@ if (Platform.OS !== 'web') {
         if (!filtered) {
           continue;
         }
+
+        // Keep global UI dot state synchronized with background fixes
+        emitFilteredUserLocation(filtered.longitude, filtered.latitude);
 
         const timestamp = new Date(filtered.timestamp).toISOString();
 

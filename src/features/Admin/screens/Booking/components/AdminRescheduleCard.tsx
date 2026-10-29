@@ -43,15 +43,13 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
 }) => {
     const { showToast } = useToast();
 
-    console.log(booking);
-    console.log(propReschedule);
     // Internal hook fallback if props are not explicitly passed
     const {
         rescheduleRequest: hookReschedule,
         onApproveReschedule: hookOnApprove,
         onDeclineReschedule: hookOnDecline,
         isWriting: isHookWriting,
-    } = useRescheduleAdmin(booking?.id, booking?.business?.id, booking?.rescheduleRequestId);
+    } = useRescheduleAdmin(booking?.id, booking?.business?.id, booking?.rescheduleRequestId || '');
 
     const activeReschedule = propReschedule || hookReschedule;
     const resolvedOnApprove = propOnApprove || hookOnApprove;
@@ -65,6 +63,13 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
     const [isConfirmDeclineVisible, setIsConfirmDeclineVisible] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [optimisticStatus, setOptimisticStatus] = useState<'approved' | 'rejected' | null>(null);
+
+    // Reset optimistic status if a new active request arrives or status changes to pending
+    useEffect(() => {
+        if (activeReschedule?.status === 'pending' || booking?.status === 'for-reschedule') {
+            setOptimisticStatus(null);
+        }
+    }, [activeReschedule?.id, activeReschedule?.status, booking?.status]);
 
     // Target offer resolution
     const targetOfferId = activeReschedule?.newOfferId || booking?.rescheduledToOfferId;
@@ -89,23 +94,27 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
         return () => { isMounted = false; };
     }, [targetOfferId, targetOffer]);
 
-    // Determine status — Approved and Declined ALWAYS take strict precedence over Pending
+    // Determine status
+    // 1. Approved status (optimistic or persisted)
     const isApproved =
         optimisticStatus === 'approved' ||
         activeReschedule?.status === 'approved' ||
         booking?.status === 'rescheduled';
 
+    // 2. Pending status: Active reschedule request awaiting organizer review
+    const isPending =
+        !isApproved &&
+        optimisticStatus !== 'rejected' &&
+        (booking?.status === 'for-reschedule' || activeReschedule?.status === 'pending');
+
+    // 3. Declined status: Only when not approved and not actively pending
     const isDeclined =
         !isApproved &&
+        !isPending &&
         (optimisticStatus === 'rejected' ||
             activeReschedule?.status === 'rejected' ||
             booking?.status === 'reschedule-rejected' ||
             Boolean(booking?.rescheduleDeclineReason));
-
-    const isPending =
-        !isApproved &&
-        !isDeclined &&
-        (booking?.status === 'for-reschedule' || activeReschedule?.status === 'pending');
 
     // Visibility guard: only render if reschedule request is active, approved, or declined
     if (!isPending && !isApproved && !isDeclined && !activeReschedule) {
@@ -239,7 +248,7 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
             {/* Hiker Submitted Reason */}
             {(activeReschedule?.reason || booking?.rescheduleReason) && (
                 <View style={styles.reasonSection}>
-                    <CustomText style={styles.sectionLabel}>HIKER'S SUBMITTED REASON</CustomText>
+                    <CustomText style={styles.sectionLabel}>HIKER&apos;S SUBMITTED REASON</CustomText>
                     <View style={styles.reasonBox}>
                         <CustomIcon library="Feather" name="message-square" size={14} color="#64748B" style={styles.reasonIcon} />
                         <CustomText style={styles.reasonText}>

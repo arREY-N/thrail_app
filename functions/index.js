@@ -2761,7 +2761,8 @@ exports.completeManualRefund = https.onCall(async (request) => {
         offerId: inputOfferId,
         cancellationId,
         receiptUrl,
-        refundAmount
+        refundAmount,
+        adminNote,
     } = request.data || {};
 
     const caller = request.auth;
@@ -2806,14 +2807,18 @@ exports.completeManualRefund = https.onCall(async (request) => {
     const resolvedRefundAmount = typeof refundAmount === 'number' && refundAmount > 0 ? refundAmount : totalPaid;
 
     if (resolvedCancellationRef) {
-        batch.update(resolvedCancellationRef, {
+        const cancellationUpdates = {
             status: 'refund_submitted',
             adminRefundReceiptUrl: receiptUrl,
             adminRefundReceiptUploadedAt: FieldValue.serverTimestamp(),
             handshakeStep: 'awaiting_user_confirmation',
             refundAmount: resolvedRefundAmount,
             updatedAt: FieldValue.serverTimestamp(),
-        });
+        };
+        if (adminNote && typeof adminNote === 'string') {
+            cancellationUpdates.adminNote = adminNote.trim();
+        }
+        batch.update(resolvedCancellationRef, cancellationUpdates);
     }
 
     // 2. Booking Document Update

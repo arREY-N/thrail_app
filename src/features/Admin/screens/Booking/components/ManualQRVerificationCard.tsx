@@ -428,6 +428,7 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                 size="md"
                                 icon="x"
                                 iconLibrary="Feather"
+                                iconColor={Colors.ERROR}
                                 onPress={() => setIsRejecting(true)}
                                 style={styles.rejectBtn}
                                 textStyle={styles.rejectBtnText}
