@@ -11,8 +11,7 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { Offer, useOfferStore } from '@/src/core/models/Offer/Offer';
-import { useRescheduleAdmin } from '@/src/core/models/Reschedule/hooks/useRescheduleAdmin';
-import { Reschedule } from '@/src/core/models/Reschedule/interfaces/Reschedule.types';
+import { Reschedule, useRescheduleAdmin } from '@/src/core/models/Reschedule/Reschedule';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
 export interface AdminRescheduleCardProps {
@@ -20,7 +19,7 @@ export interface AdminRescheduleCardProps {
     offers?: Offer[];
     reschedule?: Reschedule | null;
     totalAmountPaid?: number;
-    onApproveReschedule?: (newOffer: Offer, booking?: Booking, adminNote?: string) => Promise<void | any>;
+    onApproveReschedule?: (newOffer: Offer, booking?: Booking, adminNote?: string) => Promise<unknown>;
     onDeclineReschedule?: (reason: string, reschedule?: Reschedule | null, booking?: Booking) => Promise<void>;
     isProcessing?: boolean;
 }
@@ -58,18 +57,21 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
     // Component states
     const [isDeclineExpanded, setIsDeclineExpanded] = useState(false);
     const [declineReason, setDeclineReason] = useState('');
-    const [approvalAdminNote, setApprovalAdminNote] = useState('');
+    const [approvalAdminNote] = useState('');
     const [isConfirmApproveVisible, setIsConfirmApproveVisible] = useState(false);
     const [isConfirmDeclineVisible, setIsConfirmDeclineVisible] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [optimisticStatus, setOptimisticStatus] = useState<'approved' | 'rejected' | null>(null);
+    const [prevRescheduleKey, setPrevRescheduleKey] = useState<string>('');
 
     // Reset optimistic status if a new active request arrives or status changes to pending
-    useEffect(() => {
+    const currentRescheduleKey = `${activeReschedule?.id || ''}_${activeReschedule?.status || ''}_${booking?.status || ''}`;
+    if (currentRescheduleKey !== prevRescheduleKey) {
+        setPrevRescheduleKey(currentRescheduleKey);
         if (activeReschedule?.status === 'pending' || booking?.status === 'for-reschedule') {
             setOptimisticStatus(null);
         }
-    }, [activeReschedule?.id, activeReschedule?.status, booking?.status]);
+    }
 
     // Target offer resolution
     const targetOfferId = activeReschedule?.newOfferId || booking?.rescheduledToOfferId;
@@ -126,11 +128,10 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
     // Financial calculations
     const oldPrice = Number(booking?.offer?.price || booking?.totalAmount) || 0;
     const newPrice = Number(targetOffer?.price) || 0;
-    const priceDiff = newPrice - oldPrice;
 
     const payments = Array.isArray(booking?.payment) ? booking.payment : [];
     const calculatedCaptured = payments
-        .filter(p => p && (p.status === 'captured' || p.status === 'completed' || p.status === 'verified'))
+        .filter(p => p && p.status === 'captured')
         .reduce((sum, p) => {
             const net = (Number(p.amount) || 0) - (Number(p.refundedAmount) || 0);
             return sum + Math.max(0, net);
@@ -252,7 +253,7 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
                     <View style={styles.reasonBox}>
                         <CustomIcon library="Feather" name="message-square" size={14} color="#64748B" style={styles.reasonIcon} />
                         <CustomText style={styles.reasonText}>
-                            "{activeReschedule?.reason || booking?.rescheduleReason}"
+                            &quot;{activeReschedule?.reason || booking?.rescheduleReason}&quot;
                         </CustomText>
                     </View>
                 </View>
@@ -285,7 +286,7 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
                     <View style={styles.infoRow}>
                         <CustomIcon library="Feather" name="map-pin" size={13} color="#64748B" />
                         <CustomText style={styles.infoText} numberOfLines={1}>
-                            {booking?.trail?.name || booking?.offer?.trail?.name || 'Current Trail'}
+                            {booking?.trail?.name || 'Current Trail'}
                         </CustomText>
                     </View>
                     <View style={styles.infoRow}>
@@ -326,7 +327,7 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
                         <View style={styles.infoRow}>
                             <CustomIcon library="Feather" name="users" size={13} color={Colors.PRIMARY} />
                             <CustomText style={styles.capacityText}>
-                                {Math.max(0, (targetOffer.maxPax || 0) - (targetOffer.currentReserved || 0))} slots available
+                                {Math.max(0, (targetOffer.maxPax || 0) - (targetOffer.reservedPax || 0))} slots available
                             </CustomText>
                         </View>
                     )}
@@ -394,12 +395,12 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
                                 />
                                 <CustomButton
                                     title="Confirm Decline"
-                                    variant="danger"
+                                    variant="destructive"
                                     onPress={() => setIsConfirmDeclineVisible(true)}
                                     disabled={!declineReason.trim() || isBusy}
-                                    loading={isBusy}
+                                    isLoading={isBusy}
                                     style={styles.flexButton}
-                                    iconName="x-circle"
+                                    icon="x-circle"
                                     iconLibrary="Feather"
                                 />
                             </View>
@@ -412,7 +413,7 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
                                 onPress={() => setIsDeclineExpanded(true)}
                                 disabled={isBusy}
                                 style={styles.flexButton}
-                                iconName="x-circle"
+                                icon="x-circle"
                                 iconLibrary="Feather"
                             />
                             <CustomButton
@@ -420,9 +421,9 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
                                 variant="primary"
                                 onPress={() => setIsConfirmApproveVisible(true)}
                                 disabled={!targetOffer || isBusy}
-                                loading={isBusy}
+                                isLoading={isBusy}
                                 style={styles.flexButton}
-                                iconName="check-circle"
+                                icon="check-circle"
                                 iconLibrary="Feather"
                             />
                         </View>
@@ -477,7 +478,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E2E8F0',
         marginBottom: 16,
-        ...GlobalStyles.shadowDefault,
+        ...GlobalStyles.dropShadow(2),
     },
     headerRow: {
         flexDirection: 'row',
