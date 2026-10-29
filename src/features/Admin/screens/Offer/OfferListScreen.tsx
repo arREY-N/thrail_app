@@ -3,12 +3,11 @@
  * @description Admin screen displaying a list of created offers and basic booking stats, including search, filter, and sorting features.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
     StyleSheet,
-    TouchableOpacity,
     View
 } from 'react-native';
 
@@ -16,6 +15,7 @@ import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomFilterModal from '@/src/components/CustomFilterModal';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -112,11 +112,14 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         setActiveFilter, 
         sortBy,
         setSortBy,
-        filterTrailNames,
-        setFilterTrailNames,
-        uniqueTrailNames,
-        filteredAndSortedOffers 
-    } = useOfferFilters(offers);
+        filteredAndSortedOffers,
+        sortOrder,
+        setSortOrder,
+        filterByStatus,
+        setFilterByStatus,
+        actionableCountsByOffer,
+        filterSections,
+    } = useOfferFilters(offers, bookingByOffer, cancellations);
 
     const tutorial = useTutorialGuide('admin_offer_list', !isLoading);
     
@@ -136,17 +139,8 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
 
     const cardWidth = (containerWidth - gap * (numColumns - 1)) / numColumns;
     const scrollViewRef = useRef<ScrollView>(null);
-    const addBtnRef = useRef<View>(null);
     const searchFiltersRef = useRef<View>(null);
     const firstOfferRef = useRef<View>(null);
-
-    const measureAddBtnNow = useCallback(() => {
-        addBtnRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('admin_offer_add_btn', { x, y, width: w, height: h });
-            }
-        });
-    }, []);
 
     const measureFiltersNow = useCallback(() => {
         searchFiltersRef.current?.measureInWindow((x, y, w, h) => {
@@ -165,15 +159,13 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
     }, []);
 
     useEffect(() => {
-        const u1 = registerMeasureCallback('admin_offer_add_btn', measureAddBtnNow);
         const u2 = registerMeasureCallback('admin_offer_filters', measureFiltersNow);
         const u3 = registerMeasureCallback('admin_offer_card', measureFirstOfferNow);
         return () => {
-            u1();
             u2();
             u3();
         };
-    }, [measureAddBtnNow, measureFiltersNow, measureFirstOfferNow]);
+    }, [measureFiltersNow, measureFirstOfferNow]);
 
     useEffect(() => {
         if (!tutorial.isVisible) return;
@@ -202,28 +194,6 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         }
     };
 
-    const HeaderAddAction = (
-        <TouchableOpacity 
-            ref={addBtnRef}
-            onLayout={() => {
-                if (isTutorialMeasurementActive()) measureAddBtnNow();
-            }}
-            style={styles.headerAddButton}
-            onPress={onAddOffer}
-            activeOpacity={0.7}
-        >
-            <CustomIcon 
-                library="Feather" 
-                name="plus" 
-                size={16} 
-                color={Colors.WHITE} 
-            />
-            <CustomText style={styles.headerAddText}>
-                New
-            </CustomText>
-        </TouchableOpacity>
-    );
-
     const getOfferStatusDetails = useCallback((offer: Offer) => {
         const status = (offer.status || '').toString().toLowerCase();
         const offerDate = safeParseDateString((offer.date || offer.hikeDate) as DateInput);
@@ -238,92 +208,17 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         return STATUS_DETAILS.active;
     }, []);
 
-    const actionableCountsByOffer = useMemo(() => {
-        const counts: Record<string, number> = {};
-
-        // 1. Group cancellations by offerId
-        const cancellationsByOffer = new Map<string, Cancellation[]>();
-        (cancellations || []).forEach(c => {
-            if (!cancellationsByOffer.has(c.offerId)) {
-                cancellationsByOffer.set(c.offerId, []);
-            }
-            cancellationsByOffer.get(c.offerId)!.push(c);
-        });
-
-        // 2. Compute actionable count for each offer in a single pass
-        (offers || []).forEach(offer => {
-            const list = (bookingByOffer && Object.prototype.hasOwnProperty.call(bookingByOffer, offer.id))
-                ? bookingByOffer[offer.id] || []
-                : [];
-            const offerCancellations = cancellationsByOffer.get(offer.id) || [];
-
-            const cancellationByBooking = new Map<string, Cancellation>();
-            offerCancellations.forEach(c => {
-                cancellationByBooking.set(c.bookingId, c);
-            });
-
-            const actionableBookingIds = new Set<string>();
-            list.forEach(b => {
-                const cancellation = cancellationByBooking.get(b.id);
-                // If cancellation is approved or booking is cancelled, it is resolved and not actionable for admin
-                if (cancellation?.status === 'approved' || b.status === 'cancelled') {
-                    return;
-                }
-                // If cancellation was initiated by admin, admin is waiting on hiker action
-                if (cancellation && cancellation.cancelledBy === 'admin') {
-                    return;
-                }
-
-                const status = (b.status as string) || '';
-                if (
-                    status === 'for-reservation' || 
-                    status === 'paid' || 
-                    status === 'downpayment' ||
-                    status === 'for-cancellation' ||
-                    status === 'for-reschedule'
-                ) {
-                    actionableBookingIds.add(b.id);
-                }
-            });
-
-            // Also count pending cancellation requests submitted by hikers
-            offerCancellations.forEach(c => {
-                if (c.status === 'pending' && c.cancelledBy !== 'admin') {
-                    actionableBookingIds.add(c.bookingId);
-                }
-            });
-
-            counts[offer.id] = actionableBookingIds.size;
-        });
-
-        return counts;
-    }, [offers, bookingByOffer, cancellations]);
-
-    const filterSections = [
-        {
-            id: 'sortBy',
-            title: 'Sort By',
-            type: 'radio' as const,
-            options: [
-                { label: 'Date: Earliest First', value: 'date-asc' },
-                { label: 'Date: Latest First', value: 'date-desc' },
-                { label: 'Price: Low to High', value: 'price-asc' },
-                { label: 'Price: High to Low', value: 'price-desc' }
-            ]
-        },
-        {
-            id: 'filterTrailNames',
-            title: 'Filter By Trail',
-            type: 'pill' as const,
-            multiSelect: true,
-            options: uniqueTrailNames.map((name: string) => ({ label: name, value: name }))
-        }
-    ];
-
     const handleApplyFilters = useCallback((values: Record<string, unknown>) => {
-        setSortBy(values.sortBy as string);
-        setFilterTrailNames((values.filterTrailNames as string[]) || []);
-    }, [setSortBy, setFilterTrailNames]);
+        if (typeof values.sortBy === 'string') {
+            setSortBy(values.sortBy as import('@/src/features/Admin/hooks/useOfferFilters').OfferSortBy);
+        }
+        if (typeof values.sortOrder === 'string') {
+            setSortOrder(values.sortOrder as import('@/src/features/Admin/hooks/useOfferFilters').OfferSortOrder);
+        }
+        if (typeof values.filterByStatus === 'string') {
+            setFilterByStatus(values.filterByStatus as import('@/src/features/Admin/hooks/useOfferFilters').OfferStatusFilter);
+        }
+    }, [setSortBy, setSortOrder, setFilterByStatus]);
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -336,12 +231,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                         title="Manage Offers" 
                         centerTitle={true} 
                         onBackPress={onBackPress}
-                        rightActions={
-                            <View style={styles.headerRightActions}>
-                                <TutorialHelpButton onPress={tutorial.onReplayTour} />
-                                {HeaderAddAction}
-                            </View>
-                        } 
+                        rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />} 
                         hasSearch={true}
                         searchProps={{
                             searchPlaceholder: "Search by trail name...",
@@ -456,6 +346,18 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                         )}
                     </View>
                 </ScrollView>
+
+                <CustomStickyFooter
+                    enableToastDock={true}
+                    primaryButton={{
+                        title: "Add New Offer",
+                        icon: 'plus',
+                        iconLibrary: 'Feather',
+                        iconSize: 18,
+                        onPress: onAddOffer,
+                        variant: 'primary',
+                    }}
+                />
             </View>
 
             {showEditModal && (
@@ -475,10 +377,18 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                 <CustomFilterModal
                     visible={showFilterModal}
                     onClose={() => setShowFilterModal(false)}
-                    title="Sort & Filter Offers"
+                    title="Sort & Filter"
                     sections={filterSections}
-                    initialValues={{ sortBy, filterTrailNames }}
-                    defaultValues={{ sortBy: 'date-asc', filterTrailNames: [] }}
+                    initialValues={{
+                        sortBy,
+                        sortOrder,
+                        filterByStatus,
+                    }}
+                    defaultValues={{
+                        sortBy: 'date',
+                        sortOrder: activeFilter === 'Expired' ? 'desc' : 'asc',
+                        filterByStatus: 'all',
+                    }}
                     onApply={handleApplyFilters}
                 />
             )}
@@ -512,35 +422,19 @@ const styles = StyleSheet.create({
     },
     scrollContent: { 
         paddingTop: 215,
-        paddingBottom: 40, 
-        paddingHorizontal: 16
+        paddingBottom: 110, 
+
     },
     constrainer: { 
         width: '100%', 
         maxWidth: Layout.MAX_WIDTH, 
-        alignSelf: 'center' 
+        alignSelf: 'center',
+        paddingHorizontal: 16,
     },
     centerContent: { 
         paddingVertical: 60, 
         justifyContent: 'center', 
         alignItems: 'center' 
-    },
-    headerAddButton: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        backgroundColor: Colors.PRIMARY, 
-        paddingHorizontal: 16, 
-        height: 32, 
-        alignSelf: 'center', 
-        borderRadius: 16, 
-        gap: 4 
-    },
-    headerAddText: { 
-        color: Colors.WHITE, 
-        fontWeight: 'bold', 
-        fontSize: 12,
-        marginTop: -2
     },
     emptyState: { 
         alignItems: 'center', 
@@ -564,6 +458,7 @@ const styles = StyleSheet.create({
     listContainer: { 
         flexDirection: 'row',
         flexWrap: 'wrap',
+        justifyContent: 'center',
         gap: 16 
     },
     footerContainer: {
@@ -575,11 +470,6 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PLACEHOLDER,
         fontStyle: 'italic',
         fontSize: 14,
-    },
-    headerRightActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
     },
     offerCardFullWidth: {
         width: '100%',

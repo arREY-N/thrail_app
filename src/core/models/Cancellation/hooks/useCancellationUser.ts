@@ -1,3 +1,4 @@
+import { functions } from "@/src/core/config/Firebase";
 import { Booking, newBooking, useBookingDelete, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { Cancellation, CancellationRequest, IUserWalletDetails } from "@/src/core/models/Cancellation/interfaces/Cancellation.types";
 import { useCancellationStore } from "@/src/core/models/Cancellation/stores/cancellationStore";
@@ -5,7 +6,7 @@ import { createCancellationRequest } from "@/src/core/models/Cancellation/utils/
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { useAuthHook } from "@/src/core/models/User/User";
 import { catchError, logger } from "@/src/core/utility/errorFormatter";
-import { functions } from "@/src/core/config/Firebase";
+import { removeUserFromGroupOnCancellation } from "@/src/core/models/Cancellation/utils/removeUserFromGroupOnCancellation";
 import { httpsCallable } from "firebase/functions";
 import { useState } from "react";
 
@@ -75,6 +76,14 @@ export function useCancellationUser() {
             
             if(booking.status === "for-reservation") {
                 await cancelPendingBooking(booking);
+
+                if (booking.offer?.id && profile?.id) {
+                    await removeUserFromGroupOnCancellation({
+                        groupId: booking.offer.id,
+                        userId: profile.id,
+                        bookingId: booking.id,
+                    });
+                }
             } else if (booking.status === 'reservation-rejected') {
                 const updatedBooking: Booking = newBooking({
                     ...booking,

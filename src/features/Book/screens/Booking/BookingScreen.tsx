@@ -369,7 +369,7 @@ const BookingScreen = ({
                 title={currentView === 3 ? 'Booking Status' : 'Book Trail'}
                 centerTitle={true}
                 onBackPress={currentView === 3 ? undefined : handleHeaderBackPress}
-                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />}
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />}
             />
 
             {!isKeyboardVisible && (

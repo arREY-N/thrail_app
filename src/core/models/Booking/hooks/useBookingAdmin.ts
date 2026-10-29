@@ -88,7 +88,7 @@ export function useBookingAdmin() {
 
             await onAddMemberToGroup(groupMember, booking.offer.id,);
 
-            onBackPress();
+            // onBackPress();
         } catch (error) {
             catchError(error as Error, 'writingError', 'onApproveBooking()');
             setLocalError((error as Error).message || 'Failed to approve booking');
@@ -293,14 +293,14 @@ export function useBookingAdmin() {
                 cancelledBy: `${profile?.firstname} ${profile?.lastname}`
             });
 
-            if (!BookingLogic.checkDocuments(rejectedBook))
-                throw new Error('Cannot reject booking with pending documents. Please validate all documents first.');
+            // if (!BookingLogic.checkDocuments(rejectedBook))
+            //     throw new Error('Cannot reject booking with pending documents. Please validate all documents first.');
 
             const success = await create(rejectedBook, true);
 
             if (!success) throw new Error('Failed to reject booking');
 
-            onBackPress();
+            // onBackPress();
         } catch (error) {
             catchError(error as Error, 'writingError', 'onRejectBooking()');
             setLocalError((error as Error).message || 'Failed to reject booking');

@@ -14,6 +14,7 @@ export interface TargetElementLayout {
 const CANONICAL_KEY_ALIASES: Record<string, string> = {
     booking_offers_footer: 'booking_footer',
     booking_status_primary: 'booking_footer',
+    admin_offer_add_btn: 'booking_footer',
     booking_offers_calendar: 'booking_calendar',
     booking_offers: 'booking_offers_card',
     booking_status_card: 'booking_status_timeline',

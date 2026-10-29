@@ -17,6 +17,11 @@ export function useGroupLocation(groupId: string) {
     useEffect(() => {
         if (!groupId) return;
 
+        // If hikeStore already has an active listener for this groupId, avoid duplicate listener
+        if (typeof useHikeStore.getState().activeListeners[groupId] === "function") {
+            return;
+        }
+
         const unsub = HikeRepo.listenToLocations(groupId, (locations) => {
             useHikeStore.setState((state) => ({
                 locationByGroup: { ...state.locationByGroup, [groupId]: locations }
@@ -27,11 +32,14 @@ export function useGroupLocation(groupId: string) {
             if (typeof unsub === "function") {
                 unsub();
             }
-            useHikeStore.setState((state) => {
-                const newLocations = { ...state.locationByGroup };
-                delete newLocations[groupId];
-                return { locationByGroup: newLocations };
-            });
+            // Only clean up locationByGroup if hikeStore is not actively sharing/listening to this group
+            if (!useHikeStore.getState().activeListeners[groupId]) {
+                useHikeStore.setState((state) => {
+                    const newLocations = { ...state.locationByGroup };
+                    delete newLocations[groupId];
+                    return { locationByGroup: newLocations };
+                });
+            }
         };
     }, [groupId]);
 

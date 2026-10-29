@@ -24,6 +24,7 @@ export const useHikeStore = create<HikeState>()(
                 walkedRoute: state.walkedRoute,
                 coordinates: state.coordinates,
                 events: state.events,
+                isSegmentFirstPoint: state.isSegmentFirstPoint,
             }),
         }
     )

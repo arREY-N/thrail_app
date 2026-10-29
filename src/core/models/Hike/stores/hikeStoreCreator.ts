@@ -50,7 +50,7 @@ export interface HikeState {
     lastShareCoord?: { latitude: number; longitude: number } | null;
 
     locationByGroup: Record<string, Location[]>;
-    activeListeners: Record<string, Unsubscribe>;
+    activeListeners: Record<string, Unsubscribe | undefined>;
     shareLocationEnabled: boolean;
 
     getLastKnownCoordinate: () => Location | null;
@@ -377,6 +377,12 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                         lastShareCoord: { latitude: lastCoordinate.latitude, longitude: lastCoordinate.longitude }
                     });
                 }
+            }
+
+            const existingUnsub = get().activeListeners[groupId];
+            if (existingUnsub) {
+                set({ activeGroupId: groupId, live: true });
+                return;
             }
 
             const unsubscribe = HikeRepo.listenToLocations(

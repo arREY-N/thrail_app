@@ -698,7 +698,7 @@ const BookingDetailsScreen = ({
                 centerTitle={true}
                 onBackPress={onBackPress}
                 rightActions={
-                    <View style={styles.headerActionsRow}><TutorialHelpButton onPress={tutorial.onReplayTour} />{showMenuIcon ? (
+                    <View style={styles.headerActionsRow}><TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />{showMenuIcon ? (
                         <TouchableOpacity style={styles.headerOptionsBtn} onPress={() => setShowActionMenu(true)} activeOpacity={0.7}>
                             <CustomIcon library="Feather" name="more-vertical" size={24} color={Colors.PRIMARY} />
                         </TouchableOpacity>

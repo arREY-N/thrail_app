@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, LayoutChangeEvent, Modal, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,7 +7,7 @@ import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { getPinConfig, getStaticMapAsset, IWaypointPoint, StaticTrailMap, TrailMap } from '@/src/features/Map/Map';
+import { getPinConfig, getStaticMapAsset, IWaypointPoint, StaticTrailMap, TrailMap, TrailMapRef } from '@/src/features/Map/Map';
 
 import { Layout } from '@/src/constants/layout';
 import { ITrail, ITrailStats, computeTrailMidpoint } from '@/src/core/models/Trail/Trail';
@@ -44,6 +44,27 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
     const [showRouteInfo, setShowRouteInfo] = useState(false);
     const [isMapPreviewVisible, setIsMapPreviewVisible] = useState(false);
     const [mapCardLayout, setMapCardLayout] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+
+    const mapRef = useRef<TrailMapRef | null>(null);
+    const [isOfflineMode, setIsOfflineMode] = useState(true);
+    const [modeToast, setModeToast] = useState<string | null>(null);
+    const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleToggleOffline = useCallback(() => {
+        const nextMode = !isOfflineMode;
+        setIsOfflineMode(nextMode);
+        mapRef.current?.toggleOffline();
+
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setModeToast(nextMode ? "Offline Map Active · Local Storage" : "Online Map Active · Live Topo Tiles");
+        toastTimeoutRef.current = setTimeout(() => setModeToast(null), 2500);
+    }, [isOfflineMode]);
+
+    useEffect(() => {
+        return () => {
+            if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        };
+    }, []);
 
     const handleMapCardLayout = useCallback((event: LayoutChangeEvent) => {
         const { width, height } = event.nativeEvent.layout;
@@ -336,6 +357,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                                 showControls={false}
                                 showRecenter={false}
                                 bottomInset={0}
+                                isOffline={isOfflineMode}
                             />
                         </View>
                     ) : (
@@ -363,6 +385,26 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                                 <CustomIcon library="Feather" name="repeat" size={13} color={Colors.WHITE} />
                                 <CustomText variant="caption" style={styles.mapBadgeText}>{routeType}</CustomText>
                                 <CustomIcon library="Feather" name={showRouteInfo ? "chevron-up" : "chevron-down"} size={13} color={Colors.WHITE} />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.mapRouteLabel}
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleOffline();
+                                }}
+                                activeOpacity={0.8}
+                                accessibilityLabel={`Toggle map mode. Currently ${isOfflineMode ? "Offline" : "Online"}`}
+                            >
+                                <CustomIcon
+                                    library="Feather"
+                                    name={isOfflineMode ? "hard-drive" : "cloud"}
+                                    size={13}
+                                    color={Colors.WHITE}
+                                />
+                                <CustomText variant="caption" style={styles.mapBadgeText}>
+                                    {isOfflineMode ? "Offline" : "Online"}
+                                </CustomText>
                             </TouchableOpacity>
                         </View>
 
@@ -446,7 +488,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                                 {trail?.general?.name || "Trail Route Map"}
                             </CustomText>
                             <CustomText variant="caption" style={styles.modalSubtitle}>
-                                Interactive Route Map
+                                {isOfflineMode ? "Offline Map Active · Local Storage" : "Online Map Active · Live Topo Tiles"}
                             </CustomText>
                         </View>
                         <TouchableOpacity
@@ -462,10 +504,28 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                         </TouchableOpacity>
                     </View>
 
+                    {/* Mode Toast Banner */}
+                    {modeToast && (
+                        <View style={styles.modeToastBanner} pointerEvents="none">
+                            <View style={[styles.modeToastContent, isOfflineMode ? styles.toastOffline : styles.toastOnline]}>
+                                <CustomIcon
+                                    library="Feather"
+                                    name={isOfflineMode ? "hard-drive" : "cloud"}
+                                    size={14}
+                                    color={isOfflineMode ? "#92400E" : "#065F46"}
+                                />
+                                <CustomText style={[styles.modeToastText, isOfflineMode ? styles.textAmber : styles.textEmerald]}>
+                                    {modeToast}
+                                </CustomText>
+                            </View>
+                        </View>
+                    )}
+
                     {/* Main Modal Viewport - Terrain Map */}
                     <View style={styles.modalMapWrapper}>
                         {hasValidCoords ? (
                             <TrailMap
+                                ref={mapRef}
                                 initialLon={trailLon}
                                 initialLat={trailLat}
                                 geoJsonPath={trail?.geography?.geoJsonPath}
@@ -473,6 +533,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                                 showControls={true}
                                 showRecenter={true}
                                 bottomInset={Math.max(insets.bottom, 16)}
+                                isOffline={isOfflineMode}
                             />
                         ) : (
                             <StaticTrailMap
@@ -485,6 +546,23 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                                 theme="dark"
                             />
                         )}
+
+                        {/* Floating offline toggle button in the modal, positioned at the same level as NavigationScreen (controlsHeight 250 + 36 + locate button offset 56 = 342) */}
+                        <View style={[styles.mapControlsColumn, { bottom: 342 }]}>
+                            <TouchableOpacity
+                                style={styles.floatingIconBtn}
+                                onPress={handleToggleOffline}
+                                activeOpacity={0.8}
+                                accessibilityLabel={`Toggle map mode. Currently ${isOfflineMode ? "Offline" : "Online"}`}
+                            >
+                                <CustomIcon
+                                    library="Feather"
+                                    name={isOfflineMode ? "hard-drive" : "cloud"}
+                                    size={20}
+                                    color={Colors.PRIMARY}
+                                />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -543,11 +621,51 @@ const styles = StyleSheet.create({
     modalRootContainer: { flex: 1, backgroundColor: Colors.MAP_MODAL_BACKDROP },
     modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 16, backgroundColor: 'rgba(10, 10, 10, 0.98)', borderBottomWidth: 1, borderBottomColor: Colors.MAP_CARD_BORDER, ...GlobalStyles.dropShadow(3), zIndex: 5 },
     modalHeaderSpacer: { width: 36, height: 36 },
+    modalHeaderButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255, 255, 255, 0.15)', alignItems: 'center', justifyContent: 'center' },
     modalHeaderInfo: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
     modalTitle: { fontSize: 16, fontWeight: 'bold', color: Colors.WHITE, textAlign: 'center', marginBottom: 0 },
     modalSubtitle: { fontSize: 12, color: Colors.GRAY_LIGHT, marginTop: 2, textAlign: 'center' },
     modalCloseButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255, 255, 255, 0.15)', alignItems: 'center', justifyContent: 'center' },
     modalMapWrapper: { flex: 1, position: 'relative', overflow: 'hidden' },
+    mapControlsColumn: { position: 'absolute', right: 16, gap: 12, zIndex: 45 },
+    floatingIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.WHITE, alignItems: "center", justifyContent: "center", ...GlobalStyles.dropShadow(4, 0.12, Colors.SHADOW, { radius: 8 }) },
+    modeToastBanner: {
+        position: 'absolute',
+        top: 80,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 60,
+    },
+    modeToastContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: Colors.WHITE,
+        gap: 8,
+        ...GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }),
+        borderWidth: 1,
+    },
+    toastOffline: {
+        borderColor: '#FDE68A',
+        backgroundColor: '#FFFBEB',
+    },
+    toastOnline: {
+        borderColor: '#A7F3D0',
+        backgroundColor: '#ECFDF5',
+    },
+    modeToastText: {
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    textAmber: {
+        color: '#92400E',
+    },
+    textEmerald: {
+        color: '#065F46',
+    },
     rulesCard: {
         backgroundColor: Colors.WHITE,
         padding: 18,

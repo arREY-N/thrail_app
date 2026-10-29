@@ -22,6 +22,7 @@ import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { formatActivityTime } from "@/src/utils/dateFormatter";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const EMPTY_HIKER_LOCATIONS: never[] = [];
 
 const getInitials = (firstName?: string, lastName?: string) => {
     if (firstName && lastName) return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -210,22 +211,44 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         }
     }, [isStarted, isPaused, isCompleted]);
 
+    const isGuidedHike = !!booking;
+    const hasHikers = !!(hikerLocations && hikerLocations.length > 0);
+
     const [currentTime, setCurrentTime] = useState(() => Date.now());
     useEffect(() => {
+        if (!isGuidedHike && !hasHikers) return;
         const interval = setInterval(() => {
             setCurrentTime(Date.now());
         }, 5000);
         return () => clearInterval(interval);
-    }, []);
+    }, [isGuidedHike, hasHikers]);
 
     const [completeAnim] = useState(() => new Animated.Value(0));
-    useEffect(() => { completeAnim.setValue(0); }, [hike.status, completeAnim]);
+    const completeAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+
+    useEffect(() => {
+        completeAnim.setValue(0);
+        return () => {
+            if (completeAnimRef.current) {
+                completeAnimRef.current.stop();
+                completeAnimRef.current = null;
+            }
+            completeAnim.stopAnimation();
+        };
+    }, [hike.status, completeAnim]);
 
     const animateProgress = (anim: Animated.Value, duration: number, toValue: number) => {
-        Animated.timing(anim, { toValue, duration, useNativeDriver: false }).start();
+        if (completeAnimRef.current) {
+            completeAnimRef.current.stop();
+        }
+        const animation = Animated.timing(anim, { toValue, duration, useNativeDriver: false });
+        completeAnimRef.current = animation;
+        animation.start(({ finished }) => {
+            if (finished) {
+                completeAnimRef.current = null;
+            }
+        });
     };
-
-    const isGuidedHike = !!booking;
 
     const handleSendSMS = () => {
         onSendSMS();
@@ -406,7 +429,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 bottomInset={dashboardHeight + 16}
                 attributionPosition={{ bottom: dashboardHeight + 8, left: 16 }}
                 compassPosition={{ bottom: dashboardHeight + 40, left: 16 }}
-                hikerLocations={showOtherHikers ? enrichedHikerLocations : []}
+                hikerLocations={showOtherHikers ? enrichedHikerLocations : EMPTY_HIKER_LOCATIONS}
                 currentUserId={profile?.id}
             />
 

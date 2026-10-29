@@ -59,6 +59,7 @@ export type { TrailMapProps, TrailMapRef } from '@/src/features/Map/TrailMap';
 // OFFLINE & FIREBASE TRAIL ROUTES MANAGER
 export {
     MOUNTAIN_TRAIL_REGISTRY,
+    clearWebBlobCache,
     deleteOfflineMountain,
     downloadMountainForOffline,
     getOrDownloadAllMountainsGeoJson,

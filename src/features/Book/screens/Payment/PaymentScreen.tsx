@@ -515,7 +515,7 @@ const PaymentScreen = ({
                 title={currentStep === 2 ? "Payment Status" : "Setup Payment"}
                 centerTitle={true}
                 onBackPress={currentStep === 2 ? undefined : handleHeaderBackPress}
-                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} />}
+                rightActions={<TutorialHelpButton onPress={tutorial.onReplayTour} hasGuide={tutorial.hasGuide} />}
             />
 
             <View style={styles.progressWrapper}>

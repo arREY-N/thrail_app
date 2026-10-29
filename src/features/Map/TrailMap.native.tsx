@@ -156,6 +156,7 @@ function formatRecordedTime(timestamp?: Date | string | number): string {
 interface AnimatedHikerMarkerProps {
   hiker: HikerLocation;
   onPress: (hiker: HikerLocation) => void;
+  now?: number;
 }
 
 /**
@@ -163,20 +164,11 @@ interface AnimatedHikerMarkerProps {
  * upon receiving remote location updates. Automatically transitions to
  * Last Known Location (LKL) state if no updates are received for >= 2 minutes.
  */
-const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, onPress }) => {
+const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, onPress, now = Date.now() }) => {
   const [coords, setCoords] = useState<[number, number]>([hiker.longitude, hiker.latitude]);
   const prevCoordsRef = useRef<[number, number]>([hiker.longitude, hiker.latitude]);
   const animValue = useRef(new Animated.Value(1)).current;
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
-  const [now, setNow] = useState(Date.now());
-
-  // Periodic ticker ensuring LKL state transitions even if device battery died
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Smoothly interpolate coordinate movements across updates
   useEffect(() => {
@@ -308,6 +300,7 @@ const AnimatedUserLocationMarker: React.FC<AnimatedUserLocationMarkerProps> = me
       new Animated.ValueXY({ x: lngLat[0], y: lngLat[1] })
     ).current;
     const prevTarget = useRef<[number, number]>(lngLat);
+    const animRef = useRef<Animated.CompositeAnimation | null>(null);
 
     useEffect(() => {
       const listenerId = animValue.addListener((val) => {
@@ -331,6 +324,11 @@ const AnimatedUserLocationMarker: React.FC<AnimatedUserLocationMarkerProps> = me
 
       prevTarget.current = [targetLon, targetLat];
 
+      if (animRef.current) {
+        animRef.current.stop();
+        animRef.current = null;
+      }
+
       // Snap immediately on initial jump > ~1km; otherwise glide smoothly over 550ms
       if (dLon > 0.01 || dLat > 0.01) {
         animValue.setValue({ x: targetLon, y: targetLat });
@@ -338,12 +336,26 @@ const AnimatedUserLocationMarker: React.FC<AnimatedUserLocationMarkerProps> = me
         return;
       }
 
-      Animated.timing(animValue, {
+      const animation = Animated.timing(animValue, {
         toValue: { x: targetLon, y: targetLat },
         duration: 550,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
-      }).start();
+      });
+
+      animRef.current = animation;
+      animation.start(({ finished }) => {
+        if (finished) {
+          animRef.current = null;
+        }
+      });
+
+      return () => {
+        if (animRef.current) {
+          animRef.current.stop();
+          animRef.current = null;
+        }
+      };
     }, [lngLat, animValue]);
 
     const hasHeading = typeof heading === "number" && !isNaN(heading) && heading >= 0;
@@ -405,6 +417,8 @@ export interface TrailMapRef {
   stopBackgroundTracking: () => Promise<void>;
 }
 
+const EMPTY_HIKER_LOCATIONS: HikerLocation[] = [];
+
 const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   initialLon,
   initialLat,
@@ -416,8 +430,9 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   bottomInset = 280,
   compassPosition,
   attributionPosition,
-  hikerLocations = [],
-  currentUserId
+  hikerLocations = EMPTY_HIKER_LOCATIONS,
+  currentUserId,
+  isOffline: isOfflineProp,
 }, ref) => {
   const resolvedAttributionPosition = attributionPosition || { bottom: bottomInset, left: 16 };
   const resolvedCompassPosition = compassPosition || { bottom: bottomInset + 36, left: 16 };
@@ -441,7 +456,38 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const parsedLat = Number(latStr);
   const hasInitialCoords = !!(lonStr && latStr && !isNaN(parsedLon) && !isNaN(parsedLat));
 
-  const [forceOffline, setForceOffline] = useState(true);
+  // Track and cleanly cancel requestAnimationFrame calls on unmount
+  const rafIdsRef = useRef<Set<number>>(new Set());
+  const scheduleRaf = useCallback((cb: () => void) => {
+    const id = requestAnimationFrame(() => {
+      rafIdsRef.current.delete(id);
+      cb();
+    });
+    rafIdsRef.current.add(id);
+    return id;
+  }, []);
+
+  useEffect(() => {
+    const rafIds = rafIdsRef.current;
+    return () => {
+      mapReadyRef.current = false;
+      rafIds.forEach((id) => cancelAnimationFrame(id));
+      rafIds.clear();
+    };
+  }, []);
+
+  const [forceOffline, setForceOffline] = useState(isOfflineProp ?? true);
+  const forceOfflineRef = useRef(forceOffline);
+
+  useEffect(() => {
+    if (isOfflineProp !== undefined && isOfflineProp !== forceOfflineRef.current) {
+      forceOfflineRef.current = isOfflineProp;
+      setLoadedStyleMode(null);
+      scheduleRaf(() => {
+        setForceOffline(isOfflineProp);
+      });
+    }
+  }, [isOfflineProp, scheduleRaf]);
   const [isFollowing, setIsFollowing] = useState(!hasInitialCoords);
   const [mapReady, setMapReady] = useState(false);
   const [offlineTileUrl, setOfflineTileUrl] = useState<string>("");
@@ -452,6 +498,16 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const [spriteBaseUri, setSpriteBaseUri] = useState<string>("");
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedHiker, setSelectedHiker] = useState<HikerLocation | null>(null);
+
+  // Centralized LKL ticker: runs a single 10s interval only when hikers are present
+  const [tickerTime, setTickerTime] = useState(() => Date.now());
+  useEffect(() => {
+    if (!hikerLocations || hikerLocations.length === 0) return;
+    const interval = setInterval(() => {
+      setTickerTime(Date.now());
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [hikerLocations]);
 
   // Dynamic live hiker derivation: ensures rescue card stays continuously fresh as hiker moves
   const liveSelectedHiker = useMemo(() => {
@@ -487,22 +543,35 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const isFollowingRef = useRef<boolean>(isFollowing);
   isFollowingRef.current = isFollowing;
   const lastRecenterMsRef = useRef<number>(0);
+  const mapReadyRef = useRef<boolean>(false);
+  const pendingCameraCoordRef = useRef<{ center: [number, number]; zoom: number; duration: number } | null>(null);
+  const lastInitialCoordsRef = useRef<string | null>(null);
 
   // Helper for cross-version camera flyTo animation (long-distance overview transitions)
   const flyCamera = useCallback((center: [number, number], zoom: number, duration = 800) => {
+    if (!mapReadyRef.current) {
+      pendingCameraCoordRef.current = { center, zoom, duration };
+      return;
+    }
     if (!cameraRef.current) return;
     lastZoomRef.current = zoom;
     lastCenterRef.current = center;
-    if (cameraRef.current.flyTo) {
-      cameraRef.current.flyTo({ center, zoom, duration });
-    } else {
-      const legacyCam = cameraRef.current as unknown as LegacyCameraRef;
-      legacyCam.setCamera?.({
-        centerCoordinate: center,
-        zoomLevel: zoom,
-        animationDuration: duration,
-        animationMode: "flyTo",
-      });
+    try {
+      if (cameraRef.current.flyTo) {
+        cameraRef.current.flyTo({ center, zoom, duration })?.catch?.((err: any) => {
+          console.warn("⚠️ Camera flyTo warning:", err);
+        });
+      } else {
+        const legacyCam = cameraRef.current as unknown as LegacyCameraRef;
+        legacyCam.setCamera?.({
+          centerCoordinate: center,
+          zoomLevel: zoom,
+          animationDuration: duration,
+          animationMode: "flyTo",
+        });
+      }
+    } catch (e) {
+      console.warn("⚠️ Camera flyTo error:", e);
     }
   }, []);
 
@@ -511,30 +580,37 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     center: [number, number],
     options?: { zoom?: number; duration?: number; bearing?: number; pitch?: number }
   ) => {
+    if (!mapReadyRef.current) return;
     if (!cameraRef.current) return;
     const duration = options?.duration ?? 500;
     if (options?.zoom !== undefined) {
       lastZoomRef.current = options.zoom;
     }
     lastCenterRef.current = center;
-    if (cameraRef.current.easeTo) {
-      cameraRef.current.easeTo({
-        center,
-        duration,
-        ...(options?.zoom !== undefined ? { zoom: options.zoom } : {}),
-        ...(options?.bearing !== undefined ? { bearing: options.bearing } : {}),
-        ...(options?.pitch !== undefined ? { pitch: options.pitch } : {}),
-      });
-    } else {
-      const legacyCam = cameraRef.current as unknown as LegacyCameraRef;
-      legacyCam.setCamera?.({
-        centerCoordinate: center,
-        ...(options?.zoom !== undefined ? { zoomLevel: options.zoom } : {}),
-        ...(options?.bearing !== undefined ? { heading: options.bearing } : {}),
-        ...(options?.pitch !== undefined ? { pitch: options.pitch } : {}),
-        animationDuration: duration,
-        animationMode: "easeTo",
-      });
+    try {
+      if (cameraRef.current.easeTo) {
+        cameraRef.current.easeTo({
+          center,
+          duration,
+          ...(options?.zoom !== undefined ? { zoom: options.zoom } : {}),
+          ...(options?.bearing !== undefined ? { bearing: options.bearing } : {}),
+          ...(options?.pitch !== undefined ? { pitch: options.pitch } : {}),
+        })?.catch?.((err: any) => {
+          console.warn("⚠️ Camera easeTo warning:", err);
+        });
+      } else {
+        const legacyCam = cameraRef.current as unknown as LegacyCameraRef;
+        legacyCam.setCamera?.({
+          centerCoordinate: center,
+          ...(options?.zoom !== undefined ? { zoomLevel: options.zoom } : {}),
+          ...(options?.bearing !== undefined ? { heading: options.bearing } : {}),
+          ...(options?.pitch !== undefined ? { pitch: options.pitch } : {}),
+          animationDuration: duration,
+          animationMode: "easeTo",
+        });
+      }
+    } catch (e) {
+      console.warn("⚠️ Camera easeTo error:", e);
     }
   }, []);
 
@@ -555,9 +631,9 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const [loadedStyleMode, setLoadedStyleMode] = useState<"offline" | "online" | null>(null);
   const isStyleReady = loadedStyleMode === currentStyleMode;
 
+  // 1. Dynamic trail GeoJSON resolution - runs when selected trail or mountain changes without resetting base map loadState
   useEffect(() => {
     let isMounted = true;
-    let timer: NodeJS.Timeout | null = null;
 
     async function resolveGeoJson() {
       try {
@@ -576,7 +652,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         let contextUri: string | null = null;
 
         if (hasExplicitTrail) {
-          // 1. Resolve Active Selected Trail
+          // 1. Resolve Active Selected Trail immediately
           if (geoJsonPath && typeof geoJsonPath === "string" && geoJsonPath.trim().length > 0) {
             activeUri = await getOrDownloadTrailGeoJson(geoJsonPath.trim());
           } else if (targetMountain && trailFileName) {
@@ -586,19 +662,35 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
             );
           }
 
-          // 2. Resolve Context Trail Network (e.g. Mountain network or All Mountains)
-          if (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile) {
-            contextUri = await getOrDownloadTrailGeoJson(
-              targetMountain,
-              MOUNTAIN_TRAIL_REGISTRY[targetMountain].allFile,
-            );
+          if (isMounted) {
+            setActiveGeoJsonUrl(activeUri);
           }
-          if (!contextUri) {
-            contextUri = await getOrDownloadAllMountainsGeoJson();
-          }
+
+          // 2. Resolve Context Trail Network in the background (non-blocking)
+          (async () => {
+            try {
+              let ctxUri: string | null = null;
+              if (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile) {
+                ctxUri = await getOrDownloadTrailGeoJson(
+                  targetMountain,
+                  MOUNTAIN_TRAIL_REGISTRY[targetMountain].allFile,
+                );
+              }
+              if (!ctxUri) {
+                ctxUri = await getOrDownloadAllMountainsGeoJson();
+              }
+              if (isMounted && ctxUri && ctxUri !== activeUri) {
+                setContextGeoJsonUrl(ctxUri);
+              }
+            } catch (ctxErr) {
+              console.warn("⚠️ Non-critical: Failed to resolve background context trail network:", ctxErr);
+            }
+          })();
         } else {
           // Overview mode: no specific trail selected
-          activeUri = null;
+          if (isMounted) {
+            setActiveGeoJsonUrl(null);
+          }
           if (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile) {
             contextUri = await getOrDownloadTrailGeoJson(
               targetMountain,
@@ -608,21 +700,26 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
           if (!contextUri) {
             contextUri = await getOrDownloadAllMountainsGeoJson();
           }
-        }
-
-        // If active and context point to the exact same file, treat as single-layer overview
-        if (activeUri && activeUri === contextUri) {
-          activeUri = null;
-        }
-
-        if (isMounted) {
-          setActiveGeoJsonUrl(activeUri);
-          setContextGeoJsonUrl(contextUri);
+          if (isMounted) {
+            setContextGeoJsonUrl(contextUri);
+          }
         }
       } catch (err) {
         console.warn("⚠️ Failed to resolve trail GeoJSON layers from offline cache or Firebase trail_routes/:", err);
       }
     }
+
+    resolveGeoJson();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [geoJsonPath, mountainId, trailFileName, hasInitialCoords, parsedLat, parsedLon]);
+
+  // 2. Base map assets preparation (PMTiles, fonts, sprites) - runs once or on reloadKey retry
+  useEffect(() => {
+    let isMounted = true;
+    let timer: NodeJS.Timeout | null = null;
 
     async function resolveOfflineMap() {
       const fileUri = `${FileSystem.documentDirectory ?? ""}thrail-offline-map.pmtiles`;
@@ -682,7 +779,6 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         });
 
         const tasks: Promise<unknown>[] = [
-          resolveGeoJson(),
           resolveOfflineMap().catch((err) => {
             console.warn("⚠️ Offline map preparation warning:", err);
             if (actuallyOfflineRef.current) throw err;
@@ -728,13 +824,25 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
       isMounted = false;
       if (timer) clearTimeout(timer);
     };
-  }, [reloadKey, geoJsonPath, mountainId, trailFileName, hasInitialCoords, parsedLat, parsedLon]);
+  }, [reloadKey]);
 
   useEffect(() => {
     if (!mapReady || !hasInitialCoords) return;
+    const coordKey = `${parsedLon.toFixed(5)},${parsedLat.toFixed(5)}`;
+    if (lastInitialCoordsRef.current === coordKey) return;
+    lastInitialCoordsRef.current = coordKey;
+
+    if (
+      lastCenterRef.current &&
+      Math.abs(lastCenterRef.current[0] - parsedLon) < 0.0001 &&
+      Math.abs(lastCenterRef.current[1] - parsedLat) < 0.0001
+    ) {
+      return;
+    }
+
     isFollowingRef.current = false;
     setIsFollowing(false);
-    flyCamera([parsedLon, parsedLat], 14, 800);
+    flyCamera([parsedLon, parsedLat], 15, 800);
   }, [hasInitialCoords, parsedLon, parsedLat, mapReady, flyCamera]);
 
   // Smooth camera follow on filtered GPS position without MapLibre native engine drift or zoom bounce
@@ -777,7 +885,8 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const centerOnCoordinate = useCallback((lon: number, lat: number) => {
     isFollowingRef.current = false;
     setIsFollowing(false);
-    flyCamera([lon, lat], 17, 800);
+    lastCenterRef.current = [lon, lat];
+    flyCamera([lon, lat], 15, 800);
   }, [flyCamera]);
 
   const handleRegionWillChange = (event: RegionChangeEvent) => {
@@ -825,11 +934,17 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   };
 
   const handleStyleLoaded = useCallback(() => {
+    mapReadyRef.current = true;
     setMapReady(true);
-    requestAnimationFrame(() => {
+    scheduleRaf(() => {
       setLoadedStyleMode(currentStyleModeRef.current);
+      if (pendingCameraCoordRef.current) {
+        const pending = pendingCameraCoordRef.current;
+        pendingCameraCoordRef.current = null;
+        flyCamera(pending.center, pending.zoom, pending.duration);
+      }
     });
-  }, []);
+  }, [scheduleRaf, flyCamera]);
 
   // ✅ Expose these functions up to the HikeRecordingScreen
   useImperativeHandle(ref, () => ({
@@ -844,7 +959,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
       // Unmount custom GeoJSON sources/layers before swapping mapStyle to prevent
       // native MLRNLayer.setBelowLayerID(null) NullPointerException & C++ style peer conflicts
       setLoadedStyleMode(null);
-      requestAnimationFrame(() => {
+      scheduleRaf(() => {
         setForceOffline((v: boolean) => !v);
       });
     },
@@ -907,6 +1022,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         onDidFinishLoadingStyle={handleStyleLoaded}
         onDidFinishLoadingMap={handleStyleLoaded}
         onDidFailLoadingMap={() => {
+          mapReadyRef.current = false;
           if (!actuallyOfflineRef.current) {
             console.warn("⚠️ Online map style failed to load; falling back to offline map.");
             setLoadedStyleMode(null);
@@ -1060,6 +1176,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
               key={`hiker-${hiker.id}`}
               hiker={hiker}
               onPress={handleHikerPress}
+              now={tickerTime}
             />
           );
         })}

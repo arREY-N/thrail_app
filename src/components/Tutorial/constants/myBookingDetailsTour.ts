@@ -30,7 +30,7 @@ export const myBookingDetailsTourSteps: TutorialStep[] = [
         targetSpotlight: 'my_booking_documents',
         title: 'Step 3: Submitted Documents & Badges',
         description:
-            'Preview your uploaded Medical Certificate and Valid ID, monitor Pending Review or Approved badges, and re-upload files if the organizer requests a replacement.',
+            'Preview your uploaded documents, monitor Pending Review or Approved badges, and re-upload files if the organizer requests a replacement.',
         actionTip: 'Tap "View" to inspect any uploaded document or replace rejected items directly.',
     },
     {
