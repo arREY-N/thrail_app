@@ -29,6 +29,7 @@ const {
     removeUserFromGroupOnCancellation,
     onDeleteBooking,
 } = require('./services/GroupChatManager');
+const { auditTrails } = require('./services/audit');
 
 admin.initializeApp();
 
@@ -4550,3 +4551,4 @@ exports.onUserOnboardingComplete = functions.firestore
 exports.approveReschedule = approveReschedule;
 exports.removeUserFromGroupOnCancellation = removeUserFromGroupOnCancellation;
 exports.onDeleteBooking = onDeleteBooking;
+exports.auditTrails = auditTrails;
