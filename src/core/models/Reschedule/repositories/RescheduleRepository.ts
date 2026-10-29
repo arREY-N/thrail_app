@@ -72,6 +72,7 @@ export const RescheduleRepository = (db: Firestore) => ({
                 status: 'for-reschedule',
                 rescheduleRequestId: reschedule.id,
                 rescheduledToOfferId: reschedule.newOfferId,
+                rescheduleDeclineReason: deleteField(),
                 updatedAt: serverTimestamp(),
             });
 
@@ -105,6 +106,7 @@ export const RescheduleRepository = (db: Firestore) => ({
                 status: revertStatus,
                 rescheduleRequestId: deleteField(),
                 rescheduledToOfferId: deleteField(),
+                rescheduleDeclineReason: deleteField(),
                 updatedAt: serverTimestamp(),
             });
 

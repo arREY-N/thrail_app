@@ -107,7 +107,7 @@ export interface ReviewScreenProps {
     onVerifyManualPayment?: (classification: 'full' | 'downpayment', note?: string, booking?: Booking, verifiedAmount?: number) => Promise<void>;
     onRejectManualPayment?: (reason: string, booking?: Booking) => Promise<void>;
     onSettleRemainingBalance?: (booking?: Booking, options?: { method?: 'cash' | 'manual_qr'; referenceCode?: string; adminNote?: string }) => Promise<void>;
-    onUploadRefundProof?: (file: SelectedFile, request?: Cancellation | null, booking?: Booking | null) => Promise<void | string>;
+    onUploadRefundProof?: (file: SelectedFile, request?: Cancellation | null, booking?: Booking | null, adminNote?: string) => Promise<void | string>;
     onUploadOverpaymentProof?: (file: SelectedFile, booking?: Booking | null) => Promise<void | string>;
     onApproveWithManualRefund?: (amount: number, request?: Cancellation | null, booking?: Booking | null) => Promise<void | Cancellation>;
     rescheduleRequest?: Reschedule | null;
@@ -205,18 +205,20 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         Boolean(cancellationRequest)
     );
 
-    const isRescheduleRejected = Boolean(
-        activeReschedule?.status === 'rejected' ||
-        activeReschedule?.adminDecision === 'declined' ||
-        activeReschedule?.adminDecision === 'rejected' ||
-        booking?.status === 'reschedule-rejected' ||
-        Boolean(booking?.rescheduleDeclineReason)
-    );
-
     const hasActiveReschedule = Boolean(
         booking?.status === 'for-reschedule' ||
         activeReschedule?.status === 'pending' ||
         (Boolean(booking?.rescheduleRequestId) && (!activeReschedule || activeReschedule.status === 'pending'))
+    );
+
+    const isRescheduleRejected = Boolean(
+        !hasActiveReschedule && (
+            activeReschedule?.status === 'rejected' ||
+            activeReschedule?.adminDecision === 'declined' ||
+            activeReschedule?.adminDecision === 'rejected' ||
+            booking?.status === 'reschedule-rejected' ||
+            Boolean(booking?.rescheduleDeclineReason)
+        )
     );
 
     const hasRescheduleTab = Boolean(
@@ -363,6 +365,11 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const [isRejectingBooking, setIsRejectingBooking] = useState(false);
     const [isDecliningCancellation, setIsDecliningCancellation] = useState(false);
     const [cancellationDeclineReason, setCancellationDeclineReason] = useState('');
+    const [isApprovingCancellation, setIsApprovingCancellation] = useState(false);
+    const [cancellationApproveNote, setCancellationApproveNote] = useState('');
+    const [selectedRefundProofFile, setSelectedRefundProofFile] = useState<SelectedFile | null>(null);
+    const [isConfirmApproveWithoutRefundVisible, setIsConfirmApproveWithoutRefundVisible] = useState(false);
+    const [pendingApproveNote, setPendingApproveNote] = useState('');
     const [isConfirmCancellationVisible, setIsConfirmCancellationVisible] = useState(false);
     const [isConfirmDeclineVisible, setIsConfirmDeclineVisible] = useState(false);
     const [isConfirmRevertVisible, setIsConfirmRevertVisible] = useState(false);
@@ -371,15 +378,16 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const { showToast } = useToast();
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState<boolean>(false);
 
-    const handleUploadRefundProof = async (file: SelectedFile) => {
+    const handleUploadRefundProof = async (file: SelectedFile, note?: string) => {
         if (!onUploadRefundProof) return;
         setIsUploadingProof(true);
         try {
-            await onUploadRefundProof(file, cancellationRequest, booking);
+            await onUploadRefundProof(file, cancellationRequest, booking, note);
             showToast.success("Refund payout proof uploaded successfully.");
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : "Failed to upload refund proof";
             showToast.error(errorMessage);
+            throw err;
         } finally {
             setIsUploadingProof(false);
         }
@@ -405,9 +413,6 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     };
 
     const isRejecting = hasRejections || isRejectingBooking;
-
-    const hasUnverifiedPhone = personalStatus !== 'verified' || (emergencyStatus !== 'verified' && !!booking?.emergencyContact);
-    const isSecondaryVisible = isRejecting || hasUnverifiedPhone || hasRejections || docStates.length === 0;
 
     const dynamicSuggestions = useMemo(
         () => getDynamicRejectionSuggestions(docStates.length, hasRejections),
@@ -554,10 +559,6 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             };
         }
 
-        if (!isSecondaryVisible) {
-            return undefined;
-        }
-
         return {
             title: "Reject Booking",
             variant: 'outline' as const,
@@ -566,7 +567,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             textStyle: { color: Colors.ERROR },
             onPress: handleSecondaryPress,
         };
-    }, [isRejecting, isSecondaryVisible, isProcessingAction, handleSecondaryPress]);
+    }, [isRejecting, isProcessingAction, handleSecondaryPress]);
 
     const hasRemainingBalance = Boolean(booking?.remainingBalance !== undefined && booking.remainingBalance > 0);
     const isDownpaymentStatus = currentStatus === 'downpayment' || hasRemainingBalance;
@@ -689,7 +690,10 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             <ScrollView
                 ref={scrollViewRef}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    activeTab === 'documents' && styles.scrollContentNoFooter,
+                ]}
             >
                 <View style={styles.constrainer}>
 
@@ -800,6 +804,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                         }}
                                         onViewFile={handleViewFile}
                                         firstCardRef={firstCardRef}
+                                        primaryButton={primaryButtonConfig}
+                                        secondaryButton={secondaryButtonConfig}
+                                        isTutorialFooterPreview={isTutorialFooterPreview}
                                     />
                                 )}
 
@@ -872,6 +879,35 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                             cancelledBy={cancellationRequest?.cancelledBy || (hasRejections ? 'user' : booking.cancelledBy)}
                                             onRevert={isAdminCancellationPending && Boolean(onRevertCancellation) ? () => setIsConfirmRevertVisible(true) : undefined}
                                             isReverting={isProcessingAction}
+                                            onApproveClick={() => {
+                                                setIsApprovingCancellation(true);
+                                                setIsDecliningCancellation(false);
+                                            }}
+                                            onCancelApproveClick={() => {
+                                                setIsApprovingCancellation(false);
+                                                setCancellationApproveNote('');
+                                                setSelectedRefundProofFile(null);
+                                            }}
+                                            onSubmitApproveClick={async (note, file) => {
+                                                try {
+                                                    if (file) {
+                                                        await handleUploadRefundProof(file, note);
+                                                        setIsApprovingCancellation(false);
+                                                        setCancellationApproveNote('');
+                                                        setSelectedRefundProofFile(null);
+                                                    } else if (note?.trim()) {
+                                                        setPendingApproveNote(note.trim());
+                                                        setIsConfirmApproveWithoutRefundVisible(true);
+                                                    }
+                                                } catch {
+                                                    // error handled by handleUploadRefundProof
+                                                }
+                                            }}
+                                            isApproving={isApprovingCancellation}
+                                            approveInputText={cancellationApproveNote}
+                                            onApproveInputChange={setCancellationApproveNote}
+                                            selectedReceiptFile={selectedRefundProofFile}
+                                            onSelectReceiptFile={setSelectedRefundProofFile}
                                             onRefundClick={() => {
                                                 setRefundModalInitialType('full');
                                                 setShowRefundModal(true);
@@ -881,10 +917,13 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                                 setShowRefundModal(true);
                                             }}
                                             onUploadRefundProof={onUploadRefundProof ? handleUploadRefundProof : undefined}
-                                            isUploadingProof={isUploadingProof}
+                                            isUploadingProof={isUploadingProof || isProcessingAction}
                                             onApproveWithManualRefund={onApproveWithManualRefund ? handleApproveWithManualRefund : undefined}
                                             payments={booking.payment}
-                                            onDeclineClick={isHikerCancellationPending ? () => setIsDecliningCancellation(true) : undefined}
+                                            onDeclineClick={isHikerCancellationPending ? () => {
+                                                setIsDecliningCancellation(true);
+                                                setIsApprovingCancellation(false);
+                                            } : undefined}
                                             onCancelDeclineClick={() => {
                                                 setIsDecliningCancellation(false);
                                                 setCancellationDeclineReason('');
@@ -926,13 +965,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 </View>
             </ScrollView>
 
-            {(activeTab === 'documents' && (!isReviewComplete || isTutorialFooterPreview) && !isHikerCancellationPending) ? (
-                <CustomStickyFooter
-                    enableToastDock={true}
-                    primaryButton={primaryButtonConfig}
-                    secondaryButton={secondaryButtonConfig}
-                />
-            ) : (activeTab === 'payment' && (isPaymentActionable || isTutorialFooterPreview) && !isHikerCancellationPending) ? (
+            {(activeTab === 'payment' && (isPaymentActionable || isTutorialFooterPreview) && !isHikerCancellationPending) ? (
                 <CustomStickyFooter
                     enableToastDock={true}
                     primaryButton={paymentPrimaryConfig}
@@ -1028,6 +1061,41 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     cancelText={REVIEW_MODALS.APPROVE_CANCELLATION.cancelText}
                     iconName="alert-triangle"
                     isDestructive={true}
+                />
+            )}
+
+            {isConfirmApproveWithoutRefundVisible && (
+                <ConfirmationModal
+                    visible={isConfirmApproveWithoutRefundVisible}
+                    onClose={() => setIsConfirmApproveWithoutRefundVisible(false)}
+                    onConfirm={async () => {
+                        setIsConfirmApproveWithoutRefundVisible(false);
+                        if (onApproveCancellation) {
+                            setIsProcessingAction(true);
+                            try {
+                                await onApproveCancellation(cancellationRequest, booking, 'none', 0, pendingApproveNote);
+                                setIsApprovingCancellation(false);
+                                setCancellationApproveNote('');
+                                setPendingApproveNote('');
+                                setSelectedRefundProofFile(null);
+                                showToast.success(REVIEW_TOASTS.CANCELLATION_APPROVED);
+                            } catch (err: unknown) {
+                                showToast.error(err instanceof Error ? err.message : 'Failed to approve cancellation.');
+                            } finally {
+                                setIsProcessingAction(false);
+                            }
+                        }
+                    }}
+                    title="Approve Without Refund"
+                    message={
+                        pendingApproveNote
+                            ? `Are you sure you want to approve this cancellation without a refund? Note: "${pendingApproveNote}"`
+                            : "Are you sure you want to approve this cancellation request without issuing a refund?"
+                    }
+                    confirmText="Approve"
+                    cancelText="Cancel"
+                    iconName="alert-triangle"
+                    isDestructive={false}
                 />
             )}
 
@@ -1244,6 +1312,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 120,
         paddingTop: 8
+    },
+    scrollContentNoFooter: {
+        paddingBottom: 48
     },
     tabContainer: {
         flexDirection: 'row',

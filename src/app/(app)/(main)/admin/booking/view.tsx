@@ -150,8 +150,8 @@ export default function AdminViewBooking() {
                         await onSettleRemainingBalance(targetBooking, options);
                     }
                 }}
-                onUploadRefundProof={async (file, req, b) => {
-                    await uploadRefundProof(file, req || cancellationRequest, b || booking);
+                onUploadRefundProof={async (file, req, b, adminNote) => {
+                    await uploadRefundProof(file, req || cancellationRequest, b || booking, adminNote);
                 }}
                 onUploadOverpaymentProof={async (file, b) => {
                     const targetBooking = b || booking;

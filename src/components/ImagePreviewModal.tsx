@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Image,
@@ -145,6 +145,26 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     const currentImage = imageList[currentIndex];
     const memoizedSource = useMemo(() => getSource(currentImage), [currentImage]);
 
+    useEffect(() => {
+        if (!visible || !currentImage) return;
+        const uri = typeof currentImage === 'string'
+            ? currentImage
+            : (typeof currentImage === 'object' && currentImage !== null && 'uri' in currentImage
+                ? (currentImage as { uri: string }).uri
+                : undefined);
+        if (uri) {
+            Image.getSize(
+                uri,
+                (w, h) => {
+                    if (w > 0 && h > 0) {
+                        setImageDimensions(prev => prev ?? { width: w, height: h });
+                    }
+                },
+                () => {}
+            );
+        }
+    }, [visible, currentImage]);
+
     const currentImageKey = useMemo(() => {
         if (!currentImage) return 'empty';
         if (typeof currentImage === 'string') return currentImage;
@@ -233,8 +253,15 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                                 resizeMode="contain" 
                                 onLoad={(e) => {
                                     setIsImageLoading(false);
-                                    const { width, height } = e.nativeEvent.source;
-                                    if (width && height) {
+                                    const nativeEvent = (e?.nativeEvent || {}) as {
+                                        source?: { width?: number; height?: number };
+                                        target?: { naturalWidth?: number; naturalHeight?: number };
+                                        width?: number;
+                                        height?: number;
+                                    };
+                                    const width = nativeEvent.source?.width ?? nativeEvent.target?.naturalWidth ?? nativeEvent.width;
+                                    const height = nativeEvent.source?.height ?? nativeEvent.target?.naturalHeight ?? nativeEvent.height;
+                                    if (typeof width === 'number' && typeof height === 'number' && width > 0 && height > 0) {
                                         setImageDimensions({ width, height });
                                     }
                                 }}
