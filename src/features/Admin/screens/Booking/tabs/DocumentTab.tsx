@@ -1,16 +1,18 @@
-/**
- * @file DocumentTab.tsx
- * @description Displays list of required files/documents for a booking and handles document validation decisions.
- */
-
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
+import { FooterButtonConfig } from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
-import { Colors } from '@/src/constants/colors';
 import { useToast } from '@/src/components/Toast/Toast';
+import {
+    isTutorialMeasurementActive,
+    registerMeasureCallback,
+    registerTutorialLayout,
+} from '@/src/components/Tutorial/Tutorial';
+import { Colors } from '@/src/constants/colors';
 import DocumentReviewCard from '@/src/features/Admin/screens/Booking/components/DocumentReviewCard';
 
 import { Booking } from '@/src/core/models/Booking/Booking';
@@ -49,6 +51,10 @@ export const REJECTION_SUGGESTIONS: string[] = [
  * @param suggestions - Optional dynamic list of prioritized rejection reason suggestions.
  * @param onAttachmentRequired - Optional callback triggered when user taps decision without viewing attachment.
  * @param onInteraction - Optional callback tracking admin interactions.
+ * @param firstCardRef - Optional ref for tutorial measurement of the first document card.
+ * @param primaryButton - Optional primary action button configuration (e.g. Approve Booking / Submit Rejection).
+ * @param secondaryButton - Optional secondary action button configuration (e.g. Reject Booking / Cancel Rejection).
+ * @param isTutorialFooterPreview - Flag to force rendering buttons for tutorial inspection.
  */
 export interface DocumentTabProps {
     booking: Booking;
@@ -68,6 +74,9 @@ export interface DocumentTabProps {
     onAttachmentRequired?: () => void;
     onInteraction?: () => void;
     firstCardRef?: React.RefObject<View | null>;
+    primaryButton?: FooterButtonConfig;
+    secondaryButton?: FooterButtonConfig;
+    isTutorialFooterPreview?: boolean;
 }
 
 /**
@@ -76,7 +85,7 @@ export interface DocumentTabProps {
 const DocumentTab: React.FC<DocumentTabProps> = ({ 
     booking: _booking, 
     docStates, 
-    setDocStates,
+    setDocStates, 
     viewedDocs, 
     isReviewComplete, 
     isRejectedStatus: _isRejectedStatus, 
@@ -91,8 +100,30 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
     onAttachmentRequired,
     onInteraction,
     firstCardRef,
+    primaryButton,
+    secondaryButton,
+    isTutorialFooterPreview = false,
 }) => {
     const { showToast } = useToast();
+    const actionsRef = useRef<View>(null);
+
+    const measureActionsNow = useCallback(() => {
+        actionsRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('booking_footer', { x, y, width, height });
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        return registerMeasureCallback('booking_footer', measureActionsNow);
+    }, [measureActionsNow]);
+
+    const handleActionsLayout = () => {
+        if (isTutorialMeasurementActive()) {
+            measureActionsNow();
+        }
+    };
 
     const toggleDocDecision = (index: number, statusString: DocValidState) => {
         if (isReviewComplete || isCancellationPending) return; 
@@ -111,6 +142,8 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
         updated[index] = { ...updated[index], valid: statusString };
         setDocStates(updated);
     };
+
+    const shouldShowButtons = (!isReviewComplete || isTutorialFooterPreview) && !isCancellationPending && Boolean(primaryButton || secondaryButton);
 
     return (
         <View style={styles.tabContent}>
@@ -156,6 +189,52 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
                     />
                 </View>
             )}
+
+            {shouldShowButtons && (
+                <View
+                    ref={actionsRef}
+                    collapsable={false}
+                    onLayout={handleActionsLayout}
+                    style={styles.actionsContainer}
+                >
+                    {secondaryButton && (
+                        <View style={styles.actionButtonWrapper}>
+                            <CustomButton
+                                title={secondaryButton.title}
+                                onPress={secondaryButton.onPress}
+                                variant={secondaryButton.variant || 'outline'}
+                                style={[styles.actionButton, secondaryButton.style]}
+                                textStyle={secondaryButton.textStyle}
+                                disabled={secondaryButton.disabled}
+                                isLoading={secondaryButton.isLoading}
+                                validationState={secondaryButton.validationState}
+                                isIdleDisabled={secondaryButton.isIdleDisabled}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit={true}
+                                minimumFontScale={0.75}
+                            />
+                        </View>
+                    )}
+                    {primaryButton && (
+                        <View style={styles.actionButtonWrapper}>
+                            <CustomButton
+                                title={primaryButton.title}
+                                onPress={primaryButton.onPress}
+                                variant={primaryButton.variant || 'primary'}
+                                style={[styles.actionButton, primaryButton.style]}
+                                textStyle={primaryButton.textStyle}
+                                disabled={primaryButton.disabled}
+                                isLoading={primaryButton.isLoading}
+                                validationState={primaryButton.validationState}
+                                isIdleDisabled={primaryButton.isIdleDisabled}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit={true}
+                                minimumFontScale={0.75}
+                            />
+                        </View>
+                    )}
+                </View>
+            )}
             
         </View>
     );
@@ -166,7 +245,7 @@ const styles = StyleSheet.create({
         paddingTop: 4 
     },
     reasonBox: { 
-        marginBottom: 24 
+        marginBottom: 20 
     },
     emptyCard: {
         backgroundColor: Colors.WHITE,
@@ -189,6 +268,21 @@ const styles = StyleSheet.create({
     emptySubtitle: {
         color: Colors.TEXT_SECONDARY,
         textAlign: 'center',
+    },
+    actionsContainer: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 4,
+        marginBottom: 16,
+        width: '100%',
+        alignItems: 'stretch',
+    },
+    actionButtonWrapper: {
+        flex: 1,
+    },
+    actionButton: {
+        minHeight: 52,
+        justifyContent: 'center',
     },
 });
 
