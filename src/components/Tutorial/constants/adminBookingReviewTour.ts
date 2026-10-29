@@ -43,8 +43,8 @@ export const adminBookingReviewDocSteps: TutorialStep[] = [
         targetSpotlight: 'booking_footer',
         title: 'Step 4: Approve, Reject, or Manage',
         description:
-            'Once all documents and phone verifications are checked, use the bottom sticky footer to "Approve" the reservation (unlocking payment for the hiker) or "Reject" with a reason.',
-        actionTip: 'Tap "Approve" in the bottom bar once all requirements pass.',
+            'Once all documents and phone verifications are checked, use the action buttons below the documents list to "Approve" the reservation (unlocking payment for the hiker) or "Reject" with a reason.',
+        actionTip: 'Tap "Approve Booking" once all requirements pass.',
     },
 ];
 
