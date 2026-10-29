@@ -2,6 +2,7 @@ import { functions } from "@/src/core/config/Firebase";
 import { HandleGroupMemberFlow } from "@/src/core/flows/HandleGroupMemberFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { Booking, Requirements } from "@/src/core/models/Booking/interfaces/Booking.types";
+import { BookingRepo } from "@/src/core/models/Booking/repositories/BookingRepository";
 import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { BookingLogic } from "@/src/core/models/Booking/utils/Booking.logic";
 import { newBooking } from "@/src/core/models/Booking/utils/BookingFactory";
@@ -195,6 +196,211 @@ export function useBookingAdmin() {
         }
     };
 
+    const onEditManualPayment = async (
+        booking: Booking,
+        options: {
+            paymentIndex?: number;
+            newAmount: number;
+            newReferenceCode?: string;
+            newClassification?: 'full' | 'downpayment';
+            newAdminNote?: string;
+        }
+    ) => {
+        try {
+            if (!booking) throw new Error('Missing booking information');
+            if (typeof options.newAmount !== 'number' || options.newAmount <= 0) {
+                throw new Error('A valid positive payment amount is required');
+            }
+
+            try {
+                const verifyManualPaymentFn = httpsCallable(functions, 'verifyManualPayment');
+                await verifyManualPaymentFn({
+                    bookingId: booking.id,
+                    userId: booking.user?.id,
+                    businessId: booking.business?.id,
+                    offerId: booking.offer?.id,
+                    isEdit: true,
+                    paymentIndex: options.paymentIndex,
+                    newAmount: options.newAmount,
+                    newReferenceCode: options.newReferenceCode,
+                    newClassification: options.newClassification,
+                    newAdminNote: options.newAdminNote,
+                });
+            } catch (fnErr) {
+                console.warn('[onEditManualPayment] Cloud function call failed, applying client fallback:', fnErr);
+                const payments = [...(booking.payment || [])];
+                let targetIdx = typeof options.paymentIndex === 'number' ? options.paymentIndex : -1;
+                if (targetIdx < 0 || targetIdx >= payments.length) {
+                    for (let i = payments.length - 1; i >= 0; i--) {
+                        if (payments[i].status === 'captured') {
+                            targetIdx = i;
+                            break;
+                        }
+                    }
+                }
+                if (targetIdx === -1) throw new Error('No captured payment found to edit.');
+
+                const totalPrice = booking.offer?.price || 0;
+                const otherCaptured = payments.reduce((sum, p, idx) => (idx !== targetIdx && p.status === 'captured') ? sum + (p.amount || 0) : sum, 0);
+                const balanceNeeded = Math.max(0, totalPrice - otherCaptured);
+                const isOverpaid = options.newAmount > balanceNeeded;
+                const excessAmount = isOverpaid ? (options.newAmount - balanceNeeded) : 0;
+                const approvedAmount = isOverpaid ? balanceNeeded : options.newAmount;
+                const totalCaptured = otherCaptured + approvedAmount;
+                const newRemainingBalance = Math.max(0, totalPrice - totalCaptured);
+                const isFull = isOverpaid || newRemainingBalance === 0 || (options.newClassification === 'full' && approvedAmount >= balanceNeeded);
+                const effectiveClassification = isFull ? 'full' : (options.newClassification || 'downpayment');
+
+                const targetPayment = payments[targetIdx];
+                payments[targetIdx] = {
+                    ...targetPayment,
+                    amount: approvedAmount,
+                    classification: effectiveClassification,
+                    referenceCode: options.newReferenceCode !== undefined ? (options.newReferenceCode ? options.newReferenceCode.trim() : targetPayment.referenceCode) : targetPayment.referenceCode,
+                    adminNote: options.newAdminNote !== undefined ? (options.newAdminNote ? options.newAdminNote.trim() : undefined) : targetPayment.adminNote,
+                    editedAt: new Date(),
+                };
+
+                const updatedBooking: Booking = {
+                    ...booking,
+                    status: isFull ? 'completed' : 'downpayment',
+                    remainingBalance: newRemainingBalance,
+                    paymentVerificationStatus: isFull ? 'fully_paid' : 'downpayment',
+                    payment: payments,
+                    overpayment: isOverpaid ? {
+                        excessAmount,
+                        originalVerifiedAmount: options.newAmount,
+                        hikeAmountCaptured: approvedAmount,
+                        status: 'awaiting_hiker_wallet',
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    } : undefined,
+                    updatedAt: new Date(),
+                };
+
+                await BookingRepo.write(updatedBooking);
+            }
+
+            await useBookingsStore.getState().refreshBookingItem(booking.id, booking.offer?.id);
+            return true;
+        } catch (error) {
+            catchError(error as Error, 'writingError', 'onEditManualPayment()');
+            setLocalError((error as Error).message || 'Failed to edit payment details');
+            throw error;
+        }
+    };
+
+    const onRevertManualPayment = async (
+        booking: Booking,
+        options?: {
+            paymentIndex?: number;
+            revertRejection?: boolean;
+            reason?: string;
+        }
+    ) => {
+        try {
+            if (!booking) throw new Error('Missing booking information');
+
+            try {
+                const verifyManualPaymentFn = httpsCallable(functions, 'verifyManualPayment');
+                await verifyManualPaymentFn({
+                    bookingId: booking.id,
+                    userId: booking.user?.id,
+                    businessId: booking.business?.id,
+                    offerId: booking.offer?.id,
+                    isRevert: true,
+                    paymentIndex: options?.paymentIndex,
+                    revertRejection: options?.revertRejection,
+                });
+            } catch (fnErr) {
+                console.warn('[onRevertManualPayment] Cloud function call failed, applying client fallback:', fnErr);
+                const payments = [...(booking.payment || [])];
+                if (options?.revertRejection || booking.paymentVerificationStatus === 'rejected') {
+                    const updatedPayments = payments.map(p => {
+                        if (p.status === 'rejected') {
+                            return { ...p, status: 'pending' as const, adminNote: undefined };
+                        }
+                        return p;
+                    });
+                    const updatedBooking: Booking = {
+                        ...booking,
+                        status: 'for-payment',
+                        paymentVerificationStatus: 'pending_verification',
+                        paymentRejectionReason: undefined,
+                        payment: updatedPayments,
+                        updatedAt: new Date(),
+                    };
+                    await BookingRepo.write(updatedBooking);
+                } else {
+                    let targetIdx = typeof options?.paymentIndex === 'number' ? options.paymentIndex : -1;
+                    if (targetIdx < 0 || targetIdx >= payments.length) {
+                        for (let i = payments.length - 1; i >= 0; i--) {
+                            if (payments[i].status === 'captured') {
+                                targetIdx = i;
+                                break;
+                            }
+                        }
+                    }
+                    if (targetIdx === -1) throw new Error('No captured payment found to revert.');
+
+                    const targetPayment = payments[targetIdx];
+                    if (targetPayment.receiptUrl) {
+                        payments[targetIdx] = {
+                            ...targetPayment,
+                            status: 'pending',
+                            amount: 0,
+                            classification: undefined,
+                            paidAt: undefined,
+                            verifiedAt: undefined,
+                            verifiedBy: undefined,
+                            revertedAt: new Date(),
+                        };
+                    } else {
+                        payments[targetIdx] = {
+                            ...targetPayment,
+                            status: 'abandoned',
+                            revertedAt: new Date(),
+                        };
+                    }
+
+                    const totalPrice = booking.offer?.price || 0;
+                    const remainingCaptured = payments.reduce((sum, p) => p.status === 'captured' ? sum + (p.amount || 0) : sum, 0);
+                    const newRemainingBalance = Math.max(0, totalPrice - remainingCaptured);
+
+                    let newStatus: Booking['status'] = 'for-payment';
+                    let newVerificationStatus: Booking['paymentVerificationStatus'] = 'pending_verification';
+                    if (remainingCaptured > 0) {
+                        if (newRemainingBalance === 0) {
+                            newStatus = 'completed';
+                            newVerificationStatus = 'fully_paid';
+                        } else {
+                            newStatus = 'downpayment';
+                            newVerificationStatus = 'downpayment';
+                        }
+                    }
+
+                    const updatedBooking: Booking = {
+                        ...booking,
+                        status: newStatus,
+                        paymentVerificationStatus: newVerificationStatus,
+                        remainingBalance: newRemainingBalance,
+                        payment: payments,
+                        overpayment: undefined,
+                        updatedAt: new Date(),
+                    };
+                    await BookingRepo.write(updatedBooking);
+                }
+            }
+
+            await useBookingsStore.getState().refreshBookingItem(booking.id, booking.offer?.id);
+            return true;
+        } catch (error) {
+            catchError(error as Error, 'writingError', 'onRevertManualPayment()');
+            setLocalError((error as Error).message || 'Failed to revert payment verification');
+            throw error;
+        }
+    };
+
     const onSettleRemainingBalance = async (
         booking: Booking,
         options?: { method?: 'cash' | 'manual_qr'; referenceCode?: string; adminNote?: string }
@@ -353,6 +559,8 @@ export function useBookingAdmin() {
         onRescheduleBooking,
         onVerifyManualPayment,
         onRejectManualPayment,
+        onEditManualPayment,
+        onRevertManualPayment,
         onSettleRemainingBalance,
         onUploadOverpaymentProof,
         error: localError || error,
