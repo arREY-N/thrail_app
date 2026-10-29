@@ -3,9 +3,9 @@
  * @description Main entry point for a group chat room screen, setting up router params, subscription, and event handlers.
  */
 
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Keyboard, Text, View } from "react-native";
+import { Button, Keyboard, Text, View } from "react-native";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useGroupItem, useGroupRoom, useGroupStore } from "@/src/core/models/Group/Group";
@@ -15,6 +15,7 @@ import { useFilesStore } from "@/src/core/stores/fileStore";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { formatGroupName } from "@/src/features/Community/screens/Group/ListScreen";
 import RoomScreen from "@/src/features/Community/screens/Group/RoomScreen";
+
 
 /**
  * GroupRoom screen component container.
@@ -125,7 +126,11 @@ export default function GroupRoom() {
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
-
+            <Button title={'Group Info'} onPress={() => router.push({
+                pathname: '/(app)/(main)/group/members', params: {
+                    roomId: currentGroup.id
+                }
+            })} />
             <RoomScreen
                 messages={displayMessages}
                 currentGroup={currentGroup}
