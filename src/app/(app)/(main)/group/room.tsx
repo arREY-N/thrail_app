@@ -5,7 +5,7 @@
 
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Button, Keyboard, Text, View } from "react-native";
+import { Keyboard, Text, View } from "react-native";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useGroupItem, useGroupRoom, useGroupStore } from "@/src/core/models/Group/Group";
@@ -126,11 +126,6 @@ export default function GroupRoom() {
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
-            <Button title={'Group Info'} onPress={() => router.push({
-                pathname: '/(app)/(main)/group/members', params: {
-                    roomId: currentGroup.id
-                }
-            })} />
             <RoomScreen
                 messages={displayMessages}
                 currentGroup={currentGroup}
@@ -139,6 +134,12 @@ export default function GroupRoom() {
                 markAsRead={markAsRead}
                 headerTitle={headerTitle}
                 onBackPress={onBackPress}
+                onOpenMembers={() => router.push({
+                    pathname: '/(app)/(main)/group/members',
+                    params: {
+                        roomId: currentGroup.id
+                    }
+                })}
                 onAttachPhotoPress={handleAttachPhotoPress}
                 onCapturePhotoPress={handleCapturePhotoPress}
                 loadMoreMessages={() => loadMoreMessages(roomId)}
