@@ -138,6 +138,19 @@ export const TrackHikerGPSFlow = () => {
     const setGpsError = (msg: string | null) => updateHikeStore({ gpsError: msg });
 
     const handleRawFix = (location: Location.LocationObject) => {
+        // If the app is in the background, let the background locationTask process exclusively
+        if (AppState.currentState !== "active") {
+            return;
+        }
+
+        const { active: isHikeActive, currentHike: activeHike } = useHikeStore.getState();
+        const isHikeRecording = isHikeActive && activeHike && (activeHike.status === "started" || activeHike.status === "paused");
+
+        // If no UI instances are active and no hike is recording, discard fix to avoid orphaned state
+        if (globalActiveInstances <= 0 && !isHikeRecording) {
+            return;
+        }
+
         const filtered = sharedGpsKalmanFilter.process({
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
@@ -148,7 +161,22 @@ export const TrackHikerGPSFlow = () => {
             timestamp: location.timestamp || Date.now(),
         });
 
-        if (!filtered) return;
+        // Indoor & coarse positioning fallback: if Kalman filter rejected gross scatter > 120m,
+        // still allow coarse UI Blue Dot repositioning if accuracy is plausible (<= 200m)
+        // so the indicator doesn't freeze on the street outside.
+        if (!filtered) {
+            if (
+                typeof location.coords.latitude === "number" &&
+                typeof location.coords.longitude === "number" &&
+                !isNaN(location.coords.latitude) &&
+                !isNaN(location.coords.longitude) &&
+                typeof location.coords.accuracy === "number" &&
+                location.coords.accuracy <= 200
+            ) {
+                emitFilteredUserLocation(location.coords.longitude, location.coords.latitude);
+            }
+            return;
+        }
 
         const lat = filtered.latitude;
         const lon = filtered.longitude;
@@ -158,8 +186,7 @@ export const TrackHikerGPSFlow = () => {
         if (globalIsGpsLost) {
             globalIsGpsLost = false;
             setGpsError(null);
-            const { active, currentHike } = useHikeStore.getState();
-            if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
+            if (isHikeRecording) {
                 useHikeStore.getState().logHikeEvent('GPS_SIGNAL_RESTORED', {
                     latitude: lat,
                     longitude: lon,
@@ -177,29 +204,31 @@ export const TrackHikerGPSFlow = () => {
             }
         }
 
-        // Reset heartbeat timer only for valid accepted fixes
+        // Reset heartbeat timer only for valid accepted fixes and only when active instances or hike is running
         if (globalGpsTimeoutTimer) clearTimeout(globalGpsTimeoutTimer);
-        globalGpsTimeoutTimer = setTimeout(() => {
-            globalIsGpsLost = true;
-            setGpsError("GPS signal lost. Searching for satellites...");
-            const { active, currentHike } = useHikeStore.getState();
-            if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
-                useHikeStore.getState().logHikeEvent('GPS_SIGNAL_LOST', {
-                    latitude: lat,
-                    longitude: lon,
-                    altitude: alt ?? undefined,
-                });
-                addCoordinate(newLocation({
-                    latitude: lat,
-                    longitude: lon,
-                    altitude: alt ?? undefined,
-                    accuracy: filtered.accuracy,
-                    speed: filtered.speed,
-                    timestamp: new Date(),
-                    status: 'GPS_SIGNAL_LOST',
-                }));
-            }
-        }, GPS_TIMEOUT_MS);
+        if (globalActiveInstances > 0 || isHikeRecording) {
+            globalGpsTimeoutTimer = setTimeout(() => {
+                globalIsGpsLost = true;
+                setGpsError("GPS signal lost. Searching for satellites...");
+                const { active, currentHike } = useHikeStore.getState();
+                if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
+                    useHikeStore.getState().logHikeEvent('GPS_SIGNAL_LOST', {
+                        latitude: lat,
+                        longitude: lon,
+                        altitude: alt ?? undefined,
+                    });
+                    addCoordinate(newLocation({
+                        latitude: lat,
+                        longitude: lon,
+                        altitude: alt ?? undefined,
+                        accuracy: filtered.accuracy,
+                        speed: filtered.speed,
+                        timestamp: new Date(),
+                        status: 'GPS_SIGNAL_LOST',
+                    }));
+                }
+            }, GPS_TIMEOUT_MS);
+        }
 
         // Emit Blue Dot coordinate updates whenever position changes
         const hasCoordChanged = emitFilteredUserLocation(lon, lat);
@@ -220,8 +249,7 @@ export const TrackHikerGPSFlow = () => {
         }
 
         // Global Store Integration: record breadcrumbs when hike is started, stream live location when started or paused
-        const { active, currentHike } = useHikeStore.getState();
-        if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
+        if (isHikeRecording) {
             addCoordinate(latestCoord);
         }
     };
@@ -300,7 +328,7 @@ export const TrackHikerGPSFlow = () => {
                 if (!globalUserLocation) {
                     Location.getLastKnownPositionAsync()
                         .then((lastPos) => {
-                            if (lastPos && !globalUserLocation) {
+                            if (lastPos && !globalUserLocation && globalActiveInstances > 0) {
                                 handleRawFix(lastPos);
                             }
                         })
