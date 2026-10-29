@@ -24,7 +24,11 @@ export type TutorialTourId =
     | 'admin_offer_write'
     | 'admin_offer_write_step2'
     | 'admin_offer_view'
-    | 'admin_booking_review';
+    | 'admin_booking_review'
+    | 'navigation_booked'
+    | 'navigation_diy'
+    | 'recording_booked'
+    | 'recording_diy';
 
 /**
  * Visual style variant for the simulated UI target inside the coded callout preview banner.
@@ -138,7 +142,28 @@ export type TargetSpotlightType =
     | 'web_drawer_mountain'
     | 'web_drawer_user'
     | 'web_drawer_recommendation'
-    | 'fab_messages';
+    | 'fab_messages'
+    | 'navigation_search_bar'
+    | 'navigation_booked_card'
+    | 'navigation_diy_card'
+    | 'navigation_fullscreen_btn'
+    | 'navigation_upcoming_tickets_btn'
+    | 'navigation_card_chat_btn'
+    | 'navigation_column_chat_btn'
+    | 'navigation_map_style_btn'
+    | 'navigation_recenter_btn'
+    | 'navigation_start_hike_btn'
+    | 'recording_header_trail'
+    | 'recording_header_sos'
+    | 'recording_trail_info_btn'
+    | 'recording_group_chat_btn'
+    | 'recording_team_status_btn'
+    | 'recording_map_options_btn'
+    | 'recording_map_style_btn'
+    | 'recording_recenter_btn'
+    | 'recording_metrics_hud'
+    | 'recording_start_btn'
+    | 'recording_help_btn';
 
 export type TooltipPlacement = 'auto' | 'top' | 'bottom' | 'center' | 'right';
 
@@ -158,6 +183,7 @@ export type SpotlightShape = 'circle' | 'rect' | 'pill';
  * @param callout - Optional legacy callout preview configuration
  * @param highlightTabIndex - Optional 0-based tab index (0=Home, 1=Explore, 2=Hike, 3=Community, 4=Profile) to point at on mobile
  * @param highlightHeaderHelp - When true (used on the Final Step of every tour), illuminates the top-right '?' Replay button in CustomHeader
+ * @param secondaryTargetSpotlight - Optional secondary target to simultaneously illuminate with an additional cutout hole and stroke
  */
 export interface TutorialStep {
     id: string;
@@ -171,6 +197,7 @@ export interface TutorialStep {
     callout?: TutorialCalloutPreview;
     highlightTabIndex?: number;
     highlightHeaderHelp?: boolean;
+    secondaryTargetSpotlight?: TargetSpotlightType;
 }
 
 /**

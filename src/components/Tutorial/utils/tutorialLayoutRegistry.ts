@@ -140,10 +140,12 @@ export const requestTargetMeasurement = (id: string): void => {
     pendingTimers.clear();
 
     requestAnimationFrame(runCallbacks);
-    const t1 = setTimeout(runCallbacks, 160);
-    const t2 = setTimeout(runCallbacks, 340);
-    pendingTimers.add(t1);
-    pendingTimers.add(t2);
+
+    // Only run a single settle pass if the target element has not been measured yet
+    if (!registry.has(key)) {
+        const timer = setTimeout(runCallbacks, 100);
+        pendingTimers.add(timer);
+    }
 };
 
 /**
