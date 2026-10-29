@@ -10,13 +10,16 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import CustomLoading from "@/src/components/CustomLoading";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import {
+    Booking,
     useBookingAdmin,
     useBookingAdminItem
 } from "@/src/core/models/Booking/Booking";
 import {
+    Cancellation,
     useCancellationAdmin
 } from "@/src/core/models/Cancellation/Cancellation";
 import {
+    Offer,
     useOfferStore
 } from "@/src/core/models/Offer/Offer";
 import { usePaymentAdmin } from "@/src/core/models/Payment/Payment";
@@ -56,6 +59,8 @@ export default function AdminViewBooking() {
         onRescheduleBooking,
         onVerifyManualPayment,
         onRejectManualPayment,
+        onEditManualPayment,
+        onRevertManualPayment,
         onSettleRemainingBalance,
         onUploadOverpaymentProof,
         error: bookingError,
@@ -105,7 +110,11 @@ export default function AdminViewBooking() {
                 onApprove={onApproveBooking}
                 onConfirmPayment={onConfirmPayment}
                 onReject={onRejectBooking}
-                onReschedule={onRescheduleBooking}
+                onReschedule={async (offerData, b) => {
+                    if (onRescheduleBooking) {
+                        await onRescheduleBooking(offerData as Offer, b);
+                    }
+                }}
                 onRefund={onRefund}
                 onCancelUnpaid={onCancelUnpaid}
                 isLoading={combinedLoading}
@@ -159,8 +168,20 @@ export default function AdminViewBooking() {
                         await onUploadOverpaymentProof(targetBooking, file);
                     }
                 }}
-                onApproveWithManualRefund={async (amount, req, b) => {
+                onApproveWithManualRefund={async (amount: number, req?: Cancellation | null, b?: Booking | null) => {
                     await approveWithManualRefund(amount, req || cancellationRequest, b || booking);
+                }}
+                onEditManualPayment={async (options) => {
+                    const targetBooking = options.booking || booking;
+                    if (targetBooking) {
+                        await onEditManualPayment(targetBooking, options);
+                    }
+                }}
+                onRevertManualPayment={async (options) => {
+                    const targetBooking = options?.booking || booking;
+                    if (targetBooking) {
+                        await onRevertManualPayment(targetBooking, options);
+                    }
                 }}
             />
         </>
