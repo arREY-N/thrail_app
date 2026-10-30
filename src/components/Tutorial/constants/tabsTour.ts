@@ -10,7 +10,7 @@ import { TutorialStep } from '@/src/components/Tutorial/interfaces/Tutorial.type
 export const mobileTabsTourSteps: TutorialStep[] = [
     {
         id: 'tab-home',
-        category: 'Bottom Tab 1 of 5 â€¢ Home',
+        category: 'Bottom Tab 1 of 5 - Home',
         targetSpotlight: 'tab_0',
         title: 'Home Tab • Your Trail Hub',
         description:
@@ -20,27 +20,27 @@ export const mobileTabsTourSteps: TutorialStep[] = [
     },
     {
         id: 'tab-explore',
-        category: 'Bottom Tab 2 of 5 â€¢ Explore',
+        category: 'Bottom Tab 2 of 5 - Explore',
         targetSpotlight: 'tab_1',
         title: 'Explore Tab • Search & Filter Trails',
         description:
-            'Browse all mountains and hiking trails across Region IV-A (CALABARZON). Filter trails by province, difficulty level, or hiking duration to find your next climb.',
+            'Browse all mountains and hiking trails across Region IV-A (CALABARZON).',
         actionTip: 'Use the search bar or filter chips at the top of Explore to narrow down mountains.',
         highlightTabIndex: 1,
     },
     {
         id: 'tab-hike',
-        category: 'Bottom Tab 3 of 5 â€¢ Hike',
+        category: 'Bottom Tab 3 of 5 - Hike',
         targetSpotlight: 'tab_2',
         title: 'Hike Tab • Live GPS Trail Navigation',
         description:
-            'Used on hike day for offline-ready trail maps, GPS route recording, and Emergency SOS alerts. Note: Live hike navigation unlocks after your booking reservation and payment are completed.',
+            'Used on hike day for offline-ready trail maps, GPS route recording, and Emergency SOS alerts.',
         actionTip: 'Once you have a confirmed & paid booking, open this tab on hike day to start tracking.',
         highlightTabIndex: 2,
     },
     {
         id: 'tab-community',
-        category: 'Bottom Tab 4 of 5 â€¢ Community',
+        category: 'Bottom Tab 4 of 5 - Community',
         targetSpotlight: 'tab_3',
         title: 'Community Tab • Reviews & Groups',
         description:
@@ -50,22 +50,22 @@ export const mobileTabsTourSteps: TutorialStep[] = [
     },
     {
         id: 'tab-profile',
-        category: 'Bottom Tab 5 of 5 â€¢ Profile',
+        category: 'Bottom Tab 5 of 5 - Profile',
         targetSpotlight: 'tab_4',
         title: 'Profile Tab • Milestones & Settings',
         description:
-            'Track your personal hiking statistics, completed hike logs, and achievement milestones. You can also update your medical profile, emergency contact, or apply as a Tour Organizer in Settings.',
-        actionTip: 'Open Profile anytime to manage your account details or apply to become a verified Admin/Organizer.',
+            'Track your personal hiking statistics, completed hike logs, and achievement milestones. You can also update your profile or emergency contact here.',
+        actionTip: 'Open Profile anytime to manage your account details.',
         highlightTabIndex: 4,
     },
     {
         id: 'fab-messages',
-        category: 'Floating Action Button â€¢ Messages',
+        category: 'Floating Action Button - Messages',
         targetSpotlight: 'fab_messages',
         spotlightShape: 'circle',
         title: 'Messages • Quick Group Chats',
         description:
-            'Notice this green floating chat button! It floats conveniently across Home, Explore, Community, and Profile (except Navigation) so you can quickly jump into your hike group chats and message your guides anytime.',
+            'Notice this green floating chat button! It floats conveniently so you can quickly jump into your hike group chats and message your guides anytime.',
         actionTip: 'Tap this floating chat bubble anytime to open your active hike conversations and group rooms.',
     },
 ];
@@ -99,7 +99,7 @@ export const getWebNavTourSteps = (role?: string | null): TutorialStep[] => {
             targetSpotlight: 'web_drawer_explore',
             title: 'Explore Trails — Search & Filter',
             description:
-                'Browse all mountains and hiking trails across Region IV-A (CALABARZON). Filter trails by province, difficulty level, or hiking duration to find your next climb.',
+                'Browse all mountains and hiking trails across Region IV-A (CALABARZON).',
             actionTip: 'Use search and filter chips to find trails tailored to your hiking level.',
         },
         {
