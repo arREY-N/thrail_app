@@ -22,13 +22,13 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { useAuthValidation } from '@/src/features/Auth/hooks/useAuthValidation';
+import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 import {
     calculatePasswordStrength,
     sanitizeEmail,
     sanitizePassword,
     sanitizeUsername,
 } from '@/src/features/Auth/utils/authValidation';
-import { AuthStyles } from '@/src/features/Auth/styles/AuthStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 /**
@@ -155,6 +155,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
                     autoCorrect={false}
                     maxLength={64}
                     style={{ marginBottom: 0 }}
+                    helperText='At least 6 characters long with a lowercase and uppercase letter, a number, and a special character'
                 />
 
                 <View style={AuthStyles.strengthContainer}>

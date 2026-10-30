@@ -18,6 +18,17 @@ export interface InformationScreenProps {
     error?: string | null;
 }
 
+/**
+ * Sanitizes name input in real-time, allowing only alphabetic characters and spaces.
+ * Omits numbers, symbols, and emojis cleanly without inserting ghost spaces or causing cursor jigger.
+ *
+ * @param text - The raw user input string.
+ * @returns {string} Cleaned string containing letters and spaces only.
+ */
+const sanitizeName = (text: string): string => {
+    return text.replace(/[^a-zA-Z\s\u00C0-\u024F\u1E00-\u1EFF]/g, '');
+};
+
 const InformationScreen = ({ 
     onContinuePress, 
     onBackPress, 
@@ -40,6 +51,14 @@ const InformationScreen = ({
     const handleContinue = () => {
         setLocalError(null);
 
+        const cleanFirst = firstname.trim().replace(/\s+/g, ' ');
+        const cleanLast = lastname.trim().replace(/\s+/g, ' ');
+
+        if (!cleanFirst || !cleanLast) {
+            setLocalError('First name and last name must contain letters only.');
+            return;
+        }
+
         if (!birthday) {
             setLocalError('Birthday is required');
             return;
@@ -53,7 +72,7 @@ const InformationScreen = ({
 
         const finalNumber = cleanPhoneNumber(phoneNumber);
         
-        onContinuePress(finalNumber, firstname, lastname, birthday, address);
+        onContinuePress(finalNumber, cleanFirst, cleanLast, birthday, address.trim());
     };
     
     return (
@@ -91,6 +110,10 @@ const InformationScreen = ({
                             placeholder="e.g. Juan"
                             value={firstname}
                             onChangeText={setFirstname}
+                            sanitizeText={sanitizeName}
+                            disableEmojiKeyboard={true}
+                            autoCapitalize="words"
+                            autoCorrect={false}
                         />
 
                         <CustomTextInput
@@ -98,6 +121,10 @@ const InformationScreen = ({
                             placeholder="e.g. Dela Cruz"
                             value={lastname}
                             onChangeText={setLastname}
+                            sanitizeText={sanitizeName}
+                            disableEmojiKeyboard={true}
+                            autoCapitalize="words"
+                            autoCorrect={false}
                         />
 
                         <CustomTextInput

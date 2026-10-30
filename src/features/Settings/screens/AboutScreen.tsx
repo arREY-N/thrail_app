@@ -11,8 +11,8 @@ import { BRAND } from '@/src/constants/branding';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
+import { THRAIL_DEVELOPERS } from '@/src/constants/team';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
-import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 /**
@@ -27,14 +27,8 @@ export interface AboutScreenProps {
     onHelpPress: () => void;
     onTerms: () => void;
     onPrivacy: () => void;
+    onPolicies?: () => void;
 }
-
-const developers = [
-    { name: 'Developer 1', role: 'Lead Developer' },
-    { name: 'Developer 2', role: 'UI/UX Designer' },
-    { name: 'Developer 3', role: 'Backend Engineer' },
-    { name: 'Developer 4', role: 'QA & Testing' },
-];
 
 /**
  * AboutScreen displays informational details about the application version, scope, and the development team.
@@ -43,7 +37,8 @@ const AboutScreen = ({
     onBackPress,
     onHelpPress,
     onTerms,
-    onPrivacy
+    onPrivacy,
+    onPolicies
 }: AboutScreenProps) => {
     const { isMobile } = useBreakpoints();
 
@@ -70,13 +65,31 @@ const AboutScreen = ({
                 <View style={styles.section}>
                     <CustomText variant="h3" style={styles.sectionTitle}>Meet The Team</CustomText>
                     <View style={styles.grid}>
-                        {developers.map((dev, index) => (
-                            <View key={index} style={[styles.devCard, !isMobile && styles.devCardDesktop]}>
+                        {THRAIL_DEVELOPERS.map((dev) => (
+                            <View key={dev.id} style={[styles.devCard, !isMobile && styles.devCardDesktop]}>
                                 <View style={styles.avatarPlaceholder}>
                                     <CustomIcon library="Feather" name="user" size={24} color={Colors.PRIMARY} />
                                 </View>
-                                <CustomText variant="body" style={styles.devName}>{dev.name}</CustomText>
-                                <CustomText variant="caption" style={styles.devRole}>{dev.role}</CustomText>
+                                <View style={styles.nameContainer}>
+                                    <CustomText 
+                                        variant="body" 
+                                        style={styles.devName}
+                                        numberOfLines={2}
+                                        adjustsFontSizeToFit={true}
+                                        minimumFontScale={0.85}
+                                    >
+                                        {dev.name}
+                                    </CustomText>
+                                </View>
+                                <View style={styles.roleContainer}>
+                                    <CustomText 
+                                        variant="caption" 
+                                        style={styles.devRole}
+                                        numberOfLines={2}
+                                    >
+                                        {dev.role}
+                                    </CustomText>
+                                </View>
                             </View>
                         ))}
                     </View>
@@ -124,6 +137,20 @@ const AboutScreen = ({
                                 <CustomIcon library="Feather" name="file-text" size={20} color={Colors.PRIMARY} />
                             </View>
                             <CustomText variant="body" style={styles.rowTitle}>Privacy Policy</CustomText>
+                        </View>
+                        <CustomIcon library="Feather" name="chevron-right" size={20} color={Colors.GRAY_MEDIUM} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={styles.rowCard} 
+                        onPress={onPolicies}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.rowLeft}>
+                            <View style={styles.iconWrapper}>
+                                <CustomIcon library="Feather" name="briefcase" size={20} color={Colors.PRIMARY} />
+                            </View>
+                            <CustomText variant="body" style={styles.rowTitle}>Booking & Organizer Policies</CustomText>
                         </View>
                         <CustomIcon library="Feather" name="chevron-right" size={20} color={Colors.GRAY_MEDIUM} />
                     </TouchableOpacity>
@@ -198,12 +225,15 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: 24,
         alignItems: 'center',
+        justifyContent: 'flex-start',
+        minHeight: 184,
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
         ...GlobalStyles.dropShadow(2),
     },
     devCardDesktop: {
         width: '22%',
+        minHeight: 188,
     },
     avatarPlaceholder: {
         width: 50,
@@ -212,19 +242,33 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BUTTON_OUTLINE_BG,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 10,
+    },
+    nameContainer: {
+        height: 42,
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+        marginBottom: 4,
     },
     devName: {
         fontWeight: 'bold',
         color: Colors.BLACK,
         textAlign: 'center',
         fontSize: 14,
-        marginBottom: 4,
+        lineHeight: 18,
+    },
+    roleContainer: {
+        height: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
     },
     devRole: {
         color: Colors.TEXT_PLACEHOLDER,
         textAlign: 'center',
         fontSize: 12,
+        lineHeight: 16,
     },
     rowCard: {
         flexDirection: 'row',

@@ -28,7 +28,9 @@ export type TutorialTourId =
     | 'navigation_booked'
     | 'navigation_diy'
     | 'recording_booked'
-    | 'recording_diy';
+    | 'recording_diy'
+    | 'review_ratings'
+    | 'review_details';
 
 /**
  * Visual style variant for the simulated UI target inside the coded callout preview banner.
@@ -163,7 +165,12 @@ export type TargetSpotlightType =
     | 'recording_recenter_btn'
     | 'recording_metrics_hud'
     | 'recording_start_btn'
-    | 'recording_help_btn';
+    | 'recording_help_btn'
+    | 'review_star_rating'
+    | 'review_next_btn'
+    | 'review_feedback_input'
+    | 'review_photo_upload'
+    | 'review_submit_btn';
 
 export type TooltipPlacement = 'auto' | 'top' | 'bottom' | 'center' | 'right';
 

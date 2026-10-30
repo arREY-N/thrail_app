@@ -119,6 +119,18 @@ export function useAppNavigation() {
         router.push('/settings/preferences');
     }
 
+    const onTermsSettingsPress = () => {
+        router.push('/(app)/(main)/settings/legal/terms');
+    };
+
+    const onPrivacyPolicySettingsPress = () => {
+        router.push('/(app)/(main)/settings/legal/privacy');
+    };
+
+    const onPoliciesSettingsPress = () => {
+        router.push('/(app)/(main)/settings/legal/policies');
+    };
+
     return {
         onTrailPress,
         onBackPress,
@@ -140,6 +152,9 @@ export function useAppNavigation() {
         onTestSettingsPress,
         onHelpSettingsPress,
         onHikingPreferencesPress,
+        onTermsSettingsPress,
+        onPrivacyPolicySettingsPress,
+        onPoliciesSettingsPress,
         onUserViewPress
     }
 }

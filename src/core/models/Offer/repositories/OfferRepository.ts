@@ -1,4 +1,5 @@
-import { db } from "@/src/core/config/Firebase";
+import { db, functions } from "@/src/core/config/Firebase";
+import { httpsCallable } from "firebase/functions";
 import { Offer, OfferParams } from "@/src/core/models/Offer/interfaces/Offer.types";
 import { newOffer, offerConverter } from "@/src/core/models/Offer/utils/OfferFactory";
 import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, or, query, setDoc, where } from 'firebase/firestore';
@@ -119,19 +120,48 @@ export const OfferRepository = (db: any) => ({
         try {
             let offer = newOffer(data);
 
-            const create = offer.id === '';
+            const isUpdate = offer.id !== '';
 
-            const col = createOffersCollection(db, data.business.id);
+            if (isUpdate) {
+                const updateOfferFn = httpsCallable<{
+                    offerId: string;
+                    businessId: string;
+                    updates: Partial<Offer>;
+                }, { success: boolean; message: string }>(functions, 'adminUpdateOffer');
 
-            const businessOfferRef = create
-                ? doc(col)
-                : doc(col, data.id);
+                await updateOfferFn({
+                    offerId: offer.id,
+                    businessId: offer.business.id,
+                    updates: {
+                        price: offer.price,
+                        date: offer.date,
+                        endDate: offer.endDate,
+                        duration: offer.duration,
+                        description: offer.description,
+                        maxPax: offer.maxPax,
+                        minPax: offer.minPax,
+                        documents: offer.documents,
+                        inclusions: offer.inclusions,
+                        thingsToBring: offer.thingsToBring,
+                        reminders: offer.reminders,
+                        schedule: offer.schedule,
+                    }
+                });
 
-            if (create) offer.id = businessOfferRef.id;
+                return offer;
+            } else {
+                const col = createOffersCollection(db, data.business.id);
 
-            await setDoc(businessOfferRef, offer, { merge: true });
+                const businessOfferRef = doc(col);
 
-            return offer;
+
+
+                offer.id = businessOfferRef.id;
+
+                await setDoc(businessOfferRef, offer, { merge: true });
+
+                return offer;
+            }
         } catch (err: any) {
             console.warn(err.message);
             throw new Error(err.message ?? 'Failed creating offer')
