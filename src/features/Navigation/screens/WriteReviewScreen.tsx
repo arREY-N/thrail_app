@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+    Platform,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
@@ -14,10 +15,15 @@ import CustomText from '@/src/components/CustomText';
 import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import {
+    CustomTutorialModal,
+    TutorialHelpButton,
+} from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import SelectionChip from '@/src/features/Auth/components/SelectionChip';
+import { useWriteReviewTutorial } from '@/src/features/Navigation/hooks/useWriteReviewTutorial';
 
 import { DIFFICULTY_FACTOR_MAPPINGS, DifficultyFactorOption } from '@/src/recommendation/utilities/FactorWeightsMapper';
 
@@ -75,6 +81,20 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
     const [showDiscardConfirmation, setShowDiscardConfirmation] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
+
+    const {
+        tutorial,
+        starRatingRef,
+        nextBtnRef,
+        feedbackInputRef,
+        photoUploadRef,
+        submitBtnRef,
+        handlers,
+    } = useWriteReviewTutorial({
+        isEditMode,
+        stepIndex,
+        isLoading,
+    });
 
     const STEPS = ['ratings', 'details'];
     const currentStep = STEPS[stepIndex];
@@ -174,7 +194,12 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                             <CustomText variant="subtitle" style={styles.question}>
                                 How was your hike overall? <CustomText style={styles.requiredMark}>*</CustomText>
                             </CustomText>
-                            <View style={styles.starContainer}>
+                            <View
+                                ref={starRatingRef}
+                                collapsable={false}
+                                onLayout={handlers.handleStarRatingLayout}
+                                style={styles.starContainer}
+                            >
                                 {[1, 2, 3, 4, 5].map((star) => (
                                     <TouchableOpacity
                                         key={star}
@@ -294,13 +319,24 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                             <CustomText variant="subtitle" style={styles.question}>
                                 Write your thoughts or tips for other hikers
                             </CustomText>
-                            <CustomFeedbackInput
-                                placeholder="Type your review here..."
-                                value={review.review || ''}
-                                onChangeText={(val) => updateReview('review', val)}
-                            />
+                            <View
+                                ref={feedbackInputRef}
+                                collapsable={false}
+                                onLayout={handlers.handleFeedbackInputLayout}
+                            >
+                                <CustomFeedbackInput
+                                    placeholder="Type your review here..."
+                                    value={review.review || ''}
+                                    onChangeText={(val) => updateReview('review', val)}
+                                />
+                            </View>
 
-                            <View style={{ marginTop: 24 }}>
+                            <View
+                                ref={photoUploadRef}
+                                collapsable={false}
+                                onLayout={handlers.handlePhotoUploadLayout}
+                                style={{ marginTop: 24 }}
+                            >
                                 <CustomText variant="subtitle" style={[styles.question, { fontSize: 16 }]}>
                                     Add Photos (Optional)
                                 </CustomText>
@@ -366,6 +402,12 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                 title={review?.trail?.name ? `Review: ${review.trail.name}` : "How Was Your Hike?"}
                 centerTitle={true}
                 onBackPress={handleDiscardPress}
+                rightActions={
+                    <TutorialHelpButton
+                        onPress={tutorial.onReplayTour}
+                        hasGuide={tutorial.hasGuide}
+                    />
+                }
             />
 
             <View style={styles.progressBarBackground}>
@@ -412,29 +454,48 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                         <View style={styles.prevButtonPlaceholder} />
                     )}
 
-                    <TouchableOpacity
-                        onPress={handleNext}
-                        disabled={!hasAnswer || isLoading}
-                        style={[
-                            styles.nextButton,
-                            (!hasAnswer || isLoading) && { opacity: 0.5, backgroundColor: Colors.GRAY_MEDIUM }
-                        ]}
+                    <View
+                        ref={stepIndex === 0 ? nextBtnRef : submitBtnRef}
+                        collapsable={false}
+                        onLayout={stepIndex === 0 ? handlers.handleNextBtnLayout : handlers.handleSubmitBtnLayout}
                     >
-                        <CustomText style={styles.nextText}>
-                            {stepIndex >= STEPS.length - 1 ? "Submit" : "Next"}
-                        </CustomText>
+                        <TouchableOpacity
+                            onPress={handleNext}
+                            disabled={!hasAnswer || isLoading}
+                            style={[
+                                styles.nextButton,
+                                (!hasAnswer || isLoading) && { opacity: 0.5, backgroundColor: Colors.GRAY_MEDIUM }
+                            ]}
+                        >
+                            <CustomText style={styles.nextText}>
+                                {stepIndex >= STEPS.length - 1 ? "Submit" : "Next"}
+                            </CustomText>
 
-                        {stepIndex < STEPS.length - 1 && (
-                            <CustomIcon
-                                library="Feather"
-                                name="chevron-right"
-                                size={24}
-                                color={Colors.TEXT_INVERSE}
-                            />
-                        )}
-                    </TouchableOpacity>
+                            {stepIndex < STEPS.length - 1 && (
+                                <CustomIcon
+                                    library="Feather"
+                                    name="chevron-right"
+                                    size={24}
+                                    color={Colors.TEXT_INVERSE}
+                                />
+                            )}
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
+
+            {Platform.OS !== 'web' && !isEditMode && (
+                <CustomTutorialModal
+                    visible={tutorial.isVisible}
+                    tourConfig={tutorial.tourConfig}
+                    currentStep={tutorial.currentStep}
+                    currentStepIndex={tutorial.currentStepIndex}
+                    totalSteps={tutorial.totalSteps}
+                    onNext={tutorial.onNextStep}
+                    onPrev={tutorial.onPrevStep}
+                    onSkip={tutorial.onSkipTour}
+                />
+            )}
 
         </ScreenWrapper>
     );
@@ -465,6 +526,7 @@ const styles = StyleSheet.create({
     },
     fixedQuestionArea: {
         paddingTop: 8,
+        marginBottom: -4,
     },
     optionsScrollView: {
         flex: 1,
