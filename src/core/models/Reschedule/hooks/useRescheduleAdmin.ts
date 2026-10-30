@@ -4,10 +4,8 @@ import { functions } from '@/src/core/config/Firebase';
 import { useRescheduleStore } from '@/src/core/models/Reschedule/stores/rescheduleStore';
 import { RescheduleRepo } from '@/src/core/models/Reschedule/repositories/RescheduleRepository';
 import { Reschedule } from '@/src/core/models/Reschedule/interfaces/Reschedule.types';
-import { Booking } from '@/src/core/models/Booking/Booking';
-import { Offer } from '@/src/core/models/Offer/Offer';
-import { useBookingsStore } from '@/src/core/models/Booking/stores/bookingStore';
-import { useOfferStore } from '@/src/core/models/Offer/Offer';
+import { Booking, useBookingsStore } from '@/src/core/models/Booking/Booking';
+import { Offer, useOfferStore } from '@/src/core/models/Offer/Offer';
 import { useAuthHook } from '@/src/core/models/User/User';
 
 export const useRescheduleAdmin = (bookingId?: string, businessId?: string, rescheduleRequestId?: string) => {
@@ -50,11 +48,9 @@ export const useRescheduleAdmin = (bookingId?: string, businessId?: string, resc
 
     useEffect(() => {
         if (!effectiveBusinessId || !targetId) {
-            setFetchedReschedule(null);
             return;
         }
 
-        setIsFetchingLocal(true);
         const unsubscribe = RescheduleRepo.listenToRescheduleById(
             effectiveBusinessId,
             targetId,
@@ -72,6 +68,7 @@ export const useRescheduleAdmin = (bookingId?: string, businessId?: string, resc
 
         return () => {
             if (unsubscribe) unsubscribe();
+            setFetchedReschedule(null);
         };
     }, [effectiveBusinessId, targetId]);
 
@@ -133,8 +130,7 @@ export const useRescheduleAdmin = (bookingId?: string, businessId?: string, resc
             if (!targetBookingId) throw new Error('Booking ID missing');
 
             // Determine revert status: if booking had remaining balance > 0 -> 'downpayment', else 'completed'
-            const hasRemainingBalance = (booking?.paymentRemainingBalance && booking.paymentRemainingBalance > 0) ||
-                (booking?.remainingBalance && booking.remainingBalance > 0);
+            const hasRemainingBalance = Number(booking?.remainingBalance) > 0;
             const revertStatus = hasRemainingBalance ? 'downpayment' : 'completed';
 
             await useRescheduleStore.getState().rejectRescheduleRequest(

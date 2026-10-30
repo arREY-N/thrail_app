@@ -22,7 +22,12 @@ import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import { SelectedFile } from '@/src/core/repositories/fileRepository';
 import { formatDateTime } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { AdminEditPaymentModal } from '../components/AdminEditPaymentModal';
+import { AdminRevertPaymentModal } from '../components/AdminRevertPaymentModal';
 import { ManualQRVerificationCard } from '../components/ManualQRVerificationCard';
+import { getDisplayReferenceCode } from '@/src/features/Admin/utils/paymentUtils';
+
+export { getDisplayReferenceCode };
 
 /**
  * Props for PaymentTab component.
@@ -36,61 +41,22 @@ export interface PaymentTabProps {
     onConfirmPaymentClick?: () => void;
     onVerifyManualPayment?: (classification: 'full' | 'downpayment', note?: string, verifiedAmount?: number) => Promise<void>;
     onRejectManualPayment?: (reason: string) => Promise<void>;
+    onEditManualPayment?: (options: {
+        paymentIndex?: number;
+        newAmount: number;
+        newReferenceCode: string;
+        newClassification: 'full' | 'downpayment';
+        newAdminNote?: string;
+    }) => Promise<void>;
+    onRevertManualPayment?: (options?: {
+        paymentIndex?: number;
+        revertRejection?: boolean;
+        reason?: string;
+    }) => Promise<void>;
     onSettleRemainingBalance?: (options?: { method?: 'cash' | 'manual_qr'; referenceCode?: string; adminNote?: string }) => Promise<void>;
     onUploadOverpaymentProof?: (file: SelectedFile) => Promise<void | string>;
     isProcessing?: boolean;
 }
-
-/**
- * Extracts the admin-verified reference code from payment records.
- * Prioritizes the reference code entered and verified by the admin over auto-generated fallbacks.
- */
-export const getDisplayReferenceCode = (payment: IPayment<Date>): { refCode: string; note?: string } => {
-    const rawNote = payment.adminNote || '';
-
-    // Look for "Ref: <value>" in adminNote
-    const refMatch = rawNote.match(/Ref:\s*([^\s|]+(?:\s+[^\s|]+)*)/i);
-    let refCode = refMatch ? refMatch[1].trim() : null;
-
-    // Clean out the Ref: portion from adminNote to extract the clean user note
-    const cleanNote = rawNote
-        .replace(/Ref:\s*[^\s|]+(?:\s+[^\s|]+)*/i, '')
-        .replace(/^\s*\|\s*|\s*\|\s*$/g, '')
-        .trim();
-
-    // If no ref in adminNote, check payment.referenceCode (skip generated MANUAL-, CASH-, manual_, REF-)
-    if (!refCode && payment.referenceCode) {
-        const isGenerated = payment.referenceCode.startsWith('MANUAL-') || 
-                            payment.referenceCode.startsWith('CASH-') || 
-                            payment.referenceCode.startsWith('manual_') ||
-                            payment.referenceCode.startsWith('REF-');
-        if (!isGenerated) {
-            refCode = payment.referenceCode;
-        }
-    }
-
-    // If still no refCode, check gatewayId (for PayMongo pay_...)
-    if (!refCode && payment.gatewayId) {
-        refCode = payment.gatewayId;
-    }
-
-    // Check if it's a cash transaction
-    const isCash = payment.method === 'cash' || 
-                   (payment.gateway || '').toLowerCase().includes('cash') || 
-                   (payment.referenceCode || '').startsWith('CASH-');
-
-    if (isCash) {
-        return {
-            refCode: refCode || 'Onsite Cash',
-            note: cleanNote || undefined,
-        };
-    }
-
-    return {
-        refCode: refCode || (payment.status === 'captured' ? 'Verified by Admin' : 'Pending Verification'),
-        note: cleanNote || undefined,
-    };
-};
 
 /**
  * PaymentTab — Cleaned and improved UI for reviewing booking payments.
@@ -103,6 +69,8 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     isCancelledStatus,
     onVerifyManualPayment,
     onRejectManualPayment,
+    onEditManualPayment,
+    onRevertManualPayment,
     onSettleRemainingBalance,
     onUploadOverpaymentProof,
     isProcessing = false,
@@ -114,6 +82,16 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     const [previewReceiptUrl, setPreviewReceiptUrl] = useState<string | null>(null);
     const [showPaidCashModal, setShowPaidCashModal] = useState<boolean>(false);
     const [expandedIndices, setExpandedIndices] = useState<Record<number, boolean>>({});
+
+    // Edit and Revert modal state
+    const [selectedPaymentForEdit, setSelectedPaymentForEdit] = useState<IPayment<Date> | null>(null);
+    const [selectedPaymentIndexForEdit, setSelectedPaymentIndexForEdit] = useState<number | undefined>(undefined);
+    const [showEditModal, setShowEditModal] = useState<boolean>(false);
+
+    const [selectedPaymentForRevert, setSelectedPaymentForRevert] = useState<IPayment<Date> | null>(null);
+    const [selectedPaymentIndexForRevert, setSelectedPaymentIndexForRevert] = useState<number | undefined>(undefined);
+    const [showRevertModal, setShowRevertModal] = useState<boolean>(false);
+    const [isRejectionRevert, setIsRejectionRevert] = useState<boolean>(false);
 
     const toggleAccordion = (idx: number) => {
         setExpandedIndices(prev => ({
@@ -296,6 +274,8 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                     onRejectPayment={onRejectManualPayment || (async () => {})}
                     onSettleBalance={onSettleRemainingBalance || (async () => {})}
                     onUploadOverpaymentProof={onUploadOverpaymentProof}
+                    onEditPayment={onEditManualPayment}
+                    onRevertPayment={onRevertManualPayment}
                     isProcessing={isProcessing}
                 />
             )}
@@ -553,6 +533,49 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                                     </View>
                                                 </View>
                                             )}
+
+                                            {/* Admin Edit or Revert Actions for captured payment */}
+                                            {!isRefunded && !isLockedStatus && (
+                                                <View style={styles.receiptActionButtonsRow}>
+                                                    {onEditManualPayment && (
+                                                        <CustomButton
+                                                            title="Edit Details"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            icon="edit-3"
+                                                            iconLibrary="Feather"
+                                                            onPress={() => {
+                                                                const actualIndex = (booking.payment || []).indexOf(paymentRecord);
+                                                                setSelectedPaymentForEdit(paymentRecord);
+                                                                setSelectedPaymentIndexForEdit(actualIndex !== -1 ? actualIndex : idx);
+                                                                setShowEditModal(true);
+                                                            }}
+                                                            disabled={isProcessing}
+                                                            style={styles.receiptActionBtn}
+                                                        />
+                                                    )}
+                                                    {onRevertManualPayment && (
+                                                        <CustomButton
+                                                            title="Revert"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            icon="rotate-ccw"
+                                                            iconLibrary="Feather"
+                                                            iconColor="#D97706"
+                                                            textStyle={{ color: '#D97706' }}
+                                                            onPress={() => {
+                                                                const actualIndex = (booking.payment || []).indexOf(paymentRecord);
+                                                                setSelectedPaymentForRevert(paymentRecord);
+                                                                setSelectedPaymentIndexForRevert(actualIndex !== -1 ? actualIndex : idx);
+                                                                setIsRejectionRevert(false);
+                                                                setShowRevertModal(true);
+                                                            }}
+                                                            disabled={isProcessing}
+                                                            style={styles.receiptActionBtn}
+                                                        />
+                                                    )}
+                                                </View>
+                                            )}
                                         </View>
                                     )}
                                 </View>
@@ -610,6 +633,55 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                 onClose={() => setShowPaidCashModal(false)}
                 onConfirm={handleConfirmCashSettlement}
             />
+
+            {/* Edit Payment Modal */}
+            {selectedPaymentForEdit && onEditManualPayment && (
+                <AdminEditPaymentModal
+                    visible={showEditModal}
+                    booking={booking}
+                    payment={selectedPaymentForEdit}
+                    paymentIndex={selectedPaymentIndexForEdit}
+                    onClose={() => {
+                        setShowEditModal(false);
+                        setSelectedPaymentForEdit(null);
+                        setSelectedPaymentIndexForEdit(undefined);
+                    }}
+                    onConfirm={async (options) => {
+                        if (options) {
+                            await onEditManualPayment(options);
+                        }
+                        setShowEditModal(false);
+                        setSelectedPaymentForEdit(null);
+                        setSelectedPaymentIndexForEdit(undefined);
+                    }}
+                    isProcessing={isProcessing}
+                />
+            )}
+
+            {/* Revert Payment Verification or Rejection Modal */}
+            {onRevertManualPayment && (
+                <AdminRevertPaymentModal
+                    visible={showRevertModal}
+                    booking={booking}
+                    payment={selectedPaymentForRevert || undefined}
+                    paymentIndex={selectedPaymentIndexForRevert}
+                    isRejectionRevert={isRejectionRevert}
+                    onClose={() => {
+                        setShowRevertModal(false);
+                        setSelectedPaymentForRevert(null);
+                        setSelectedPaymentIndexForRevert(undefined);
+                        setIsRejectionRevert(false);
+                    }}
+                    onConfirm={async (options) => {
+                        await onRevertManualPayment(options);
+                        setShowRevertModal(false);
+                        setSelectedPaymentForRevert(null);
+                        setSelectedPaymentIndexForRevert(undefined);
+                        setIsRejectionRevert(false);
+                    }}
+                    isProcessing={isProcessing}
+                />
+            )}
 
         </View>
     );
@@ -1030,6 +1102,17 @@ const styles = StyleSheet.create({
     lockBannerText: {
         fontSize: 12,
         fontWeight: '600',
+        flex: 1,
+    },
+    receiptActionButtonsRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 10,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#F1F5F9',
+    },
+    receiptActionBtn: {
         flex: 1,
     },
 });

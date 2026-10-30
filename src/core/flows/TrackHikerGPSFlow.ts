@@ -40,6 +40,86 @@ const userLocationListeners = new Set<(loc: [number, number] | null) => void>();
 const userHeadingListeners = new Set<(heading: number | null) => void>();
 const permissionListeners = new Set<(granted: boolean) => void>();
 
+const ensureNetInfoMonitoring = (): void => {
+    if (Platform.OS === "web") return;
+    if (globalNetInfoSub) return;
+
+    NetInfo.fetch()
+        .then((state) => {
+            const reach = state.isInternetReachable === null ? (state.isConnected ?? true) : !!state.isInternetReachable;
+            globalLastReach = reach;
+            onlineListeners.forEach((fn) => fn(reach));
+        })
+        .catch(() => {});
+
+    globalNetInfoSub = NetInfo.addEventListener((state) => {
+        const reach = state.isInternetReachable === null ? (state.isConnected ?? true) : !!state.isInternetReachable;
+        const wasOffline = !globalLastReach;
+        globalLastReach = reach;
+        onlineListeners.forEach((fn) => fn(reach));
+        if (reach && wasOffline) {
+            console.log("[TrackHikerGPSFlow] Internet restored, syncing offline data...");
+            useHikeStore.getState().syncOfflineData();
+        }
+    });
+};
+
+const releaseNetInfoMonitoringIfIdle = (): void => {
+    if (globalActiveInstances === 0 && onlineListeners.size === 0) {
+        if (globalNetInfoSub) {
+            globalNetInfoSub();
+            globalNetInfoSub = null;
+        }
+    }
+};
+
+/**
+ * Standalone hook to subscribe to real-time network reachability status.
+ * Reuses the singleton NetInfo subscription and onlineListeners set from TrackHikerGPSFlow
+ * without subscribing to high-frequency (80ms) compass heading or GPS coordinate watchers.
+ */
+export const useNetworkStatus = (): { isOnline: boolean } => {
+    const [isOnline, setIsOnline] = useState<boolean>(() => {
+        if (Platform.OS === "web") {
+            return typeof navigator !== "undefined" ? navigator.onLine : true;
+        }
+        return globalLastReach;
+    });
+
+    useEffect(() => {
+        if (Platform.OS === "web") {
+            if (typeof window === "undefined") return;
+            const handleOnline = () => {
+                globalLastReach = true;
+                setIsOnline(true);
+                onlineListeners.forEach((fn) => fn(true));
+            };
+            const handleOffline = () => {
+                globalLastReach = false;
+                setIsOnline(false);
+                onlineListeners.forEach((fn) => fn(false));
+            };
+            window.addEventListener("online", handleOnline);
+            window.addEventListener("offline", handleOffline);
+            return () => {
+                window.removeEventListener("online", handleOnline);
+                window.removeEventListener("offline", handleOffline);
+            };
+        }
+
+        const handleStatus = (online: boolean) => setIsOnline(online);
+        onlineListeners.add(handleStatus);
+        ensureNetInfoMonitoring();
+
+        return () => {
+            onlineListeners.delete(handleStatus);
+            releaseNetInfoMonitoringIfIdle();
+        };
+    }, []);
+
+    return { isOnline };
+};
+
 /**
  * Returns true if the foreground watchPositionAsync subscription is active and the app is in the foreground.
  */
@@ -131,13 +211,26 @@ export const TrackHikerGPSFlow = () => {
     const routeCoordinates = useHikeStore((state) => state.walkedRoute);
 
     const [permissionGranted, setPermissionGranted] = useState(globalPermissionGranted);
-    const [isOnline, setIsOnline] = useState(true);
+    const [isOnline, setIsOnline] = useState(globalLastReach);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(globalUserLocation);
     const [userHeading, setUserHeading] = useState<number | null>(globalUserHeading);
 
     const setGpsError = (msg: string | null) => updateHikeStore({ gpsError: msg });
 
     const handleRawFix = (location: Location.LocationObject) => {
+        // If the app is in the background, let the background locationTask process exclusively
+        if (AppState.currentState !== "active") {
+            return;
+        }
+
+        const { active: isHikeActive, currentHike: activeHike } = useHikeStore.getState();
+        const isHikeRecording = isHikeActive && activeHike && (activeHike.status === "started" || activeHike.status === "paused");
+
+        // If no UI instances are active and no hike is recording, discard fix to avoid orphaned state
+        if (globalActiveInstances <= 0 && !isHikeRecording) {
+            return;
+        }
+
         const filtered = sharedGpsKalmanFilter.process({
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
@@ -148,7 +241,22 @@ export const TrackHikerGPSFlow = () => {
             timestamp: location.timestamp || Date.now(),
         });
 
-        if (!filtered) return;
+        // Indoor & coarse positioning fallback: if Kalman filter rejected gross scatter > 120m,
+        // still allow coarse UI Blue Dot repositioning if accuracy is plausible (<= 200m)
+        // so the indicator doesn't freeze on the street outside.
+        if (!filtered) {
+            if (
+                typeof location.coords.latitude === "number" &&
+                typeof location.coords.longitude === "number" &&
+                !isNaN(location.coords.latitude) &&
+                !isNaN(location.coords.longitude) &&
+                typeof location.coords.accuracy === "number" &&
+                location.coords.accuracy <= 200
+            ) {
+                emitFilteredUserLocation(location.coords.longitude, location.coords.latitude);
+            }
+            return;
+        }
 
         const lat = filtered.latitude;
         const lon = filtered.longitude;
@@ -158,8 +266,7 @@ export const TrackHikerGPSFlow = () => {
         if (globalIsGpsLost) {
             globalIsGpsLost = false;
             setGpsError(null);
-            const { active, currentHike } = useHikeStore.getState();
-            if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
+            if (isHikeRecording) {
                 useHikeStore.getState().logHikeEvent('GPS_SIGNAL_RESTORED', {
                     latitude: lat,
                     longitude: lon,
@@ -177,29 +284,31 @@ export const TrackHikerGPSFlow = () => {
             }
         }
 
-        // Reset heartbeat timer only for valid accepted fixes
+        // Reset heartbeat timer only for valid accepted fixes and only when active instances or hike is running
         if (globalGpsTimeoutTimer) clearTimeout(globalGpsTimeoutTimer);
-        globalGpsTimeoutTimer = setTimeout(() => {
-            globalIsGpsLost = true;
-            setGpsError("GPS signal lost. Searching for satellites...");
-            const { active, currentHike } = useHikeStore.getState();
-            if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
-                useHikeStore.getState().logHikeEvent('GPS_SIGNAL_LOST', {
-                    latitude: lat,
-                    longitude: lon,
-                    altitude: alt ?? undefined,
-                });
-                addCoordinate(newLocation({
-                    latitude: lat,
-                    longitude: lon,
-                    altitude: alt ?? undefined,
-                    accuracy: filtered.accuracy,
-                    speed: filtered.speed,
-                    timestamp: new Date(),
-                    status: 'GPS_SIGNAL_LOST',
-                }));
-            }
-        }, GPS_TIMEOUT_MS);
+        if (globalActiveInstances > 0 || isHikeRecording) {
+            globalGpsTimeoutTimer = setTimeout(() => {
+                globalIsGpsLost = true;
+                setGpsError("GPS signal lost. Searching for satellites...");
+                const { active, currentHike } = useHikeStore.getState();
+                if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
+                    useHikeStore.getState().logHikeEvent('GPS_SIGNAL_LOST', {
+                        latitude: lat,
+                        longitude: lon,
+                        altitude: alt ?? undefined,
+                    });
+                    addCoordinate(newLocation({
+                        latitude: lat,
+                        longitude: lon,
+                        altitude: alt ?? undefined,
+                        accuracy: filtered.accuracy,
+                        speed: filtered.speed,
+                        timestamp: new Date(),
+                        status: 'GPS_SIGNAL_LOST',
+                    }));
+                }
+            }, GPS_TIMEOUT_MS);
+        }
 
         // Emit Blue Dot coordinate updates whenever position changes
         const hasCoordChanged = emitFilteredUserLocation(lon, lat);
@@ -220,8 +329,7 @@ export const TrackHikerGPSFlow = () => {
         }
 
         // Global Store Integration: record breadcrumbs when hike is started, stream live location when started or paused
-        const { active, currentHike } = useHikeStore.getState();
-        if (active && currentHike && (currentHike.status === 'started' || currentHike.status === 'paused')) {
+        if (isHikeRecording) {
             addCoordinate(latestCoord);
         }
     };
@@ -300,7 +408,7 @@ export const TrackHikerGPSFlow = () => {
                 if (!globalUserLocation) {
                     Location.getLastKnownPositionAsync()
                         .then((lastPos) => {
-                            if (lastPos && !globalUserLocation) {
+                            if (lastPos && !globalUserLocation && globalActiveInstances > 0) {
                                 handleRawFix(lastPos);
                             }
                         })
@@ -381,7 +489,17 @@ export const TrackHikerGPSFlow = () => {
 
     // Set up listeners on mount and clean up on unmount
     useEffect(() => {
-        if (Platform.OS === "web") return;
+        if (Platform.OS === "web") {
+            if (typeof window === "undefined") return;
+            const handleOnline = () => setIsOnline(true);
+            const handleOffline = () => setIsOnline(false);
+            window.addEventListener("online", handleOnline);
+            window.addEventListener("offline", handleOffline);
+            return () => {
+                window.removeEventListener("online", handleOnline);
+                window.removeEventListener("offline", handleOffline);
+            };
+        }
 
         const handleOnlineChange = (online: boolean) => setIsOnline(online);
         const handleLocationChange = (loc: [number, number] | null) => setUserLocation(loc);
@@ -401,16 +519,7 @@ export const TrackHikerGPSFlow = () => {
         globalActiveInstances++;
 
         if (globalActiveInstances === 1) {
-            globalNetInfoSub = NetInfo.addEventListener((state) => {
-                const reach = state.isInternetReachable === null ? true : !!state.isInternetReachable;
-                const wasOffline = !globalLastReach;
-                globalLastReach = reach;
-                onlineListeners.forEach((fn) => fn(reach));
-                if (reach && wasOffline) {
-                    console.log('[TrackHikerGPSFlow] Internet restored, syncing offline data...');
-                    useHikeStore.getState().syncOfflineData();
-                }
-            });
+            ensureNetInfoMonitoring();
 
             globalAppStateSub = AppState.addEventListener(
                 "change",
@@ -444,10 +553,7 @@ export const TrackHikerGPSFlow = () => {
                     globalAppStateSub.remove();
                     globalAppStateSub = null;
                 }
-                if (globalNetInfoSub) {
-                    globalNetInfoSub();
-                    globalNetInfoSub = null;
-                }
+                releaseNetInfoMonitoringIfIdle();
                 if (globalLocationSub) {
                     globalLocationSub.remove();
                     globalLocationSub = null;

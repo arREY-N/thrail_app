@@ -12,7 +12,7 @@ import {
     TutorialHelpButton,
 } from "@/src/components/Tutorial/Tutorial";
 import { useHikeRecordingTutorial } from "@/src/features/Navigation/hooks/useHikeRecordingTutorial";
-import { Colors } from "@/src/constants/colors";
+import { Colors, Palette } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
 import { Booking } from "@/src/core/models/Booking/Booking";
@@ -23,6 +23,8 @@ import { IUserSummary, User } from "@/src/core/models/User/User";
 import { formatDate, formatDateTime } from "@/src/core/utility/date";
 import { formatTime } from "@/src/core/utility/formatTime";
 import { clearLocalTrack } from "@/src/core/utility/hikeStorage";
+import NetworkStatusBanner from "@/src/components/NetworkStatusBanner";
+import { useNetworkStatus } from "@/src/core/flows/TrackHikerGPSFlow";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { formatActivityTime } from "@/src/utils/dateFormatter";
 
@@ -154,12 +156,15 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         isLoading,
     });
 
+    const { isOnline } = useNetworkStatus();
     const [isOfflineMode, setIsOfflineMode] = useState(true);
+    const isEffectiveOffline = !isOnline || isOfflineMode;
     const [modeToast, setModeToast] = useState<string | null>(null);
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleToggleOffline = () => {
-        const nextMode = !isOfflineMode;
+        if (!isOnline) return;
+        const nextMode = !isEffectiveOffline;
         setIsOfflineMode(nextMode);
         mapRef.current?.toggleOffline();
 
@@ -439,7 +444,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         return (
             <View style={styles.container}>
                 <CustomHeader title={hike.trail?.name || "Independent Route"} showDefaultIcons={false} onBackPress={onBackPress} />
-                <TrailMap initialLon={lon} initialLat={lat} bottomInset={0} isOffline={isOfflineMode} />
+                <TrailMap initialLon={lon} initialLat={lat} bottomInset={0} isOffline={isEffectiveOffline} />
             </View>
         );
     }
@@ -448,7 +453,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         <View style={styles.container}>
             <TrailMap
                 ref={mapRef}
-                isOffline={isOfflineMode}
+                isOffline={isEffectiveOffline}
                 initialLon={lon}
                 initialLat={lat}
                 bottomInset={dashboardHeight + 16}
@@ -489,6 +494,8 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                     </TouchableOpacity>
                 </View>
             </View>
+
+            <NetworkStatusBanner isOnline={isOnline} top={insets.top + 68} />
 
             {modeToast && (
                 <View style={[styles.modeToastBanner, { top: insets.top + 68 }]} pointerEvents="none">
@@ -563,25 +570,27 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                         </TouchableOpacity>
                     </View>
                 )}
-                <View
-                    ref={mapStyleBtnRef}
-                    collapsable={false}
-                    onLayout={handlers.handleMapStyleBtnLayout}
-                >
-                    <TouchableOpacity
-                        style={styles.fabBtn}
-                        onPress={handleToggleOffline}
-                        activeOpacity={0.8}
-                        accessibilityLabel={`Toggle map mode. Currently ${isOfflineMode ? "Offline" : "Online"}`}
+                {isOnline && (
+                    <View
+                        ref={mapStyleBtnRef}
+                        collapsable={false}
+                        onLayout={handlers.handleMapStyleBtnLayout}
                     >
-                        <CustomIcon
-                            library="Feather"
-                            name={isOfflineMode ? "hard-drive" : "cloud"}
-                            size={20}
-                            color={Colors.PRIMARY}
-                        />
-                    </TouchableOpacity>
-                </View>
+                        <TouchableOpacity
+                            style={styles.fabBtn}
+                            onPress={handleToggleOffline}
+                            activeOpacity={0.8}
+                            accessibilityLabel={`Toggle map mode. Currently ${isEffectiveOffline ? "Offline" : "Online"}`}
+                        >
+                            <CustomIcon
+                                library="Feather"
+                                name={isEffectiveOffline ? "hard-drive" : "cloud"}
+                                size={20}
+                                color={Colors.PRIMARY}
+                            />
+                        </TouchableOpacity>
+                    </View>
+                )}
                 <View
                     ref={recenterBtnRef}
                     collapsable={false}
@@ -1227,7 +1236,6 @@ const styles = StyleSheet.create({
     bgAmber: {
         backgroundColor: '#F59E0B',
     },
-
     modeToastBanner: {
         position: 'absolute',
         left: 0,
@@ -1241,28 +1249,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: Colors.WHITE,
+        backgroundColor: Palette.Green50,
+        borderColor: Palette.Green200,
         gap: 8,
         ...GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }),
         borderWidth: 1,
     },
-    toastOffline: {
-        borderColor: '#FDE68A',
-        backgroundColor: '#FFFBEB',
-    },
     toastOnline: {
-        borderColor: '#A7F3D0',
-        backgroundColor: '#ECFDF5',
+        borderColor: Palette.Green200,
+        backgroundColor: Palette.Green50,
     },
     modeToastText: {
         fontSize: 12,
         fontWeight: '700',
     },
-    textAmber: {
-        color: '#92400E',
-    },
     textEmerald: {
-        color: '#065F46',
+        color: Palette.Green900,
     },
 });
 

@@ -58,6 +58,16 @@ if (Platform.OS !== 'web') {
       const sortedLocations = [...rawLocations].sort((a, b) => a.timestamp - b.timestamp);
 
       for (const location of sortedLocations) {
+        if (
+          !location?.coords ||
+          typeof location.coords.latitude !== "number" ||
+          typeof location.coords.longitude !== "number" ||
+          isNaN(location.coords.latitude) ||
+          isNaN(location.coords.longitude)
+        ) {
+          continue;
+        }
+
         const filtered = sharedGpsKalmanFilter.process({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,

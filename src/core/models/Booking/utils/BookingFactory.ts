@@ -70,6 +70,8 @@ const bookingFromFirestore = (id: string, data: IBookingDB): Booking => {
             paidAt: p.paidAt ? toDate(p.paidAt) : undefined,
             refundedAt: p.refundedAt ? toDate(p.refundedAt) : undefined,
             verifiedAt: p.verifiedAt ? toDate(p.verifiedAt) : undefined,
+            editedAt: p.editedAt ? toDate(p.editedAt) : undefined,
+            revertedAt: p.revertedAt ? toDate(p.revertedAt) : undefined,
         })),
         emergencyContact: data.emergencyContact ? {
             ...data.emergencyContact,
@@ -174,6 +176,8 @@ const bookingToFirestore = (booking: Booking): IBookingDB => {
             if (p.classification !== undefined && p.classification !== null) paymentItem.classification = p.classification;
             if (p.adminNote !== undefined && p.adminNote !== null) paymentItem.adminNote = p.adminNote;
             if (p.verifiedBy !== undefined && p.verifiedBy !== null) paymentItem.verifiedBy = p.verifiedBy;
+            if (p.editedBy !== undefined && p.editedBy !== null) paymentItem.editedBy = p.editedBy;
+            if (p.revertedBy !== undefined && p.revertedBy !== null) paymentItem.revertedBy = p.revertedBy;
 
             if (p.capturedAt instanceof Date && !isNaN(p.capturedAt.getTime())) {
                 paymentItem.capturedAt = Timestamp.fromDate(p.capturedAt);
@@ -186,6 +190,12 @@ const bookingToFirestore = (booking: Booking): IBookingDB => {
             }
             if (p.verifiedAt instanceof Date && !isNaN(p.verifiedAt.getTime())) {
                 paymentItem.verifiedAt = Timestamp.fromDate(p.verifiedAt);
+            }
+            if (p.editedAt instanceof Date && !isNaN(p.editedAt.getTime())) {
+                paymentItem.editedAt = Timestamp.fromDate(p.editedAt);
+            }
+            if (p.revertedAt instanceof Date && !isNaN(p.revertedAt.getTime())) {
+                paymentItem.revertedAt = Timestamp.fromDate(p.revertedAt);
             }
 
             return paymentItem;

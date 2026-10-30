@@ -40,14 +40,14 @@ import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 
-import { useRescheduleAdmin } from '@/src/core/models/Reschedule/hooks/useRescheduleAdmin';
+import { Reschedule, useRescheduleAdmin } from '@/src/core/models/Reschedule/Reschedule';
 import useReviewLogic, { ReviewTab } from '@/src/features/Admin/hooks/useReviewLogic';
 import { ActivityLog } from '@/src/features/Admin/screens/Booking/components/ActivityLog';
 import AdminActionMenu from '@/src/features/Admin/screens/Booking/components/AdminActionMenu';
 import AdminCancelBookingModal from '@/src/features/Admin/screens/Booking/components/AdminCancelBookingModal';
 import AdminCancellationCard from '@/src/features/Admin/screens/Booking/components/AdminCancellationCard';
 import AdminRefundModal, { RefundType } from '@/src/features/Admin/screens/Booking/components/AdminRefundModal';
-import AdminRescheduleCard from '@/src/features/Admin/screens/Booking/components/AdminRescheduleCard';
+import { AdminRescheduleCard } from '@/src/features/Admin/screens/Booking/components/AdminRescheduleCard';
 import HikerProfileCard from '@/src/features/Admin/screens/Booking/components/HikerProfileCard';
 import DocumentTab, { DocState } from '@/src/features/Admin/screens/Booking/tabs/DocumentTab';
 import PaymentTab from '@/src/features/Admin/screens/Booking/tabs/PaymentTab';
@@ -56,7 +56,6 @@ import { VerificationStatus } from '@/src/core/flows/PhoneVerificationFlow';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 import { Offer } from '@/src/core/models/Offer/Offer';
-import { Reschedule } from '@/src/core/models/Reschedule/interfaces/Reschedule.types';
 import { User } from '@/src/core/models/User/User';
 import { SelectedFile } from '@/src/core/repositories/fileRepository';
 import {
@@ -110,6 +109,20 @@ export interface ReviewScreenProps {
     onUploadRefundProof?: (file: SelectedFile, request?: Cancellation | null, booking?: Booking | null, adminNote?: string) => Promise<void | string>;
     onUploadOverpaymentProof?: (file: SelectedFile, booking?: Booking | null) => Promise<void | string>;
     onApproveWithManualRefund?: (amount: number, request?: Cancellation | null, booking?: Booking | null) => Promise<void | Cancellation>;
+    onEditManualPayment?: (options: {
+        paymentIndex?: number;
+        newAmount: number;
+        newReferenceCode: string;
+        newClassification: 'full' | 'downpayment';
+        newAdminNote?: string;
+        booking?: Booking;
+    }) => Promise<void>;
+    onRevertManualPayment?: (options?: {
+        paymentIndex?: number;
+        revertRejection?: boolean;
+        reason?: string;
+        booking?: Booking;
+    }) => Promise<void>;
     rescheduleRequest?: Reschedule | null;
     onApproveReschedule?: (newOffer: Offer, booking?: Booking, adminNote?: string) => Promise<void>;
     onDeclineReschedule?: (reason: string, reschedule?: Reschedule | null, booking?: Booking) => Promise<void>;
@@ -142,6 +155,8 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     onUploadRefundProof,
     onUploadOverpaymentProof,
     onApproveWithManualRefund,
+    onEditManualPayment,
+    onRevertManualPayment,
     rescheduleRequest,
     onApproveReschedule,
     onDeclineReschedule,
@@ -179,7 +194,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         rescheduleRequest: hookReschedule,
         onApproveReschedule: hookOnApprove,
         onDeclineReschedule: hookOnDecline,
-    } = useRescheduleAdmin(booking?.id, booking?.business?.id, booking?.rescheduleRequestId);
+    } = useRescheduleAdmin(booking?.id, booking?.business?.id, booking?.rescheduleRequestId || undefined);
 
     const activeReschedule = rescheduleRequest || hookReschedule;
     const resolvedOnApproveReschedule = onApproveReschedule || hookOnApprove || onReschedule;
@@ -208,14 +223,12 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
     const hasActiveReschedule = Boolean(
         booking?.status === 'for-reschedule' ||
         activeReschedule?.status === 'pending' ||
-        (Boolean(booking?.rescheduleRequestId) && (!activeReschedule || activeReschedule.status === 'pending'))
+        (Boolean(booking?.rescheduleRequestId) && (!activeReschedule || (activeReschedule.status as string) === 'pending'))
     );
 
     const isRescheduleRejected = Boolean(
         !hasActiveReschedule && (
             activeReschedule?.status === 'rejected' ||
-            activeReschedule?.adminDecision === 'declined' ||
-            activeReschedule?.adminDecision === 'rejected' ||
             booking?.status === 'reschedule-rejected' ||
             Boolean(booking?.rescheduleDeclineReason)
         )
@@ -690,6 +703,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
             <ScrollView
                 ref={scrollViewRef}
                 showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                automaticallyAdjustKeyboardInsets={true}
                 contentContainerStyle={[
                     styles.scrollContent,
                     activeTab === 'documents' && styles.scrollContentNoFooter,
@@ -862,6 +878,30 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                                 setIsProcessingAction(false);
                                             }
                                         } : undefined}
+                                        onEditManualPayment={onEditManualPayment ? async (options) => {
+                                            setIsProcessingAction(true);
+                                            try {
+                                                await onEditManualPayment({ ...options, booking });
+                                                showToast.success('Payment details updated successfully');
+                                            } catch (err: unknown) {
+                                                showToast.error(err instanceof Error ? err.message : 'Failed to update payment details');
+                                                throw err;
+                                            } finally {
+                                                setIsProcessingAction(false);
+                                            }
+                                        } : undefined}
+                                        onRevertManualPayment={onRevertManualPayment ? async (options) => {
+                                            setIsProcessingAction(true);
+                                            try {
+                                                await onRevertManualPayment({ ...options, booking });
+                                                showToast.success(options?.revertRejection ? 'Rejection reverted to pending' : 'Payment verification reverted');
+                                            } catch (err: unknown) {
+                                                showToast.error(err instanceof Error ? err.message : 'Failed to revert payment');
+                                                throw err;
+                                            } finally {
+                                                setIsProcessingAction(false);
+                                            }
+                                        } : undefined}
                                         isProcessing={isProcessingAction}
                                     />
                                 )}
@@ -872,7 +912,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                             status={currentStatus}
                                             cancellation={cancellationRequest}
                                             cancellationReason={cancellationRequest?.reason || (hasRejections ? undefined : booking.cancellationReason)}
-                                            declineReason={cancellationRequest?.adminNote || (booking as any)?.cancellationDeclineReason}
+                                            declineReason={cancellationRequest?.adminNote || booking.cancellationDeclineReason}
                                             totalAmountPaid={totalAmountPaid}
                                             totalRefundedAmount={totalRefundedAmount}
                                             requestedAt={cancellationRequest?.createdAt || booking.updatedAt}
@@ -951,7 +991,9 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                         offers={offers}
                                         reschedule={activeReschedule}
                                         totalAmountPaid={totalAmountPaid}
-                                        onApproveReschedule={resolvedOnApproveReschedule}
+                                        onApproveReschedule={resolvedOnApproveReschedule ? async (newOffer, b, note) => {
+                                            await resolvedOnApproveReschedule(newOffer, b || booking, note);
+                                        } : undefined}
                                         onDeclineReschedule={resolvedOnDeclineReschedule}
                                     />
                                 )}

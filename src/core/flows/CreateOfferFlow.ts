@@ -1,10 +1,10 @@
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { TEdit } from "@/src/core/interface/domainHookInterface";
-import { BusinessLogic, useBusinessesStore } from "@/src/core/models/Business/Business";
+import { BusinessLogic, useBusinessAdminList, useBusinessesStore } from "@/src/core/models/Business/Business";
 import { newGroup, useGroupStore } from "@/src/core/models/Group/Group";
 import { newOffer, Offer, useOfferStore } from "@/src/core/models/Offer/Offer";
 import { Trail, TrailLogic, useTrailList } from "@/src/core/models/Trail/Trail";
-import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
+import { IUserSummary, useAuthHook, UserLogic } from "@/src/core/models/User/User";
 
 import { produce } from "immer";
 import { useState } from "react";
@@ -26,9 +26,14 @@ export function CreateOfferFlow(params: UseOfferParams = {}) {
         trails
     } = useTrailList();
 
+    const {
+        businessAdmins
+    } = useBusinessAdminList();
+
     const [loadingFlow, setLoadingFlow] = useState(false);
 
     const businessAccount = useBusinessesStore(s => s.current);
+
     const offers = useOfferStore(s => s.businessOffers);
     const error = useOfferStore(s => s.error);
     const remove = useOfferStore(s => s.delete);
@@ -96,10 +101,20 @@ export function CreateOfferFlow(params: UseOfferParams = {}) {
             const success = await create(offer);
             if (!success) throw new Error('Failed creating/updating offer');
 
+            const admins: IUserSummary[] = businessAdmins.filter(a => a.id !== profile.id);
+            const groupAdmins: IUserSummary[] = admins.map(a => {
+                return {
+                    email: a.email,
+                    firstname: a.firstname,
+                    lastname: a.lastname,
+                    id: a.id,
+                    username: a.username,
+                }
+            })
             const groupBlueprint = newGroup({
                 id: success.id,
-                admins: [UserLogic.toSummary(profile)],
-                participantsIds: [profile.id],
+                admins: [UserLogic.toSummary(profile), ...groupAdmins],
+                participantsIds: [profile.id, ...admins.map(a => a.id)],
                 business: offer.business,
                 trail: offer.trail,
                 offer: {
