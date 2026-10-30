@@ -10,7 +10,7 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useGroupItem, useGroupList, useGroupLocation } from "@/src/core/models/Group/Group";
+import { Group, useGroupItem, useGroupList, useGroupLocation, useGroupStore } from "@/src/core/models/Group/Group";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 
 
@@ -20,7 +20,7 @@ import { useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { useAuthHook } from "@/src/core/models/User/User";
 import HikeRecordingScreen from "@/src/features/Navigation/screens/HikeRecordingScreen";
-import React from "react";
+import { useEffect, useState } from "react";
 
 const SCREEN_OPTIONS = { headerShown: false };
 
@@ -85,7 +85,21 @@ export default function HikeView() {
         groupId: resolvedGroupId || groupId
     });
 
-    const { group: currentGroup } = useGroupItem(resolvedGroupId || '');
+    const { group: fetchedGroup } = useGroupItem(resolvedGroupId || '');
+    const [cachedGroup, setCachedGroup] = useState<Group | null>(null);
+
+    if (fetchedGroup && fetchedGroup !== cachedGroup) {
+        setCachedGroup(fetchedGroup);
+    }
+
+    // Resilient re-fetch if store drops group on room unmount
+    useEffect(() => {
+        if (resolvedGroupId && !fetchedGroup && cachedGroup) {
+            useGroupStore.getState().fetchGroupById(resolvedGroupId);
+        }
+    }, [resolvedGroupId, fetchedGroup, cachedGroup]);
+
+    const currentGroup = fetchedGroup || cachedGroup;
     const {
         location: groupLocations,
         onEmergencyPress,

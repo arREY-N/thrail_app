@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
@@ -47,6 +47,8 @@ interface NavigationScreenProps {
     onBookingPress: () => void;
     onStartTracking: (bookingContext?: Booking | null) => void;
     onDeveloperBypass?: (bookingContext: Booking | null) => void;
+    onControlsHeightChange?: (height: number) => void;
+    onStartButtonLayout?: (offset: number) => void;
 }
 
 const getElevation = (trail: Trail) => {
@@ -72,9 +74,11 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     upcomingBookings, groups, currentUserId,
     searchQuery, filteredTrails, selectedTrail, isLoading,
     onSearchChange, onSearchSubmit, onTrailSelect,
-    onBookingPress, onStartTracking, onDeveloperBypass, onGroupPress
+    onBookingPress, onStartTracking, onDeveloperBypass, onGroupPress,
+    onControlsHeightChange, onStartButtonLayout,
 }) => {
     const insets = useSafeAreaInsets();
+    const { height: screenHeight } = useWindowDimensions();
     const searchTopPadding = Platform.OS === 'ios' ? insets.top : insets.top + 10;
 
     const { isDesktop, isTablet } = useBreakpoints();
@@ -129,6 +133,17 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         isLoading,
         isFullscreen,
     });
+
+    const measureStartButton = useCallback(() => {
+        requestAnimationFrame(() => {
+            startBtnRef.current?.measureInWindow((x, y, width, height) => {
+                if (height > 0 && y > 0) {
+                    const offsetFromBottom = Math.round(screenHeight - y + 10);
+                    onStartButtonLayout?.(offsetFromBottom);
+                }
+            });
+        });
+    }, [screenHeight, onStartButtonLayout, startBtnRef]);
 
     const activeHikeSession = useHikeStore((s) => (s.active && s.currentHike && (s.currentHike.status === 'started' || s.currentHike.status === 'paused') ? s.currentHike : null));
     const activeHikeElapsed = useHikeStore((s) => s.elapsedTime);
@@ -459,6 +474,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                             const h = Math.round(e.nativeEvent.layout.height);
                             if (h > 0 && Math.abs(h - controlsHeight) > 2) {
                                 setControlsHeight(h);
+                                onControlsHeightChange?.(h);
                             }
                         }}
                     >
@@ -527,7 +543,10 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                 <View
                                     ref={startBtnRef}
                                     collapsable={false}
-                                    onLayout={handlers.handleStartBtnLayout}
+                                    onLayout={() => {
+                                        handlers.handleStartBtnLayout();
+                                        measureStartButton();
+                                    }}
                                 >
                                     <TouchableOpacity style={styles.activeLaunchButton} onPress={() => onStartTracking(null)}>
                                         <CustomIcon library="Feather" name="navigation" size={18} color={Colors.WHITE} />
@@ -585,7 +604,10 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                 <View
                                     ref={startBtnRef}
                                     collapsable={false}
-                                    onLayout={handlers.handleStartBtnLayout}
+                                    onLayout={() => {
+                                        handlers.handleStartBtnLayout();
+                                        measureStartButton();
+                                    }}
                                 >
                                     {isToday ? (
                                         <TouchableOpacity style={styles.activeLaunchButton} onPress={() => onStartTracking(activeBooking)}>
@@ -634,7 +656,10 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                 <View
                                     ref={startBtnRef}
                                     collapsable={false}
-                                    onLayout={handlers.handleStartBtnLayout}
+                                    onLayout={() => {
+                                        handlers.handleStartBtnLayout();
+                                        measureStartButton();
+                                    }}
                                 >
                                     <TouchableOpacity style={styles.activeLaunchButton} onPress={() => onStartTracking(null)}>
                                         <CustomIcon library="Feather" name="navigation" size={18} color={Colors.WHITE} />

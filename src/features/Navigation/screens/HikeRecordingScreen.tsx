@@ -16,7 +16,7 @@ import { HikeRecordingScreenProps, IEnrichedGroupMember } from "@/src/features/N
 import { Colors, Palette } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
-import { IGroupMember } from "@/src/core/models/Group/Group";
+import { generateChatId, IGroupMember } from "@/src/core/models/Group/Group";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { IUserSummary } from "@/src/core/models/User/User";
 import * as Clipboard from "expo-clipboard";
@@ -116,6 +116,14 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         setLocalError(error);
     }
 
+    const isGuidedHike = !!booking;
+    const hasLinkedEmergencyContact = Boolean(!isGuidedHike && profile?.emergencyContact?.userId);
+    const emergencyChatRoomId = profile?.emergencyContact?.chatId || (
+        profile?.id && profile?.emergencyContact?.userId
+            ? generateChatId(profile.id, profile.emergencyContact.userId)
+            : undefined
+    );
+
     const {
         tutorial,
         headerTrailRef,
@@ -134,6 +142,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         booking,
         hikeStatus: hike.status,
         isLoading,
+        hasEmergencyChat: hasLinkedEmergencyContact,
     });
 
     const { isOnline } = useNetworkStatus();
@@ -221,7 +230,6 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         }
     }, [isStarted, isPaused, isCompleted]);
 
-    const isGuidedHike = !!booking;
     const hasHikers = !!(hikerLocations && hikerLocations.length > 0);
 
     const [currentTime, setCurrentTime] = useState(() => Date.now());
@@ -464,7 +472,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                         </TouchableOpacity>
                     </View>
                 )}
-                {isGuidedHike && currentGroup && (
+                {isGuidedHike && currentGroup ? (
                     <View
                         ref={groupChatBtnRef}
                         collapsable={false}
@@ -474,7 +482,21 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                             <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
                         </TouchableOpacity>
                     </View>
-                )}
+                ) : !isGuidedHike && hasLinkedEmergencyContact && emergencyChatRoomId ? (
+                    <View
+                        ref={groupChatBtnRef}
+                        collapsable={false}
+                        onLayout={handlers.handleGroupChatBtnLayout}
+                    >
+                        <TouchableOpacity
+                            style={styles.fabBtn}
+                            onPress={() => router.push({ pathname: '/(app)/(main)/group/room', params: { roomId: emergencyChatRoomId } })}
+                            accessibilityLabel="Emergency Contact Chat"
+                        >
+                            <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
+                        </TouchableOpacity>
+                    </View>
+                ) : null}
                 {isGuidedHike && currentGroup && (
                     <View
                         ref={teamStatusBtnRef}
