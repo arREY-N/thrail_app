@@ -33,6 +33,7 @@ import {
     View,
     ViewStyle
 } from 'react-native';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomHeader from '@/src/components/CustomHeader';
@@ -592,6 +593,31 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
             <CustomHeader
                 centerTitle={true}
                 onBackPress={onBackPress}
+                rightActions={
+                    Platform.OS === 'web' && currentGroup?.id ? (
+                        <TouchableOpacity
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 6,
+                                backgroundColor: Colors.PRIMARY,
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                borderRadius: 8,
+                                marginRight: 8,
+                            }}
+                            onPress={() => router.push({
+                                pathname: '/(app)/(main)/hike/view',
+                                params: { groupId: currentGroup.id }
+                            })}
+                        >
+                            <CustomIcon library="Feather" name="map-pin" size={14} color={Colors.WHITE} />
+                            <CustomText style={{ color: Colors.WHITE, fontSize: 13, fontWeight: '600' }}>
+                                Live Monitor
+                            </CustomText>
+                        </TouchableOpacity>
+                    ) : undefined
+                }
             >
                 <View style={[styles.headerTitleContainer, { maxWidth: screenWidth - 120 }]}>
                     <CustomText
