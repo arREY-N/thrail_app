@@ -3,7 +3,7 @@
  * @description Main entry point for a group chat room screen, setting up router params, subscription, and event handlers.
  */
 
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Keyboard, Text, View } from "react-native";
 
