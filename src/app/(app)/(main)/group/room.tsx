@@ -135,6 +135,12 @@ export default function GroupRoom() {
                 markAsRead={markAsRead}
                 headerTitle={headerTitle}
                 onBackPress={onBackPress}
+                onOpenMembers={() => router.push({
+                    pathname: '/(app)/(main)/group/members',
+                    params: {
+                        roomId: currentGroup.id
+                    }
+                })}
                 onAttachPhotoPress={handleAttachPhotoPress}
                 onCapturePhotoPress={handleCapturePhotoPress}
                 loadMoreMessages={() => loadMoreMessages(roomId)}

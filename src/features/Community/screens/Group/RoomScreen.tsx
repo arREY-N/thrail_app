@@ -19,6 +19,7 @@ import {
     Time,
     TimeProps
 } from '@kesha-antonov/react-native-chat';
+import { router } from 'expo-router';
 import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
@@ -33,15 +34,14 @@ import {
     View,
     ViewStyle
 } from 'react-native';
-import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import { GroupWeatherAlertBanner } from '@/src/components/GroupWeatherAlertBanner';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { RoomHeader } from './components/RoomHeader';
 
 import { Colors } from '@/src/constants/colors';
 import { BUBBLE_H_PAD, styles } from '@/src/features/Community/screens/Group/Styles/RoomStyles';
@@ -121,10 +121,10 @@ const ImageWithSpinner: React.FC<ImageWithSpinnerProps> = ({ currentMessage, dyn
                             setIsLoading(false);
                             setShowSpinner(false);
                         }}
-                        onError={() => { 
-                            setIsLoading(false); 
+                        onError={() => {
+                            setIsLoading(false);
                             setShowSpinner(false);
-                            setHasError(true); 
+                            setHasError(true);
                         }}
                     />
                 )}
@@ -284,6 +284,7 @@ export interface RoomScreenProps {
     onAttachPhotoPress: () => void;
     onCapturePhotoPress: () => void;
     isUploading: boolean;
+    onOpenMembers?: () => void;
 }
 
 /**
@@ -301,7 +302,8 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
     onBackPress,
     onAttachPhotoPress,
     onCapturePhotoPress,
-    isUploading
+    isUploading,
+    onOpenMembers,
 }) => {
     const insets = useSafeAreaInsets();
     const { isDesktop, width: screenWidth } = useBreakpoints();
@@ -329,6 +331,19 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
         hasReachedEnd,
         headerTitle,
     });
+
+    const handleOpenMembers = useCallback(() => {
+        if (onOpenMembers) {
+            onOpenMembers();
+        } else if (currentGroup?.id) {
+            router.push({
+                pathname: '/(app)/(main)/group/members',
+                params: {
+                    roomId: currentGroup.id,
+                },
+            });
+        }
+    }, [onOpenMembers, currentGroup?.id]);
 
     const currentContainerWidth = isDesktop ? Math.min(screenWidth, MAX_WEB_WIDTH) : screenWidth;
     const maxBubbleWidth = currentContainerWidth * 0.72;
@@ -590,10 +605,13 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
-            <CustomHeader
-                centerTitle={true}
+            <RoomHeader
+                title={mainTitle}
+                subtitle={subtitle}
+                offerDate={currentGroup?.offer?.endDate || currentGroup?.offer?.date}
                 onBackPress={onBackPress}
-                rightActions={
+                onOpenMembers={handleOpenMembers}
+                rightAction={
                     Platform.OS === 'web' && currentGroup?.id ? (
                         <TouchableOpacity
                             style={{
@@ -604,7 +622,7 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                                 paddingHorizontal: 12,
                                 paddingVertical: 6,
                                 borderRadius: 8,
-                                marginRight: 8,
+                                marginRight: 4,
                             }}
                             onPress={() => router.push({
                                 pathname: '/(app)/(main)/hike/view',
@@ -618,28 +636,7 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                         </TouchableOpacity>
                     ) : undefined
                 }
-            >
-                <View style={[styles.headerTitleContainer, { maxWidth: screenWidth - 120 }]}>
-                    <CustomText
-                        variant="label"
-                        style={styles.headerMainTitle}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {mainTitle}
-                    </CustomText>
-                    {subtitle ? (
-                        <CustomText
-                            variant="caption"
-                            style={styles.headerSubtitle}
-                            numberOfLines={1}
-                            ellipsizeMode="tail"
-                        >
-                            {subtitle}
-                        </CustomText>
-                    ) : null}
-                </View>
-            </CustomHeader>
+            />
 
             <View style={[styles.container, { alignItems: 'center' }]}>
                 <View style={{ flex: 1, width: '100%', maxWidth: MAX_WEB_WIDTH, position: 'relative' }}>
