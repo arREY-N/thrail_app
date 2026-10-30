@@ -4,7 +4,7 @@
  * registration callbacks, and layout handlers for the Live Hike Recording screen (HikeRecordingScreen).
  */
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Platform, View } from 'react-native';
 
 import {
@@ -14,32 +14,42 @@ import {
     type TutorialTourId,
     useTutorialGuide,
 } from '@/src/components/Tutorial/Tutorial';
+import { getRecordingDiyTourSteps } from '@/src/components/Tutorial/constants/recordingTour';
 import { Booking } from '@/src/core/models/Booking/Booking';
 
 interface UseHikeRecordingTutorialParams {
     booking: Booking | null;
     hikeStatus: string;
     isLoading: boolean;
+    hasEmergencyChat?: boolean;
 }
 
 /**
  * Hook to manage hike recording tutorial walkthrough lifecycle, measurement callbacks, and target refs.
  *
- * @param params - Configuration parameters containing current booking, hike status, and loading state
+ * @param params - Configuration parameters containing current booking, hike status, loading state, and optional chat presence
  * @returns Tutorial state, target element refs, and onLayout event handlers
  */
 export const useHikeRecordingTutorial = ({
     booking,
     hikeStatus,
     isLoading,
+    hasEmergencyChat = false,
 }: UseHikeRecordingTutorialParams) => {
     const activeTourId: TutorialTourId = booking
         ? 'recording_booked'
         : 'recording_diy';
 
+    const dynamicSteps = useMemo(() => {
+        if (!booking) {
+            return getRecordingDiyTourSteps(hasEmergencyChat);
+        }
+        return undefined;
+    }, [booking, hasEmergencyChat]);
+
     // The tutorial only auto-launches on initial unhiked state when screen is fully ready
     const isReady = Platform.OS !== 'web' && hikeStatus === 'unhiked' && !isLoading;
-    const tutorial = useTutorialGuide(activeTourId, isReady);
+    const tutorial = useTutorialGuide(activeTourId, isReady, dynamicSteps);
 
     const headerTrailRef = useRef<View>(null);
     const headerSosRef = useRef<View>(null);
@@ -289,4 +299,3 @@ export const useHikeRecordingTutorial = ({
         },
     };
 };
-
