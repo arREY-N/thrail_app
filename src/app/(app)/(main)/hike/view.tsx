@@ -37,13 +37,27 @@ export default function HikeView() {
     const { groups } = useGroupList(profile?.id || "");
 
     const storedHike = useHikeStore((s) => s.currentHike);
+    const isHikeActive = useHikeStore((s) => s.active);
     const resolvedBookingId = bookingId || (storedHike?.mode === 'booked' ? storedHike.bookingId : undefined);
     const userBookings = useBookingsStore((s) => s.userBookings);
     const activeBooking = resolvedBookingId ? userBookings.find(b => b.id === resolvedBookingId) : null;
 
-    const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g =>
-        g.members?.some((m: { id?: string; bookingId?: string }) => m.id === profile?.id && m.bookingId === resolvedBookingId)
-    )?.id) || activeBooking?.offer?.id || undefined;
+    // Gated DIY emergency chat fallback: only for the current user's own active/recording hike session
+    const isUserRecordingSession = !groupId && (
+        storedHike?.user?.id === profile?.id ||
+        (isHikeActive && (storedHike?.status === 'started' || storedHike?.status === 'paused')) ||
+        storedHike?.trail?.id === 'diy'
+    );
+    const diyEmergencyChatId = isUserRecordingSession ? (profile?.emergencyContact?.chatId || undefined) : undefined;
+
+    const resolvedGroupId =
+        groupId ||
+        (resolvedBookingId && groups?.find(g =>
+            g.members?.some((m: { id?: string; bookingId?: string }) => m.id === profile?.id && m.bookingId === resolvedBookingId)
+        )?.id) ||
+        activeBooking?.offer?.id ||
+        diyEmergencyChatId ||
+        undefined;
 
     const {
         currentHike,

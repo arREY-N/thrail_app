@@ -1,14 +1,16 @@
 import { startBackgroundLocationTracking, stopBackgroundLocationTracking } from "@/src/core/flows/TrackHikerGPSFlow";
 import { useBookingUserItem } from "@/src/core/models/Booking/Booking";
-import { newHike, useHikesStore, useHikeState, useHikeStore } from "@/src/core/models/Hike/Hike";
-import { getReverseGeocode } from "@/src/core/models/Location/Location";
+import { newHike, useHikesStore, useHikeState, useHikeStore, HikeRepo } from "@/src/core/models/Hike/Hike";
+import { getReverseGeocode, newLocation } from "@/src/core/models/Location/Location";
 import { useOfferItem } from "@/src/core/models/Offer/Offer";
 import { ITrailSummary, newTrail, TrailLogic, useTrailItem } from "@/src/core/models/Trail/Trail";
 import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
 import { catchError, logger } from "@/src/core/utility/errorFormatter";
 import { clearLocalTrack } from "@/src/core/utility/hikeStorage";
+import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
+import { Platform } from "react-native";
 
 export type IUseWriteHikeParams = {
     hikeId?: string;
@@ -96,6 +98,35 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             : null
     )
 
+    // Pre-hike GPS readiness: seed currentLocation immediately if not yet populated
+    useEffect(() => {
+        if (Platform.OS === 'web') return;
+        if (!useHikeStore.getState().currentLocation) {
+            Location.getLastKnownPositionAsync()
+                .then((lastPos) => {
+                    if (lastPos && !useHikeStore.getState().currentLocation) {
+                        useHikeStore.getState().setCurrentLocation(newLocation({
+                            latitude: lastPos.coords.latitude,
+                            longitude: lastPos.coords.longitude,
+                            altitude: lastPos.coords.altitude ?? undefined,
+                            accuracy: lastPos.coords.accuracy ?? undefined,
+                            speed: lastPos.coords.speed ?? undefined,
+                            timestamp: new Date(lastPos.timestamp || Date.now()),
+                            status: 'ACTIVE',
+                        }));
+                    }
+                })
+                .catch(() => {});
+        }
+    }, []);
+
+    // Ensure sharing is enabled by default
+    useEffect(() => {
+        if (currentHike?.status === 'unhiked') {
+            updateHikeStore({ shareLocationEnabled: true });
+        }
+    }, [currentHike?.status, updateHikeStore]);
+
     const onStartHike = async () => {
         if (!profile?.id) {
             setLocalError("User ID is required to start hike");
@@ -112,6 +143,26 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             return;
         }
 
+        // Pre-hike GPS readiness: ensure currentLocation is populated before start
+        if (Platform.OS !== 'web' && !useHikeStore.getState().currentLocation) {
+            try {
+                const currentPos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                if (currentPos) {
+                    useHikeStore.getState().setCurrentLocation(newLocation({
+                        latitude: currentPos.coords.latitude,
+                        longitude: currentPos.coords.longitude,
+                        altitude: currentPos.coords.altitude ?? undefined,
+                        accuracy: currentPos.coords.accuracy ?? undefined,
+                        speed: currentPos.coords.speed ?? undefined,
+                        timestamp: new Date(currentPos.timestamp || Date.now()),
+                        status: 'ACTIVE',
+                    }));
+                }
+            } catch (posErr) {
+                console.warn("[onStartHike] Pre-hike GPS fix acquisition warning:", posErr);
+            }
+        }
+
         await startHike(
             currentHike,
             {
@@ -124,10 +175,13 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             updateHikeStore({
                 activeGroupId: groupId,
             });
-            try {
-                await shareLocation(groupId);
-            } catch (shareErr) {
-                console.warn("[onStartHike] Background location share initialization warning:", shareErr);
+            const isSharingAllowed = useHikeStore.getState().shareLocationEnabled !== false;
+            if (isSharingAllowed) {
+                try {
+                    await shareLocation(groupId);
+                } catch (shareErr) {
+                    console.warn("[onStartHike] Background location share initialization warning:", shareErr);
+                }
             }
         }
 
@@ -148,8 +202,8 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
 
         updateCurrentHike({ status: 'paused' });
         useHikeStore.getState().logHikeEvent('HIKE_PAUSED');
-        stopBackgroundTracking();
-    }
+        // Note: Keep background location tracking and live location broadcasting alive while paused
+    };
 
     const onResumeHike = async () => {
         if (!profile) {
@@ -239,6 +293,9 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
 
         const targetGroup = groupId || useHikeStore.getState().activeGroupId;
         if (targetGroup) {
+            if (profile?.id) {
+                HikeRepo.deleteLocation(profile.id, targetGroup).catch(() => {});
+            }
             stopSharingLocation(targetGroup);
         }
         //router.replace('/');
@@ -257,6 +314,9 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             stopBackgroundTracking();
             const targetGroup = groupId || useHikeStore.getState().activeGroupId;
             if (targetGroup) {
+                if (profile?.id) {
+                    HikeRepo.deleteLocation(profile.id, targetGroup).catch(() => {});
+                }
                 stopSharingLocation(targetGroup);
             }
             await clearLocalTrack();

@@ -65,19 +65,102 @@ This document presents the architectural evaluation, technical design, and imple
 
 ---
 
-### 1. Real-Time Firestore `hikerLocations` Subscription on Web
+### 1. Real-Time Firestore `hikerLocations` Subscription & Non-Offer Emergency Location Sharing
 
-#### Audit of Data Flow
+#### 1.1 Support for Users Without an Active Offer (DIY / Free Roam / Direct Hikes)
+**Requirement Clarification:** Emergency location sharing and real-time monitoring are **not** exclusive to guided hikes with an active booked offer. Users conducting DIY hikes, independent routes, or direct trail sessions must have full access to emergency location sharing, real-time safety broadcasting, and Search & Rescue (SAR) tracking.
+
+#### Data & Group Resolution Architecture:
+In `src/app/(app)/(main)/hike/view.tsx`, the current group resolution previously fell back to `undefined` whenever a user was not on a booked offer:
+```ts
+// ❌ Legacy: only resolved if an active booking / offer existed
+const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g =>
+    g.members?.some((m) => m.id === profile?.id && m.bookingId === resolvedBookingId)
+)?.id) || activeBooking?.offer?.id || undefined;
+```
+
+**Enhanced Universal Group Resolution:**
+```ts
+// ✅ Universal: resolves for both Booked Offers AND Non-Offer / DIY Hikes
+const resolvedGroupId =
+    groupId ||
+    (resolvedBookingId && groups?.find(g =>
+        g.members?.some((m: { id?: string; bookingId?: string }) => m.id === profile?.id && m.bookingId === resolvedBookingId)
+    )?.id) ||
+    activeBooking?.offer?.id ||
+    profile?.emergencyContact?.chatId ||
+    undefined;
+```
+
+#### How This Enables Emergency Location Sharing Across All Hike Types:
+1. **Booked Guided Hike (Active Offer):**
+   - Resolves to the tour group's `groupId` or `offer.id`.
+   - All hikers, guides, and the admin monitor stream to and listen from `groups/{groupId}/liveLocations`.
+2. **Independent / DIY Hike (No Offer, with Emergency Contact Chat):**
+   - `resolvedGroupId` falls back to `profile?.emergencyContact?.chatId`.
+   - In Firestore, `chatId` is a 1-to-1 secure document under `groups/{chatId}` where `type: 'chat'` and `participantsIds: [hikerId, contactId]`.
+   - `CreateHikeFlow` binds `activeGroupId = chatId`.
+   - When the hiker starts their hike (or toggles "Share My Location"), `HikeRepo.shareLocation(profile.id, chatId, coord)` broadcasts live coordinates to `groups/{chatId}/liveLocations/{userId}`.
+   - The emergency contact (or search-and-rescue coordinator) can open the live monitor and track the hiker in real time.
+3. **Emergency SOS Without Active Offer:**
+   - In `HikeRecordingScreen`:
+     - **"Alert Emergency Contact (Live Map)":** Sends real-time coordinates + Google Maps link to `profile.emergencyContact.chatId` via `GroupRepo.sendMessage`.
+     - **"Send SMS Coordinates":** Opens the device's native SMS app prefilled with high-precision coordinates `[latitude, longitude]` and emergency text addressed to `emergencyContactNumber`.
+     - **"Call 911 Direct":** Directly dials emergency dispatch services via `tel:911`.
+4. **Pre-Hike & Paused Location Availability:**
+   - Live location broadcasting (`shareLocation`) continues during both `started` and `paused` hike states so that resting or stranded hikers remain visible to rescuers.
+   - In `TrackHikerGPSFlow.ts`, `setCurrentLocation(coord)` remains active prior to pressing "Start Hike" so that pressing Emergency SOS at the trailhead immediately sends valid coordinates instead of failing with `"No location data available"`.
+
+#### 1.2 Who Can Use the Web Live Location Monitor?
+The desktop web spectator interface (`HikeRecordingScreen.web.tsx`) is **not** exclusively for admins and mountain coordinators. It is designed for **any spectator tracking an active hike from a desktop/laptop web browser**:
+1. **Admins & Mountain Tourism Coordinators:** Monitoring guided tour groups, active trail occupancy, and search-and-rescue response.
+2. **Emergency Contacts & Family Members at Home:** When a hiker begins a hike or triggers an SOS alert, their emergency contact can open the shared web link (`/hike/view?groupId=CHAT_ID`) on a PC/laptop to monitor the hiker's live movements in real time.
+3. **Rescuers & Search-and-Rescue Base Teams:** Utilizing large desktop displays at local base stations to coordinate emergency response.
+
+#### 1.3 Missing Emergency Contact Fallbacks & Crash-Proof Null-Safety
+If a hiker has **not** set up an emergency contact in their profile (or if the contact has no active Thrail app account), the app must **never crash or leave the user stranded**.
+
+**Audit of Potential Crash Points in Existing Code:**
+* In `src/core/models/Group/hooks/useGroupLocation.ts`:
+  - Line 68: `profile?.emergencyContact.contactNumber` (Missing optional chaining on `.emergencyContact`!)
+  - Line 93 & 141: `profile.emergencyContact.chatId` (Crashes if `emergencyContact` is undefined!)
+  - Line 174: `${profile?.emergencyContact.name}` (Crashes if `emergencyContact` is undefined!)
+
+**Four-Tier Graceful Fallback Architecture:**
+1. **Tier 1 — Strict Optional Chaining & Safe Defaults:**
+   - Always access emergency contact fields with optional chaining:
+     ```ts
+     const contactNumber = profile?.emergencyContact?.contactNumber || "";
+     const chatId = profile?.emergencyContact?.chatId || null;
+     const contactName = profile?.emergencyContact?.name || "Emergency Services";
+     ```
+   - In `hike/view.tsx`, `resolvedGroupId` safely evaluates to `undefined` if `profile?.emergencyContact?.chatId` is missing without throwing errors.
+2. **Tier 2 — Group SOS Routing (If in a Group / Booking):**
+   - If the hiker is on a booked or community hike (`groupId` exists), tapping SOS automatically dispatches the emergency coordinates to the group channel, notifying guides and fellow hikers regardless of whether personal emergency contacts exist.
+3. **Tier 3 — Graceful UI Fallback (If NO Group & NO Emergency Contact):**
+   - If the hiker is on a DIY hike with **no group and no emergency contact set**, tapping "Alert Emergency Contact" or "Send SMS":
+     - Does **not** throw an uncaught error.
+     - Displays an actionable Emergency Alert Modal:
+       > **"No Emergency Contact Configured"**  
+       > *"You have not designated an emergency contact in your profile. You can call 911 immediately or copy your coordinates to share via another app."*
+     - Buttons:
+       - 🚨 **"Call 911 Now"** (triggers direct dial to emergency services)
+       - 📋 **"Copy Coordinates"** (copies `[latitude, longitude]` and Google Maps URL to clipboard)
+       - ✕ **"Cancel"**
+4. **Tier 4 — Unconditional Direct Emergency Override:**
+   - The **"Call 911 Direct"** button in the SOS menu (`Linking.openURL('tel:911')`) requires zero profile configuration, zero authentication, and zero internet connection—it always opens the phone's native emergency dialer instantly.
+
+#### 1.4 Data Flow & Web Spectator Subscription
 1. In `src/app/(app)/(main)/hike/view.tsx`:
-   - `useGroupLocation(resolvedGroupId)` subscribes to `groups/{groupId}/liveLocations` via `LocationRepository.listenToLocations(groupId, onUpdate)`.
+   - `useGroupLocation(resolvedGroupId)` subscribes to `groups/{resolvedGroupId}/liveLocations` via `LocationRepository.listenToLocations(groupId, onUpdate)`.
    - `LocationRepository.listenToLocations` uses Firestore's native Web SDK `onSnapshot(colRef, ...)`.
    - The hook does **not** check device GPS permissions (`permissionGranted`).
-   - The hook does **not** check `currentHike.status === "started"`.
-   - Updates are saved to `hikeStore.locationByGroup[groupId]` and returned as `location: groupLocations`.
+   - The hook does **not** require `currentHike.status === "started"`.
+   - Updates are stored in `hikeStore.locationByGroup[groupId]` and returned as `location: groupLocations`.
    - `view.tsx` passes `hikerLocations={groupLocations || []}` to `<HikeRecordingScreen />`.
 2. **Unmount Cleanup Guarantee:**
    - In `useGroupLocation.ts`: The `useEffect` returns `() => { if (typeof unsub === "function") unsub(); }`.
-   - When the Admin leaves the web page or navigates away, the Firestore `onSnapshot` listener is immediately terminated, preventing memory leaks and unnecessary billing read charges.
+   - When the spectator leaves the screen, the Firestore `onSnapshot` listener is immediately terminated, preventing memory leaks and billing read bloat.
 
 ---
 
@@ -114,6 +197,10 @@ This document presents the architectural evaluation, technical design, and imple
    - No `Start Recording`, `Pause`, `Resume`, `Hold to Finish`, or `Discard` buttons.
    - No mobile-only GPS accuracy warnings or offline PMTiles toggle banners.
    - No mobile walkthrough tutorial modals.
+5. **Viewing Other Hikers & Surrounding Hikes on Web:**
+   - **Real-Time Hiker Team Visualization:** All shared hiker locations (`hikerLocations`) stream onto the web map with customized initials markers, animated positioning, warning badges for LKL (>2 min signal loss), and interactive Search & Rescue cards.
+   - **Surrounding Mountain Trail Network:** The web map layers render the broader mountain trail system (`CONTEXT_TRAIL_MAIN`), displaying other routes and intersecting trails on the mountain so coordinators and web users have full situational awareness of other trails in the area.
+   - **Multi-Hike / Group Switcher:** When a user or coordinator is linked to multiple active bookings or groups, the floating header includes a quick switcher dropdown to navigate between active monitored hikes seamlessly without leaving the live monitoring view.
 
 ---
 
@@ -218,12 +305,19 @@ Dedicated web admin live location monitoring screen implementing Part 2 requirem
 1. Create `src/features/Navigation/types/HikeRecordingScreen.types.ts` containing `HikeRecordingScreenProps`.
 2. Create `src/features/Navigation/hooks/useEnrichedHikerLocations.ts` with member sorting, LKL detection, and 24-hour ghost pin TTL.
 3. Update `src/features/Navigation/screens/HikeRecordingScreen.tsx` to use the shared hook and types, removing the legacy line 443 web return stub.
+4. Update `src/app/(app)/(main)/hike/view.tsx` with Universal Group Resolution:
+   - Fall back to `profile?.emergencyContact?.chatId` when `resolvedBookingId` and `activeBooking?.offer` are not present.
+   - This guarantees that DIY / non-offer hikers establish an emergency location channel in Firestore (`groups/{chatId}/liveLocations/{userId}`).
+5. Fix null-safety and missing emergency contact handling in `src/core/models/Group/hooks/useGroupLocation.ts`:
+   - Add optional chaining on `profile?.emergencyContact?.contactNumber`, `profile?.emergencyContact?.chatId`, and `profile?.emergencyContact?.name`.
+   - Implement the graceful fallback (Group SOS if in group, SMS if contact has phone only, or actionable emergency dialog offering 911 / Copy Coordinates if no emergency contact exists).
 
 ### Step 2: Implement Web Admin Spectator Screen
 1. Create `src/features/Navigation/screens/HikeRecordingScreen.web.tsx`:
    - Top floating header: Back button, trail title, emerald badge `🟢 LIVE MONITOR • X Hiker(s) on Trail`.
    - Collapsible desktop Hiker Roster Drawer showing active and LKL hikers with "Focus on Map" triggers.
    - Fullscreen `<TrailMap />` with `bottomInset={24}`, `showControls={true}`, `showRecenter={true}`, and enriched hiker locations.
+   - Supports monitoring both offer-based hikes and non-offer / independent hike channels.
    - Resolve `mountainId`, `trailFileName`, and `geoJsonPath` from `hike.trail` / `useTrailItem`.
 
 ### Step 3: Fix Initial Camera Focus & Interface Parity in `TrailMap.web.tsx`
@@ -236,6 +330,6 @@ Dedicated web admin live location monitoring screen implementing Part 2 requirem
 1. Run TypeScript check: `npx tsc --noEmit`
 2. Run ESLint on all touched files:
    ```bash
-   npx eslint src/features/Navigation/screens/HikeRecordingScreen.web.tsx src/features/Navigation/screens/HikeRecordingScreen.tsx src/features/Navigation/hooks/useEnrichedHikerLocations.ts src/features/Map/TrailMap.web.tsx
+   npx eslint src/features/Navigation/screens/HikeRecordingScreen.web.tsx src/features/Navigation/screens/HikeRecordingScreen.tsx src/features/Navigation/hooks/useEnrichedHikerLocations.ts src/features/Map/TrailMap.web.tsx src/app/(app)/(main)/hike/view.tsx
    ```
 3. Verify zero runtime warnings or errors.

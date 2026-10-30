@@ -415,10 +415,18 @@ const TrailMap = memo(
       const hasInitialCoordsRef = useRef(hasInitialCoords);
       const centeredOnUserRef = useRef(false);
       const trailBoundsRef = useRef<maplibregl.LngLatBounds | null>(null);
+      const hasFittedTrailRef = useRef(false);
+      const hasFittedHikerRef = useRef(false);
+      const userInteractedRef = useRef(false);
+      const hikerLocationsRef = useRef(hikerLocations);
 
       useEffect(() => {
         hasInitialCoordsRef.current = hasInitialCoords;
       }, [hasInitialCoords]);
+
+      useEffect(() => {
+        hikerLocationsRef.current = hikerLocations;
+      }, [hikerLocations]);
 
       const showNotice = useCallback((msg: string) => {
         setNotice(msg);
@@ -430,6 +438,7 @@ const TrailMap = memo(
 
       /* ---------------------------- Map lifecycle --------------------------- */
       useEffect(() => {
+        isMountedRef.current = true;
         const host = containerRef.current;
         if (!host) return;
         ensureMapLibreCss();
@@ -472,15 +481,19 @@ const TrailMap = memo(
           setMapReady(true);
           setStyleVersion((v) => v + 1);
         };
-        const onDragStart = () => {
+        const onUserInteraction = () => {
           isFollowingRef.current = false;
+          userInteractedRef.current = true;
         };
         if (map.loaded() || sharedLoaded) {
           loadRafRef.current = requestAnimationFrame(onLoad);
         } else {
           map.once("load", onLoad);
         }
-        map.on("dragstart", onDragStart);
+        map.on("dragstart", onUserInteraction);
+        map.on("zoomstart", onUserInteraction);
+        map.on("rotatestart", onUserInteraction);
+        map.on("pitchstart", onUserInteraction);
 
         const ro = new ResizeObserver(() => map.resize());
         ro.observe(host);
@@ -498,7 +511,10 @@ const TrailMap = memo(
           }
           ro.disconnect();
           map.off("load", onLoad);
-          map.off("dragstart", onDragStart);
+          map.off("dragstart", onUserInteraction);
+          map.off("zoomstart", onUserInteraction);
+          map.off("rotatestart", onUserInteraction);
+          map.off("pitchstart", onUserInteraction);
           hikerEntries.forEach((e) => {
             if (e.raf !== null) cancelAnimationFrame(e.raf);
             e.marker.remove();
@@ -735,19 +751,36 @@ const TrailMap = memo(
           map.setPaintProperty(ACTIVE_TRAIL_CASING, "line-opacity", 0.95);
         }
 
-        // Fit bounds to active trail (or context trail network) when no explicit initial coordinates
-        const fitTarget = activeGeoJsonUrl || contextGeoJsonUrl;
+        // Fit bounds to active trail (or specific mountain network) when no explicit initial coordinates
+        // Never auto-fit bounds to the region-wide all_mountains.geojson fallback
+        const targetMountain =
+          resolveMountainId(mountainId) ||
+          (hasInitialCoords ? resolveMountainIdByCoords(parsedLat, parsedLon) : null);
+        const fitTarget =
+          activeGeoJsonUrl ||
+          (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile ? contextGeoJsonUrl : null);
         if (!hasInitialCoords && fitTarget) {
           fetch(fitTarget)
             .then((r) => r.json())
             .then((json) => {
-              trailBoundsRef.current = computeBounds(json);
+              const bounds = computeBounds(json);
+              trailBoundsRef.current = bounds;
+              if (
+                bounds &&
+                !hasInitialCoordsRef.current &&
+                !hasFittedTrailRef.current &&
+                !userInteractedRef.current &&
+                isMountedRef.current
+              ) {
+                hasFittedTrailRef.current = true;
+                mapRef.current?.fitBounds(bounds, { padding: 60, maxZoom: 16, duration: 800 });
+              }
             })
             .catch((err) => {
               console.warn("Trail fetch failed (check Firebase Storage CORS):", err);
             });
         }
-      }, [mapReady, contextGeoJsonUrl, activeGeoJsonUrl, styleVersion, hasInitialCoords, showNotice]);
+      }, [mapReady, contextGeoJsonUrl, activeGeoJsonUrl, styleVersion, hasInitialCoords, showNotice, mountainId, parsedLat, parsedLon]);
 
       /* --------------------------- Initial fly-to --------------------------- */
       useEffect(() => {
@@ -803,12 +836,14 @@ const TrailMap = memo(
         );
       }, [showNotice]);
 
-      useEffect(() => {
-        if (mapReady) ensureGeolocation();
-      }, [mapReady, ensureGeolocation]);
+      // Note: Removed auto-geolocation on mount. Geolocation is triggered only when clicking centerOnUser().
 
       /* --------------------------- Hiker markers ---------------------------- */
-      const handleHikerPress = useCallback((h: HikerLocation) => setSelectedHiker(h), []);
+      const handleHikerPress = useCallback((h: HikerLocation) => {
+        userInteractedRef.current = true;
+        hasFittedTrailRef.current = true;
+        setSelectedHiker(h);
+      }, []);
 
       useEffect(() => {
         const map = mapRef.current;
@@ -837,6 +872,27 @@ const TrailMap = memo(
           refreshHikerEntry(entry, now);
         });
 
+        // Priority 3: First hiker bounds (once) if no initial coords, trail bounds not fitted, and no user interaction
+        if (
+          !hasInitialCoordsRef.current &&
+          !hasFittedTrailRef.current &&
+          !hasFittedHikerRef.current &&
+          !userInteractedRef.current &&
+          hikerLocations &&
+          hikerLocations.length > 0
+        ) {
+          const validLocs = hikerLocations.filter((h) => isValidCoordinate(h?.latitude, h?.longitude));
+          if (validLocs.length === 1) {
+            hasFittedHikerRef.current = true;
+            map.flyTo({ center: [validLocs[0].longitude, validLocs[0].latitude], zoom: 16, duration: 800 });
+          } else if (validLocs.length > 1) {
+            const hBounds = new maplibregl.LngLatBounds();
+            validLocs.forEach((h) => hBounds.extend([h.longitude, h.latitude]));
+            hasFittedHikerRef.current = true;
+            map.fitBounds(hBounds, { padding: 60, maxZoom: 16, duration: 800 });
+          }
+        }
+
         // Remove markers for hikers that are gone / expired
         entries.forEach((entry, id) => {
           if (!seen.has(id)) {
@@ -847,16 +903,18 @@ const TrailMap = memo(
         });
       }, [hikerLocations, currentUserId, mapReady, handleHikerPress]);
 
-      // 10s ticker so LKL state flips even if no new pings arrive
+      // Stable 10s ticker via ref so LKL state flips even if no new pings arrive
       useEffect(() => {
-        if (!hikerLocations || hikerLocations.length === 0) return;
         const id = setInterval(() => {
+          if (!isMountedRef.current) return;
+          const locs = hikerLocationsRef.current;
+          if (!locs || locs.length === 0) return;
           const now = Date.now();
           hikerEntriesRef.current.forEach((e) => refreshHikerEntry(e, now));
-          if (isMountedRef.current) forceTick((n) => n + 1);
+          forceTick((n) => n + 1);
         }, 10000);
         return () => clearInterval(id);
-      }, [hikerLocations]);
+      }, []);
 
       const liveSelectedHiker = useMemo(() => {
         if (!selectedHiker) return null;
@@ -870,6 +928,8 @@ const TrailMap = memo(
       /* ---------------------------- Imperative API -------------------------- */
       useImperativeHandle(ref, () => ({
         centerOnUser: () => {
+          userInteractedRef.current = true;
+          hasFittedTrailRef.current = true;
           ensureGeolocation();
           isFollowingRef.current = true;
           const c = userCoordsRef.current;
@@ -882,10 +942,14 @@ const TrailMap = memo(
           }
         },
         centerOnCoordinate: (lon, lat) => {
+          userInteractedRef.current = true;
+          hasFittedTrailRef.current = true;
           isFollowingRef.current = false;
           mapRef.current?.flyTo({ center: [lon, lat], zoom: 14, duration: 800 });
         },
         flyTo: (o) => {
+          userInteractedRef.current = true;
+          hasFittedTrailRef.current = true;
           isFollowingRef.current = false;
           mapRef.current?.flyTo({ center: o.center, zoom: o.zoom ?? 17, duration: o.duration ?? 800 });
         },
@@ -934,6 +998,8 @@ const TrailMap = memo(
 
       const focusSelected = useCallback(() => {
         if (!liveSelectedHiker) return;
+        userInteractedRef.current = true;
+        hasFittedTrailRef.current = true;
         isFollowingRef.current = false;
         mapRef.current?.easeTo({
           center: [liveSelectedHiker.longitude, liveSelectedHiker.latitude],
