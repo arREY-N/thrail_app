@@ -16,7 +16,7 @@ import {
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import { Colors } from '@/src/constants/colors';
+import { Colors, Palette } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 
 export interface RoomHeaderProps {
@@ -30,9 +30,11 @@ export interface RoomHeaderProps {
     onBackPress?: () => void;
     /** Callback when group info / members button is pressed */
     onOpenMembers?: () => void;
+    /** Callback when live monitor button is pressed */
+    onOpenLiveMonitor?: () => void;
     /** Whether to show the members button on the right (defaults to true if onOpenMembers is provided) */
     showMembersButton?: boolean;
-    /** Optional right-side action element (e.g. Live Monitor button on web) */
+    /** Optional right-side action element (e.g. custom button) */
     rightAction?: React.ReactNode;
     /** Optional container style override */
     style?: StyleProp<ViewStyle>;
@@ -78,12 +80,14 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
     offerDate,
     onBackPress,
     onOpenMembers,
+    onOpenLiveMonitor,
     showMembersButton,
     rightAction,
     style,
 }) => {
     const displaySubtitle = subtitle || formatOfferDate(offerDate);
     const shouldShowMembersButton = (showMembersButton ?? true) && Boolean(onOpenMembers);
+    const hasMultipleRightActions = (Boolean(onOpenLiveMonitor) || Boolean(rightAction)) && shouldShowMembersButton;
 
     return (
         <View style={styles.outerContainer}>
@@ -112,7 +116,10 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                     </View>
 
                     {/* === CENTER: Chat Name & Offer Date === */}
-                    <View style={styles.centerBox} pointerEvents="box-none">
+                    <View
+                        style={[styles.centerBox, hasMultipleRightActions && styles.centerBoxWithMultipleActions]}
+                        pointerEvents="box-none"
+                    >
                         <TouchableOpacity
                             onPress={onOpenMembers}
                             disabled={!onOpenMembers}
@@ -140,8 +147,28 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    {/* === RIGHT: Group / Members Button & Custom Actions === */}
+                    {/* === RIGHT: Live Monitor & Group / Members Buttons === */}
                     <View style={styles.rightBox} pointerEvents="box-none">
+                        {onOpenLiveMonitor && (
+                            <TouchableOpacity
+                                onPress={onOpenLiveMonitor}
+                                style={styles.actionIcon}
+                                activeOpacity={0.7}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Live Trail Monitor"
+                            >
+                                <View style={styles.iconWithBadge}>
+                                    <CustomIcon
+                                        library="Feather"
+                                        name="map-pin"
+                                        size={22}
+                                        color={Colors.PRIMARY}
+                                    />
+                                    <View style={styles.liveBadgeDot} />
+                                </View>
+                            </TouchableOpacity>
+                        )}
                         {rightAction}
                         {shouldShowMembersButton && onOpenMembers && (
                             <TouchableOpacity
@@ -198,6 +225,9 @@ const styles = StyleSheet.create({
         zIndex: 1,
         paddingHorizontal: 56,
     },
+    centerBoxWithMultipleActions: {
+        paddingHorizontal: 80,
+    },
     rightBox: {
         flex: 1,
         flexDirection: 'row',
@@ -232,6 +262,22 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         textAlign: 'center',
         marginTop: 2,
+    },
+    iconWithBadge: {
+        position: 'relative',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    liveBadgeDot: {
+        position: 'absolute',
+        top: -1,
+        right: -1,
+        width: 7,
+        height: 7,
+        borderRadius: 3.5,
+        backgroundColor: Palette.Green600,
+        borderWidth: 1.5,
+        borderColor: Colors.WHITE,
     },
 });
 
