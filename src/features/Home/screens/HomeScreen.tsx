@@ -335,6 +335,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   const effectiveWidth = Math.min(width, MAX_CONTAINER_WIDTH);
   const cardWidth = Math.min(width * 0.85, 360);
 
+  const MAX_PREVIEW_ITEMS = 5;
+
+  const limitedDiscoverTrails = React.useMemo(
+    () => discoverTrails.slice(0, MAX_PREVIEW_ITEMS),
+    [discoverTrails]
+  );
+
+  const limitedTrailsWithOffers = React.useMemo(
+    () => trailsWithOffers.slice(0, MAX_PREVIEW_ITEMS),
+    [trailsWithOffers]
+  );
+
   const hasAnyTrails =
     Boolean(
       (recommendation?.easy && recommendation.easy.length > 0) ||
@@ -430,7 +442,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
 
         <ListSection
           title="Discover"
-          data={discoverTrails}
+          data={limitedDiscoverTrails}
           onViewAll={onSeeMoreDiscoverPress}
           isSectionLoading={isLoading}
           isRefreshing={isRefreshing}
@@ -443,10 +455,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           getTrailOffersCount={getTrailOffersCountForCard}
         />
 
-        {trailsWithOffers.length > 0 && (
+        {limitedTrailsWithOffers.length > 0 && (
           <ListSection
             title="Upcoming Offers"
-            data={trailsWithOffers}
+            data={limitedTrailsWithOffers}
             onViewAll={onSeeMoreOffersPress}
             isSectionLoading={isLoading || isOffersLoading}
             isRefreshing={isRefreshing}

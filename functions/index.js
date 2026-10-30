@@ -25,6 +25,7 @@ const LoginLimiter = require('./services/LoginLimiter');
 const authWebApiKey = defineString('AUTH_WEB_API_KEY');
 const PayMongoProvider = require('./services/providers/PayMongoProvider');
 const { approveReschedule } = require('./services/RescheduleManager');
+const { adminUpdateOffer } = require('./services/OfferManager');
 const {
     removeUserFromGroupOnCancellation,
     onDeleteBooking,
@@ -4552,3 +4553,4 @@ exports.approveReschedule = approveReschedule;
 exports.removeUserFromGroupOnCancellation = removeUserFromGroupOnCancellation;
 exports.onDeleteBooking = onDeleteBooking;
 exports.auditTrails = auditTrails;
+exports.adminUpdateOffer = adminUpdateOffer;

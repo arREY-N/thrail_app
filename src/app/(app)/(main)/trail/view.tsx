@@ -1,5 +1,6 @@
 import LoadingScreen from "@/src/app/loading";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { useTrailViewNavigation } from "@/src/core/hook/navigation/useTrailViewNavigation";
 import { useHike } from "@/src/core/models/Hike/Hike";
 import { useOfferList, useOfferNavigation, useOfferTrails } from "@/src/core/models/Offer/Offer";
 import { useReview, useReviewList } from "@/src/core/models/Review/Review";
@@ -13,11 +14,12 @@ import React, { useMemo } from "react";
 import { View } from "react-native";
 
 export default function ViewTrail() {
-    const { trailId, tab } = useLocalSearchParams();
+    const { trailId, tab } = useLocalSearchParams<{ trailId?: string | string[]; tab?: string | string[] }>();
     const tId = (Array.isArray(trailId) ? trailId[0] : trailId) as string;
     const initialTab = (Array.isArray(tab) ? tab[0] : tab) as string | undefined;
 
-    const { onBackPress, onDownloadPress } = useAppNavigation();
+    const { onDownloadPress } = useAppNavigation();
+    const { onTrailBackPress } = useTrailViewNavigation();
 
     const { isSuperadmin, isAdmin } = useAuthHook();
     const canEdit = isSuperadmin || isAdmin;
@@ -69,7 +71,7 @@ export default function ViewTrail() {
             <StatusBar style="light" />
             <TrailScreen
                 trail={trail}
-                onBackPress={onBackPress}
+                onBackPress={onTrailBackPress}
                 onDownloadPress={() => onDownloadPress(tId)}
                 onHikePress={(id?: string) => onHikePress(id || tId)}
                 onBookPress={(id?: string) => {
