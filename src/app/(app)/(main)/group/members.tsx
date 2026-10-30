@@ -28,7 +28,7 @@ export default function Members() {
         isLoading: groupLoading,
     } = useGroupItem(roomId);
 
-    const offerId = (currentGroup?.offer as any)?.id || roomId;
+    const offerId = (currentGroup?.offer as { id?: string } | undefined)?.id || roomId;
     const {
         offer
     } = useOfferItem(offerId);
