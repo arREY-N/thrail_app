@@ -32,7 +32,6 @@ import {
     formatVerificationExpiry
 } from '@/src/core/flows/PhoneVerificationFlow';
 import { Review } from '@/src/core/models/Review/Review';
-import { IUser, Role, useAuthStore, UserRepo } from '@/src/core/models/User/User';
 import { formatDate, toDateOrNull } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { formatDateToStandard, getInitials, safeParseDateString } from '@/src/utils/dateFormatter';
@@ -46,6 +45,7 @@ import {
 } from '@/src/features/Settings/screens/ProfileInfoScreen';
 import { styles as infoStyles } from '@/src/features/Settings/styles/ProfileInfoStyles';
 
+import { IUser, newUser, useAuthStore, UserRepo } from '@/src/core/models/User/User';
 import HikeLogTab from '@/src/features/Profile/tabs/HikeLogTab';
 import MilestonesTab from '@/src/features/Profile/tabs/MilestonesTab';
 
@@ -207,6 +207,12 @@ const ProfileScreen = ({
     const effectiveUser = freshUser || profile;
 
     useEffect(() => {
+        if (profile) {
+            setFreshUser(profile);
+        }
+    }, [profile]);
+
+    useEffect(() => {
         let isMounted = true;
         const refreshUserProfile = async () => {
             if (!profile?.id) return;
@@ -276,7 +282,17 @@ const ProfileScreen = ({
                 phoneVerifiedAt: ec.userId ? (ec.phoneVerifiedAt ?? null) : null,
             };
         }
+        if (effectiveUser) {
+            setFreshUser(newUser({
+                ...effectiveUser,
+                ...sanitizedFields,
+            }));
+        }
         await onSavePress(sanitizedFields);
+        // setLocalIsEditing(false);
+        if (propOnCancelPress) {
+            propOnCancelPress();
+        }
     };
 
     const {
