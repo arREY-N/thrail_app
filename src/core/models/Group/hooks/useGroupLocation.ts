@@ -9,6 +9,8 @@ import { logger } from "@/src/core/utility/errorFormatter";
 import { useEffect, useState } from "react";
 import { Linking, Platform } from "react-native";
 
+export const DEFAULT_EMERGENCY_HOTLINE = '911';
+
 export function useGroupLocation(groupId: string) {
     const { profile } = useAuthHook();
     const [localError, setLocalError] = useState<string | null>(null);
@@ -65,8 +67,9 @@ export function useGroupLocation(groupId: string) {
 
     const create = useHikeStore(s => s.create);
 
-    const emergencyContact = profile?.emergencyContact.contactNumber;
-
+    const contactNumber = profile?.emergencyContact?.contactNumber || "";
+    const chatId = profile?.emergencyContact?.chatId || null;
+    const contactName = profile?.emergencyContact?.name || "your emergency contact";
 
     const onStartSharingLocation = async () => {
         try {
@@ -90,7 +93,7 @@ export function useGroupLocation(groupId: string) {
         try {
             if (!profile) return;
 
-            const chatId = profile.emergencyContact.chatId;
+            const currentChatId = profile?.emergencyContact?.chatId || null;
 
             let documentUrl: string | null = null;
 
@@ -105,22 +108,22 @@ export function useGroupLocation(groupId: string) {
 
             const msg = newMessage({
                 content: `${documentUrl}`,
-                senderId: profile!.id,
-                senderName: profile!.firstname,
+                senderId: profile.id,
+                senderName: profile.firstname,
                 timesent: new Date(),
             });
 
             logger('useGroupLocation', 'sending picture', groupId);
 
             if (groupId) {
-                logger('useGroupLocation', 'Sending to group: ', groupId)
+                logger('useGroupLocation', 'Sending to group: ', groupId);
                 await GroupRepo.sendMessage(groupId, msg);
                 return;
             }
 
-            if (chatId) {
-                logger('useGroupLocation', 'Sending to chat: ', chatId)
-                await GroupRepo.sendMessage(chatId, msg);
+            if (currentChatId) {
+                logger('useGroupLocation', 'Sending to chat: ', currentChatId);
+                await GroupRepo.sendMessage(currentChatId, msg);
                 return;
             }
 
@@ -131,19 +134,17 @@ export function useGroupLocation(groupId: string) {
         }
     };
 
-    const onEmergencyPress = async () => {
+    const onEmergencyPress = async (): Promise<{ success: boolean; reason?: string }> => {
         console.log('sending emergency message');
 
-        if (!profile) return;
-
-        const mapLink = `https://www.google.com/maps/search/?api=1&query=${currentLocation?.latitude},${currentLocation?.longitude}`;
-
-        const chatId = profile.emergencyContact.chatId;
+        if (!profile) return { success: false, reason: 'UNAUTHENTICATED' };
 
         if (!currentLocation) {
             setLocalError("No location data available to send emergency alert");
-            return;
+            return { success: false, reason: 'NO_LOCATION' };
         }
+
+        const mapLink = `https://www.google.com/maps/search/?api=1&query=${currentLocation.latitude},${currentLocation.longitude}`;
 
         const msg = newMessage({
             content: `Send help! \n\nLast known location: ${mapLink} \n\nTime: ${currentLocation.timestamp}`,
@@ -152,28 +153,36 @@ export function useGroupLocation(groupId: string) {
             timesent: new Date(),
         });
 
-
         if (groupId) {
-            logger('useGroupLocation', 'Sending to group: ', groupId)
+            logger('useGroupLocation', 'Sending to group: ', groupId);
             await GroupRepo.sendMessage(groupId, msg);
-            return;
+            return { success: true };
         }
 
         if (chatId) {
-            logger('useGroupLocation', 'Sending to chat: ', chatId)
+            logger('useGroupLocation', 'Sending to chat: ', chatId);
             await GroupRepo.sendMessage(chatId, msg);
-            return;
+            return { success: true };
         }
 
-        if (emergencyContact) {
+        if (contactNumber) {
             onSendSMS();
+            return { success: true };
         }
+
+        return { success: false, reason: 'NO_EMERGENCY_RECIPIENT' };
     };
 
     const onSendSMS = () => {
-        const message = `THRAIL APP EMERGENCY SOS \n\nThis is ${profile?.firstname} ${profile?.lastname}. I have assigned you, ${profile?.emergencyContact.name}, as my contact person. \nI am having a trail emergency and require immediate assistance. Copy this location in any browser or in Google Maps: \n\n[${currentLocation?.latitude},${currentLocation?.longitude}]`;
-        Linking.openURL(`sms:${emergencyContact || ""}?body=${encodeURIComponent(message)}`);
-    }
+        const lat = currentLocation?.latitude ?? 0;
+        const lon = currentLocation?.longitude ?? 0;
+        const coordsText = (currentLocation?.latitude && currentLocation?.longitude)
+            ? `[${lat.toFixed(6)}, ${lon.toFixed(6)}]`
+            : "[Location Pending]";
+        const recipient = contactNumber || DEFAULT_EMERGENCY_HOTLINE;
+        const message = `THRAIL APP EMERGENCY SOS \n\nThis is ${profile?.firstname || ""} ${profile?.lastname || ""}. I have assigned you, ${contactName}, as my contact person. \nI am having a trail emergency and require immediate assistance. Copy this location in any browser or in Google Maps: \n\n${coordsText}`;
+        Linking.openURL(`sms:${recipient}?body=${encodeURIComponent(message)}`);
+    };
 
     const onStartHike = async (group: Group, booking: Booking) => {
         try {
