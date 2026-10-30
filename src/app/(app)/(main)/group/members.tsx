@@ -1,18 +1,17 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { Text, View } from "react-native";
 
-import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useGroupItem } from "@/src/core/models/Group/Group";
 
 import { Offer, useOfferItem } from "@/src/core/models/Offer/Offer";
 import { IUserSummary, useAuthHook } from "@/src/core/models/User/User";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { formatGroupName } from "@/src/features/Community/screens/Group/ListScreen";
+import { safeParseDateString } from "@/src/utils/dateFormatter";
 
 export default function Members() {
     const { roomId: rawId } = useLocalSearchParams();
     const roomId = getSearchParam(rawId);
-    const { onBackPress } = useAppNavigation();
 
     const { profile } = useAuthHook();
 
@@ -61,8 +60,8 @@ const GroupDetails = ({
             <Text>{headerTitle} </Text>
             {offer && (
                 <View>
-                    <Text>Date: {offer.date.toLocaleDateString()} </Text>
-                    <Text>Trail: {offer.trail.name} </Text>
+                    <Text>Date: {safeParseDateString(offer.date).toLocaleDateString()} </Text>
+                    <Text>Trail: {offer.trail?.name || 'N/A'} </Text>
                 </View>
             )}
             {members.length > 0 && members.map(m => {
