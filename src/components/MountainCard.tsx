@@ -21,7 +21,6 @@ import CustomText from "@/src/components/CustomText";
 import { Colors } from "@/src/constants/colors";
 import { GlobalStyles } from "@/src/constants/globalStyles";
 import { ITrail } from "@/src/core/models/Trail/Trail";
-import { TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 import {
   formatRouteType,
   getHeroImageSource,
@@ -46,7 +45,7 @@ interface MountainCardProps {
   onDownload?: () => void;
   onLikePress?: () => void;
   style?: StyleProp<ViewStyle>;
-  weatherBadge?: React.ReactNode | TrailWeatherBadge | null;
+  weatherBadge?: React.ReactNode | null;
   rating?: number | string;
   offersCount?: number;
 }
@@ -170,7 +169,6 @@ const MountainCard: React.FC<MountainCardProps> = ({
   onDownload,
   onLikePress,
   style,
-  weatherBadge,
   rating,
   offersCount = 0,
 }) => {
@@ -359,7 +357,7 @@ const MountainCard: React.FC<MountainCardProps> = ({
           </View>
         </View>
 
-        {/* Offer indicator badge in top right */}
+        {/* Offers Badge */}
         {offersCount > 0 && (
           <View
             style={[
