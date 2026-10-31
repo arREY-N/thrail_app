@@ -3,12 +3,11 @@ import {
   getWeatherDescription,
   getWindDirection,
 } from "../weatherHelpers";
+import mockAsyncStorage from "@react-native-async-storage/async-storage/jest/async-storage-mock";
 // Note: Adjust the import name and path for the cache key generator based on your actual weatherService.ts
 import { generateWeatherCacheKey } from "../../repositories/weatherRepository";
 
-jest.mock("@react-native-async-storage/async-storage", () =>
-  require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
-);
+jest.mock("@react-native-async-storage/async-storage", () => mockAsyncStorage);
 
 describe("Weather System Tests (Phase 3)", () => {
   describe("getWeatherDescription", () => {
@@ -76,14 +75,21 @@ describe("Weather System Tests (Phase 3)", () => {
   });
 
   describe("Cache Key Logic", () => {
-    it("properly rounds coordinates to exactly 4 decimal places", () => {
-      const lat = 14.59954; // Rounds to 14.5995
-      const lon = 120.98428; // Rounds to 120.9843
+    it("properly rounds coordinates to 2 decimal places for regional weather cells", () => {
+      const lat = 14.59954; // Rounds to 14.60
+      const lon = 120.98428; // Rounds to 120.98
 
       const cacheKey = generateWeatherCacheKey(lat, lon);
 
-      expect(cacheKey).toContain("14.5995");
-      expect(cacheKey).toContain("120.9843");
+      expect(cacheKey).toContain("14.60");
+      expect(cacheKey).toContain("120.98");
+    });
+
+    it("appends elevation suffix when elevation is provided", () => {
+      const cacheKey = generateWeatherCacheKey(16.5977, 120.9004, 2928);
+      expect(cacheKey).toContain("16.60");
+      expect(cacheKey).toContain("120.90");
+      expect(cacheKey).toContain("_e2928");
     });
   });
 });
