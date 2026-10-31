@@ -225,7 +225,7 @@ function getQuickStats(metrics?: { temperature?: number; precipitationProbabilit
 }
 
 export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = ({ groupId, hikeDate }) => {
-    const { latestAlert, isLoading } = useGroupWeatherAlert(groupId);
+    const { latestAlert, isLoading, isOffline } = useGroupWeatherAlert(groupId);
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
     const currentTime = useCurrentTime();
 
@@ -337,6 +337,14 @@ export const GroupWeatherAlertBanner: React.FC<GroupWeatherAlertBannerProps> = (
                         <CustomText variant="caption" style={[styles.countdownText, { color: theme.accent }]}>
                             {dynamicPhase}
                         </CustomText>
+                        {isOffline && (
+                            <View style={styles.offlineChip}>
+                                <CustomIcon library="Feather" name="wifi-off" size={9} color={Colors.TEXT_SECONDARY} />
+                                <CustomText variant="caption" style={styles.offlineChipText}>
+                                    Offline
+                                </CustomText>
+                            </View>
+                        )}
                     </View>
 
                     <View style={styles.rightCluster}>
@@ -501,6 +509,20 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: 'bold',
         letterSpacing: 0.3,
+    },
+    offlineChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        paddingHorizontal: 5,
+        paddingVertical: 1,
+        borderRadius: 4,
+        backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    },
+    offlineChipText: {
+        fontSize: 9,
+        fontWeight: '600',
+        color: Colors.TEXT_SECONDARY,
     },
     rightCluster: {
         flexDirection: 'row',
