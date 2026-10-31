@@ -7,7 +7,7 @@ import WeatherWidget from '@/src/components/WeatherWidget';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
 import { ITrail } from '@/src/core/models/Trail/Trail';
-import { resolveCoordsForTrail } from '@/src/core/utility/weatherHelpers';
+import { getTrailElevation, resolveCoordsForTrail } from '@/src/core/utility/weatherHelpers';
 
 export interface TrailWeatherTabProps {
     latitude?: number | null;
@@ -16,13 +16,17 @@ export interface TrailWeatherTabProps {
 }
 
 const TrailWeatherTab: React.FC<TrailWeatherTabProps> = ({ latitude, longitude, trail }) => {
-    // Use explicit props if valid numbers; otherwise fall back to name-based lookup.
+    // Use explicit props if valid numbers; otherwise fall back to database coordinates.
     const resolvedCoords = useMemo(() => {
         if (typeof latitude === 'number' && typeof longitude === 'number') {
             return { lat: latitude, lon: longitude };
         }
         return resolveCoordsForTrail(trail ?? {});
     }, [latitude, longitude, trail]);
+
+    const elevation = useMemo(() => {
+        return getTrailElevation(trail);
+    }, [trail]);
 
     if (!resolvedCoords) {
         return (
@@ -45,6 +49,7 @@ const TrailWeatherTab: React.FC<TrailWeatherTabProps> = ({ latitude, longitude, 
             <WeatherWidget
                 latitude={resolvedCoords.lat}
                 longitude={resolvedCoords.lon}
+                elevation={elevation}
                 trailName={trail?.general?.name}
             />
         </View>
