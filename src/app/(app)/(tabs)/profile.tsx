@@ -11,7 +11,12 @@ import { View } from 'react-native';
  * rather than gating the entire screen behind a full-screen spinner.
  */
 export default function profile() {
-    const { onSaveAccount } = UpdateUserFlow();
+    const {
+        isEditing,
+        onEditPress,
+        onCancelPress,
+        onSaveAccount,
+    } = UpdateUserFlow();
 
     const {
         hikeLog,
@@ -38,6 +43,9 @@ export default function profile() {
     return (
         <View style={{ flex: 1 }}>
             <ProfileScreen
+                isEditing={isEditing}
+                onEditPress={onEditPress}
+                onCancelPress={onCancelPress}
                 onSignOutPress={signOut}
                 onApplyPress={onApplyPress}
                 onAdminPress={onAdminPress}
