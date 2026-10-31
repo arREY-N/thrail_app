@@ -88,22 +88,20 @@ We may update this Privacy Policy from time to time. We will notify you of any c
 
 [End of Privacy]`;
 
-export const BOOKING_TERMS_TEXT = `[BOOKING & ORGANIZER POLICIES]
+export const BOOKING_TERMS_TEXT = `[BOOKING & ORGANIZER POLICIES - SVENTURES]
 
-Last Updated: March 2026
+* The organizer or coordinator has no liability to any incident or accident that may arise during the event that involves any participant. Hike at your own risk.
 
-1. TOUR RESERVATION & ORGANIZER CONDUCT
-By booking a hike, guide, or tour package through Thrail, you enter into a direct service agreement with the verified Tour Organizer / Mountain Guide. You agree to follow all safety guidelines, gear requirements, leave-no-trace environmental rules, and trail etiquette set forth by the Tour Organizer and the local Department of Environment and Natural Resources (DENR) or Local Government Unit (LGU).
+* Itinerary provided is subject to change due to various factors, such as weather conditions, transportation delays, or unforeseen circumstances. While we strive to maintain the scheduled plan, flexibility may be necessary to ensure a safe and enjoyable experience for all participants.
 
-2. CANCELLATION, RESCHEDULING & REFUND POLICY
-- Hiker Cancellation: Cancellations made at least 72 hours prior to the scheduled departure time are eligible for a refund or booking credit based on the Tour Organizer's specific cancellation tier. Cancellations within 72 hours of departure are non-refundable.
-- Weather Disruptions & Force Majeure: If a hike is cancelled or postponed due to severe weather advisories, tropical storm signals, landslides, or official trail closures by local authorities, the Organizer reserves the right to reschedule the hike for your safety. Rescheduled dates or event vouchers will be coordinated directly by the Organizer.
-- No-Show Policy: Failure to arrive at the designated meeting point on or before the departure cutoff time will result in forfeiture of the reservation without refund.
+* The organizer or coordinator has the right to change or adjust the itinerary with prior notice to guests/participants.
 
-3. WAIVER OF LIABILITY & MEDICAL CERTIFICATION
-You certify that you are in good physical and mental health to participate in the selected hike. You acknowledge that hiking in mountainous terrain carries inherent physical risks. You agree that Thrail, the Tour Organizer, and assigned guides shall not be held liable for personal injury, property loss, or unforeseen environmental hazards during the hike.
+* The organizer has the right to cancel/reschedule the event in the following conditions: (1. Did not meet the minimum headcount, 2. Bad weather conditions)
 
-4. MINOR PARTICIPATION & GUARDIAN OBLIGATIONS
-For participants under 18 years of age, a legal parent or guardian must provide a valid government-issued ID, submit emergency contact information, and digitally sign the guardian waiver. The parent or legal guardian assumes full legal responsibility for the minor's safety, physical readiness, and conduct throughout the event.
+* If the event is canceled by the organizer due to bad weather or if the target number of participants is not reached, there will be a 100% refund.
+
+* Last minute back out dancers (3 days before departure shall be charged the full event fee because it will be considered as SOLD).
+
+* Downpayment is non-refundable but transferable to a new participant.
 
 [End of Booking Policies]`;

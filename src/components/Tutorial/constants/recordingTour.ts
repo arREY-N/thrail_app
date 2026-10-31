@@ -198,3 +198,96 @@ export const recordingDiyTourSteps: TutorialStep[] = [
     },
 ];
 
+
+/**
+ * Returns dynamic DIY / Free Roam tutorial steps based on whether an in-app emergency contact chat is linked.
+ * When hasEmergencyChat is true, injects the 1-to-1 chat step immediately after SOS (Step 3 of 7).
+ *
+ * @param hasEmergencyChat - Whether the hiker has linked an in-app emergency contact
+ * @returns Array of configured tutorial steps
+ */
+export const getRecordingDiyTourSteps = (hasEmergencyChat: boolean = false): TutorialStep[] => {
+    if (!hasEmergencyChat) {
+        return recordingDiyTourSteps;
+    }
+
+    return [
+        {
+            id: 'rec-diy-step-1-trail',
+            category: 'Free Roam • Step 1 of 7',
+            targetSpotlight: 'recording_header_trail',
+            spotlightShape: 'pill',
+            tooltipPlacement: 'bottom',
+            title: 'Independent Hike Route',
+            description:
+                'You are on a free-roam climb! Thrail tracks your trail in real-time so you can always retrace your steps back to safety.',
+            actionTip: 'Your path is recorded continuously on the map.',
+        },
+        {
+            id: 'rec-diy-step-2-sos',
+            category: 'Free Roam • Step 2 of 7',
+            targetSpotlight: 'recording_header_sos',
+            spotlightShape: 'circle',
+            tooltipPlacement: 'bottom',
+            title: 'Emergency SOS & Rescue',
+            description:
+                'If you ever get lost, injured, or encounter trail hazards, tap this red button. It gives you 3 immediate ways to get help:\n\n1. Alert Contact: Notify your designated contact\n2. Emergency SMS: Sends GPS coords offline\n3. Call 911: Direct local emergency dispatch',
+            actionTip: 'Sends your exact coordinates even without cellular data.',
+        },
+        {
+            id: 'rec-diy-step-3-chat',
+            category: 'Free Roam • Step 3 of 7',
+            targetSpotlight: 'recording_group_chat_btn',
+            spotlightShape: 'circle',
+            tooltipPlacement: 'top',
+            title: 'Emergency Contact Chat',
+            description:
+                'Quickly message your linked emergency contact directly within the app to check in, share updates, or ask for assistance during your hike.',
+            actionTip: 'Tap the chat bubble to open your direct 1-to-1 chat room.',
+        },
+        {
+            id: 'rec-diy-step-4-map-style',
+            category: 'Free Roam • Step 4 of 7',
+            targetSpotlight: 'recording_map_style_btn',
+            spotlightShape: 'circle',
+            tooltipPlacement: 'top',
+            title: 'Offline Maps',
+            description:
+                'Cell service drops deep in nature. Tap this button to switch to offline maps so you can navigate without an active internet connection.',
+            actionTip: 'Activate offline maps before entering deep trails.',
+        },
+        {
+            id: 'rec-diy-step-5-recenter',
+            category: 'Free Roam • Step 5 of 7',
+            targetSpotlight: 'recording_recenter_btn',
+            spotlightShape: 'circle',
+            tooltipPlacement: 'top',
+            title: 'Recenter Your Location',
+            description:
+                'If you pan around the map to preview the terrain, tap this button anytime to snap the camera right back to your current position.',
+            actionTip: 'Quickly re-focus on your location.',
+        },
+        {
+            id: 'rec-diy-step-6-metrics',
+            category: 'Free Roam • Step 6 of 7',
+            targetSpotlight: 'recording_metrics_hud',
+            spotlightShape: 'rect',
+            tooltipPlacement: 'top',
+            title: 'Hike Performance Stats',
+            description:
+                'Monitor your trail distance in kilometers, total elapsed time, and total elevation gain as you explore.',
+            actionTip: 'Helps you pace yourself and manage daylight.',
+        },
+        {
+            id: 'rec-diy-step-7-start',
+            category: 'Free Roam • Step 7 of 7',
+            targetSpotlight: 'recording_start_btn',
+            spotlightShape: 'pill',
+            tooltipPlacement: 'top',
+            title: 'Start Recording',
+            description:
+                'Ready to hit the trail? Tap here to start recording your live GPS track, elevation gain, and hiking stats!',
+            actionTip: 'Tap Start Recording to begin your hike.',
+        },
+    ];
+};

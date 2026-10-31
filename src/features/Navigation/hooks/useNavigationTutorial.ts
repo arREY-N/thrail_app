@@ -117,7 +117,7 @@ export const useNavigationTutorial = ({
         return getNavigationDiyTourSteps(hasBookings);
     }, [activeTourId, hasBookings]);
 
-    const isReady = !isLoading && isPermissionSettled && !isFullscreen;
+    const isReady = Platform.OS !== 'web' && !isLoading && isPermissionSettled && !isFullscreen;
     const tutorial = useTutorialGuide(activeTourId, isReady, dynamicSteps);
 
     const searchBarRef = useRef<View>(null);

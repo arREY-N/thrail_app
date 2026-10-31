@@ -278,28 +278,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
         );
     };
 
-    const handlePickReceipt = async () => {
-        if (!onUploadRefundProof) return;
-        try {
-            const res = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: false,
-                quality: 0.8,
-            });
-            if (!res.canceled && res.assets && res.assets.length > 0) {
-                const asset = res.assets[0];
-                const fileName = asset.fileName || `refund_proof_${Date.now()}.jpg`;
-                await onUploadRefundProof({
-                    uri: asset.uri,
-                    name: fileName,
-                    mimeType: asset.mimeType || 'image/jpeg',
-                    size: asset.fileSize,
-                });
-            }
-        } catch (err) {
-            console.error('Image picker error:', err);
-        }
-    };
+
 
     const isCancelledByAdmin =
         cancellation?.cancelledBy === 'admin' || cancelledBy === 'admin';
@@ -549,7 +528,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                         </CustomText>
                     </View>
                     <ExpandableText
-                        text={cancellation.adminNote}
+                        text={cancellation?.adminNote || ''}
                         quote={true}
                         textStyle={styles.approveNoteBoxText}
                         characterLimit={160}
@@ -742,7 +721,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                                     </CustomText>
                                     <CustomText variant="caption" style={styles.docSubtitle} numberOfLines={1}>
                                         {resolvedSelectedReceipt
-                                            ? `${(resolvedSelectedReceipt.size / 1024).toFixed(1)} KB • Attached`
+                                            ? `${((resolvedSelectedReceipt.size || 0) / 1024).toFixed(1)} KB • Attached`
                                             : 'Attach GCash / Maya transfer screenshot'}
                                     </CustomText>
                                 </View>
@@ -1119,8 +1098,8 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     approveNoteBox: {
-        backgroundColor: Colors.STATUS_ACTIVE_BG,
-        borderColor: Colors.STATUS_ACTIVE_BORDER,
+        backgroundColor: Colors.TRAIL_STATUS_ACTIVE_BG,
+        borderColor: Colors.TRAIL_STATUS_ACTIVE_BORDER,
     },
     approveNoteBoxLabel: {
         fontWeight: 'bold',

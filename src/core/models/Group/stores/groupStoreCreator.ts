@@ -251,7 +251,6 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
                 messageLimits: newLimits,
                 messagePrevCounts: newPrevCounts,
                 hasReachedEndByGroup: newReachedEnd,
-                groups: state.groups.filter((g) => g.id !== groupId),
             };
         });
     },

@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
@@ -8,10 +8,12 @@ import CustomIcon from "@/src/components/CustomIcon";
 import CustomSearchBar from "@/src/components/CustomSearchBar";
 import CustomText from "@/src/components/CustomText";
 
-import { Colors } from "@/src/constants/colors";
+import { Colors, Palette } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
 import { Trail, computeTrailMidpoint } from "@/src/core/models/Trail/Trail";
+import NetworkStatusBanner from "@/src/components/NetworkStatusBanner";
+import { useNetworkStatus } from "@/src/core/flows/TrackHikerGPSFlow";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
@@ -45,6 +47,8 @@ interface NavigationScreenProps {
     onBookingPress: () => void;
     onStartTracking: (bookingContext?: Booking | null) => void;
     onDeveloperBypass?: (bookingContext: Booking | null) => void;
+    onControlsHeightChange?: (height: number) => void;
+    onStartButtonLayout?: (offset: number) => void;
 }
 
 const getElevation = (trail: Trail) => {
@@ -70,9 +74,11 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     upcomingBookings, groups, currentUserId,
     searchQuery, filteredTrails, selectedTrail, isLoading,
     onSearchChange, onSearchSubmit, onTrailSelect,
-    onBookingPress, onStartTracking, onDeveloperBypass, onGroupPress
+    onBookingPress, onStartTracking, onDeveloperBypass, onGroupPress,
+    onControlsHeightChange, onStartButtonLayout,
 }) => {
     const insets = useSafeAreaInsets();
+    const { height: screenHeight } = useWindowDimensions();
     const searchTopPadding = Platform.OS === 'ios' ? insets.top : insets.top + 10;
 
     const { isDesktop, isTablet } = useBreakpoints();
@@ -86,7 +92,9 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     };
 
     const mapRef = useRef<TrailMapRef | null>(null);
+    const { isOnline } = useNetworkStatus();
     const [isOfflineMode, setIsOfflineMode] = useState(true);
+    const isEffectiveOffline = !isOnline || isOfflineMode;
     const [isDevBypassModalVisible, setDevBypassModalVisible] = useState(false);
     const [isUpcomingModalVisible, setUpcomingModalVisible] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -125,6 +133,17 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         isLoading,
         isFullscreen,
     });
+
+    const measureStartButton = useCallback(() => {
+        requestAnimationFrame(() => {
+            startBtnRef.current?.measureInWindow((x, y, width, height) => {
+                if (height > 0 && y > 0) {
+                    const offsetFromBottom = Math.round(screenHeight - y + 10);
+                    onStartButtonLayout?.(offsetFromBottom);
+                }
+            });
+        });
+    }, [screenHeight, onStartButtonLayout, startBtnRef]);
 
     const activeHikeSession = useHikeStore((s) => (s.active && s.currentHike && (s.currentHike.status === 'started' || s.currentHike.status === 'paused') ? s.currentHike : null));
     const activeHikeElapsed = useHikeStore((s) => s.elapsedTime);
@@ -165,7 +184,8 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleToggleOffline = () => {
-        const nextMode = !isOfflineMode;
+        if (!isOnline) return;
+        const nextMode = !isEffectiveOffline;
         setIsOfflineMode(nextMode);
         mapRef.current?.toggleOffline();
 
@@ -208,7 +228,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         <View style={styles.container}>
             <TrailMap
                 ref={mapRef}
-                isOffline={isOfflineMode}
+                isOffline={isEffectiveOffline}
                 initialLon={trailCenter?.longitude}
                 initialLat={trailCenter?.latitude}
                 geoJsonPath={selectedTrail?.geography?.geoJsonPath}
@@ -236,63 +256,80 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 ]}
                 pointerEvents="box-none"
             >
-                <View
-                    style={[
-                        styles.searchRowWrapper,
-                        Platform.OS === 'web' && (
+                {Platform.OS === 'web' ? (
+                    <View
+                        style={
                             isLargeScreen
                                 ? { paddingLeft: 48, paddingRight: 60 }
                                 : { paddingLeft: 50, paddingRight: 40 }
-                        ),
-                        isFullscreen && { justifyContent: 'flex-end' },
-                    ]}
-                >
-                    {!isFullscreen ? (
-                        <>
-                            <View
-                                ref={searchBarRef}
-                                collapsable={false}
-                                onLayout={handlers.handleSearchBarLayout}
-                                style={styles.searchBarFlex}
-                            >
-                                <CustomSearchBar
-                                    searchPlaceholder="Search mountains or trails..."
-                                    searchValue={searchQuery}
-                                    onSearchChange={onSearchChange}
-                                    onSubmitEditing={onSearchSubmit}
-                                    activeTab={undefined}
-                                    onTabSelect={undefined}
-                                    containerStyle={styles.customSearchBarContainer}
+                        }
+                    >
+                        <CustomSearchBar
+                            searchPlaceholder="Search mountains or trails..."
+                            searchValue={searchQuery}
+                            onSearchChange={onSearchChange}
+                            onSubmitEditing={onSearchSubmit}
+                            activeTab={undefined}
+                            onTabSelect={undefined}
+                        />
+                    </View>
+                ) : (
+                    <View
+                        style={[
+                            styles.searchRowWrapper,
+                            isFullscreen && { justifyContent: 'flex-end' },
+                        ]}
+                    >
+                        {!isFullscreen ? (
+                            <>
+                                <View
+                                    ref={searchBarRef}
+                                    collapsable={false}
+                                    onLayout={handlers.handleSearchBarLayout}
+                                    style={styles.searchBarFlex}
+                                >
+                                    <CustomSearchBar
+                                        searchPlaceholder="Search mountains or trails..."
+                                        searchValue={searchQuery}
+                                        onSearchChange={onSearchChange}
+                                        onSubmitEditing={onSearchSubmit}
+                                        activeTab={undefined}
+                                        onTabSelect={undefined}
+                                        containerStyle={styles.customSearchBarContainer}
+                                    />
+                                </View>
+
+                                <TutorialHelpButton
+                                    onPress={tutorial.onReplayTour}
+                                    hasGuide={tutorial.hasGuide}
+                                    style={styles.searchHelpBtn}
                                 />
-                            </View>
-
-                            <TutorialHelpButton
-                                onPress={tutorial.onReplayTour}
-                                hasGuide={tutorial.hasGuide}
+                            </>
+                        ) : (
+                            <TouchableOpacity
                                 style={styles.searchHelpBtn}
-                            />
-                        </>
-                    ) : (
-                        <TouchableOpacity
-                            style={styles.searchHelpBtn}
-                            onPress={() => setIsFullscreen(false)}
-                            activeOpacity={0.8}
-                            accessibilityLabel="Exit Fullscreen Map"
-                        >
-                            <CustomIcon library="Feather" name="minimize-2" size={19} color={Colors.PRIMARY} />
-                        </TouchableOpacity>
-                    )}
-                </View>
+                                onPress={() => setIsFullscreen(false)}
+                                activeOpacity={0.8}
+                                accessibilityLabel="Exit Fullscreen Map"
+                            >
+                                <CustomIcon library="Feather" name="minimize-2" size={19} color={Colors.PRIMARY} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
 
-                {!isFullscreen && showDropdown && (
+                {(!isFullscreen || Platform.OS === 'web') && showDropdown && (
                     <View
                         style={[
                             styles.dropdownContainer,
-                            Platform.OS === 'web' && (
-                                isLargeScreen
-                                    ? { marginHorizontal: 16 }
-                                    : { marginHorizontal: 12 }
-                            ),
+                            Platform.OS === 'web'
+                                ? [
+                                    { marginTop: -14 },
+                                    isLargeScreen
+                                        ? { marginLeft: 48, marginRight: 60, marginHorizontal: 0 }
+                                        : { marginLeft: 50, marginRight: 40, marginHorizontal: 0 },
+                                ]
+                                : { marginTop: 8 },
                         ]}
                     >
                         <FlatList
@@ -332,6 +369,8 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                 )}
             </View>
 
+            <NetworkStatusBanner isOnline={isOnline} top={Platform.OS === 'web' ? 70 : searchTopPadding + 56} />
+
             {modeToast && (
                 <View style={[styles.modeToastBanner, { top: Platform.OS === 'web' ? 70 : searchTopPadding + 56 }]} pointerEvents="none">
                     <View style={[styles.modeToastContent, styles.toastOnline]}>
@@ -350,20 +389,22 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
 
             {!isFullscreen && (
                 <View style={[styles.mapControlsColumn, { bottom: controlsHeight + 36 }]}>
-                    <View
-                        ref={fullscreenBtnRef}
-                        collapsable={false}
-                        onLayout={handlers.handleFullscreenBtnLayout}
-                    >
-                        <TouchableOpacity
-                            style={styles.floatingIconBtn}
-                            onPress={() => setIsFullscreen(true)}
-                            activeOpacity={0.8}
-                            accessibilityLabel="Enter Fullscreen Map"
+                    {Platform.OS !== 'web' && (
+                        <View
+                            ref={fullscreenBtnRef}
+                            collapsable={false}
+                            onLayout={handlers.handleFullscreenBtnLayout}
                         >
-                            <CustomIcon library="Feather" name="maximize-2" size={19} color={Colors.PRIMARY} />
-                        </TouchableOpacity>
-                    </View>
+                            <TouchableOpacity
+                                style={styles.floatingIconBtn}
+                                onPress={() => setIsFullscreen(true)}
+                                activeOpacity={0.8}
+                                accessibilityLabel="Enter Fullscreen Map"
+                            >
+                                <CustomIcon library="Feather" name="maximize-2" size={19} color={Colors.PRIMARY} />
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     {Platform.OS !== 'web' && upcomingBookings.length > 0 && (
                         <View
@@ -391,25 +432,27 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    <View
-                        ref={mapStyleBtnRef}
-                        collapsable={false}
-                        onLayout={handlers.handleMapStyleBtnLayout}
-                    >
-                        <TouchableOpacity
-                            style={styles.floatingIconBtn}
-                            onPress={handleToggleOffline}
-                            activeOpacity={0.8}
-                            accessibilityLabel={`Toggle map mode. Currently ${isOfflineMode ? "Offline" : "Online"}`}
+                    {isOnline && (
+                        <View
+                            ref={mapStyleBtnRef}
+                            collapsable={false}
+                            onLayout={handlers.handleMapStyleBtnLayout}
                         >
-                            <CustomIcon
-                                library="Feather"
-                                name={isOfflineMode ? "hard-drive" : "cloud"}
-                                size={20}
-                                color={Colors.PRIMARY}
-                            />
-                        </TouchableOpacity>
-                    </View>
+                            <TouchableOpacity
+                                style={styles.floatingIconBtn}
+                                onPress={handleToggleOffline}
+                                activeOpacity={0.8}
+                                accessibilityLabel={`Toggle map mode. Currently ${isEffectiveOffline ? "Offline" : "Online"}`}
+                            >
+                                <CustomIcon
+                                    library="Feather"
+                                    name={isEffectiveOffline ? "hard-drive" : "cloud"}
+                                    size={20}
+                                    color={Colors.PRIMARY}
+                                />
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     <View
                         ref={recenterBtnRef}
@@ -431,6 +474,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                             const h = Math.round(e.nativeEvent.layout.height);
                             if (h > 0 && Math.abs(h - controlsHeight) > 2) {
                                 setControlsHeight(h);
+                                onControlsHeightChange?.(h);
                             }
                         }}
                     >
@@ -499,7 +543,10 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                 <View
                                     ref={startBtnRef}
                                     collapsable={false}
-                                    onLayout={handlers.handleStartBtnLayout}
+                                    onLayout={() => {
+                                        handlers.handleStartBtnLayout();
+                                        measureStartButton();
+                                    }}
                                 >
                                     <TouchableOpacity style={styles.activeLaunchButton} onPress={() => onStartTracking(null)}>
                                         <CustomIcon library="Feather" name="navigation" size={18} color={Colors.WHITE} />
@@ -557,7 +604,10 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                 <View
                                     ref={startBtnRef}
                                     collapsable={false}
-                                    onLayout={handlers.handleStartBtnLayout}
+                                    onLayout={() => {
+                                        handlers.handleStartBtnLayout();
+                                        measureStartButton();
+                                    }}
                                 >
                                     {isToday ? (
                                         <TouchableOpacity style={styles.activeLaunchButton} onPress={() => onStartTracking(activeBooking)}>
@@ -606,7 +656,10 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                 <View
                                     ref={startBtnRef}
                                     collapsable={false}
-                                    onLayout={handlers.handleStartBtnLayout}
+                                    onLayout={() => {
+                                        handlers.handleStartBtnLayout();
+                                        measureStartButton();
+                                    }}
                                 >
                                     <TouchableOpacity style={styles.activeLaunchButton} onPress={() => onStartTracking(null)}>
                                         <CustomIcon library="Feather" name="navigation" size={18} color={Colors.WHITE} />
@@ -630,16 +683,18 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
 
             )}
 
-            <CustomTutorialModal
-                visible={tutorial.isVisible && !isFullscreen}
-                tourConfig={tutorial.tourConfig}
-                currentStep={tutorial.currentStep}
-                currentStepIndex={tutorial.currentStepIndex}
-                totalSteps={tutorial.totalSteps}
-                onNext={tutorial.onNextStep}
-                onPrev={tutorial.onPrevStep}
-                onSkip={tutorial.onSkipTour}
-            />
+            {Platform.OS !== 'web' && (
+                <CustomTutorialModal
+                    visible={tutorial.isVisible && !isFullscreen}
+                    tourConfig={tutorial.tourConfig}
+                    currentStep={tutorial.currentStep}
+                    currentStepIndex={tutorial.currentStepIndex}
+                    totalSteps={tutorial.totalSteps}
+                    onNext={tutorial.onNextStep}
+                    onPrev={tutorial.onPrevStep}
+                    onSkip={tutorial.onSkipTour}
+                />
+            )}
         </View>
     );
 };
@@ -812,28 +867,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: Colors.WHITE,
+        backgroundColor: Palette.Green50,
+        borderColor: Palette.Green200,
         gap: 8,
         ...GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }),
         borderWidth: 1,
     },
-    toastOffline: {
-        borderColor: '#FDE68A',
-        backgroundColor: '#FFFBEB',
-    },
     toastOnline: {
-        borderColor: '#A7F3D0',
-        backgroundColor: '#ECFDF5',
+        borderColor: Palette.Green200,
+        backgroundColor: Palette.Green50,
     },
     modeToastText: {
         fontSize: 12,
         fontWeight: '700',
     },
-    textAmber: {
-        color: '#92400E',
-    },
     textEmerald: {
-        color: '#065F46',
+        color: Palette.Green900,
     },
     cardDismissBtn: {
         width: 32,

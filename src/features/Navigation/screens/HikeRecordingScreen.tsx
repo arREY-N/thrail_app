@@ -1,10 +1,9 @@
 import { router } from "expo-router";
-import React, { memo, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Animated, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import React, { memo, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Animated, Linking, Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
-import CustomHeader from "@/src/components/CustomHeader";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
 import {
@@ -12,19 +11,24 @@ import {
     TutorialHelpButton,
 } from "@/src/components/Tutorial/Tutorial";
 import { useHikeRecordingTutorial } from "@/src/features/Navigation/hooks/useHikeRecordingTutorial";
-import { Colors } from "@/src/constants/colors";
+import { useEnrichedHikerLocations } from "@/src/features/Navigation/hooks/useEnrichedHikerLocations";
+import { HikeRecordingScreenProps, IEnrichedGroupMember } from "@/src/features/Navigation/types/HikeRecordingScreen.types";
+import { Colors, Palette } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
-import { Booking } from "@/src/core/models/Booking/Booking";
-import { Group, IGroupMember } from "@/src/core/models/Group/Group";
-import { Hike } from "@/src/core/models/Hike/Hike";
-import { Offer } from "@/src/core/models/Offer/Offer";
-import { IUserSummary, User } from "@/src/core/models/User/User";
+import { generateChatId, IGroupMember } from "@/src/core/models/Group/Group";
+import { useHikeStore } from "@/src/core/models/Hike/Hike";
+import { IUserSummary } from "@/src/core/models/User/User";
+import * as Clipboard from "expo-clipboard";
 import { formatDate, formatDateTime } from "@/src/core/utility/date";
 import { formatTime } from "@/src/core/utility/formatTime";
 import { clearLocalTrack } from "@/src/core/utility/hikeStorage";
+import NetworkStatusBanner from "@/src/components/NetworkStatusBanner";
+import { useNetworkStatus } from "@/src/core/flows/TrackHikerGPSFlow";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { formatActivityTime } from "@/src/utils/dateFormatter";
+
+export type { HikeRecordingScreenProps, IEnrichedGroupMember };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const EMPTY_HIKER_LOCATIONS: never[] = [];
@@ -82,39 +86,6 @@ const HikeDurationTimer = memo(({ isStarted, timerStartTime, baseElapsedTime }: 
 });
 HikeDurationTimer.displayName = "HikeDurationTimer";
 
-interface HikeRecordingScreenProps {
-    hike: Hike;
-    booking: Booking | null;
-    currentGroup: Group | null;
-    hikerLocations: { id?: string, timestamp: Date | string, latitude: number, longitude: number, altitude?: number, hikerName?: string, status?: string }[];
-    error: string | null;
-    fullOffer?: Offer | null;
-
-    baseElapsedTime: number;
-    timerStartTime: number;
-    totalDistance: number;
-    totalElevationGain: number;
-
-    isLoading: boolean;
-    lon?: string | string[];
-    lat?: string | string[];
-    onStartHike: () => void | Promise<void>;
-    onPauseHike: () => void;
-    onResumeHike: () => void;
-    onCompleteHike: () => void;
-    onResetHike?: () => void;
-    onAddReview: () => void;
-    onBackPress: () => void;
-    onTriggerBackendSOS?: () => void;
-    onTriggerEmergencySOS: () => void;
-    onOpenSOSCamera?: () => void;
-    onSendSMS: () => void;
-    emergencyContactNumber?: string;
-    shareLocationEnabled?: boolean;
-    setShareLocationEnabled?: (enabled: boolean) => Promise<void>;
-    profile: User;
-}
-
 const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     hike, booking, currentGroup, hikerLocations, error, fullOffer,
     baseElapsedTime, timerStartTime, totalDistance, totalElevationGain,
@@ -127,12 +98,31 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const { height: screenHeight } = useWindowDimensions();
     const mapRef = useRef<TrailMapRef | null>(null);
 
+    const currentLocation = useHikeStore((s) => s.currentLocation);
+    const [showNoContactModal, setShowNoContactModal] = useState(false);
+    const [copiedCoords, setCopiedCoords] = useState(false);
+
+    const hasEmergencyContact = Boolean(
+        emergencyContactNumber ||
+        profile?.emergencyContact?.contactNumber ||
+        profile?.emergencyContact?.chatId ||
+        profile?.emergencyContact?.userId
+    );
+
     const [localError, setLocalError] = useState<string | null>(error);
     const [prevError, setPrevError] = useState<string | null>(error);
     if (error !== prevError) {
         setPrevError(error);
         setLocalError(error);
     }
+
+    const isGuidedHike = !!booking;
+    const hasLinkedEmergencyContact = Boolean(!isGuidedHike && profile?.emergencyContact?.userId);
+    const emergencyChatRoomId = profile?.emergencyContact?.chatId || (
+        profile?.id && profile?.emergencyContact?.userId
+            ? generateChatId(profile.id, profile.emergencyContact.userId)
+            : undefined
+    );
 
     const {
         tutorial,
@@ -152,14 +142,18 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         booking,
         hikeStatus: hike.status,
         isLoading,
+        hasEmergencyChat: hasLinkedEmergencyContact,
     });
 
+    const { isOnline } = useNetworkStatus();
     const [isOfflineMode, setIsOfflineMode] = useState(true);
+    const isEffectiveOffline = !isOnline || isOfflineMode;
     const [modeToast, setModeToast] = useState<string | null>(null);
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleToggleOffline = () => {
-        const nextMode = !isOfflineMode;
+        if (!isOnline) return;
+        const nextMode = !isEffectiveOffline;
         setIsOfflineMode(nextMode);
         mapRef.current?.toggleOffline();
 
@@ -236,7 +230,6 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         }
     }, [isStarted, isPaused, isCompleted]);
 
-    const isGuidedHike = !!booking;
     const hasHikers = !!(hikerLocations && hikerLocations.length > 0);
 
     const [currentTime, setCurrentTime] = useState(() => Date.now());
@@ -275,9 +268,24 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         });
     };
 
+    const handleCopyCoordinates = async () => {
+        const latitude = currentLocation?.latitude ?? (Array.isArray(lat) ? parseFloat(lat[0]) : (typeof lat === 'string' ? parseFloat(lat) : 0));
+        const longitude = currentLocation?.longitude ?? (Array.isArray(lon) ? parseFloat(lon[0]) : (typeof lon === 'string' ? parseFloat(lon) : 0));
+        const mapUrl = (latitude && longitude) ? `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}` : '';
+        const coordsText = (latitude && longitude) ? `[${latitude.toFixed(6)}, ${longitude.toFixed(6)}]` : '[GPS Pending]';
+        const textToCopy = `THRAIL APP EMERGENCY SOS\nLocation: ${coordsText}${mapUrl ? `\nMap: ${mapUrl}` : ''}`;
+        await Clipboard.setStringAsync(textToCopy);
+        setCopiedCoords(true);
+        setTimeout(() => setCopiedCoords(false), 3000);
+    };
+
     const handleSendSMS = () => {
-        onSendSMS();
         setShowSosMenu(false);
+        if (!emergencyContactNumber && !profile?.emergencyContact?.contactNumber) {
+            setShowNoContactModal(true);
+            return;
+        }
+        onSendSMS();
     };
 
     const handleCall911 = () => {
@@ -292,11 +300,19 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         if (onTriggerBackendSOS) onTriggerBackendSOS();
     };
 
-    const handleEmergencyContactSOS = () => {
+    const handleEmergencyContactSOS = async () => {
         console.log('handleEmergencyContactSOS');
         setShowSosMenu(false);
+        if (!hasEmergencyContact && !currentGroup) {
+            setShowNoContactModal(true);
+            return;
+        }
         setShowCameraPrompt(true);
-        onTriggerEmergencySOS();
+        const result = await onTriggerEmergencySOS();
+        if (result && typeof result === 'object' && result.success === false && result.reason === 'NO_EMERGENCY_RECIPIENT') {
+            setShowCameraPrompt(false);
+            setShowNoContactModal(true);
+        }
     };
 
     const handleSafeBackPress = () => {
@@ -318,7 +334,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     };
 
     const handleHikerLocationPress = (
-        member: IUserSummary | IGroupMember,
+        member: IEnrichedGroupMember | IUserSummary | IGroupMember,
         locData: NonNullable<HikeRecordingScreenProps['hikerLocations']>[number]
     ) => {
         const timeMs = locData.timestamp instanceof Date ? locData.timestamp.getTime() : new Date(locData.timestamp).getTime();
@@ -355,100 +371,24 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         );
     };
 
-    const sortedMembers = useMemo(() => {
-        if (!currentGroup) return [];
-        const seenIds = new Set<string>();
-
-        const allMembers = [...(currentGroup.admins || []), ...(currentGroup.members || [])].filter(member => {
-            if (seenIds.has(member.id)) return false;
-            seenIds.add(member.id);
-            return true;
-        });
-
-        const membersWithLoc = allMembers.map(member => {
-            const locData = hikerLocations?.find(loc => loc.id === member.id);
-            let status: 'live' | 'signal_lost' | 'offline' = 'offline';
-
-            if (locData) {
-                const timeMs = locData.timestamp instanceof Date ? locData.timestamp.getTime() : new Date(locData.timestamp).getTime();
-                const elapsedMs = isNaN(timeMs) ? Infinity : Math.max(0, currentTime - timeMs);
-
-                if (locData.status === 'GPS_SIGNAL_LOST' || elapsedMs > 120000) {
-                    status = 'signal_lost';
-                } else {
-                    status = 'live';
-                }
-            }
-
-            return {
-                ...member,
-                locData,
-                status,
-                isInactive: status !== 'live',
-            };
-        });
-
-        const statusRank: Record<'live' | 'signal_lost' | 'offline', number> = {
-            live: 0,
-            signal_lost: 1,
-            offline: 2,
-        };
-
-        return membersWithLoc.sort((a, b) => {
-            if (statusRank[a.status] !== statusRank[b.status]) {
-                return statusRank[a.status] - statusRank[b.status];
-            }
-            const timeA = a.locData?.timestamp ? new Date(a.locData.timestamp).getTime() : 0;
-            const timeB = b.locData?.timestamp ? new Date(b.locData.timestamp).getTime() : 0;
-            return timeB - timeA;
-        });
-    }, [currentGroup, hikerLocations, currentTime]);
+    const { sortedMembers, enrichedHikerLocations } = useEnrichedHikerLocations(
+        currentGroup,
+        hikerLocations,
+        currentTime
+    );
 
     const formatDistance = (meters: number) => {
         if (meters < 1000) return `${Math.round(meters)} m`;
         return `${(meters / 1000).toFixed(2)} km`;
-    }
+    };
     const liveDistanceStr = isTracking ? formatDistance(totalDistance) : "--";
     const liveElevationStr = isTracking ? `${Math.round(totalElevationGain)} m` : "--";
-
-    const enrichedHikerLocations = useMemo(() => {
-        if (!hikerLocations) return [];
-        const MAX_GHOST_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours TTL to retain Last Known Location pins throughout hike day
-
-        return hikerLocations
-            .filter(hiker => {
-                if (!hiker?.timestamp) return true;
-                const timeMs = hiker.timestamp instanceof Date ? hiker.timestamp.getTime() : new Date(hiker.timestamp).getTime();
-                if (isNaN(timeMs)) return true;
-                return (currentTime - timeMs) <= MAX_GHOST_AGE_MS;
-            })
-            .map(hiker => {
-                if (hiker.hikerName) return hiker;
-                const member = sortedMembers?.find(m => m.id === hiker.id);
-                if (member) {
-                    return {
-                        ...hiker,
-                        hikerName: `${member.firstname} ${member.lastname || ''}`.trim()
-                    };
-                }
-                return hiker;
-            });
-    }, [hikerLocations, sortedMembers, currentTime]);
-
-    if (Platform.OS === 'web') {
-        return (
-            <View style={styles.container}>
-                <CustomHeader title={hike.trail?.name || "Independent Route"} showDefaultIcons={false} onBackPress={onBackPress} />
-                <TrailMap initialLon={lon} initialLat={lat} bottomInset={0} isOffline={isOfflineMode} />
-            </View>
-        );
-    }
 
     return (
         <View style={styles.container}>
             <TrailMap
                 ref={mapRef}
-                isOffline={isOfflineMode}
+                isOffline={isEffectiveOffline}
                 initialLon={lon}
                 initialLat={lat}
                 bottomInset={dashboardHeight + 16}
@@ -490,6 +430,8 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                 </View>
             </View>
 
+            <NetworkStatusBanner isOnline={isOnline} top={insets.top + 68} />
+
             {modeToast && (
                 <View style={[styles.modeToastBanner, { top: insets.top + 68 }]} pointerEvents="none">
                     <View style={[styles.modeToastContent, styles.toastOnline]}>
@@ -530,7 +472,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                         </TouchableOpacity>
                     </View>
                 )}
-                {isGuidedHike && currentGroup && (
+                {isGuidedHike && currentGroup ? (
                     <View
                         ref={groupChatBtnRef}
                         collapsable={false}
@@ -540,7 +482,21 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                             <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
                         </TouchableOpacity>
                     </View>
-                )}
+                ) : !isGuidedHike && hasLinkedEmergencyContact && emergencyChatRoomId ? (
+                    <View
+                        ref={groupChatBtnRef}
+                        collapsable={false}
+                        onLayout={handlers.handleGroupChatBtnLayout}
+                    >
+                        <TouchableOpacity
+                            style={styles.fabBtn}
+                            onPress={() => router.push({ pathname: '/(app)/(main)/group/room', params: { roomId: emergencyChatRoomId } })}
+                            accessibilityLabel="Emergency Contact Chat"
+                        >
+                            <CustomIcon library="Ionicons" name="chatbubbles-outline" size={20} color={Colors.PRIMARY} />
+                        </TouchableOpacity>
+                    </View>
+                ) : null}
                 {isGuidedHike && currentGroup && (
                     <View
                         ref={teamStatusBtnRef}
@@ -563,25 +519,27 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                         </TouchableOpacity>
                     </View>
                 )}
-                <View
-                    ref={mapStyleBtnRef}
-                    collapsable={false}
-                    onLayout={handlers.handleMapStyleBtnLayout}
-                >
-                    <TouchableOpacity
-                        style={styles.fabBtn}
-                        onPress={handleToggleOffline}
-                        activeOpacity={0.8}
-                        accessibilityLabel={`Toggle map mode. Currently ${isOfflineMode ? "Offline" : "Online"}`}
+                {isOnline && (
+                    <View
+                        ref={mapStyleBtnRef}
+                        collapsable={false}
+                        onLayout={handlers.handleMapStyleBtnLayout}
                     >
-                        <CustomIcon
-                            library="Feather"
-                            name={isOfflineMode ? "hard-drive" : "cloud"}
-                            size={20}
-                            color={Colors.PRIMARY}
-                        />
-                    </TouchableOpacity>
-                </View>
+                        <TouchableOpacity
+                            style={styles.fabBtn}
+                            onPress={handleToggleOffline}
+                            activeOpacity={0.8}
+                            accessibilityLabel={`Toggle map mode. Currently ${isEffectiveOffline ? "Offline" : "Online"}`}
+                        >
+                            <CustomIcon
+                                library="Feather"
+                                name={isEffectiveOffline ? "hard-drive" : "cloud"}
+                                size={20}
+                                color={Colors.PRIMARY}
+                            />
+                        </TouchableOpacity>
+                    </View>
+                )}
                 <View
                     ref={recenterBtnRef}
                     collapsable={false}
@@ -739,12 +697,10 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                                 <CustomText style={styles.sheetBtnTextPrimary}>Send Alert to Guide (App)</CustomText>
                             </TouchableOpacity>
                         ) : (
-                            !isGuidedHike && profile?.emergencyContact?.userId ? (
-                                <TouchableOpacity style={styles.sheetBtnPrimary} onPress={handleEmergencyContactSOS}>
-                                    <CustomIcon library="Feather" name="phone-call" size={18} color={Colors.WHITE} />
-                                    <CustomText style={styles.sheetBtnTextPrimary}>Send Alert to Emergency Contact</CustomText>
-                                </TouchableOpacity>
-                            ) : null
+                            <TouchableOpacity style={styles.sheetBtnPrimary} onPress={handleEmergencyContactSOS}>
+                                <CustomIcon library="Feather" name="phone-call" size={18} color={Colors.WHITE} />
+                                <CustomText style={styles.sheetBtnTextPrimary}>Send Alert to Emergency Contact</CustomText>
+                            </TouchableOpacity>
                         )}
 
                         <TouchableOpacity style={styles.sheetBtnOutline} onPress={handleSendSMS}>
@@ -758,6 +714,45 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
                         <TouchableOpacity style={styles.sheetCancelBtn} onPress={() => setShowSosMenu(false)}>
                             <CustomText style={styles.sheetCancelText}>Cancel</CustomText>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal visible={showNoContactModal} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.actionSheet}>
+                        <View style={styles.sheetHeader}>
+                            <CustomIcon library="Feather" name="alert-octagon" size={36} color={Colors.WARNING} />
+                            <CustomText variant="h3" style={{ marginTop: 12, textAlign: 'center' }}>No Emergency Contact</CustomText>
+                            <CustomText variant="caption" style={{ textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
+                                You have not designated an emergency contact in your profile. You can call 911 immediately or copy your coordinates to share via another app.
+                            </CustomText>
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.sheetBtnOutlineDanger}
+                            onPress={() => {
+                                setShowNoContactModal(false);
+                                Linking.openURL('tel:911');
+                            }}
+                        >
+                            <CustomIcon library="Feather" name="phone-call" size={18} color={Colors.ERROR} />
+                            <CustomText style={styles.sheetBtnTextDanger}>Call Emergency Hotline (911)</CustomText>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.sheetBtnPrimary}
+                            onPress={handleCopyCoordinates}
+                        >
+                            <CustomIcon library="Feather" name={copiedCoords ? "check" : "copy"} size={18} color={Colors.WHITE} />
+                            <CustomText style={styles.sheetBtnTextPrimary}>
+                                {copiedCoords ? "Coordinates Copied!" : "Copy Coordinates"}
+                            </CustomText>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.sheetCancelBtn} onPress={() => setShowNoContactModal(false)}>
+                            <CustomText style={styles.sheetCancelText}>Dismiss</CustomText>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -1227,7 +1222,6 @@ const styles = StyleSheet.create({
     bgAmber: {
         backgroundColor: '#F59E0B',
     },
-
     modeToastBanner: {
         position: 'absolute',
         left: 0,
@@ -1241,28 +1235,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: Colors.WHITE,
+        backgroundColor: Palette.Green50,
+        borderColor: Palette.Green200,
         gap: 8,
         ...GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }),
         borderWidth: 1,
     },
-    toastOffline: {
-        borderColor: '#FDE68A',
-        backgroundColor: '#FFFBEB',
-    },
     toastOnline: {
-        borderColor: '#A7F3D0',
-        backgroundColor: '#ECFDF5',
+        borderColor: Palette.Green200,
+        backgroundColor: Palette.Green50,
     },
     modeToastText: {
         fontSize: 12,
         fontWeight: '700',
     },
-    textAmber: {
-        color: '#92400E',
-    },
     textEmerald: {
-        color: '#065F46',
+        color: Palette.Green900,
     },
 });
 

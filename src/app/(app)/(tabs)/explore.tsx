@@ -2,10 +2,11 @@ import { useLocalSearchParams } from 'expo-router';
 
 import { RecalculateTrailRating } from '@/src/core/flows/RecalculateTrailRating';
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
+import { useTrailViewNavigation } from "@/src/core/hook/navigation/useTrailViewNavigation";
 import { useOfferList } from '@/src/core/models/Offer/Offer';
-import { useTrailList, useTrailNavigation } from '@/src/core/models/Trail/Trail';
+import { useTrailList } from '@/src/core/models/Trail/Trail';
 import ExploreScreen from '@/src/features/Explore/screens/ExploreScreen';
-import React from 'react';
+import React, { useCallback } from 'react';
 
 /**
  * Controller component for the Explore tab.
@@ -19,9 +20,11 @@ export default function Explore() {
         trailLoading,
     } = useTrailList();
 
-    const {
-        onViewTrail
-    } = useTrailNavigation();
+    const { toTrailView } = useTrailViewNavigation();
+
+    const handleViewTrail = useCallback((trailId: string) => {
+        toTrailView(trailId, 'explore');
+    }, [toTrailView]);
 
     const {
         onGroupPress
@@ -50,7 +53,7 @@ export default function Explore() {
         <ExploreScreen
             getItemRating={getItemRating}
             trails={trails}
-            onViewMountain={onViewTrail}
+            onViewMountain={handleViewTrail}
             onGroupPress={onGroupPress}
             isLoading={trailLoading}
             initialCategory={initialCategory}

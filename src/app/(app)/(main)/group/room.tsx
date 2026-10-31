@@ -3,7 +3,7 @@
  * @description Main entry point for a group chat room screen, setting up router params, subscription, and event handlers.
  */
 
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Keyboard, Text, View } from "react-native";
 
@@ -11,10 +11,12 @@ import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useGroupItem, useGroupRoom, useGroupStore } from "@/src/core/models/Group/Group";
 import { useAuthHook } from "@/src/core/models/User/User";
 
+import { IMessage } from "@/src/core/models/Message/Message";
 import { useFilesStore } from "@/src/core/stores/fileStore";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import { formatGroupName } from "@/src/features/Community/screens/Group/ListScreen";
 import RoomScreen from "@/src/features/Community/screens/Group/RoomScreen";
+
 
 /**
  * GroupRoom screen component container.
@@ -107,7 +109,7 @@ export default function GroupRoom() {
 
         const hasLatest = messages.some(m => m.id === currentGroup.lastMessage!.id);
         if (!hasLatest) {
-            return [currentGroup.lastMessage as any, ...messages];
+            return [currentGroup.lastMessage as unknown as IMessage, ...messages];
         }
         return messages;
     }, [messages, currentGroup?.lastMessage]);
@@ -125,7 +127,6 @@ export default function GroupRoom() {
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
-
             <RoomScreen
                 messages={displayMessages}
                 currentGroup={currentGroup}
@@ -134,6 +135,12 @@ export default function GroupRoom() {
                 markAsRead={markAsRead}
                 headerTitle={headerTitle}
                 onBackPress={onBackPress}
+                onOpenMembers={() => router.push({
+                    pathname: '/(app)/(main)/group/members',
+                    params: {
+                        roomId: currentGroup.id
+                    }
+                })}
                 onAttachPhotoPress={handleAttachPhotoPress}
                 onCapturePhotoPress={handleCapturePhotoPress}
                 loadMoreMessages={() => loadMoreMessages(roomId)}

@@ -42,6 +42,10 @@ import {
     recordingBookedTourSteps,
     recordingDiyTourSteps,
 } from '@/src/components/Tutorial/constants/recordingTour';
+import {
+    reviewDetailsTourSteps,
+    reviewRatingsTourSteps,
+} from '@/src/components/Tutorial/constants/reviewTour';
 import { tabsTourSteps } from '@/src/components/Tutorial/constants/tabsTour';
 
 export {
@@ -53,6 +57,8 @@ export {
     navigationDiyTourSteps,
     recordingBookedTourSteps,
     recordingDiyTourSteps,
+    reviewDetailsTourSteps,
+    reviewRatingsTourSteps,
 };
 
 /**
@@ -201,5 +207,17 @@ export const TUTORIAL_TOURS: Record<TutorialTourId, TutorialTourConfig> = {
         tourTitle: 'Live Hike — Free Roam & DIY Guide',
         roleScope: 'user',
         steps: [...recordingDiyTourSteps],
+    },
+    review_ratings: {
+        tourId: 'review_ratings',
+        tourTitle: 'Review Guide — Ratings & Difficulty',
+        roleScope: 'user',
+        steps: [...reviewRatingsTourSteps],
+    },
+    review_details: {
+        tourId: 'review_details',
+        tourTitle: 'Review Guide — Tips & Photos',
+        roleScope: 'user',
+        steps: [...reviewDetailsTourSteps],
     },
 };

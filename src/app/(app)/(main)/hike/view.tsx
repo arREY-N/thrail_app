@@ -10,7 +10,7 @@ import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
 
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useGroupItem, useGroupList, useGroupLocation } from "@/src/core/models/Group/Group";
+import { Group, useGroupItem, useGroupList, useGroupLocation, useGroupStore } from "@/src/core/models/Group/Group";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 
 
@@ -20,7 +20,7 @@ import { useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { useAuthHook } from "@/src/core/models/User/User";
 import HikeRecordingScreen from "@/src/features/Navigation/screens/HikeRecordingScreen";
-import React from "react";
+import { useEffect, useState } from "react";
 
 const SCREEN_OPTIONS = { headerShown: false };
 
@@ -37,13 +37,27 @@ export default function HikeView() {
     const { groups } = useGroupList(profile?.id || "");
 
     const storedHike = useHikeStore((s) => s.currentHike);
+    const isHikeActive = useHikeStore((s) => s.active);
     const resolvedBookingId = bookingId || (storedHike?.mode === 'booked' ? storedHike.bookingId : undefined);
     const userBookings = useBookingsStore((s) => s.userBookings);
     const activeBooking = resolvedBookingId ? userBookings.find(b => b.id === resolvedBookingId) : null;
 
-    const resolvedGroupId = groupId || (resolvedBookingId && groups?.find(g =>
-        g.members?.some((m: { id?: string; bookingId?: string }) => m.id === profile?.id && m.bookingId === resolvedBookingId)
-    )?.id) || activeBooking?.offer?.id || undefined;
+    // Gated DIY emergency chat fallback: only for the current user's own active/recording hike session
+    const isUserRecordingSession = !groupId && (
+        storedHike?.user?.id === profile?.id ||
+        (isHikeActive && (storedHike?.status === 'started' || storedHike?.status === 'paused')) ||
+        storedHike?.trail?.id === 'diy'
+    );
+    const diyEmergencyChatId = isUserRecordingSession ? (profile?.emergencyContact?.chatId || undefined) : undefined;
+
+    const resolvedGroupId =
+        groupId ||
+        (resolvedBookingId && groups?.find(g =>
+            g.members?.some((m: { id?: string; bookingId?: string }) => m.id === profile?.id && m.bookingId === resolvedBookingId)
+        )?.id) ||
+        activeBooking?.offer?.id ||
+        diyEmergencyChatId ||
+        undefined;
 
     const {
         currentHike,
@@ -71,7 +85,21 @@ export default function HikeView() {
         groupId: resolvedGroupId || groupId
     });
 
-    const { group: currentGroup } = useGroupItem(resolvedGroupId || '');
+    const { group: fetchedGroup } = useGroupItem(resolvedGroupId || '');
+    const [cachedGroup, setCachedGroup] = useState<Group | null>(null);
+
+    if (fetchedGroup && fetchedGroup !== cachedGroup) {
+        setCachedGroup(fetchedGroup);
+    }
+
+    // Resilient re-fetch if store drops group on room unmount
+    useEffect(() => {
+        if (resolvedGroupId && !fetchedGroup && cachedGroup) {
+            useGroupStore.getState().fetchGroupById(resolvedGroupId);
+        }
+    }, [resolvedGroupId, fetchedGroup, cachedGroup]);
+
+    const currentGroup = fetchedGroup || cachedGroup;
     const {
         location: groupLocations,
         onEmergencyPress,

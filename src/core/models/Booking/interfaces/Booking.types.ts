@@ -61,6 +61,10 @@ export interface IPayment<T> {
     adminNote?: string;
     verifiedBy?: string;
     verifiedAt?: T;
+    editedBy?: string;
+    editedAt?: T;
+    revertedBy?: string;
+    revertedAt?: T;
 }
 
 export interface IUserBooking<T> extends IUserSummary {
@@ -104,9 +108,12 @@ export interface IBookingBase<T> {
     documents: Requirements[];
     cancellationReason?: string;
     cancelledBy?: string;
+    cancellationDeclineReason?: string;
+    rescheduleReason?: string;
     rescheduleRequestId?: string | null;
     rescheduledToOfferId?: string | null;
     rescheduleDeclineReason?: string;
+    totalAmount?: number;
     previousStatus?: BookingStatus;
 
     // Manual QR tracking fields:

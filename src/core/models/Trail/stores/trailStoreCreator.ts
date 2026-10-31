@@ -105,6 +105,9 @@ export const trailStoreCreator: StateCreator<TrailState, [["zustand/immer", neve
 	},
 
 	load: async (id: string | null) => {
+		if (id === 'diy') {
+			return;
+		}
 		if (!id) {
 			set({ current: newTrail() });
 			return;

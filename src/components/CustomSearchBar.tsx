@@ -166,7 +166,7 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
     // ── Standard Variant (full search bar with tabs) ──
     return (
         <View style={[styles.container, containerStyle]}>
-            <View style={[styles.searchRow, !(tabs && tabs.length > 0) && { marginBottom: 0 }]}>
+            <View style={[styles.searchRow, !(tabs && tabs.length > 0) && Boolean(containerStyle) && { marginBottom: 0 }]}>
                 <View style={styles.inputWrapper}>
                     <CustomTextInput
                         placeholder={searchPlaceholder}

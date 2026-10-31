@@ -286,6 +286,7 @@ interface AnimatedUserLocationMarkerProps {
   lngLat: [number, number];
   heading: number | null;
   mapBearing: number;
+  isFollowing?: boolean;
 }
 
 /**
@@ -294,7 +295,7 @@ interface AnimatedUserLocationMarkerProps {
  * the device magnetometer (`heading - mapBearing`).
  */
 const AnimatedUserLocationMarker: React.FC<AnimatedUserLocationMarkerProps> = memo(
-  ({ lngLat, heading, mapBearing }) => {
+  ({ lngLat, heading, mapBearing, isFollowing = false }) => {
     const targetLon = lngLat[0];
     const targetLat = lngLat[1];
     const [coords, setCoords] = useState<[number, number]>([targetLon, targetLat]);
@@ -314,6 +315,15 @@ const AnimatedUserLocationMarker: React.FC<AnimatedUserLocationMarkerProps> = me
       if (animRef.current) {
         animRef.current.stop();
         animRef.current = null;
+      }
+
+      // When native camera follow is active, MapLibre's native C++ easeTo is already smoothly
+      // interpolating the viewport to targetLon/targetLat. Do not run a competing JS Animated.timing
+      // loop across the bridge; snap the marker directly to stay 100% in sync with the map canvas.
+      if (isFollowing) {
+        currentCoordsRef.current = [targetLon, targetLat];
+        setCoords([targetLon, targetLat]);
+        return;
       }
 
       // Snap immediately on initial jump > ~1km or micro-adjustments; otherwise glide smoothly
@@ -364,7 +374,7 @@ const AnimatedUserLocationMarker: React.FC<AnimatedUserLocationMarkerProps> = me
           animRef.current = null;
         }
       };
-    }, [targetLon, targetLat, animValue]);
+    }, [targetLon, targetLat, isFollowing, animValue]);
 
     const hasHeading = typeof heading === "number" && !isNaN(heading) && heading >= 0;
     const relativeRotation = hasHeading
@@ -568,9 +578,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     programmaticMoveUntilRef.current = Date.now() + duration + 250;
     try {
       if (cameraRef.current.flyTo) {
-        cameraRef.current.flyTo({ center, zoom, duration })?.catch?.((err: any) => {
-          console.warn("⚠️ Camera flyTo warning:", err);
-        });
+        cameraRef.current.flyTo({ center, zoom, duration });
       } else {
         const legacyCam = cameraRef.current as unknown as LegacyCameraRef;
         legacyCam.setCamera?.({
@@ -580,7 +588,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
           animationMode: "flyTo",
         });
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.warn("⚠️ Camera flyTo error:", e);
     }
   }, []);
@@ -606,8 +614,6 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
           ...(options?.zoom !== undefined ? { zoom: options.zoom } : {}),
           ...(options?.bearing !== undefined ? { bearing: options.bearing } : {}),
           ...(options?.pitch !== undefined ? { pitch: options.pitch } : {}),
-        })?.catch?.((err: any) => {
-          console.warn("⚠️ Camera easeTo warning:", err);
         });
       } else {
         const legacyCam = cameraRef.current as unknown as LegacyCameraRef;
@@ -620,7 +626,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
           animationMode: "easeTo",
         });
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.warn("⚠️ Camera easeTo error:", e);
     }
   }, []);
@@ -1000,21 +1006,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     };
   }, [validSegments]);
 
-  // Memoize GeoJSON Feature for native OpenGL rendering of the user's Blue Dot
-  // Ensures guaranteed hardware-accelerated repainting on Android GLSurfaceView even when the map camera is stationary
-  const userLocationGeoJson = useMemo(() => {
-    if (!permissionGranted || !userLocation || !isValidCoordinate(userLocation[1], userLocation[0])) {
-      return null;
-    }
-    return {
-      type: "Feature" as const,
-      geometry: {
-        type: "Point" as const,
-        coordinates: [userLocation[0], userLocation[1]],
-      },
-      properties: {},
-    };
-  }, [permissionGranted, userLocation]);
+
 
   // If offline mode is active but offline assets failed or are incomplete, show error UI instead of falling back to onlineStyle
   if (loadState === "error" || (actuallyOffline && loadState === "ready" && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
@@ -1178,45 +1170,13 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
           </GeoJSONSource>
         )}
 
-        {/* Native OpenGL Blue Dot Layer (guarantees real-time GL canvas movement on Android) */}
-        {isStyleReady && userLocationGeoJson && (
-          <GeoJSONSource
-            key={`userLocationSource-${currentStyleMode}`}
-            id={`userLocationSource-${currentStyleMode}`}
-            data={userLocationGeoJson}
-          >
-            <Layer
-              key={`layer-user-location-halo-${currentStyleMode}`}
-              id={`layer-user-location-halo-${currentStyleMode}`}
-              type="circle"
-              paint={{
-                "circle-radius": 18,
-                "circle-color": "#2563EB",
-                "circle-opacity": 0.2,
-                "circle-pitch-alignment": "map",
-              }}
-            />
-            <Layer
-              key={`layer-user-location-dot-${currentStyleMode}`}
-              id={`layer-user-location-dot-${currentStyleMode}`}
-              type="circle"
-              paint={{
-                "circle-radius": 6.5,
-                "circle-color": "#2563EB",
-                "circle-stroke-width": 2.5,
-                "circle-stroke-color": "#FFFFFF",
-                "circle-pitch-alignment": "map",
-              }}
-            />
-          </GeoJSONSource>
-        )}
-
         {/* Single-Source Kalman-Filtered Blue Dot + Live Compass Heading Cone */}
         {permissionGranted && userLocation && isValidCoordinate(userLocation[1], userLocation[0]) && (
           <AnimatedUserLocationMarker
             lngLat={userLocation}
             heading={userHeading}
             mapBearing={mapBearing}
+            isFollowing={isFollowing}
           />
         )}
 

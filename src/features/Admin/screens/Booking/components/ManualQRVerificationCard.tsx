@@ -28,6 +28,9 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import { SelectedFile } from '@/src/core/repositories/fileRepository';
 import { formatDateTime } from '@/src/core/utility/date';
+import { AdminEditPaymentModal } from '@/src/features/Admin/screens/Booking/components/AdminEditPaymentModal';
+import { AdminRevertPaymentModal } from '@/src/features/Admin/screens/Booking/components/AdminRevertPaymentModal';
+import { getDisplayReferenceCode } from '@/src/features/Admin/utils/paymentUtils';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 /**
@@ -62,6 +65,18 @@ export interface ManualQRVerificationCardProps {
     booking: Booking;
     onVerifyPayment: (classification: 'full' | 'downpayment', note?: string, verifiedAmount?: number) => Promise<void>;
     onRejectPayment: (reason: string) => Promise<void>;
+    onEditPayment?: (options: {
+        paymentIndex?: number;
+        newAmount: number;
+        newReferenceCode: string;
+        newClassification: 'full' | 'downpayment';
+        newAdminNote?: string;
+    }) => Promise<void> | void;
+    onRevertPayment?: (options?: {
+        paymentIndex?: number;
+        revertRejection?: boolean;
+        reason?: string;
+    }) => Promise<void> | void;
     onSettleBalance?: (options?: { method?: 'cash' | 'manual_qr'; referenceCode?: string; adminNote?: string }) => Promise<void>;
     onUploadOverpaymentProof?: (file: SelectedFile) => Promise<void | string>;
     isProcessing?: boolean;
@@ -79,6 +94,8 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
     booking,
     onVerifyPayment,
     onRejectPayment,
+    onEditPayment,
+    onRevertPayment,
     onUploadOverpaymentProof,
     isProcessing = false,
 }) => {
@@ -89,6 +106,11 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
     const [rejectionReason, setRejectionReason] = useState('');
     const [isUploadingOverpaymentProof, setIsUploadingOverpaymentProof] = useState(false);
     const [overpaymentProofPreview, setOverpaymentProofPreview] = useState(false);
+
+    // Edit and Revert modal states
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showRevertModal, setShowRevertModal] = useState(false);
+    const [isRejectionRevert, setIsRejectionRevert] = useState(false);
 
     const handlePickOverpaymentProof = async () => {
         if (!onUploadOverpaymentProof) return;
@@ -122,6 +144,10 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
     const manualPayment: IPayment<Date> | undefined = [...payments]
         .reverse()
         .find(p => p.gateway === 'manual_qr' || Boolean(p.receiptUrl));
+
+    const manualPaymentIndex = manualPayment ? payments.indexOf(manualPayment) : undefined;
+    const isCaptured = manualPayment?.status === 'captured';
+    const { refCode: manualRefCode, note: manualNote } = manualPayment ? getDisplayReferenceCode(manualPayment) : { refCode: '', note: undefined };
 
     const receiptUrl = manualPayment?.receiptUrl;
     const verificationStatus = booking.paymentVerificationStatus || (manualPayment?.status === 'captured' ? (manualPayment.classification === 'downpayment' ? 'downpayment' : 'fully_paid') : (manualPayment?.status === 'rejected' ? 'rejected' : 'pending_verification'));
@@ -324,6 +350,19 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                             {booking.paymentRejectionReason}
                         </CustomText>
                     </View>
+                    {onRevertPayment && (
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => {
+                                setIsRejectionRevert(true);
+                                setShowRevertModal(true);
+                            }}
+                            style={styles.revertRejectionBtn}
+                        >
+                            <CustomIcon library="Feather" name="rotate-ccw" size={12} color={Colors.STATUS_CANCELLED_TEXT} />
+                            <CustomText style={styles.revertRejectionBtnText}>Revert Rejection</CustomText>
+                        </TouchableOpacity>
+                    )}
                 </View>
             )}
 
@@ -355,72 +394,139 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                             )}
                         </View>
 
-                        {/* Right Column: Amount, REF Code, Note */}
-                        <View style={styles.inputsColumn}>
-                            {/* Amount Input */}
-                            <CustomTextInput
-                                label="Amount (₱) *"
-                                placeholder="Enter verified amount..."
-                                type="numerical"
-                                prefix="₱ "
-                                maxLength={10}
-                                sanitizeText={sanitizeCurrencyInput}
-                                value={verifiedAmountInput}
-                                onChangeText={(val: string | Date | null) => setVerifiedAmountInput(sanitizeCurrencyInput(String(val || '')))}
-                            />
-
-                            {/* Reference Number Input */}
-                            <CustomTextInput
-                                label="REF Code *"
-                                placeholder="e.g. GCash / Maya Ref Code"
-                                value={referenceNumber}
-                                maxLength={60}
-                                sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
-                                onChangeText={(val: string | Date | null) => setReferenceNumber(stripEmojis(String(val || '')).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 60))}
-                            />
-
-                            {/* Note Input */}
-                            <CustomTextInput
-                                label="Note (Optional)"
-                                placeholder="e.g. Verified on GCash or notes..."
-                                value={adminNote}
-                                maxLength={120}
-                                sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
-                                onChangeText={(val: string | Date | null) => setAdminNote(stripEmojis(String(val || '')).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 120))}
-                            />
-
-                            {/* Live calculation feedback banner */}
-                            {isValidAmount && (
-                                <View style={[
-                                    styles.calcFeedbackBox, 
-                                    isOverpaid 
-                                        ? styles.calcFeedbackOverpaid
-                                        : (isFullSettlement ? styles.calcFeedbackFull : styles.calcFeedbackPartial)
-                                ]}>
-                                    <CustomIcon 
-                                        library="Feather" 
-                                        name={isOverpaid ? "alert-triangle" : (isFullSettlement ? "check-circle" : "info")} 
-                                        size={14} 
-                                        color={isOverpaid ? '#D97706' : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT)} 
-                                        style={{ marginTop: 2 }}
-                                    />
-                                    <CustomText style={[
-                                        styles.calcFeedbackText, 
-                                        { color: isOverpaid ? '#D97706' : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT) }
-                                    ]}>
-                                        {isOverpaid 
-                                            ? `Overpayment Detected: Hiker sent ₱${parsedAmount.toFixed(2)} for ₱${remainingBal.toFixed(2)} balance. ₱${excessAmount.toFixed(2)} excess refund will be initiated.`
-                                            : (isFullSettlement 
-                                                ? `Full payment verified. Booking will be marked Completed.` 
-                                                : `Downpayment verified. Remaining balance to collect: ₱${remainingAfterVerification.toFixed(2)}`)}
+                        {/* Right Column: If captured, show verified details & Edit/Revert. If pending/rejected, show inputs */}
+                        {isCaptured && manualPayment ? (
+                            <View style={styles.verifiedInfoColumn}>
+                                <View style={styles.verifiedHeaderPill}>
+                                    <CustomIcon library="Feather" name="check-circle" size={14} color={Colors.SUCCESS} />
+                                    <CustomText style={styles.verifiedHeaderPillText}>
+                                        {manualPayment.classification === 'downpayment' ? 'Downpayment Verified' : 'Full Payment Verified'}
                                     </CustomText>
                                 </View>
-                            )}
-                        </View>
+
+                                <View style={styles.verifiedDataCard}>
+                                    <View style={styles.verifiedDataRow}>
+                                        <CustomText style={styles.verifiedDataLabel}>Amount:</CustomText>
+                                        <CustomText style={styles.verifiedDataAmount}>
+                                            ₱{manualPayment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </CustomText>
+                                    </View>
+                                    <View style={styles.verifiedDataRow}>
+                                        <CustomText style={styles.verifiedDataLabel}>Reference:</CustomText>
+                                        <CustomText style={styles.verifiedDataValue} selectable={true}>
+                                            {manualRefCode}
+                                        </CustomText>
+                                    </View>
+                                    {Boolean(manualNote) && (
+                                        <View style={styles.verifiedDataRowStacked}>
+                                            <CustomText style={styles.verifiedDataLabel}>Admin Note:</CustomText>
+                                            <CustomText style={styles.verifiedDataNote}>
+                                                {manualNote}
+                                            </CustomText>
+                                        </View>
+                                    )}
+                                </View>
+
+                                <View style={styles.verifiedActionsRow}>
+                                    {onEditPayment && (
+                                        <CustomButton
+                                            title="Edit Details"
+                                            variant="outline"
+                                            size="sm"
+                                            icon="edit-3"
+                                            iconLibrary="Feather"
+                                            onPress={() => setShowEditModal(true)}
+                                            disabled={isProcessing}
+                                            style={styles.verifiedActionBtn}
+                                        />
+                                    )}
+                                    {onRevertPayment && (
+                                        <CustomButton
+                                            title="Revert"
+                                            variant="outline"
+                                            size="sm"
+                                            icon="rotate-ccw"
+                                            iconLibrary="Feather"
+                                            iconColor="#D97706"
+                                            textStyle={{ color: '#D97706' }}
+                                            onPress={() => {
+                                                setIsRejectionRevert(false);
+                                                setShowRevertModal(true);
+                                            }}
+                                            disabled={isProcessing}
+                                            style={styles.verifiedActionBtn}
+                                        />
+                                    )}
+                                </View>
+                            </View>
+                        ) : (
+                            /* Normal Input Column for Pending Review */
+                            <View style={styles.inputsColumn}>
+                                {/* Amount Input */}
+                                <CustomTextInput
+                                    label="Amount (₱) *"
+                                    placeholder="Enter verified amount..."
+                                    type="numerical"
+                                    prefix="₱ "
+                                    maxLength={10}
+                                    sanitizeText={sanitizeCurrencyInput}
+                                    value={verifiedAmountInput}
+                                    onChangeText={(val: string | Date | null) => setVerifiedAmountInput(sanitizeCurrencyInput(String(val || '')))}
+                                />
+
+                                {/* Reference Number Input */}
+                                <CustomTextInput
+                                    label="REF Code *"
+                                    placeholder="e.g. GCash / Maya Ref Code"
+                                    value={referenceNumber}
+                                    maxLength={60}
+                                    sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
+                                    onChangeText={(val: string | Date | null) => setReferenceNumber(stripEmojis(String(val || '')).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 60))}
+                                />
+
+                                {/* Note Input */}
+                                <CustomTextInput
+                                    label="Note (Optional)"
+                                    placeholder="e.g. Verified on GCash or notes..."
+                                    value={adminNote}
+                                    maxLength={120}
+                                    sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
+                                    onChangeText={(val: string | Date | null) => setAdminNote(stripEmojis(String(val || '')).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 120))}
+                                />
+
+                                {/* Live calculation feedback banner */}
+                                {isValidAmount && (
+                                    <View style={[
+                                        styles.calcFeedbackBox, 
+                                        isOverpaid 
+                                            ? styles.calcFeedbackOverpaid
+                                            : (isFullSettlement ? styles.calcFeedbackFull : styles.calcFeedbackPartial)
+                                    ]}>
+                                        <CustomIcon 
+                                            library="Feather" 
+                                            name={isOverpaid ? "alert-triangle" : (isFullSettlement ? "check-circle" : "info")} 
+                                            size={14} 
+                                            color={isOverpaid ? '#D97706' : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT)} 
+                                            style={{ marginTop: 2 }}
+                                        />
+                                        <CustomText style={[
+                                            styles.calcFeedbackText, 
+                                            { color: isOverpaid ? '#D97706' : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT) }
+                                        ]}>
+                                            {isOverpaid 
+                                                ? `Overpayment Detected: Hiker sent ₱${parsedAmount.toFixed(2)} for ₱${remainingBal.toFixed(2)} balance. ₱${excessAmount.toFixed(2)} excess refund will be initiated.`
+                                                : (isFullSettlement 
+                                                    ? `Full payment verified. Booking will be marked Completed.` 
+                                                    : `Downpayment verified. Remaining balance to collect: ₱${remainingAfterVerification.toFixed(2)}`)}
+                                        </CustomText>
+                                    </View>
+                                )}
+                            </View>
+                        )}
                     </View>
 
-                    {/* Bottom Action Row: REJECT & VERIFY */}
-                    {!isRejecting && (
+                    {/* Bottom Action Row: REJECT & VERIFY (only when not captured) */}
+                    {!isCaptured && !isRejecting && (
                         <View style={styles.actionButtonsRow}>
                             <CustomButton
                                 title="REJECT"
@@ -449,7 +555,7 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                     )}
 
                     {/* Inline Rejection Reason Form */}
-                    {isRejecting && (
+                    {!isCaptured && isRejecting && (
                         <View style={styles.rejectionSection}>
                             <CustomFeedbackInput
                                 label="Reason for Rejection *"
@@ -509,6 +615,40 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                     visible={overpaymentProofPreview}
                     imageUrl={booking.overpayment.adminRefundReceiptUrl}
                     onClose={() => setOverpaymentProofPreview(false)}
+                />
+            )}
+
+            {/* Admin Edit Payment Modal */}
+            {manualPayment && onEditPayment && (
+                <AdminEditPaymentModal
+                    visible={showEditModal}
+                    onClose={() => setShowEditModal(false)}
+                    payment={manualPayment}
+                    paymentIndex={manualPaymentIndex}
+                    booking={booking}
+                    onConfirm={async (options) => {
+                        await onEditPayment(options);
+                    }}
+                    isSubmitting={isProcessing}
+                />
+            )}
+
+            {/* Admin Revert Payment Modal */}
+            {onRevertPayment && (
+                <AdminRevertPaymentModal
+                    visible={showRevertModal}
+                    onClose={() => {
+                        setShowRevertModal(false);
+                        setIsRejectionRevert(false);
+                    }}
+                    payment={manualPayment}
+                    paymentIndex={manualPaymentIndex}
+                    booking={booking}
+                    isRejectionRevert={isRejectionRevert}
+                    onConfirm={async (options) => {
+                        await onRevertPayment(options);
+                    }}
+                    isSubmitting={isProcessing}
                 />
             )}
         </View>
@@ -818,6 +958,95 @@ const styles = StyleSheet.create({
     },
     uploadProofBtn: {
         marginTop: 6,
+    },
+    revertRejectionBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingVertical: 5,
+        paddingHorizontal: 9,
+        borderRadius: 6,
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_CANCELLED_TEXT,
+        alignSelf: 'center',
+    },
+    revertRejectionBtnText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: Colors.STATUS_CANCELLED_TEXT,
+    },
+    verifiedInfoColumn: {
+        flex: 1,
+        gap: 10,
+        width: '100%',
+    },
+    verifiedHeaderPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: '#F0FDF4',
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#BBF7D0',
+        alignSelf: 'flex-start',
+    },
+    verifiedHeaderPillText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: Colors.SUCCESS,
+    },
+    verifiedDataCard: {
+        backgroundColor: '#F8FAFC',
+        borderRadius: 10,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        gap: 8,
+    },
+    verifiedDataRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    verifiedDataLabel: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '500',
+    },
+    verifiedDataAmount: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+    },
+    verifiedDataValue: {
+        fontSize: 12.5,
+        fontWeight: '600',
+        color: Colors.TEXT_PRIMARY,
+    },
+    verifiedDataRowStacked: {
+        gap: 3,
+        marginTop: 2,
+    },
+    verifiedDataNote: {
+        fontSize: 12,
+        color: Colors.TEXT_PRIMARY,
+        fontStyle: 'italic',
+        backgroundColor: Colors.WHITE,
+        padding: 6,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    verifiedActionsRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 2,
+    },
+    verifiedActionBtn: {
+        flex: 1,
     },
 });
 
