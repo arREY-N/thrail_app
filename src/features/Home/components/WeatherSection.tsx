@@ -150,12 +150,29 @@ const WeatherSection = ({
           <CustomIcon
             library="Ionicons"
             name="location-outline"
-            size={32}
+            size={36}
             color={Colors.GRAY_MEDIUM}
           />
-          <CustomText variant="caption" style={styles.emptyStateText}>
-            Location services disabled or weather stats unavailable.
+          <CustomText style={styles.emptyStateTitle}>
+            Location Weather Unavailable
           </CustomText>
+          <CustomText variant="caption" style={styles.emptyStateText}>
+            Enable device location or set a valid address in your profile to view local weather.
+          </CustomText>
+          {onReload && (
+            <Pressable
+              onPress={onReload}
+              style={({ hovered }) => [
+                styles.retryPill,
+                hovered && styles.retryPillHovered,
+              ]}
+            >
+              <CustomIcon library="Feather" name="refresh-cw" size={12} color={Colors.PRIMARY} />
+              <CustomText variant="caption" style={styles.retryPillText}>
+                Refresh Location
+              </CustomText>
+            </Pressable>
+          )}
         </View>
       </View>
     );
@@ -337,11 +354,37 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         paddingHorizontal: 16,
     },
+    emptyStateTitle: {
+        color: Colors.TEXT_PRIMARY,
+        fontSize: 15,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
     emptyStateText: {
         color: Colors.TEXT_SECONDARY,
         fontWeight: '500',
         textAlign: 'center',
         paddingHorizontal: 16,
+    },
+    retryPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: Colors.WHITE,
+        borderColor: Colors.PRIMARY,
+        borderWidth: 1,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        marginTop: 4,
+    },
+    retryPillHovered: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+    },
+    retryPillText: {
+        color: Colors.PRIMARY,
+        fontWeight: '600',
+        fontSize: 12,
     },
     headerMetaRow: {
         flexDirection: 'row',
