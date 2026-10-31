@@ -160,6 +160,10 @@ export const getPAGASARainfallWarning = (
     const isThunderstorm = weatherCode === 95 || weatherCode === 96;
     const isHeavyRainCode = weatherCode === 65 || weatherCode === 82;
 
+    /* =========================================================================
+     * PAGASA COLOR-CODED HEAVY RAINFALL WARNING SYSTEM (TEMPORARILY COMMENTED OUT)
+     * Uncomment this block whenever you wish to re-enable official PAGASA Yellow/Orange/Red badges.
+     * =========================================================================
     // 1. RED WARNING: Torrential rain (PAGASA > 30 mm/h, extreme hail storm with intense rain >= 15 mm/h, or heavy flood accumulation >= 100 mm with active rain)
     if (rate >= 30 || (isExtremeHailStorm && rate >= 15) || (accumulatedMm >= 100 && prob >= 60 && rate >= 10)) {
         return {
@@ -194,17 +198,49 @@ export const getPAGASARainfallWarning = (
             alertLevel: 'warning',
         };
     }
+    ========================================================================= */
 
-    // 4. LIGHT / MODERATE / PASSING SHOWERS (< 7.5 mm/h or < 25 mm daily accumulation)
-    if (prob >= 60 || rate >= 2.5) {
+    // 1. Torrential / Severe Rain / Hailstorm
+    if (rate >= 30 || (isExtremeHailStorm && rate >= 15)) {
         return {
-            warningLevel: 'NORMAL',
-            badge: 'Rain Likely',
-            description: 'Passing or moderate showers expected. Trails may be slippery.',
+            warningLevel: 'RED',
+            badge: 'Torrential Rain',
+            description: 'Torrential rain (>30 mm/h). High flood and mudslide hazard. Do not proceed on exposed ridges.',
+            alertLevel: 'danger',
+        };
+    }
+
+    // 2. Intense / Heavy Rainfall
+    if (rate >= 7.5 || isHeavyRainCode) {
+        return {
+            warningLevel: 'YELLOW',
+            badge: 'Heavy Rain',
+            description: 'Heavy rainfall observed or expected. Trails may be slippery and prone to runoff.',
             alertLevel: 'warning',
         };
     }
 
+    // 3. Thunderstorm / Convective Storm Risk
+    if (isThunderstorm) {
+        return {
+            warningLevel: 'YELLOW',
+            badge: 'Thunderstorm Risk',
+            description: 'Thunderstorm activity detected. Avoid open summits and metallic gear exposure.',
+            alertLevel: 'warning',
+        };
+    }
+
+    // 4. Rain Likely (moderate chance or moderate rate)
+    if (prob >= 50 || rate >= 2.5) {
+        return {
+            warningLevel: 'NORMAL',
+            badge: 'Rain Likely',
+            description: 'Passing or moderate showers expected. Waterproof gear advised.',
+            alertLevel: 'warning',
+        };
+    }
+
+    // 5. Passing / Scattered Showers
     if (prob >= 30 || rate > 0) {
         return {
             warningLevel: 'NORMAL',
@@ -309,7 +345,7 @@ export const getBeaufortWindInfo = (
     } else if (effectiveSpeed >= 6) {
         scale = 'Light Breeze';
         alertLevel = 'normal';
-        observedDescription = 'Wind felt softly on exposed face and skin. Leaves rustle gently.';
+        observedDescription = 'Gentle, refreshing breeze. Leaves rustle softly.';
     } else if (effectiveSpeed >= 1) {
         scale = 'Light Air';
         alertLevel = 'normal';
@@ -970,17 +1006,8 @@ export const formatLastUpdatedLabel = (lastUpdated: string | undefined | null): 
 };
 
 // ─── TRAIL WEATHER BADGE HELPERS ──────────────────────────────────────────────
-// Replaces the identical MOUNTAIN_COORDS, resolveCoordsForTrail, and
+// Replaces the identical resolveCoordsForTrail and
 // Promise.allSettled fetch-and-map logic duplicated in HomeScreen and ExploreScreen.
-
-/** Known mountain coordinates for trail weather lookups. */
-export const MOUNTAIN_COORDS: Record<string, { lat: number; lon: number }> = {
-    tagapo: { lat: 14.3392772, lon: 121.2325293 },
-    marami: { lat: 14.1986108, lon: 120.6858334 },
-    batulao: { lat: 14.0399434, lon: 120.8023782 },
-    makiling: { lat: 14.1352241, lon: 121.1944517 },
-    maculot: { lat: 13.9208682, lon: 121.0516961 },
-};
 
 /** Weather badge data for a single trail, ready to pass to MountainCard. */
 export interface TrailWeatherBadge {
@@ -989,19 +1016,75 @@ export interface TrailWeatherBadge {
 }
 
 /**
- * Resolves known mountain coordinates from a trail object's name.
- *
- * @param trail - A trail object with `general.name`
- * @returns Coordinates or null if no known mountain matches
+ * Structural interface for mountain/trail objects containing coordinates or elevation.
+ */
+export interface TrailCoordinateSource {
+    geography?: {
+        startLat?: number;
+        startLong?: number;
+        start?: { latitude?: number; longitude?: number };
+        masl?: number;
+    };
+    difficulty?: {
+        elevation?: number;
+        gain?: number;
+    };
+    coordinates?: { latitude?: number; longitude?: number; lat?: number; lon?: number };
+    general?: {
+        name?: string;
+        coordinates?: { latitude?: number; longitude?: number; lat?: number; lon?: number };
+    };
+    name?: string;
+}
+
+/**
+ * Resolves mountain coordinates dynamically from a trail object's database records.
+ * Checks geography start point and direct coordinates.
  */
 export const resolveCoordsForTrail = (
-    trail: { general?: { name?: string } }
+    trail?: TrailCoordinateSource | null
 ): { lat: number; lon: number } | null => {
-    const name = (trail?.general?.name ?? "").toLowerCase();
-    for (const [keyword, coords] of Object.entries(MOUNTAIN_COORDS)) {
-        if (name.includes(keyword)) return coords;
+    if (!trail) return null;
+
+    // 1. Direct geography UI properties (startLat, startLong)
+    if (typeof trail.geography?.startLat === 'number' && typeof trail.geography?.startLong === 'number') {
+        return { lat: trail.geography.startLat, lon: trail.geography.startLong };
     }
+
+    // 2. Firestore GeoPoint object on geography.start
+    const geoStart = trail.geography?.start;
+    if (geoStart && typeof geoStart.latitude === 'number' && typeof geoStart.longitude === 'number') {
+        return { lat: geoStart.latitude, lon: geoStart.longitude };
+    }
+
+    // 3. Direct coordinates object
+    const coords = trail.coordinates || trail.general?.coordinates;
+    if (coords) {
+        const lat = typeof coords.latitude === 'number' ? coords.latitude : coords.lat;
+        const lon = typeof coords.longitude === 'number' ? coords.longitude : coords.lon;
+        if (typeof lat === 'number' && typeof lon === 'number') {
+            return { lat, lon };
+        }
+    }
+
     return null;
+};
+
+/**
+ * Resolves mountain summit elevation (in meters) from trail records.
+ */
+export const getTrailElevation = (trail?: TrailCoordinateSource | null): number | undefined => {
+    if (!trail) return undefined;
+    if (typeof trail.geography?.masl === 'number' && trail.geography.masl > 0) {
+        return trail.geography.masl;
+    }
+    if (typeof trail.difficulty?.elevation === 'number' && trail.difficulty.elevation > 0) {
+        return trail.difficulty.elevation;
+    }
+    if (typeof trail.difficulty?.gain === 'number' && trail.difficulty.gain > 0) {
+        return trail.difficulty.gain;
+    }
+    return undefined;
 };
 
 /**
