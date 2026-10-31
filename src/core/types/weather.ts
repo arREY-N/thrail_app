@@ -30,9 +30,11 @@ export interface WeatherApiResponse {
         temperature_2m: number[];
         precipitation_probability: number[];
         windspeed_10m: number[];
+        wind_speed_10m?: number[];
         winddirection_10m: number[];
         relativehumidity_2m: number[];
         weathercode: number[];
+        weather_code?: number[];
         apparent_temperature: number[];
         visibility: number[];
         windgusts_10m: number[];
@@ -44,10 +46,12 @@ export interface WeatherApiResponse {
         temperature_2m_min: number[];
         precipitation_sum: number[];
         windspeed_10m_max: number[];
+        wind_speed_10m_max?: number[];
         uv_index_max: number[];
         sunrise: string[];
         sunset: string[];
         weathercode: number[];
+        weather_code?: number[];
         precipitation_probability_max: number[];
         windgusts_10m_max: number[];
     };
