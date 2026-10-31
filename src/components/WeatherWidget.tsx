@@ -32,6 +32,7 @@ import { useWeather } from '../hooks/useWeather';
 interface WeatherWidgetProps {
     latitude: number;
     longitude: number;
+    elevation?: number;
     trailName?: string;
     showSafetyCard?: boolean;
 }
@@ -89,11 +90,14 @@ const BentoBox: React.FC<BentoBoxProps> = ({
     const isMultiColumn = isDesktop || isTablet;
 
     return (
-        <View style={[
-            styles.bentoBox,
-            isTablet && styles.bentoBoxTablet,
-            isDesktop && styles.bentoBoxDesktop
-        ]}>
+        <View 
+            style={[
+                styles.bentoBox,
+                isTablet && styles.bentoBoxTablet,
+                isDesktop && styles.bentoBoxDesktop
+            ]}
+            {...(Platform.OS === 'web' ? { title: desc } : {})}
+        >
             <View style={styles.bentoHeader}>
                 <CustomIcon library={lib} name={icon} size={16} color={iconColor} />
                 <CustomText variant="caption" style={styles.bentoTitle} numberOfLines={1}>
@@ -129,7 +133,7 @@ const BentoBox: React.FC<BentoBoxProps> = ({
             </View>
 
             <View style={styles.bentoBottom}>
-                <CustomText variant="caption" style={styles.bentoDesc} numberOfLines={2}>
+                <CustomText variant="caption" style={styles.bentoDesc} numberOfLines={isDesktop ? 3 : 2}>
                     {desc}
                 </CustomText>
             </View>
@@ -140,10 +144,11 @@ const BentoBox: React.FC<BentoBoxProps> = ({
 const WeatherWidget: React.FC<WeatherWidgetProps> = ({
     latitude,
     longitude,
+    elevation,
     trailName,
     showSafetyCard = true,
 }) => {
-    const { weatherData: data, error } = useWeather(latitude, longitude);
+    const { weatherData: data, error } = useWeather(latitude, longitude, elevation);
     const { isDesktop, isTablet } = useBreakpoints();
     const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
 
@@ -778,7 +783,7 @@ const styles = StyleSheet.create({
     bentoGrid: { 
         flexDirection: 'row', 
         flexWrap: 'wrap', 
-        justifyContent: 'space-between', 
+        justifyContent: 'flex-start', 
         gap: 12, 
         marginBottom: 24,
     },
@@ -787,7 +792,7 @@ const styles = StyleSheet.create({
         borderRadius: 18, 
         padding: 16, 
         width: '100%', 
-        minHeight: 120, 
+        minHeight: 125, 
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -796,12 +801,12 @@ const styles = StyleSheet.create({
         ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }), 
     },
     bentoBoxTablet: {
-        width: '48%',
-        minHeight: 150,
+        width: '48.5%',
+        minHeight: 155,
     },
     bentoBoxDesktop: {
-        width: '23.5%',
-        minHeight: 155,
+        width: '31.8%',
+        minHeight: 160,
     },
     bentoHeader: { 
         flexDirection: 'row', 
