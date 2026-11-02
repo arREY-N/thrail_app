@@ -322,6 +322,7 @@ const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
                 getBookOffer={getBookOffer}
                 availableFutureOffers={availableFutureOffers}
                 userBookings={userBookings}
+                onSelectBooking={handleBookingSelectPress}
                 onBackPress={handleHeaderBackPress}
                 onProceedToPayment={handleProceedToPaymentPress}
                 onViewReceipt={handleViewReceiptPress}
