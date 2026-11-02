@@ -22,7 +22,19 @@ src/
         │   └── Tutorial.types.ts                 <- TutorialTourId, TargetSpotlightType, TutorialStep, TutorialTourConfig
         │
         ├── hooks/                                <- State management & 3-tier persistence
-        │   └── useTutorialGuide.ts               <- Hook managing Firestore + session cache + AsyncStorage per uid
+        │   ├── useTutorialGuide.ts               <- Core engine managing Firestore + session cache + AsyncStorage
+        │   │
+        │   ├── booking/                          <- Booking domain screen orchestration hooks
+        │   │   ├── useBookingTutorial.ts         <- Booking wizard walkthrough (Controller, Offers, Details, Status)
+        │   │   └── useMyBookingDetailsTutorial.ts <- Booking details pass walkthrough (Logistics -> Tracker -> Docs -> Payment)
+        │   │
+        │   ├── navigation/                       <- Navigation & Hike screen orchestration hooks
+        │   │   ├── useNavigationTutorial.ts      <- Navigation lobby walkthrough with permission sequencing
+        │   │   ├── useHikeRecordingTutorial.ts   <- Live hike recording HUD & GPS walkthrough
+        │   │   └── useWriteReviewTutorial.ts     <- 2-Phase post-hike review creation walkthrough
+        │   │
+        │   └── payment/                          <- Payment flow screen orchestration hooks
+        │       └── usePaymentTutorial.ts         <- Payment method, manual QR, & status walkthroughs
         │
         ├── utils/                                <- Demand-driven 2D coordinate registries
         │   ├── tutorialLayoutRegistry.ts         <- Window coordinate registry (measureInWindow) for screen targets
@@ -56,6 +68,19 @@ import {
     CustomTutorialModal,
     TutorialHelpButton,
     useTutorialGuide,
+    // Feature-specific screen walkthrough hooks
+    useNavigationTutorial,
+    useHikeRecordingTutorial,
+    useWriteReviewTutorial,
+    usePaymentTutorial,
+    useManualQRMethodTutorial,
+    usePaymentStatusTutorial,
+    useBookingTutorial,
+    useBookingOffersTutorial,
+    useBookingDetailsTutorial,
+    useBookingStatusTutorial,
+    useMyBookingDetailsTutorial,
+    // Layout registries & types
     isTutorialMeasurementActive,
     registerTutorialLayout,
     registerMeasureCallback,
@@ -65,6 +90,23 @@ import {
     type TargetSpotlightType,
 } from '@/src/components/Tutorial/Tutorial';
 ```
+
+---
+
+### Anti-Circular Import Rule (Mandatory for Internal Files)
+
+- **External Consumers (Screens, Controllers, Components):** MUST import exclusively through the public facade (`@/src/components/Tutorial/Tutorial`).
+- **Internal Module Files (`src/components/Tutorial/hooks/**`, `constants/**`, `utils/**`):** MUST NEVER import from `@/src/components/Tutorial/Tutorial`.
+  - Re-exporting an internal hook from `Tutorial.ts` while that hook imports from `Tutorial.ts` causes a **Metro Bundler Require Cycle**:
+
+```text
+Require cycle: src/components/Tutorial/Tutorial.ts -> src/components/Tutorial/hooks/... -> src/components/Tutorial/Tutorial.ts
+```
+
+- Internal files must always import directly from concrete sibling files:
+  - `useTutorialGuide` ➡️ `@/src/components/Tutorial/hooks/useTutorialGuide`
+  - Layout registries ➡️ `@/src/components/Tutorial/utils/tutorialLayoutRegistry`
+  - Types & contracts ➡️ `@/src/components/Tutorial/interfaces/Tutorial.types`
 
 ---
 
@@ -360,3 +402,28 @@ Use this diagnostic table whenever fixing or auditing a tutorial on any screen o
 | **Target coordinates don't update when dynamic data loads after mount** | Target rendered after initial mount or changed size without re-registering its layout. | Keep `onLayout={handleTargetLayout}` (guarded by `isTutorialMeasurementActive()`) on the target `<View>` AND register `registerMeasureCallback(id, measureNow)` in `useEffect`. |
 | **Spotlight key mismatch between tour step and component** | Tour step uses an alias or different key than `registerTutorialLayout`. | Verify `targetSpotlight` in `constants/*Tour.ts` matches the exact key passed to `registerTutorialLayout` and `registerMeasureCallback` (or check `CANONICAL_KEY_ALIASES` in `tutorialLayoutRegistry.ts`). |
 | **Conditional UI tabs or modal modes show wrong tutorial steps** | Static tour config in `TUTORIAL_TOURS` doesn't reflect active tab or modal mode (`unified` vs `emergencyOnly`, `documents` vs `payment`). | Pass the appropriate step array as the 3rd argument (`overrideSteps`) to `useTutorialGuide(tourId, enabled, activeSteps)`. |
+| **Metro Warning: `Require cycle: Tutorial.ts -> useXxxTutorial.ts -> Tutorial.ts`** | An internal hook in `hooks/**` imported from its own parent facade (`Tutorial.ts`). | Update the hook to import directly from `hooks/useTutorialGuide`, `utils/tutorialLayoutRegistry`, or `interfaces/Tutorial.types`. |
+| **Tooltip card teleports, flashes, or stutters during step transitions or autoscroll** | Card used non-native opacity snaps and repositioned while visible during scroll animation. | Two-Phase Micro-Transition in `CustomTutorialModal.tsx`: fast 75ms exit (native driver transform/opacity), invisible repositioning, autoscroll settle gate (130ms), and 180ms ease-out bloom reveal. |
+
+---
+
+## 8. Feature Walkthrough & Screen Hook Directory
+
+To maintain clean feature separation and prevent screen clutter, complex screens encapsulate their element refs, `measureInWindow` callbacks, permission gates, and auto-scrolling into domain-scoped hooks under `src/components/Tutorial/hooks/`:
+
+| Feature Domain | Screen File | Hook Path & Export | Responsibilities |
+| :--- | :--- | :--- | :--- |
+| **Booking** | `BookingScreen.tsx` | `hooks/booking/useBookingTutorial.ts` (`useBookingTutorial`) | Wizard controller switching between offers, details, and status tours |
+| **Booking** | `OffersScreen.tsx` | `hooks/booking/useBookingTutorial.ts` (`useBookingOffersTutorial`) | Step 1 offer card measurement, calendar scroll, and reset selection |
+| **Booking** | `DetailsScreen.tsx` | `hooks/booking/useBookingTutorial.ts` (`useBookingDetailsTutorial`) | Step 2 contact card, first document card, and terms section measurement |
+| **Booking** | `StatusScreen.tsx` | `hooks/booking/useBookingTutorial.ts` (`useBookingStatusTutorial`) | Step 3 status outcome timeline and summary card measurement |
+| **Booking** | `BookingDetailsScreen.tsx` | `hooks/booking/useMyBookingDetailsTutorial.ts` (`useMyBookingDetailsTutorial`) | Live 4-step status tracker, document replacement, accordions, and checkout summary measurement |
+| **Navigation** | `NavigationScreen.tsx` | `hooks/navigation/useNavigationTutorial.ts` (`useNavigationTutorial`) | Location permission settling gate, booked vs DIY dynamic steps, search bar & card measurement |
+| **Navigation** | `HikeRecordingScreen.tsx` | `hooks/navigation/useHikeRecordingTutorial.ts` (`useHikeRecordingTutorial`) | Unhiked status gating, GPS & HUD metrics HUD measurement, SOS & chat buttons |
+| **Navigation** | `WriteReviewScreen.tsx` | `hooks/navigation/useWriteReviewTutorial.ts` (`useWriteReviewTutorial`) | 2-Phase wizard walkthrough (Step 0: Star Ratings & Step 1: Photos & Tips) |
+| **Payment** | `PaymentScreen.tsx` | `hooks/payment/usePaymentTutorial.ts` (`usePaymentTutorial`) | Parent payment flow controller, status polling gating, first-time vs resubmit steps |
+| **Payment** | `ManualQRMethodScreen.tsx` | `hooks/payment/usePaymentTutorial.ts` (`useManualQRMethodTutorial`) | QR instructions, receipt upload, bidirectional section auto-scroll & settle timers |
+| **Payment** | `StatusScreen.tsx` | `hooks/payment/usePaymentTutorial.ts` (`usePaymentStatusTutorial`) | Transaction verification timeline, receipt card spotlight, post-scroll re-measurement |
+| **Home** | `HomeScreen.tsx` | `hooks/home/useHomeTutorial.ts` (`useHomeTutorial`) | Mobile 5-Tabs (bottom bar) / Web Navigation sidebar drawer walkthrough |
+| **Modals** | `LegalTermsModal.tsx` | `hooks/modals/useLegalTermsTutorial.ts` (`useLegalTermsTutorial`) | Terms, Privacy & Booking policy tab measurement and scroll-to-bottom acknowledgment |
+| **Modals** | `EmergencyModal.tsx` | `hooks/modals/useEmergencyModalTutorial.ts` (`useEmergencyModalTutorial`) | Primary phone verification, contact account search, manual form, and dynamic steps |
