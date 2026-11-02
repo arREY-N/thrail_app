@@ -30,6 +30,7 @@ const init = {
 
 // In-memory cache validity: 60 minutes (aligned with AsyncStorage disk cache)
 const MEMORY_CACHE_TTL_MS = 60 * 60 * 1000;
+const MAX_WEATHER_CACHE_ENTRIES = 25;
 
 const isMemoryCacheFresh = (lastUpdated?: string, item?: ProcessedWeatherData): boolean => {
     if (!lastUpdated || !item || !item.hourlyForecast || item.hourlyForecast.length === 0) return false;
@@ -77,14 +78,24 @@ export const useWeatherStore = create<WeatherState>()((set, get) => ({
             try {
                 const weatherData = await fetchWeatherFromApi(lat, lon, elevation);
                 
-                set((state) => ({
-                    data: {
-                        ...state.data,
-                        [key]: weatherData
-                    },
-                    loadingStates: { ...state.loadingStates, [key]: false },
-                    isLoading: false,
-                }));
+                set((state) => {
+                    const nextData = { ...state.data };
+                    // Re-insert key so it moves to the end of insertion order (LRU)
+                    delete nextData[key];
+                    nextData[key] = weatherData;
+
+                    const keys = Object.keys(nextData);
+                    if (keys.length > MAX_WEATHER_CACHE_ENTRIES) {
+                        const oldestKey = keys[0];
+                        delete nextData[oldestKey];
+                    }
+
+                    return {
+                        data: nextData,
+                        loadingStates: { ...state.loadingStates, [key]: false },
+                        isLoading: false,
+                    };
+                });
 
             } catch (err) {
                 const errMsg = (err as Error).message ?? 'Failed loading weather data';
