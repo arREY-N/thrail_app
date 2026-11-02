@@ -1,12 +1,12 @@
 import { Colors } from '@/src/constants/colors';
 
 const SemanticColors = {
-    ACTION:  { bg: Colors.STATUS_APPROVED_BG, text: Colors.PRIMARY },             
-    SUCCESS: { bg: Colors.PRIMARY, text: Colors.WHITE },             
-    INFO:    { bg: Colors.STATUS_PENDING_BG, text: Colors.STATUS_PENDING_TEXT }, 
-    WAITING: { bg: Colors.STATUS_PENDING_BG, text: Colors.STATUS_PENDING_TEXT }, 
-    WARNING: { bg: Colors.STATUS_WARNING_BG, text: Colors.STATUS_WARNING_TEXT },   
-    ERROR:   { bg: Colors.ERROR_BG, text: Colors.ERROR }                          
+    ACTION:  { bg: Colors.STATUS_APPROVED_BG, text: Colors.PRIMARY, border: Colors.STATUS_APPROVED_BORDER },             
+    SUCCESS: { bg: Colors.STATUS_APPROVED_BG, text: Colors.PRIMARY, border: Colors.STATUS_APPROVED_BORDER },             
+    INFO:    { bg: Colors.STATUS_PENDING_BG, text: Colors.STATUS_PENDING_TEXT, border: Colors.STATUS_PENDING_BORDER }, 
+    WAITING: { bg: Colors.STATUS_PENDING_BG, text: Colors.STATUS_PENDING_TEXT, border: Colors.STATUS_PENDING_BORDER }, 
+    WARNING: { bg: Colors.STATUS_WARNING_BG, text: Colors.STATUS_WARNING_TEXT, border: Colors.STATUS_WARNING_BORDER },   
+    ERROR:   { bg: Colors.ERROR_BG, text: Colors.ERROR, border: Colors.ERROR_BORDER }                          
 } as const;
 
 export type SemanticColorType = keyof typeof SemanticColors;
@@ -35,6 +35,16 @@ export const STATUS_UI_CONFIG = {
     'verifying-payment': {
         userLabel: 'VERIFYING PAYMENT', userType: 'INFO',
         adminLabel: 'VERIFY PAYMENT', adminType: 'ACTION',
+        icon: 'clock'
+    },
+    'payment-rejected': {
+        userLabel: 'PAYMENT REJECTED', userType: 'ERROR',
+        adminLabel: 'PAYMENT REJECTED', adminType: 'ERROR',
+        icon: 'alert-circle'
+    },
+    'awaiting-confirmation': {
+        userLabel: 'CONFIRMATION PENDING', userType: 'INFO',
+        adminLabel: 'CONFIRM BOOKING', adminType: 'ACTION',
         icon: 'clock'
     },
     'downpayment': {
@@ -92,6 +102,26 @@ export const STATUS_UI_CONFIG = {
         adminLabel: 'REFUNDING', adminType: 'WARNING',
         icon: 'refresh-ccw'
     },
+    'refund-disputed': {
+        userLabel: 'REFUND DISPUTED', userType: 'ERROR',
+        adminLabel: 'REFUND DISPUTED', adminType: 'ERROR',
+        icon: 'alert-triangle'
+    },
+    'awaiting-wallet': {
+        userLabel: 'SUBMIT WALLET', userType: 'ACTION',
+        adminLabel: 'AWAITING WALLET', adminType: 'WAITING',
+        icon: 'credit-card'
+    },
+    'awaiting-payout': {
+        userLabel: 'PAYOUT IN PROGRESS', userType: 'INFO',
+        adminLabel: 'DISBURSE PAYOUT', adminType: 'ACTION',
+        icon: 'refresh-ccw'
+    },
+    'overpayment-pending': {
+        userLabel: 'EXCESS PAYMENT', userType: 'WARNING',
+        adminLabel: 'REVIEW OVERPAYMENT', adminType: 'ACTION',
+        icon: 'dollar-sign'
+    },
     'refunded': {
         userLabel: 'REFUNDED', userType: 'ERROR',         
         adminLabel: 'REFUNDED', adminType: 'ERROR',
@@ -116,11 +146,12 @@ export interface StatusConfigResult {
     label: string;
     bgColor: string;
     textColor: string;
+    borderColor?: string;
     icon: string;
 }
 
 /**
- * Returns the exact Label, Background Color, Text Color, and Icon based on the user's role.
+ * Returns the exact Label, Background Color, Text Color, Border Color, and Icon based on the user's role.
  * @param {AppStatus | string | null | undefined} status - The raw status from the database.
  * @param {UserRole} role - 'user' or 'admin'. Defaults to 'user'.
  * @returns {StatusConfigResult} The UI configuration for the given status and role.
@@ -139,6 +170,7 @@ export const getStatusConfig = (
             label: status ? status.toUpperCase() : 'UNKNOWN', 
             bgColor: SemanticColors.INFO.bg,
             textColor: SemanticColors.INFO.text,
+            borderColor: SemanticColors.INFO.border,
             icon: 'help-circle' 
         };
     }
@@ -150,6 +182,7 @@ export const getStatusConfig = (
         label: role === 'admin' ? config.adminLabel : config.userLabel,
         bgColor: colors.bg,
         textColor: colors.text,
+        borderColor: colors.border,
         icon: config.icon
     };
 };
