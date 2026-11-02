@@ -371,7 +371,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
 
     const iconColor = isDirectCancellation || (isCancelledByAdmin && !isApproved) || isDeclined || isPending || isRefundDisputed
         ? Colors.ERROR
-        : (isApprovedWithoutRefund || isRefundComplete ? Colors.SUCCESS : '#B45309');
+        : (isApprovedWithoutRefund || isRefundComplete ? Colors.SUCCESS : Colors.STATUS_WARNING_TEXT);
 
     const subtitleText = isDirectCancellation
         ? 'Booking cancelled by Hiker. Reserved slot released.'
@@ -446,7 +446,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                             library="Feather"
                             name={isAwaitingRefundDecision ? "alert-circle" : "check"}
                             size={12}
-                            color={isAwaitingRefundDecision ? "#B45309" : Colors.SUCCESS}
+                            color={isAwaitingRefundDecision ? "Colors.STATUS_WARNING_TEXT" : Colors.SUCCESS}
                         />
                         <CustomText style={[
                             styles.approvedBadgeText,
@@ -869,7 +869,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                 isManualRefund ? (
                     <View style={styles.actionBanner}>
                         <View style={styles.actionBannerHeader}>
-                            <CustomIcon library="Feather" name="alert-circle" size={15} color="#B45309" />
+                            <CustomIcon library="Feather" name="alert-circle" size={15} color={Colors.STATUS_WARNING_TEXT} />
                             <CustomText style={styles.actionBannerTitle}>
                                 Action Required: Refund Decision
                             </CustomText>
@@ -908,7 +908,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                     (Boolean(onRefundClick) || Boolean(onCloseWithoutRefundClick)) && (
                         <View style={styles.actionBanner}>
                             <View style={styles.actionBannerHeader}>
-                                <CustomIcon library="Feather" name="alert-circle" size={15} color="#B45309" />
+                                <CustomIcon library="Feather" name="alert-circle" size={15} color={Colors.STATUS_WARNING_TEXT} />
                                 <CustomText style={styles.actionBannerTitle}>
                                     Action Required: Finalize Refund
                                 </CustomText>
@@ -1035,10 +1035,10 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     actionRequiredBadge: {
-        backgroundColor: '#FEF3C7',
+        backgroundColor: Colors.STATUS_WARNING_BG,
     },
     actionRequiredBadgeText: {
-        color: '#B45309',
+        color: Colors.STATUS_WARNING_TEXT,
     },
     headerSubtitle: {
         color: Colors.TEXT_SECONDARY,
@@ -1171,12 +1171,12 @@ const styles = StyleSheet.create({
         color: Colors.ERROR,
     },
     actionBanner: {
-        backgroundColor: '#FEF3C7',
+        backgroundColor: Colors.STATUS_WARNING_BG,
         borderRadius: 12,
         padding: 12,
         marginTop: 12,
         borderWidth: 1,
-        borderColor: '#FDE68A',
+        borderColor: Colors.STATUS_WARNING_BORDER,
     },
     actionBannerHeader: {
         flexDirection: 'row',
@@ -1187,11 +1187,11 @@ const styles = StyleSheet.create({
     actionBannerTitle: {
         fontSize: 13,
         fontWeight: 'bold',
-        color: '#92400E',
+        color: Colors.STATUS_WARNING_TEXT,
     },
     actionBannerSubtitle: {
         fontSize: 11,
-        color: '#92400E',
+        color: Colors.STATUS_WARNING_TEXT,
         lineHeight: 15,
         marginBottom: 10,
     },
@@ -1230,10 +1230,10 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
     },
     manualRefundAdminBox: {
-        backgroundColor: '#F0FDF4',
+        backgroundColor: Colors.STATUS_APPROVED_BG,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#BBF7D0',
+        borderColor: Colors.STATUS_APPROVED_BORDER,
         padding: 12,
         marginTop: 10,
     },
@@ -1246,11 +1246,11 @@ const styles = StyleSheet.create({
     manualRefundSuccessTitle: {
         fontSize: 13,
         fontWeight: 'bold',
-        color: '#166534',
+        color: Colors.PRIMARY,
     },
     manualRefundSubtitle: {
         fontSize: 11,
-        color: '#15803D',
+        color: Colors.PRIMARY,
         marginBottom: 8,
     },
     viewProofBtn: {
@@ -1317,10 +1317,10 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#FEF3C7',
+        backgroundColor: Colors.STATUS_WARNING_BG,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#FDE68A',
+        borderColor: Colors.STATUS_WARNING_BORDER,
         padding: 12,
         marginTop: 10,
         gap: 8,
@@ -1334,7 +1334,7 @@ const styles = StyleSheet.create({
     },
     waitingWalletText: {
         fontSize: 12,
-        color: '#92400E',
+        color: Colors.STATUS_WARNING_TEXT,
         flex: 1,
         lineHeight: 16,
     },
@@ -1368,10 +1368,10 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_LIGHT,
     },
     disputeAlertBox: {
-        backgroundColor: '#FEF2F2',
+        backgroundColor: Colors.ERROR_BG,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#FECACA',
+        borderColor: Colors.ERROR_BORDER,
         padding: 12,
         marginTop: 10,
         gap: 6,
@@ -1395,7 +1395,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#FCA5A5',
+        borderColor: Colors.ERROR_BORDER,
         padding: 10,
         marginVertical: 4,
     },
@@ -1419,10 +1419,10 @@ const styles = StyleSheet.create({
         lineHeight: 15,
     },
     awaitingConfirmationBox: {
-        backgroundColor: '#FFFBEB',
+        backgroundColor: Colors.STATUS_WARNING_BG,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#FDE68A',
+        borderColor: Colors.STATUS_WARNING_BORDER,
         padding: 12,
         marginTop: 10,
         gap: 6,
@@ -1435,16 +1435,16 @@ const styles = StyleSheet.create({
     awaitingConfirmationTitle: {
         fontSize: 13,
         fontWeight: 'bold',
-        color: '#92400E',
+        color: Colors.STATUS_WARNING_TEXT,
     },
     awaitingConfirmationSubtitle: {
         fontSize: 12,
-        color: '#B45309',
+        color: Colors.STATUS_WARNING_TEXT,
         lineHeight: 16,
     },
     approvedNoteBox: {
-        backgroundColor: '#F8FAFC',
-        borderColor: '#E2E8F0',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderColor: Colors.GRAY_LIGHT,
     },
     approvedNoteBoxLabel: {
         fontSize: 10,
@@ -1495,7 +1495,7 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     docIconWrapperPending: {
-        backgroundColor: '#F0FDF4',
+        backgroundColor: Colors.STATUS_APPROVED_BG,
     },
     docIconWrapperSuccess: {
         backgroundColor: Colors.STATUS_APPROVED_BG,
