@@ -223,6 +223,412 @@ const isPotentiallyScrolledTarget = (spotlightType?: string): boolean => {
     );
 };
 
+
+/**
+ * Standalone pure geometry calculator computing viewport bounding box and placement
+ * for any given spotlight target ID.
+ */
+const computeTargetGeometry = (
+    spotlightType: TargetSpotlightType,
+    width: number,
+    height: number,
+    insets: { top: number; bottom: number; left: number; right: number },
+    overlayOrigin: { x: number; y: number }
+): TargetGeometry => {
+
+        
+
+        const contentW = Math.min(width - 32, Layout.MAX_WIDTH);
+        const contentX = (width - contentW) / 2;
+
+        // 0. Live component layout measured via measureInWindow()
+        const liveLayout = getTutorialLayout(spotlightType);
+        if (liveLayout && liveLayout.width > 0 && liveLayout.height > 0) {
+            const isSmallControl =
+                spotlightType === 'header_help' ||
+                spotlightType === 'web_nav_menu' ||
+                spotlightType === 'admin_offer_add_btn' ||
+                spotlightType === 'fab_messages' ||
+                spotlightType === 'navigation_upcoming_tickets_btn' ||
+                spotlightType === 'navigation_card_chat_btn' ||
+                spotlightType === 'navigation_column_chat_btn' ||
+                spotlightType === 'navigation_map_style_btn' ||
+                spotlightType === 'navigation_recenter_btn' ||
+                spotlightType === 'recording_header_sos' ||
+                spotlightType === 'recording_trail_info_btn' ||
+                spotlightType === 'recording_group_chat_btn' ||
+                spotlightType === 'recording_team_status_btn' ||
+                spotlightType === 'recording_map_options_btn' ||
+                spotlightType === 'recording_map_style_btn' ||
+                spotlightType === 'recording_recenter_btn' ||
+                spotlightType === 'recording_help_btn';
+            const isTightCard = spotlightType.startsWith('my_booking_');
+            const pad = isSmallControl ? 4 : isTightCard ? 0 : 2;
+
+            const rawX = liveLayout.x - overlayOrigin.x - pad;
+            const rawY = liveLayout.y - overlayOrigin.y - pad;
+            const rawW = liveLayout.width + pad * 2;
+            const rawH = liveLayout.height + pad * 2;
+
+            const minVisibleY = Math.max(4, insets.top);
+            const maxVisibleBottom = height - Math.max(4, insets.bottom);
+
+            const finalX = Math.max(4, rawX);
+            const finalWidth = Math.min(rawW, width - finalX - 4);
+            const finalY = Math.max(minVisibleY, rawY);
+            const clippedBottom = Math.min(rawY + rawH, maxVisibleBottom);
+            const finalHeight = Math.max(28, clippedBottom - finalY);
+
+            const spaceAbove = finalY - (insets.top + 12);
+            const spaceBelow = (height - insets.bottom - 12) - (finalY + finalHeight);
+
+            const isExplicitBottomTarget =
+                spotlightType.startsWith('tab_') ||
+                spotlightType === 'fab_messages' ||
+                spotlightType === 'booking_footer' ||
+                spotlightType === 'booking_offers_footer' ||
+                spotlightType === 'booking_status_primary' ||
+                spotlightType === 'legal_scroll_bottom';
+
+            const placement: 'top' | 'bottom' =
+                isExplicitBottomTarget || spaceAbove > spaceBelow ? 'bottom' : 'top';
+
+            const isButton =
+                spotlightType === 'booking_footer' ||
+                spotlightType === 'booking_offers_footer' ||
+                spotlightType === 'booking_status_primary' ||
+                spotlightType === 'legal_scroll_bottom' ||
+                spotlightType === 'emergency_save_btn' ||
+                spotlightType.startsWith('admin_action_') ||
+                spotlightType === 'navigation_start_hike_btn' ||
+                spotlightType === 'recording_start_btn';
+
+            const isCircleControl =
+                spotlightType === 'header_help' ||
+                spotlightType === 'fab_messages' ||
+                spotlightType === 'navigation_fullscreen_btn' ||
+                spotlightType === 'navigation_upcoming_tickets_btn' ||
+                spotlightType === 'navigation_card_chat_btn' ||
+                spotlightType === 'navigation_column_chat_btn' ||
+                spotlightType === 'navigation_map_style_btn' ||
+                spotlightType === 'navigation_recenter_btn' ||
+                spotlightType === 'recording_header_sos' ||
+                spotlightType === 'recording_trail_info_btn' ||
+                spotlightType === 'recording_group_chat_btn' ||
+                spotlightType === 'recording_team_status_btn' ||
+                spotlightType === 'recording_map_options_btn' ||
+                spotlightType === 'recording_map_style_btn' ||
+                spotlightType === 'recording_recenter_btn' ||
+                spotlightType === 'recording_help_btn';
+
+            const rx =
+                isCircleControl
+                    ? Math.min(finalWidth, finalHeight) / 2
+                    : isSmallControl
+                        ? 12
+                        : spotlightType === 'navigation_search_bar'
+                            ? 12
+                            : spotlightType === 'recording_header_trail' || spotlightType === 'recording_start_btn'
+                                ? Math.min(finalWidth, finalHeight) / 2
+                                : spotlightType === 'recording_metrics_hud'
+                                    ? 24
+                                    : spotlightType.startsWith('tab_')
+                                        ? 20
+                                        : isButton || isTightCard
+                                            ? 16
+                                            : 20;
+
+            return {
+                x: finalX,
+                y: finalY,
+                width: finalWidth,
+                height: finalHeight,
+                rx,
+                placement,
+            };
+        }
+
+        // 1. Mobile bottom tabs: tab_0 to tab_4
+        if (spotlightType.startsWith('tab_')) {
+            const tabIdx = parseInt(spotlightType.replace('tab_', ''), 10);
+            const barWidth = Math.min(width - 40, 400);
+            const barStartX = (width - barWidth) / 2 + 8;
+            const innerWidth = barWidth - 16;
+            const tabW = innerWidth / 5;
+            const pillW = Math.min(tabW - 4, 68);
+            const pillH = 52;
+            const x = barStartX + tabIdx * tabW + (tabW - pillW) / 2;
+            const y = height - 24 - 58;
+            return {
+                x,
+                y,
+                width: pillW,
+                height: pillH,
+                rx: 20,
+                placement: 'bottom',
+            };
+        }
+
+        // 2. Web navigation menu hamburger trigger
+        if (spotlightType === 'web_nav_menu') {
+            return {
+                x: 16,
+                y: insets.top + 12,
+                width: 40,
+                height: 40,
+                rx: 12,
+                placement: 'top',
+            };
+        }
+
+        // 3. Web sidebar drawer items
+        if (spotlightType.startsWith('web_drawer_')) {
+            const itemId = DRAWER_TARGET_TO_ID[spotlightType] || 'home';
+            const measured = getDrawerItemLayout(itemId);
+            const fallback = DRAWER_FALLBACK_COORDS[itemId] || { y: 111, height: 42 };
+
+            const itemY = (measured ? measured.y : fallback.y) - overlayOrigin.y;
+            const itemH = measured ? measured.height : fallback.height;
+            const drawerW = Math.min(width * 0.8, 280);
+            const isWideWeb = width >= 600;
+            const drawerSpaceAbove = itemY - (insets.top + 12);
+            const drawerSpaceBelow = (height - insets.bottom - 12) - (itemY + itemH);
+            return {
+                x: 12,
+                y: itemY,
+                width: drawerW - 24,
+                height: itemH,
+                rx: 10,
+                placement: isWideWeb
+                    ? 'right'
+                    : drawerSpaceAbove > drawerSpaceBelow
+                        ? 'bottom'
+                        : 'top',
+            };
+        }
+
+        // 4. Header Replay Help '?' button
+        if (spotlightType === 'header_help') {
+            const iconSize = 36;
+            return {
+                x: width - 50,
+                y: insets.top + 12,
+                width: iconSize,
+                height: iconSize,
+                rx: 18,
+                placement: 'top',
+            };
+        }
+
+        // 5. Floating Action Button (FAB) Messages on mobile
+        if (spotlightType === 'fab_messages') {
+            const fabSize = 60;
+            const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 16);
+            const navBarHeight = 70 + bottomPadding;
+            const fabY = height - navBarHeight - 24 - fabSize;
+            return {
+                x: width - 16 - fabSize,
+                y: fabY,
+                width: fabSize,
+                height: fabSize,
+                rx: fabSize / 2,
+                placement: 'bottom',
+            };
+        }
+
+        if (spotlightType.startsWith('admin_action_')) {
+            const actionIdx = parseInt(spotlightType.replace('admin_action_', ''), 10);
+            const totalRowW = Math.min(width - 32, 600);
+            const startX = (width - totalRowW) / 2;
+            const btnW = (totalRowW - 16) / 3;
+            const x = startX + actionIdx * (btnW + 8);
+            const y = height - insets.bottom - 56;
+            return {
+                x,
+                y,
+                width: btnW,
+                height: 44,
+                rx: 12,
+                placement: 'bottom',
+            };
+        }
+
+        if (spotlightType === 'booking_calendar' || spotlightType === 'booking_offers_calendar') {
+            const calendarY = insets.top + (width < 600 ? 155 : 145);
+            return {
+                x: contentX,
+                y: calendarY,
+                width: contentW,
+                height: 140,
+                rx: 24,
+                placement: 'top',
+            };
+        }
+
+        if (spotlightType === 'booking_offers' || spotlightType === 'booking_offers_card') {
+            const offersY = insets.top + (width < 600 ? 320 : 310);
+            return {
+                x: contentX,
+                y: offersY,
+                width: contentW,
+                height: 200,
+                rx: 24,
+                placement: 'center',
+            };
+        }
+
+        if (spotlightType === 'booking_footer' || spotlightType === 'booking_offers_footer') {
+            const footerH = 58;
+            const footerY = height - insets.bottom - footerH - 14;
+            return {
+                x: contentX,
+                y: footerY,
+                width: contentW,
+                height: footerH,
+                rx: 16,
+                placement: 'bottom',
+            };
+        }
+
+        if (spotlightType === 'booking_details_contact') {
+            return {
+                x: contentX,
+                y: insets.top + (width < 600 ? 155 : 145),
+                width: contentW,
+                height: 180,
+                rx: 24,
+                placement: 'top',
+            };
+        }
+
+        if (spotlightType === 'booking_details_docs') {
+            return {
+                x: contentX,
+                y: insets.top + (width < 600 ? 350 : 340),
+                width: contentW,
+                height: 200,
+                rx: 24,
+                placement: 'center',
+            };
+        }
+
+        if (spotlightType === 'booking_details_terms') {
+            const termsH = 140;
+            return {
+                x: contentX,
+                y: height - insets.bottom - termsH - 80,
+                width: contentW,
+                height: termsH,
+                rx: 20,
+                placement: 'bottom',
+            };
+        }
+
+        if (spotlightType === 'legal_tabs') {
+            return {
+                x: contentX,
+                y: insets.top + 80,
+                width: contentW,
+                height: 48,
+                rx: 16,
+                placement: 'top',
+            };
+        }
+
+        if (spotlightType === 'legal_scroll_bottom') {
+            const btnH = 52;
+            return {
+                x: contentX,
+                y: height - insets.bottom - btnH - 24,
+                width: contentW,
+                height: btnH,
+                rx: 16,
+                placement: 'bottom',
+            };
+        }
+
+        if (spotlightType === 'booking_details_waiver') {
+            const waiverH = 120;
+            return {
+                x: contentX,
+                y: height - insets.bottom - waiverH - 80,
+                width: contentW,
+                height: waiverH,
+                rx: 20,
+                placement: 'bottom',
+            };
+        }
+
+        if (spotlightType === 'booking_status_primary') {
+            const btnH = 52;
+            return {
+                x: contentX,
+                y: height - insets.bottom - btnH - 24,
+                width: contentW,
+                height: btnH,
+                rx: 16,
+                placement: 'bottom',
+            };
+        }
+
+        if (
+            spotlightType === 'booking_status_card' ||
+            spotlightType === 'booking_status_timeline'
+        ) {
+            return {
+                x: contentX,
+                y: insets.top + (width < 600 ? 155 : 145),
+                width: contentW,
+                height: 180,
+                rx: 24,
+                placement: 'top',
+            };
+        }
+
+        if (spotlightType === 'booking_status_summary') {
+            return {
+                x: contentX,
+                y: insets.top + (width < 600 ? 360 : 340),
+                width: contentW,
+                height: 220,
+                rx: 24,
+                placement: 'top',
+            };
+        }
+
+        if (spotlightType === 'content_top') {
+            return {
+                x: contentX,
+                y: insets.top + 60,
+                width: contentW,
+                height: 120,
+                rx: 20,
+                placement: 'top',
+            };
+        }
+
+        if (spotlightType === 'content_bottom') {
+            return {
+                x: contentX,
+                y: height - insets.bottom - 160,
+                width: contentW,
+                height: 80,
+                rx: 16,
+                placement: 'bottom',
+            };
+        }
+
+        return {
+            x: contentX,
+            y: height * 0.3,
+            width: contentW,
+            height: 150,
+            rx: 20,
+            placement: 'center',
+        };
+
+};
+
 const ActiveTutorialModalContent = ({
     visible,
     tourConfig,
@@ -396,7 +802,7 @@ const ActiveTutorialModalContent = ({
         };
     }, []);
 
-    // Resolve which element is being targeted for the cutout
+    // Resolve which element is being targeted for the transparent cutout spotlight
     const targetSpotlightType: TargetSpotlightType = useMemo(() => {
         if (currentStep?.targetSpotlight) {
             return currentStep.targetSpotlight;
@@ -410,6 +816,21 @@ const ActiveTutorialModalContent = ({
         }
         return 'content_center';
     }, [currentStep]);
+
+    // Resolve which element is being targeted for the tooltip card & arrow (anchored to displayedStep)
+    const displayedTargetSpotlightType: TargetSpotlightType = useMemo(() => {
+        if (displayedStep?.targetSpotlight) {
+            return displayedStep.targetSpotlight;
+        }
+        if (displayedStep?.highlightHeaderHelp) {
+            return 'header_help';
+        }
+        if (typeof displayedStep?.highlightTabIndex === 'number') {
+            const idx = Math.max(0, Math.min(4, displayedStep.highlightTabIndex));
+            return `tab_${idx}` as TargetSpotlightType;
+        }
+        return 'content_center';
+    }, [displayedStep]);
 
     // Request on-demand measurement and auto-scroll for the active spotlight target
     useEffect(() => {
@@ -455,399 +876,19 @@ const ActiveTutorialModalContent = ({
         onSkip();
     };
 
-    // Calculate pixel coordinates for the transparent spotlight cutout
+
+
+    // Calculate pixel coordinates for the transparent spotlight cutout (immediate active step)
     const targetGeom: TargetGeometry = useMemo(() => {
         void registryVersion;
-
-        const contentW = Math.min(width - 32, Layout.MAX_WIDTH);
-        const contentX = (width - contentW) / 2;
-
-        // 0. Live component layout measured via measureInWindow()
-        const liveLayout = getTutorialLayout(targetSpotlightType);
-        if (liveLayout && liveLayout.width > 0 && liveLayout.height > 0) {
-            const isSmallControl =
-                targetSpotlightType === 'header_help' ||
-                targetSpotlightType === 'web_nav_menu' ||
-                targetSpotlightType === 'admin_offer_add_btn' ||
-                targetSpotlightType === 'fab_messages' ||
-                targetSpotlightType === 'navigation_upcoming_tickets_btn' ||
-                targetSpotlightType === 'navigation_card_chat_btn' ||
-                targetSpotlightType === 'navigation_column_chat_btn' ||
-                targetSpotlightType === 'navigation_map_style_btn' ||
-                targetSpotlightType === 'navigation_recenter_btn' ||
-                targetSpotlightType === 'recording_header_sos' ||
-                targetSpotlightType === 'recording_trail_info_btn' ||
-                targetSpotlightType === 'recording_group_chat_btn' ||
-                targetSpotlightType === 'recording_team_status_btn' ||
-                targetSpotlightType === 'recording_map_options_btn' ||
-                targetSpotlightType === 'recording_map_style_btn' ||
-                targetSpotlightType === 'recording_recenter_btn' ||
-                targetSpotlightType === 'recording_help_btn';
-            const isTightCard = targetSpotlightType.startsWith('my_booking_');
-            const pad = isSmallControl ? 4 : isTightCard ? 0 : 2;
-
-            const rawX = liveLayout.x - overlayOrigin.x - pad;
-            const rawY = liveLayout.y - overlayOrigin.y - pad;
-            const rawW = liveLayout.width + pad * 2;
-            const rawH = liveLayout.height + pad * 2;
-
-            const minVisibleY = Math.max(4, insets.top);
-            const maxVisibleBottom = height - Math.max(4, insets.bottom);
-
-            const finalX = Math.max(4, rawX);
-            const finalWidth = Math.min(rawW, width - finalX - 4);
-            const finalY = Math.max(minVisibleY, rawY);
-            const clippedBottom = Math.min(rawY + rawH, maxVisibleBottom);
-            const finalHeight = Math.max(28, clippedBottom - finalY);
-
-            const spaceAbove = finalY - (insets.top + 12);
-            const spaceBelow = (height - insets.bottom - 12) - (finalY + finalHeight);
-
-            const isExplicitBottomTarget =
-                targetSpotlightType.startsWith('tab_') ||
-                targetSpotlightType === 'fab_messages' ||
-                targetSpotlightType === 'booking_footer' ||
-                targetSpotlightType === 'booking_offers_footer' ||
-                targetSpotlightType === 'booking_status_primary' ||
-                targetSpotlightType === 'legal_scroll_bottom';
-
-            const placement: 'top' | 'bottom' =
-                isExplicitBottomTarget || spaceAbove > spaceBelow ? 'bottom' : 'top';
-
-            const isButton =
-                targetSpotlightType === 'booking_footer' ||
-                targetSpotlightType === 'booking_offers_footer' ||
-                targetSpotlightType === 'booking_status_primary' ||
-                targetSpotlightType === 'legal_scroll_bottom' ||
-                targetSpotlightType === 'emergency_save_btn' ||
-                targetSpotlightType.startsWith('admin_action_') ||
-                targetSpotlightType === 'navigation_start_hike_btn' ||
-                targetSpotlightType === 'recording_start_btn';
-
-            const isCircleControl =
-                targetSpotlightType === 'header_help' ||
-                targetSpotlightType === 'fab_messages' ||
-                targetSpotlightType === 'navigation_fullscreen_btn' ||
-                targetSpotlightType === 'navigation_upcoming_tickets_btn' ||
-                targetSpotlightType === 'navigation_card_chat_btn' ||
-                targetSpotlightType === 'navigation_column_chat_btn' ||
-                targetSpotlightType === 'navigation_map_style_btn' ||
-                targetSpotlightType === 'navigation_recenter_btn' ||
-                targetSpotlightType === 'recording_header_sos' ||
-                targetSpotlightType === 'recording_trail_info_btn' ||
-                targetSpotlightType === 'recording_group_chat_btn' ||
-                targetSpotlightType === 'recording_team_status_btn' ||
-                targetSpotlightType === 'recording_map_options_btn' ||
-                targetSpotlightType === 'recording_map_style_btn' ||
-                targetSpotlightType === 'recording_recenter_btn' ||
-                targetSpotlightType === 'recording_help_btn';
-
-            const rx =
-                isCircleControl
-                    ? Math.min(finalWidth, finalHeight) / 2
-                    : isSmallControl
-                        ? 12
-                        : targetSpotlightType === 'navigation_search_bar'
-                            ? 12
-                            : targetSpotlightType === 'recording_header_trail' || targetSpotlightType === 'recording_start_btn'
-                                ? Math.min(finalWidth, finalHeight) / 2
-                                : targetSpotlightType === 'recording_metrics_hud'
-                                    ? 24
-                                    : targetSpotlightType.startsWith('tab_')
-                                        ? 20
-                                        : isButton || isTightCard
-                                            ? 16
-                                            : 20;
-
-            return {
-                x: finalX,
-                y: finalY,
-                width: finalWidth,
-                height: finalHeight,
-                rx,
-                placement,
-            };
-        }
-
-        // 1. Mobile bottom tabs: tab_0 to tab_4
-        if (targetSpotlightType.startsWith('tab_')) {
-            const tabIdx = parseInt(targetSpotlightType.replace('tab_', ''), 10);
-            const barWidth = Math.min(width - 40, 400);
-            const barStartX = (width - barWidth) / 2 + 8;
-            const innerWidth = barWidth - 16;
-            const tabW = innerWidth / 5;
-            const pillW = Math.min(tabW - 4, 68);
-            const pillH = 52;
-            const x = barStartX + tabIdx * tabW + (tabW - pillW) / 2;
-            const y = height - 24 - 58;
-            return {
-                x,
-                y,
-                width: pillW,
-                height: pillH,
-                rx: 20,
-                placement: 'bottom',
-            };
-        }
-
-        // 2. Web navigation menu hamburger trigger
-        if (targetSpotlightType === 'web_nav_menu') {
-            return {
-                x: 16,
-                y: insets.top + 12,
-                width: 40,
-                height: 40,
-                rx: 12,
-                placement: 'top',
-            };
-        }
-
-        // 3. Web sidebar drawer items
-        if (targetSpotlightType.startsWith('web_drawer_')) {
-            const itemId = DRAWER_TARGET_TO_ID[targetSpotlightType] || 'home';
-            const measured = getDrawerItemLayout(itemId);
-            const fallback = DRAWER_FALLBACK_COORDS[itemId] || { y: 111, height: 42 };
-
-            const itemY = (measured ? measured.y : fallback.y) - overlayOrigin.y;
-            const itemH = measured ? measured.height : fallback.height;
-            const drawerW = Math.min(width * 0.8, 280);
-            const isWideWeb = width >= 600;
-            const drawerSpaceAbove = itemY - (insets.top + 12);
-            const drawerSpaceBelow = (height - insets.bottom - 12) - (itemY + itemH);
-            return {
-                x: 12,
-                y: itemY,
-                width: drawerW - 24,
-                height: itemH,
-                rx: 10,
-                placement: isWideWeb
-                    ? 'right'
-                    : drawerSpaceAbove > drawerSpaceBelow
-                        ? 'bottom'
-                        : 'top',
-            };
-        }
-
-        // 4. Header Replay Help '?' button
-        if (targetSpotlightType === 'header_help') {
-            const iconSize = 36;
-            return {
-                x: width - 50,
-                y: insets.top + 12,
-                width: iconSize,
-                height: iconSize,
-                rx: 18,
-                placement: 'top',
-            };
-        }
-
-        // 5. Floating Action Button (FAB) Messages on mobile
-        if (targetSpotlightType === 'fab_messages') {
-            const fabSize = 60;
-            const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 16);
-            const navBarHeight = 70 + bottomPadding;
-            const fabY = height - navBarHeight - 24 - fabSize;
-            return {
-                x: width - 16 - fabSize,
-                y: fabY,
-                width: fabSize,
-                height: fabSize,
-                rx: fabSize / 2,
-                placement: 'bottom',
-            };
-        }
-
-        if (targetSpotlightType.startsWith('admin_action_')) {
-            const actionIdx = parseInt(targetSpotlightType.replace('admin_action_', ''), 10);
-            const totalRowW = Math.min(width - 32, 600);
-            const startX = (width - totalRowW) / 2;
-            const btnW = (totalRowW - 16) / 3;
-            const x = startX + actionIdx * (btnW + 8);
-            const y = height - insets.bottom - 56;
-            return {
-                x,
-                y,
-                width: btnW,
-                height: 44,
-                rx: 12,
-                placement: 'bottom',
-            };
-        }
-
-        if (targetSpotlightType === 'booking_calendar' || targetSpotlightType === 'booking_offers_calendar') {
-            const calendarY = insets.top + (width < 600 ? 155 : 145);
-            return {
-                x: contentX,
-                y: calendarY,
-                width: contentW,
-                height: 140,
-                rx: 24,
-                placement: 'top',
-            };
-        }
-
-        if (targetSpotlightType === 'booking_offers' || targetSpotlightType === 'booking_offers_card') {
-            const offersY = insets.top + (width < 600 ? 320 : 310);
-            return {
-                x: contentX,
-                y: offersY,
-                width: contentW,
-                height: 200,
-                rx: 24,
-                placement: 'center',
-            };
-        }
-
-        if (targetSpotlightType === 'booking_footer' || targetSpotlightType === 'booking_offers_footer') {
-            const footerH = 58;
-            const footerY = height - insets.bottom - footerH - 14;
-            return {
-                x: contentX,
-                y: footerY,
-                width: contentW,
-                height: footerH,
-                rx: 16,
-                placement: 'bottom',
-            };
-        }
-
-        if (targetSpotlightType === 'booking_details_contact') {
-            return {
-                x: contentX,
-                y: insets.top + (width < 600 ? 155 : 145),
-                width: contentW,
-                height: 180,
-                rx: 24,
-                placement: 'top',
-            };
-        }
-
-        if (targetSpotlightType === 'booking_details_docs') {
-            return {
-                x: contentX,
-                y: insets.top + (width < 600 ? 350 : 340),
-                width: contentW,
-                height: 200,
-                rx: 24,
-                placement: 'center',
-            };
-        }
-
-        if (targetSpotlightType === 'booking_details_terms') {
-            const termsH = 140;
-            return {
-                x: contentX,
-                y: height - insets.bottom - termsH - 80,
-                width: contentW,
-                height: termsH,
-                rx: 20,
-                placement: 'bottom',
-            };
-        }
-
-        if (targetSpotlightType === 'legal_tabs') {
-            return {
-                x: contentX,
-                y: insets.top + 80,
-                width: contentW,
-                height: 48,
-                rx: 16,
-                placement: 'top',
-            };
-        }
-
-        if (targetSpotlightType === 'legal_scroll_bottom') {
-            const btnH = 52;
-            return {
-                x: contentX,
-                y: height - insets.bottom - btnH - 24,
-                width: contentW,
-                height: btnH,
-                rx: 16,
-                placement: 'bottom',
-            };
-        }
-
-        if (targetSpotlightType === 'booking_details_waiver') {
-            const waiverH = 120;
-            return {
-                x: contentX,
-                y: height - insets.bottom - waiverH - 80,
-                width: contentW,
-                height: waiverH,
-                rx: 20,
-                placement: 'bottom',
-            };
-        }
-
-        if (targetSpotlightType === 'booking_status_primary') {
-            const btnH = 52;
-            return {
-                x: contentX,
-                y: height - insets.bottom - btnH - 24,
-                width: contentW,
-                height: btnH,
-                rx: 16,
-                placement: 'bottom',
-            };
-        }
-
-        if (
-            targetSpotlightType === 'booking_status_card' ||
-            targetSpotlightType === 'booking_status_timeline'
-        ) {
-            return {
-                x: contentX,
-                y: insets.top + (width < 600 ? 155 : 145),
-                width: contentW,
-                height: 180,
-                rx: 24,
-                placement: 'top',
-            };
-        }
-
-        if (targetSpotlightType === 'booking_status_summary') {
-            return {
-                x: contentX,
-                y: insets.top + (width < 600 ? 360 : 340),
-                width: contentW,
-                height: 220,
-                rx: 24,
-                placement: 'top',
-            };
-        }
-
-        if (targetSpotlightType === 'content_top') {
-            return {
-                x: contentX,
-                y: insets.top + 60,
-                width: contentW,
-                height: 120,
-                rx: 20,
-                placement: 'top',
-            };
-        }
-
-        if (targetSpotlightType === 'content_bottom') {
-            return {
-                x: contentX,
-                y: height - insets.bottom - 160,
-                width: contentW,
-                height: 80,
-                rx: 16,
-                placement: 'bottom',
-            };
-        }
-
-        return {
-            x: contentX,
-            y: height * 0.3,
-            width: contentW,
-            height: 150,
-            rx: 20,
-            placement: 'center',
-        };
+        return computeTargetGeometry(targetSpotlightType, width, height, insets, overlayOrigin);
     }, [targetSpotlightType, width, height, insets, registryVersion, overlayOrigin]);
+
+    // Calculate pixel coordinates for the tooltip card (firmly locked to displayedStep)
+    const cardTargetGeom: TargetGeometry = useMemo(() => {
+        void registryVersion;
+        return computeTargetGeometry(displayedTargetSpotlightType, width, height, insets, overlayOrigin);
+    }, [displayedTargetSpotlightType, width, height, insets, registryVersion, overlayOrigin]);
 
     const secondaryGeom = useMemo<TargetGeometry | null>(() => {
         void registryVersion;
@@ -941,12 +982,12 @@ const ActiveTutorialModalContent = ({
 
     const minSafeTop = insets.top + 12;
     const maxSafeBottom = height - insets.bottom - 12;
-    const spaceAbove = targetGeom.y - minSafeTop;
-    const spaceBelow = maxSafeBottom - (targetGeom.y + targetGeom.height);
-    const spaceRight = (width - 16) - (targetGeom.x + targetGeom.width);
+    const spaceAbove = cardTargetGeom.y - minSafeTop;
+    const spaceBelow = maxSafeBottom - (cardTargetGeom.y + cardTargetGeom.height);
+    const spaceRight = (width - 16) - (cardTargetGeom.x + cardTargetGeom.width);
 
-    const targetCenterX = targetGeom.x + targetGeom.width / 2;
-    const targetCenterY = targetGeom.y + targetGeom.height / 2;
+    const targetCenterX = cardTargetGeom.x + cardTargetGeom.width / 2;
+    const targetCenterY = cardTargetGeom.y + cardTargetGeom.height / 2;
 
     let cardMaxWidth = Math.min(width - 32, 370);
     let cardLeft = Math.max(
@@ -956,10 +997,10 @@ const ActiveTutorialModalContent = ({
     let cardTop = minSafeTop;
     let arrowDirection: 'up' | 'down' | 'left' | 'none' = 'up';
 
-    if (targetGeom.placement === 'right' && spaceRight >= 250) {
+    if (cardTargetGeom.placement === 'right' && spaceRight >= 250) {
         arrowDirection = 'left';
         cardMaxWidth = Math.min(360, spaceRight - 16);
-        cardLeft = targetGeom.x + targetGeom.width + 14;
+        cardLeft = cardTargetGeom.x + cardTargetGeom.width + 14;
         cardTop = Math.max(
             minSafeTop,
             Math.min(
@@ -969,28 +1010,38 @@ const ActiveTutorialModalContent = ({
         );
     } else {
         const neededSpace = measuredCardHeight + 14;
-        const preferAbove =
-            (targetGeom.placement === 'bottom' && spaceAbove >= neededSpace) ||
-            (spaceBelow < neededSpace && spaceAbove > spaceBelow);
+        const explicitPlacement = displayedStep?.tooltipPlacement;
+        let preferAbove = false;
+
+        if (explicitPlacement === 'top') {
+            preferAbove = spaceAbove >= neededSpace || spaceAbove >= spaceBelow;
+        } else if (explicitPlacement === 'bottom') {
+            preferAbove = spaceBelow < neededSpace && spaceAbove > spaceBelow;
+        } else {
+            // Anti-flip hysteresis margin (30px buffer) prevents edge flip-flopping
+            preferAbove =
+                (cardTargetGeom.placement === 'bottom' && spaceAbove >= neededSpace) ||
+                (spaceBelow < neededSpace && spaceAbove > spaceBelow + 30);
+        }
 
         if (preferAbove) {
-            cardTop = targetGeom.y - measuredCardHeight - 14;
+            cardTop = cardTargetGeom.y - measuredCardHeight - 14;
         } else {
-            cardTop = targetGeom.y + targetGeom.height + 14;
+            cardTop = cardTargetGeom.y + cardTargetGeom.height + 14;
         }
 
         const maxCardTop = Math.max(minSafeTop, maxSafeBottom - measuredCardHeight);
         cardTop = Math.max(minSafeTop, Math.min(maxCardTop, cardTop));
 
         const overlapsSpotlight =
-            cardTop < targetGeom.y + targetGeom.height &&
-            cardTop + measuredCardHeight > targetGeom.y;
+            cardTop < cardTargetGeom.y + cardTargetGeom.height &&
+            cardTop + measuredCardHeight > cardTargetGeom.y;
 
         if (overlapsSpotlight) {
             if (spaceBelow >= spaceAbove) {
-                cardTop = Math.min(maxCardTop, targetGeom.y + targetGeom.height + 12);
+                cardTop = Math.min(maxCardTop, cardTargetGeom.y + cardTargetGeom.height + 12);
             } else {
-                cardTop = Math.max(minSafeTop, targetGeom.y - measuredCardHeight - 12);
+                cardTop = Math.max(minSafeTop, cardTargetGeom.y - measuredCardHeight - 12);
             }
         }
 
@@ -1000,7 +1051,6 @@ const ActiveTutorialModalContent = ({
         } else {
             arrowDirection = 'down';
         }
-
     }
 
     // When a secondary spotlight exists, avoid covering it with the tooltip card
