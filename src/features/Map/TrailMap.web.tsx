@@ -1064,7 +1064,11 @@ const TrailMap = memo(
                   <GridCell label="LONGITUDE" value={liveSelectedHiker.longitude.toFixed(6)} />
                   <GridCell
                     label="ALTITUDE"
-                    value={liveSelectedHiker.altitude != null ? `${Math.round(liveSelectedHiker.altitude)} m` : "—"}
+                    value={
+                      typeof liveSelectedHiker.altitude === "number" && !isNaN(liveSelectedHiker.altitude) && liveSelectedHiker.altitude !== 0
+                        ? `${Math.round(liveSelectedHiker.altitude)} m`
+                        : "—"
+                    }
                   />
                   <GridCell label="RECORDED" value={formatRecordedTime(liveSelectedHiker.timestamp)} />
                 </View>
