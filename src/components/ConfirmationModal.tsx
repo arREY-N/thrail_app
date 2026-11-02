@@ -8,7 +8,6 @@
 
 import React, { ReactNode } from 'react';
 import {
-    ActivityIndicator,
     Modal,
     Platform,
     StyleSheet,
@@ -194,28 +193,6 @@ const ConfirmationModal = ({
                         >
                             {message}
                         </CustomText>
-                    )}
-
-                    {isLoading && (
-                        <View
-                            style={[
-                                styles.loadingBanner,
-                                { backgroundColor: isDestructive ? Colors.ERROR_BG : Colors.STATUS_APPROVED_BG }
-                            ]}
-                        >
-                            <ActivityIndicator
-                                size="small"
-                                color={isDestructive ? Colors.ERROR : Colors.PRIMARY}
-                            />
-                            <CustomText
-                                style={[
-                                    styles.loadingBannerText,
-                                    { color: isDestructive ? Colors.ERROR : Colors.PRIMARY }
-                                ]}
-                            >
-                                {loadingMessage || 'Processing request, please wait...'}
-                            </CustomText>
-                        </View>
                     )}
 
                     {shouldStack ? (
