@@ -40,6 +40,8 @@ export interface GetBookingFooterConfigProps {
     onProceedToPayment: (booking: Booking) => void;
     /** Callback triggered to view the payment receipt. */
     onViewReceipt: (booking: Booking) => void;
+    /** Callback triggered to navigate to the new rescheduled booking. */
+    onViewUpdatedBooking?: (newBookingId: string) => void;
 }
 
 /**
@@ -67,6 +69,7 @@ export const getBookingFooterConfig = ({
     handleResubmitPress,
     onProceedToPayment,
     onViewReceipt,
+    onViewUpdatedBooking,
 }: GetBookingFooterConfigProps) => {
     if (isRejectedReservation && (totalRejectedCount > 0 || isPhoneRejection || hasStagedContactChanges)) {
         const buttonTitle = getResubmitButtonTitle(
@@ -117,27 +120,44 @@ export const getBookingFooterConfig = ({
     );
 
     if (isPaymentVerifying) {
-        return {
-            primaryButton: {
-                title: "Payment Under Review",
-                variant: "primary" as const,
-                disabled: true,
-                style: {
-                    borderRadius: 12,
-                    backgroundColor: Colors.STATUS_PENDING_BG,
-                    borderColor: Colors.PRIMARY,
-                    borderWidth: 1.5,
-                },
-                textStyle: {
-                    color: Colors.PRIMARY,
-                    fontWeight: 'bold' as const,
-                },
-                onPress: () => {},
-            }
-        };
+        return null;
     }
 
-    if (displayStatus === 'for-reschedule' || displayStatus === 'rescheduled') {
+    if (displayStatus === 'rescheduled') {
+        const newBookingId = (booking as Booking & { rescheduledToBookingId?: string })?.rescheduledToBookingId;
+        if (newBookingId && onViewUpdatedBooking) {
+            return {
+                secondaryButton: hasHistoricalPayments ? {
+                    title: "View Receipt",
+                    variant: "outline" as const,
+                    style: { borderRadius: 12 },
+                    onPress: () => onViewReceipt(booking)
+                } : undefined,
+                primaryButton: {
+                    title: "View Updated Booking",
+                    variant: "primary" as const,
+                    icon: "arrow-right",
+                    iconLibrary: "Feather" as const,
+                    iconPosition: "right" as const,
+                    style: { borderRadius: 12 },
+                    onPress: () => onViewUpdatedBooking(newBookingId)
+                }
+            };
+        }
+        if (hasHistoricalPayments) {
+            return {
+                primaryButton: {
+                    title: "View Receipt",
+                    variant: "primary" as const,
+                    style: { borderRadius: 12 },
+                    onPress: () => onViewReceipt(booking)
+                }
+            };
+        }
+        return null;
+    }
+
+    if (displayStatus === 'for-reschedule') {
         if (hasHistoricalPayments) {
             return {
                 primaryButton: {
@@ -161,6 +181,7 @@ export const getBookingFooterConfig = ({
                 style: {
                     borderRadius: 12,
                     backgroundColor: isPaymentRejected ? Colors.ERROR : Colors.PRIMARY,
+                    borderColor: isPaymentRejected ? Colors.ERROR : Colors.PRIMARY,
                 },
                 onPress: () => onProceedToPayment(booking)
             }
