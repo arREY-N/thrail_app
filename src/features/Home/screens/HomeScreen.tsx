@@ -404,7 +404,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={async () => {
-                await refreshLocation();
+                await refreshLocation(true);
                 await refetch();
                 if (onRefreshPress) {
                   await onRefreshPress();
@@ -425,7 +425,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
             router.push("/home/weather");
           }}
           onReload={async () => {
-            await refreshLocation();
+            await refreshLocation(true);
             await refetch();
           }}
           locationName={geocodedName || locationName}
