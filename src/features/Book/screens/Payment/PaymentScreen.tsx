@@ -9,8 +9,8 @@ import { useToast } from '@/src/components/Toast/Toast';
 import {
     CustomTutorialModal,
     TutorialHelpButton,
-    useTutorialGuide,
 } from '@/src/components/Tutorial/Tutorial';
+import { usePaymentTutorial } from '@/src/features/Book/screens/Payment/hooks/usePaymentTutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -59,8 +59,17 @@ const PaymentScreen = ({
     const isSubmittingRef = useRef(false);
     const [isWaitingForVerification, setIsWaitingForVerification] = useState(false);
     const [paymentError, setPaymentError] = useState<string | null>(null);
-    const activeTourId = currentStep === 2 ? 'payment_status' : 'payment';
-    const tutorial = useTutorialGuide(activeTourId, !isSubmitting && !isWaitingForVerification);
+    const isPaymentRejected = bookingData?.paymentVerificationStatus === 'rejected';
+    const {
+        tutorial,
+        activeTutorialStep,
+        isTutorialVisible,
+    } = usePaymentTutorial({
+        currentStep,
+        isSubmitting,
+        isWaitingForVerification,
+        isRejected: isPaymentRejected,
+    });
 
     useEffect(() => {
         if (Platform.OS !== 'web') return;
@@ -98,6 +107,7 @@ const PaymentScreen = ({
     const [manualReceiptUrl, setManualReceiptUrl] = useState<string>('');
     const [manualReferenceCode, setManualReferenceCode] = useState<string>('');
     const [isSignatureValid, setIsSignatureValid] = useState(false);
+    const [currentSignature, setCurrentSignature] = useState('');
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
     const { showToast } = useToast();
 
@@ -168,14 +178,23 @@ const PaymentScreen = ({
 
                 if (!isSignatureValid) {
                     setHasAttemptedSubmit(true);
-                    showToast.error(
-                        isUserMinor
-                            ? "Parent / Guardian signature is required to authorize payment."
-                            : "Please type your full name in the signature field to authorize payment.",
-                        {
-                            onHide: () => setHasAttemptedSubmit(false),
-                        }
+                    const isCaseMismatch = Boolean(
+                        expectedSignatureName &&
+                        currentSignature.trim().toLowerCase() === expectedSignatureName.trim().toLowerCase() &&
+                        currentSignature.trim() !== expectedSignatureName.trim()
                     );
+
+                    let errorMsg = isUserMinor
+                        ? "Parent / Guardian signature is required to authorize payment."
+                        : "Please type your full name in the signature field to authorize payment.";
+
+                    if (isCaseMismatch) {
+                        errorMsg = `Please match the exact capitalization shown above: "${expectedSignatureName}"`;
+                    }
+
+                    showToast.error(errorMsg, {
+                        onHide: () => setHasAttemptedSubmit(false),
+                    });
                     return;
                 }
 
@@ -376,6 +395,8 @@ const PaymentScreen = ({
         showToast,
         manualReceiptUrl,
         manualReferenceCode,
+        currentSignature,
+        expectedSignatureName,
     ]);
 
     const handleHeaderBackPress = useCallback(() => {
@@ -417,27 +438,12 @@ const PaymentScreen = ({
                 const isRejected = bookingData?.paymentVerificationStatus === 'rejected';
                 return {
                     title: isSubmitting
-                        ? "Submitting Receipt..."
-                        : (isRejected ? "Resubmit Payment & Receipt" : "Submit Payment & Receipt"),
+                        ? "Submitting Payment..."
+                        : (isRejected ? "Resubmit Payment" : "Submit Payment"),
                     onPress: handleNextStep,
                     disabled: isSubmitting,
                     isLoading: isSubmitting,
                     validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
-                    isIdleDisabled: false,
-                    style: {
-                        backgroundColor: isReady
-                            ? Colors.PRIMARY
-                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_BG : Colors.GRAY_ULTRALIGHT),
-                        borderColor: isReady
-                            ? Colors.PRIMARY
-                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.GRAY_LIGHT),
-                        borderWidth: 1.5,
-                    },
-                    textStyle: {
-                        color: isReady
-                            ? Colors.WHITE
-                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.TEXT_SECONDARY),
-                    },
                 };
             }
 
@@ -565,10 +571,14 @@ const PaymentScreen = ({
                             setReferenceCode={setManualReferenceCode}
                             profileFullName={expectedSignatureName}
                             setIsSignatureValid={setIsSignatureValid}
+                            onSignatureChange={setCurrentSignature}
                             paymentError={paymentError}
                             isPayingBalance={isPayingBalance}
                             isMinor={isUserMinor}
                             minorName={hikerFullName}
+                            activeTutorialStep={activeTutorialStep}
+                            isTutorialVisible={isTutorialVisible}
+                            isRejected={isPaymentRejected}
                         />
                     ) : (
                         <MethodScreen
@@ -583,8 +593,8 @@ const PaymentScreen = ({
                             isPayingBalance={isPayingBalance}
                             isMinor={isUserMinor}
                             minorName={hikerFullName}
-                            activeTutorialStep={tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined}
-                            isTutorialVisible={tutorial.isVisible}
+                            activeTutorialStep={activeTutorialStep}
+                            isTutorialVisible={isTutorialVisible}
                         />
                     )
                 )}
@@ -593,9 +603,9 @@ const PaymentScreen = ({
                         selectedMethod={PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? 'Manual QR' : (latestPayment?.gateway || selectedMethod)}
                         amountToPay={latestPayment?.amount || amountToPay}
                         bookingId={bookingData?.id}
-                        referenceCode={manualReferenceCode || latestPayment?.referenceCode || latestPayment?.sessionId}
-                        activeTutorialStep={tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined}
-                        isTutorialVisible={tutorial.isVisible}
+                        paymentDate={latestPayment?.paidAt || new Date()}
+                        activeTutorialStep={activeTutorialStep}
+                        isTutorialVisible={isTutorialVisible}
                     />
                 )}
             </View>
