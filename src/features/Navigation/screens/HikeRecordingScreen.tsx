@@ -6,27 +6,27 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ConfirmationModal from "@/src/components/ConfirmationModal";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
+import NetworkStatusBanner from "@/src/components/NetworkStatusBanner";
 import {
     CustomTutorialModal,
     TutorialHelpButton,
+    useHikeRecordingTutorial,
 } from "@/src/components/Tutorial/Tutorial";
-import { useHikeRecordingTutorial } from "@/src/features/Navigation/hooks/useHikeRecordingTutorial";
-import { useEnrichedHikerLocations } from "@/src/features/Navigation/hooks/useEnrichedHikerLocations";
-import { HikeRecordingScreenProps, IEnrichedGroupMember } from "@/src/features/Navigation/types/HikeRecordingScreen.types";
 import { Colors, Palette } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
+import { useNetworkStatus } from "@/src/core/flows/TrackHikerGPSFlow";
 import { generateChatId, IGroupMember } from "@/src/core/models/Group/Group";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { IUserSummary } from "@/src/core/models/User/User";
-import * as Clipboard from "expo-clipboard";
 import { formatDate, formatDateTime } from "@/src/core/utility/date";
 import { formatTime } from "@/src/core/utility/formatTime";
 import { clearLocalTrack } from "@/src/core/utility/hikeStorage";
-import NetworkStatusBanner from "@/src/components/NetworkStatusBanner";
-import { useNetworkStatus } from "@/src/core/flows/TrackHikerGPSFlow";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
+import { useEnrichedHikerLocations } from "@/src/features/Navigation/hooks/useEnrichedHikerLocations";
+import { HikeRecordingScreenProps, IEnrichedGroupMember } from "@/src/features/Navigation/types/HikeRecordingScreen.types";
 import { formatActivityTime } from "@/src/utils/dateFormatter";
+import * as Clipboard from "expo-clipboard";
 
 export type { HikeRecordingScreenProps, IEnrichedGroupMember };
 
