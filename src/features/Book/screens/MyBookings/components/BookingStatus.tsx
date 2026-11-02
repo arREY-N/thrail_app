@@ -108,11 +108,15 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
             }
             break;
         case 'completed':
-        case 'rescheduled':
         case 'finished':
             currentIndex = 3;
             overrideLabel = 'CONFIRMED';
             overrideIcon = 'check-circle';
+            break;
+        case 'rescheduled':
+            currentIndex = 3;
+            overrideLabel = 'RESCHEDULED';
+            overrideIcon = 'calendar';
             break;
         case 'for-reschedule':
             currentIndex = 3;
@@ -206,6 +210,12 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                             iconName = overrideIcon || 'rotate-ccw';
                             labelText = overrideLabel || step.defaultLabel;
                             labelColor = rawStatus === 'refunded' ? Colors.PRIMARY : '#92400E';
+                        } else if (isPaymentVerifying && (step.id === 2 || overrideLabel === 'VERIFYING')) {
+                            circleBg = Colors.STATUS_PENDING_BG;
+                            iconColor = Colors.STATUS_PENDING_TEXT;
+                            iconName = overrideIcon || 'clock';
+                            labelText = overrideLabel || 'VERIFYING';
+                            labelColor = Colors.STATUS_PENDING_TEXT;
                         } else {
                             circleBg = Colors.STATUS_APPROVED_BG;
                             iconColor = Colors.PRIMARY;
