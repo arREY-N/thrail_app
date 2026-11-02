@@ -11,7 +11,7 @@ import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomText from '@/src/components/CustomText';
-import { usePaymentStatusTutorial } from '@/src/features/Book/screens/Payment/hooks/usePaymentTutorial';
+import { usePaymentStatusTutorial } from '@/src/components/Tutorial/Tutorial';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
