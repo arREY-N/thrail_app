@@ -304,7 +304,7 @@ export const AdminEditPaymentModal: React.FC<AdminEditPaymentModalProps> = ({
                                         activeOpacity={0.8}
                                         style={[
                                             styles.classificationOption,
-                                            classification === 'downpayment' && styles.classificationOptionActive
+                                            classification === 'downpayment' && styles.classificationOptionDownpaymentActive
                                         ]}
                                         onPress={() => setClassification('downpayment')}
                                     >
@@ -312,11 +312,11 @@ export const AdminEditPaymentModal: React.FC<AdminEditPaymentModalProps> = ({
                                             library="Feather"
                                             name="pie-chart"
                                             size={14}
-                                            color={classification === 'downpayment' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
+                                            color={classification === 'downpayment' ? Colors.STATUS_DOWNPAYMENT_TEXT : Colors.TEXT_SECONDARY}
                                         />
                                         <CustomText style={[
                                             styles.classificationOptionText,
-                                            classification === 'downpayment' && styles.classificationOptionTextActive
+                                            classification === 'downpayment' && styles.classificationOptionDownpaymentText
                                         ]}>
                                             Downpayment
                                         </CustomText>
@@ -576,6 +576,10 @@ const styles = StyleSheet.create({
         borderColor: Colors.PRIMARY,
         backgroundColor: '#F0FDF4',
     },
+    classificationOptionDownpaymentActive: {
+        borderColor: Colors.STATUS_DOWNPAYMENT_BORDER,
+        backgroundColor: Colors.STATUS_DOWNPAYMENT_BG,
+    },
     classificationOptionText: {
         fontSize: 13,
         fontWeight: '600',
@@ -583,6 +587,10 @@ const styles = StyleSheet.create({
     },
     classificationOptionTextActive: {
         color: Colors.PRIMARY,
+        fontWeight: '700',
+    },
+    classificationOptionDownpaymentText: {
+        color: Colors.STATUS_DOWNPAYMENT_TEXT,
         fontWeight: '700',
     },
     calcFeedbackBox: {
