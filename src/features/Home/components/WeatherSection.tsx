@@ -201,10 +201,37 @@ const WeatherSection = ({
             </CustomText>
           </View>
 
-          {lastUpdatedLabel && (
-            <CustomText style={styles.updatedText}>
-              {lastUpdatedLabel}
-            </CustomText>
+          { (lastUpdatedLabel || (Platform.OS === 'web' && onReload)) && (
+            <View style={styles.updatedRow}>
+              {lastUpdatedLabel ? (
+                <CustomText style={styles.updatedText}>
+                  {lastUpdatedLabel}
+                </CustomText>
+              ) : null}
+              {Platform.OS === 'web' && onReload && (
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onReload();
+                  }}
+                  disabled={loading || isRefreshing}
+                  accessibilityRole="button"
+                  accessibilityLabel="Refresh weather"
+                  style={({ hovered }) => [
+                    styles.webRefreshBtn,
+                    hovered && styles.webRefreshBtnHovered,
+                    (loading || isRefreshing) && styles.webRefreshBtnDisabled,
+                  ]}
+                >
+                  <CustomIcon
+                    library="Feather"
+                    name="refresh-cw"
+                    size={12}
+                    color={Colors.PRIMARY}
+                  />
+                </Pressable>
+              )}
+            </View>
           )}
         </View>
 
@@ -405,11 +432,31 @@ const styles = StyleSheet.create({
         lineHeight: 16,
         flexShrink: 1,
     },
+    updatedRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
     updatedText: {
         fontSize: 12,
         color: Colors.TEXT_PLACEHOLDER,
         fontWeight: '500',
         lineHeight: 16,
+    },
+    webRefreshBtn: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        ...(Platform.OS === 'web' && { cursor: 'pointer' as const }),
+    },
+    webRefreshBtnHovered: {
+        backgroundColor: Colors.GRAY_LIGHT,
+    },
+    webRefreshBtnDisabled: {
+        opacity: 0.5,
     },
     contentRow: {
         flexDirection: 'row',
