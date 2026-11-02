@@ -18,7 +18,6 @@ import * as ImagePicker from 'expo-image-picker';
 import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
-import CustomStatusBadge from '@/src/components/CustomStatusBadge';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput, { stripEmojis } from '@/src/components/CustomTextInput';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
@@ -102,6 +101,7 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
     const { isMobile } = useBreakpoints();
     const { showToast } = useToast();
     const [previewVisible, setPreviewVisible] = useState(false);
+    const [hasInspectedReceipt, setHasInspectedReceipt] = useState(false);
     const [isRejecting, setIsRejecting] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
     const [isUploadingOverpaymentProof, setIsUploadingOverpaymentProof] = useState(false);
@@ -161,8 +161,6 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
     const isFullyPaid = verificationStatus === 'fully_paid' || 
         booking.status === 'completed' || 
         (booking.status === 'paid' && remainingBal === 0);
-    const isPending = !isFullyPaid && (verificationStatus === 'pending_verification' || manualPayment?.status === 'pending');
-    const isDownpayment = !isFullyPaid && (verificationStatus === 'downpayment' || booking.status === 'downpayment' || (remainingBal > 0 && previouslyCaptured > 0));
     const isRejected = !isFullyPaid && (verificationStatus === 'rejected' || manualPayment?.status === 'rejected');
 
     // Admin payment inputs (Zero Pre-fill Rule & Mandatory Reference)
@@ -177,6 +175,7 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
         setVerifiedAmountInput('');
         setReferenceNumber('');
         setAdminNote('');
+        setHasInspectedReceipt(false);
     }
 
     const parsedAmount = parseFloat(verifiedAmountInput);
@@ -187,6 +186,11 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
     const remainingAfterVerification = isValidAmount ? Math.max(0, remainingBal - parsedAmount) : remainingBal;
 
     const handleVerifySubmit = () => {
+        if (!hasInspectedReceipt) {
+            showToast.info('Please inspect the receipt image before verifying.');
+            return;
+        }
+
         if (isNaN(parsedAmount) || parsedAmount <= 0) {
             showToast.error('Please enter a valid amount.');
             return;
@@ -219,21 +223,7 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
         setAdminNote('');
     };
 
-    const renderStatusBadge = () => {
-        let statusKey = 'for-payment';
-        if (isFullyPaid) statusKey = 'paid';
-        else if (isDownpayment) statusKey = 'downpayment';
-        else if (isRejected) statusKey = 'reservation-rejected';
-        else if (isPending) statusKey = 'verifying-payment';
 
-        return (
-            <CustomStatusBadge
-                statusKey={statusKey}
-                role="admin"
-                size="sm"
-            />
-        );
-    };
 
     return (
         <View style={[styles.card, isMobile && styles.cardMobile]}>
@@ -245,7 +235,6 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                         Review Receipt & Verify
                     </CustomText>
                 </View>
-                {renderStatusBadge()}
             </View>
 
             <View style={styles.divider} />
@@ -254,7 +243,7 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
             {booking.overpayment && (
                 <View style={styles.overpaymentCallout}>
                     <View style={styles.overpaymentCalloutHeader}>
-                        <CustomIcon library="Feather" name="alert-circle" size={16} color="#D97706" />
+                        <CustomIcon library="Feather" name="alert-circle" size={16} color={Colors.WARNING} />
                         <CustomText style={styles.overpaymentCalloutTitle}>
                             Excess Payment Refund (₱{booking.overpayment.excessAmount.toFixed(2)})
                         </CustomText>
@@ -340,32 +329,6 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                 </View>
             )}
 
-            {/* Rejection notice if previously rejected */}
-            {isRejected && booking.paymentRejectionReason && (
-                <View style={styles.rejectedBanner}>
-                    <CustomIcon library="Feather" name="alert-triangle" size={16} color={Colors.STATUS_CANCELLED_TEXT} />
-                    <View style={{ flex: 1 }}>
-                        <CustomText style={styles.rejectedBannerTitle}>Receipt Rejected</CustomText>
-                        <CustomText style={styles.rejectedBannerSubtitle}>
-                            {booking.paymentRejectionReason}
-                        </CustomText>
-                    </View>
-                    {onRevertPayment && (
-                        <TouchableOpacity
-                            activeOpacity={0.7}
-                            onPress={() => {
-                                setIsRejectionRevert(true);
-                                setShowRevertModal(true);
-                            }}
-                            style={styles.revertRejectionBtn}
-                        >
-                            <CustomIcon library="Feather" name="rotate-ccw" size={12} color={Colors.STATUS_CANCELLED_TEXT} />
-                            <CustomText style={styles.revertRejectionBtnText}>Revert Rejection</CustomText>
-                        </TouchableOpacity>
-                    )}
-                </View>
-            )}
-
             {/* Receipt Verification Content */}
             {receiptUrl ? (
                 <View style={styles.verificationSection}>
@@ -374,13 +337,23 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                         <View style={[styles.receiptColumn, isMobile && styles.receiptColumnMobile]}>
                             <TouchableOpacity
                                 activeOpacity={0.85}
-                                onPress={() => setPreviewVisible(true)}
+                                onPress={() => {
+                                    setHasInspectedReceipt(true);
+                                    setPreviewVisible(true);
+                                }}
                                 style={styles.thumbnailWrapper}
                             >
                                 <Image source={{ uri: receiptUrl }} style={styles.thumbnail} resizeMode="cover" />
-                                <View style={styles.zoomOverlay}>
-                                    <CustomIcon library="Feather" name="maximize-2" size={14} color={Colors.WHITE} />
-                                    <CustomText style={styles.zoomText}>View Receipt</CustomText>
+                                <View style={[styles.zoomOverlay, hasInspectedReceipt && styles.zoomOverlayInspected]}>
+                                    <CustomIcon 
+                                        library="Feather" 
+                                        name={hasInspectedReceipt ? "check" : "maximize-2"} 
+                                        size={14} 
+                                        color={Colors.WHITE} 
+                                    />
+                                    <CustomText style={styles.zoomText}>
+                                        {hasInspectedReceipt ? "Receipt Inspected" : "View Receipt"}
+                                    </CustomText>
                                 </View>
                             </TouchableOpacity>
 
@@ -447,8 +420,8 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                             size="sm"
                                             icon="rotate-ccw"
                                             iconLibrary="Feather"
-                                            iconColor="#D97706"
-                                            textStyle={{ color: '#D97706' }}
+                                            iconColor={Colors.WARNING}
+                                            textStyle={{ color: Colors.WARNING }}
                                             onPress={() => {
                                                 setIsRejectionRevert(false);
                                                 setShowRevertModal(true);
@@ -458,6 +431,32 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                         />
                                     )}
                                 </View>
+                            </View>
+                        ) : isRejected ? (
+                            <View style={styles.rejectedPlaceholderColumn}>
+                                <CustomIcon library="Feather" name="alert-triangle" size={24} color={Colors.STATUS_CANCELLED_TEXT} />
+                                <CustomText style={styles.rejectedPlaceholderTitle}>Receipt Verification Rejected</CustomText>
+                                <CustomText style={styles.rejectedPlaceholderText}>
+                                    &quot;{booking.paymentRejectionReason || 'Receipt image is blurry or unreadable'}&quot;
+                                </CustomText>
+                                <CustomText style={styles.rejectedPlaceholderHint}>
+                                    Revert rejection to re-open verification and review details.
+                                </CustomText>
+                                {onRevertPayment && (
+                                    <CustomButton
+                                        title="Revert Rejection"
+                                        variant="outline"
+                                        size="sm"
+                                        icon="rotate-ccw"
+                                        iconLibrary="Feather"
+                                        onPress={() => {
+                                            setIsRejectionRevert(true);
+                                            setShowRevertModal(true);
+                                        }}
+                                        disabled={isProcessing}
+                                        style={styles.revertActionBtn}
+                                    />
+                                )}
                             </View>
                         ) : (
                             /* Normal Input Column for Pending Review */
@@ -474,6 +473,29 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                     onChangeText={(val: string | Date | null) => setVerifiedAmountInput(sanitizeCurrencyInput(String(val || '')))}
                                 />
 
+                                {/* Live Payment Classification Badge Pill */}
+                                {isValidAmount && (
+                                    <View style={styles.classificationPillRow}>
+                                        <View style={[
+                                            styles.classificationPill,
+                                            isFullSettlement ? styles.fullPaymentPill : styles.downpaymentPill
+                                        ]}>
+                                            <CustomIcon 
+                                                library="Feather" 
+                                                name={isFullSettlement ? "check-circle" : "pie-chart"} 
+                                                size={12} 
+                                                color={isFullSettlement ? Colors.PRIMARY : Colors.STATUS_DOWNPAYMENT_TEXT} 
+                                            />
+                                            <CustomText style={[
+                                                styles.classificationPillText,
+                                                { color: isFullSettlement ? Colors.PRIMARY : Colors.STATUS_DOWNPAYMENT_TEXT }
+                                            ]}>
+                                                {isFullSettlement ? 'FULL PAYMENT' : 'DOWNPAYMENT'}
+                                            </CustomText>
+                                        </View>
+                                    </View>
+                                )}
+
                                 {/* Reference Number Input */}
                                 <CustomTextInput
                                     label="REF Code *"
@@ -486,8 +508,8 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
 
                                 {/* Note Input */}
                                 <CustomTextInput
-                                    label="Note (Optional)"
-                                    placeholder="e.g. Verified on GCash or notes..."
+                                    label="Admin Note (Optional)"
+                                    placeholder="e.g. Verified in GCash statement or internal remarks..."
                                     value={adminNote}
                                     maxLength={120}
                                     sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
@@ -506,12 +528,12 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                             library="Feather" 
                                             name={isOverpaid ? "alert-triangle" : (isFullSettlement ? "check-circle" : "info")} 
                                             size={14} 
-                                            color={isOverpaid ? '#D97706' : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT)} 
+                                            color={isOverpaid ? Colors.WARNING : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT)} 
                                             style={{ marginTop: 2 }}
                                         />
                                         <CustomText style={[
                                             styles.calcFeedbackText, 
-                                            { color: isOverpaid ? '#D97706' : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT) }
+                                            { color: isOverpaid ? Colors.WARNING : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT) }
                                         ]}>
                                             {isOverpaid 
                                                 ? `Overpayment Detected: Hiker sent ₱${parsedAmount.toFixed(2)} for ₱${remainingBal.toFixed(2)} balance. ₱${excessAmount.toFixed(2)} excess refund will be initiated.`
@@ -525,8 +547,8 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                         )}
                     </View>
 
-                    {/* Bottom Action Row: REJECT & VERIFY (only when not captured) */}
-                    {!isCaptured && !isRejecting && (
+                    {/* Bottom Action Row: REJECT & VERIFY (only when not captured, not rejected, and not rejecting) */}
+                    {!isCaptured && !isRejecting && !isRejected && (
                         <View style={styles.actionButtonsRow}>
                             <CustomButton
                                 title="REJECT"
@@ -535,7 +557,15 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                 icon="x"
                                 iconLibrary="Feather"
                                 iconColor={Colors.ERROR}
-                                onPress={() => setIsRejecting(true)}
+                                onPress={() => {
+                                    if (!hasInspectedReceipt) {
+                                        showToast.info('Please inspect the receipt image before rejecting.');
+                                        setPreviewVisible(true);
+                                        setHasInspectedReceipt(true);
+                                        return;
+                                    }
+                                    setIsRejecting(true);
+                                }}
                                 style={styles.rejectBtn}
                                 textStyle={styles.rejectBtnText}
                                 disabled={isProcessing}
@@ -548,14 +578,14 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                 iconLibrary="Feather"
                                 onPress={handleVerifySubmit}
                                 isLoading={isProcessing}
-                                disabled={!isValidAmount || !referenceNumber.trim()}
+                                disabled={!isValidAmount || !referenceNumber.trim() || isProcessing}
                                 style={styles.verifyBtn}
                             />
                         </View>
                     )}
 
                     {/* Inline Rejection Reason Form */}
-                    {!isCaptured && isRejecting && (
+                    {!isCaptured && isRejecting && !isRejected && (
                         <View style={styles.rejectionSection}>
                             <CustomFeedbackInput
                                 label="Reason for Rejection *"
@@ -682,7 +712,7 @@ const styles = StyleSheet.create({
     cardTitle: {
         fontSize: 14.5,
         fontWeight: '600',
-        color: '#374151',
+        color: Colors.TEXT_PRIMARY,
         marginBottom: 0,
         includeFontPadding: false,
     },
@@ -737,6 +767,9 @@ const styles = StyleSheet.create({
         paddingVertical: 5,
         gap: 5,
     },
+    zoomOverlayInspected: {
+        backgroundColor: 'rgba(46, 125, 50, 0.85)',
+    },
     zoomText: {
         color: Colors.WHITE,
         fontSize: 10,
@@ -780,8 +813,8 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.STATUS_DOWNPAYMENT_BG,
     },
     calcFeedbackOverpaid: {
-        backgroundColor: '#FEF3C7',
-        borderColor: '#FCD34D',
+        backgroundColor: Colors.STATUS_WARNING_BG,
+        borderColor: Colors.STATUS_WARNING_BORDER,
         borderWidth: 1,
     },
     calcFeedbackText: {
@@ -841,6 +874,65 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
         marginTop: 2,
     },
+    classificationPillRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: -2,
+    },
+    classificationPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 6,
+        borderWidth: 1,
+    },
+    fullPaymentPill: {
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        borderColor: Colors.STATUS_APPROVED_BORDER,
+    },
+    downpaymentPill: {
+        backgroundColor: Colors.STATUS_DOWNPAYMENT_BG,
+        borderColor: Colors.STATUS_DOWNPAYMENT_BORDER,
+    },
+    classificationPillText: {
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    rejectedPlaceholderColumn: {
+        flex: 1,
+        gap: 6,
+        padding: 16,
+        borderRadius: 10,
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_CANCELLED_TEXT,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    rejectedPlaceholderTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: Colors.STATUS_CANCELLED_TEXT,
+    },
+    rejectedPlaceholderText: {
+        fontSize: 12,
+        color: Colors.TEXT_PRIMARY,
+        textAlign: 'center',
+        fontStyle: 'italic',
+    },
+    rejectedPlaceholderHint: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'center',
+        marginTop: 4,
+    },
+    revertActionBtn: {
+        marginTop: 10,
+        borderRadius: 10,
+        borderColor: Colors.STATUS_CANCELLED_TEXT,
+    },
     rejectionSection: {
         marginTop: 8,
         gap: 8,
@@ -862,8 +954,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     overpaymentCallout: {
-        backgroundColor: '#FEF3C7',
-        borderColor: '#F59E0B',
+        backgroundColor: Colors.STATUS_WARNING_BG,
+        borderColor: Colors.STATUS_WARNING_BORDER,
         borderWidth: 1,
         padding: 14,
         borderRadius: 12,
@@ -877,11 +969,11 @@ const styles = StyleSheet.create({
     overpaymentCalloutTitle: {
         fontSize: 13,
         fontWeight: 'bold',
-        color: '#B45309',
+        color: Colors.STATUS_WARNING_TEXT,
     },
     overpaymentCalloutText: {
         fontSize: 12,
-        color: '#92400E',
+        color: Colors.STATUS_WARNING_TEXT,
         lineHeight: 16,
     },
     walletDetailsCard: {
@@ -889,7 +981,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 10,
         borderWidth: 1,
-        borderColor: '#FDE68A',
+        borderColor: Colors.STATUS_WARNING_BORDER,
         marginTop: 6,
     },
     walletDetailsRow: {
@@ -903,7 +995,7 @@ const styles = StyleSheet.create({
     walletLabel: {
         fontSize: 10,
         fontWeight: 'bold',
-        color: '#B45309',
+        color: Colors.STATUS_WARNING_TEXT,
         letterSpacing: 0.5,
     },
     walletNumber: {
@@ -923,7 +1015,7 @@ const styles = StyleSheet.create({
         gap: 4,
         paddingVertical: 6,
         paddingHorizontal: 10,
-        backgroundColor: Colors.PRIMARY_LIGHT || '#E0E7FF',
+        backgroundColor: Colors.PRIMARY_LIGHT,
         borderRadius: 6,
     },
     copyBtnText: {
@@ -939,7 +1031,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 8,
         borderWidth: 1,
-        borderColor: '#FDE68A',
+        borderColor: Colors.STATUS_WARNING_BORDER,
         marginTop: 6,
     },
     proofThumbnail: {
@@ -985,12 +1077,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        backgroundColor: '#F0FDF4',
+        backgroundColor: Colors.STATUS_APPROVED_BG,
         paddingVertical: 6,
         paddingHorizontal: 10,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#BBF7D0',
+        borderColor: Colors.STATUS_APPROVED_BORDER,
         alignSelf: 'flex-start',
     },
     verifiedHeaderPillText: {
@@ -999,11 +1091,11 @@ const styles = StyleSheet.create({
         color: Colors.SUCCESS,
     },
     verifiedDataCard: {
-        backgroundColor: '#F8FAFC',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderRadius: 10,
         padding: 12,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: Colors.GRAY_LIGHT,
         gap: 8,
     },
     verifiedDataRow: {
@@ -1038,7 +1130,7 @@ const styles = StyleSheet.create({
         padding: 6,
         borderRadius: 6,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: Colors.GRAY_LIGHT,
     },
     verifiedActionsRow: {
         flexDirection: 'row',
