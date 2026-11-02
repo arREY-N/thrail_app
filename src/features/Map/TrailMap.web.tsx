@@ -414,6 +414,7 @@ const TrailMap = memo(
       const hasInitialCoords = !!(lonStr && latStr && !isNaN(parsedLon) && !isNaN(parsedLat));
       const hasInitialCoordsRef = useRef(hasInitialCoords);
       const centeredOnUserRef = useRef(false);
+      const pendingCenterOnUserRef = useRef(false);
       const trailBoundsRef = useRef<maplibregl.LngLatBounds | null>(null);
       const hasFittedTrailRef = useRef(false);
       const hasFittedHikerRef = useRef(false);
@@ -801,51 +802,110 @@ const TrailMap = memo(
       }, [mapReady, hasInitialCoords, parsedLon, parsedLat]);
 
       /* ------------------------ Browser geolocation dot --------------------- */
+      const applyUserCoords = useCallback((latitude: number, longitude: number) => {
+        if (!isValidCoordinate(latitude, longitude)) return;
+        const lngLat: [number, number] = [longitude, latitude];
+        userCoordsRef.current = lngLat;
+
+        const map = mapRef.current;
+        if (!map) return;
+        if (!userMarkerRef.current) {
+          const el = document.createElement("div");
+          Object.assign(el.style, {
+            width: "16px",
+            height: "16px",
+            borderRadius: "8px",
+            background: "#2563EB",
+            border: "2.5px solid #fff",
+            boxShadow: "0 0 0 8px rgba(37,99,235,0.2), 0 2px 3px rgba(0,0,0,0.35)",
+            pointerEvents: "none",
+          });
+          userMarkerRef.current = new maplibregl.Marker({ element: el }).setLngLat(lngLat).addTo(map);
+        } else {
+          userMarkerRef.current.setLngLat(lngLat);
+        }
+
+        const shouldFly = pendingCenterOnUserRef.current || (!centeredOnUserRef.current && !hasInitialCoordsRef.current);
+        if (shouldFly) {
+          centeredOnUserRef.current = true;
+          pendingCenterOnUserRef.current = false;
+          isFollowingRef.current = true;
+          map.flyTo({ center: lngLat, zoom: 16.5, duration: 800 });
+        } else if (isFollowingRef.current) {
+          map.easeTo({ center: lngLat, duration: 500 });
+        }
+      }, []);
+
+      const fallbackToIpLocation = useCallback(async () => {
+        try {
+          const res = await fetch("https://ipwho.is/");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && isValidCoordinate(data.latitude, data.longitude)) {
+              if (isMountedRef.current) {
+                applyUserCoords(data.latitude, data.longitude);
+                showNotice("Approximate location (based on IP network)");
+                return true;
+              }
+            }
+          }
+        } catch {
+          // Ignore and try secondary provider
+        }
+
+        try {
+          const res2 = await fetch("https://freeipapi.com/api/json");
+          if (res2.ok) {
+            const data2 = await res2.json();
+            if (isValidCoordinate(data2.latitude, data2.longitude)) {
+              if (isMountedRef.current) {
+                applyUserCoords(data2.latitude, data2.longitude);
+                showNotice("Approximate location (based on IP network)");
+                return true;
+              }
+            }
+          }
+        } catch {
+          // Silently fail
+        }
+
+        return false;
+      }, [applyUserCoords, showNotice]);
+
       const ensureGeolocation = useCallback(() => {
         if (geoWatchRef.current !== null || !("geolocation" in navigator)) return;
+
+        // Try high accuracy with a 4s timeout first (fast on mobile/GPS-enabled devices)
         geoWatchRef.current = navigator.geolocation.watchPosition(
           (pos) => {
-            const { latitude, longitude } = pos.coords;
-            if (!isValidCoordinate(latitude, longitude)) return;
-            const lngLat: [number, number] = [longitude, latitude];
-            userCoordsRef.current = lngLat;
-
-            const map = mapRef.current;
-            if (!map) return;
-            if (!userMarkerRef.current) {
-              const el = document.createElement("div");
-              Object.assign(el.style, {
-                width: "16px",
-                height: "16px",
-                borderRadius: "8px",
-                background: "#2563EB",
-                border: "2.5px solid #fff",
-                boxShadow: "0 0 0 8px rgba(37,99,235,0.2), 0 2px 3px rgba(0,0,0,0.35)",
-                pointerEvents: "none",
-              });
-              userMarkerRef.current = new maplibregl.Marker({ element: el }).setLngLat(lngLat).addTo(map);
-            } else {
-              userMarkerRef.current.setLngLat(lngLat);
-            }
-            if (!centeredOnUserRef.current && !hasInitialCoordsRef.current) {
-              // First fix: zoom to the user once, then keep following (same as native)
-              centeredOnUserRef.current = true;
-              isFollowingRef.current = true;
-              map.flyTo({ center: lngLat, zoom: 16, duration: 800 });
-            } else if (isFollowingRef.current) {
-              map.easeTo({ center: lngLat, duration: 500 });
-            }
+            applyUserCoords(pos.coords.latitude, pos.coords.longitude);
           },
           (err) => {
-            console.warn("Geolocation error:", err.message);
-            showNotice("Location unavailable. Allow location access (HTTPS required).");
-            if (!centeredOnUserRef.current && !hasInitialCoordsRef.current && trailBoundsRef.current) {
-              mapRef.current?.fitBounds(trailBoundsRef.current, { padding: 60, duration: 800 });
-            }
+            console.warn("High-accuracy geolocation failed, attempting low-accuracy fallback:", err.message);
+
+            // Fallback 1: Low-accuracy browser geolocation (instant on desktop Wi-Fi / IP)
+            navigator.geolocation.getCurrentPosition(
+              (lowPos) => {
+                applyUserCoords(lowPos.coords.latitude, lowPos.coords.longitude);
+              },
+              async (lowErr) => {
+                console.warn("Browser geolocation failed, attempting IP fallback:", lowErr.message);
+
+                // Fallback 2: IP-based approximate location
+                const ipSucceeded = await fallbackToIpLocation();
+                if (!ipSucceeded) {
+                  showNotice("Location unavailable. Allow location access (HTTPS required).");
+                  if (!centeredOnUserRef.current && !hasInitialCoordsRef.current && trailBoundsRef.current) {
+                    mapRef.current?.fitBounds(trailBoundsRef.current, { padding: 60, duration: 800 });
+                  }
+                }
+              },
+              { enableHighAccuracy: false, maximumAge: 60000, timeout: 6000 }
+            );
           },
-          { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+          { enableHighAccuracy: true, maximumAge: 5000, timeout: 4000 },
         );
-      }, [showNotice]);
+      }, [applyUserCoords, fallbackToIpLocation, showNotice]);
 
       // Note: Removed auto-geolocation on mount. Geolocation is triggered only when clicking centerOnUser().
 
@@ -950,7 +1010,7 @@ const TrailMap = memo(
           if (c && map) {
             map.easeTo({ center: c, zoom: Math.max(map.getZoom(), 16.5), bearing: 0, pitch: 0, duration: 500 });
           } else {
-            // First fix hasn't arrived yet; the watch callback will follow once it does
+            pendingCenterOnUserRef.current = true;
             showNotice("Finding your location…");
           }
         },
