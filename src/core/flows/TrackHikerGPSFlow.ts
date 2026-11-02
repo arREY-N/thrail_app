@@ -323,8 +323,16 @@ export const TrackHikerGPSFlow = () => {
             status: 'ACTIVE',
         });
 
-        // Continuous Pre-Hike GPS Availability: update currentLocation when coordinates change or on initial fix
-        if (hasCoordChanged || !useHikeStore.getState().currentLocation) {
+        const prevLocation = useHikeStore.getState().currentLocation;
+        const prevAlt = prevLocation?.altitude;
+        const hasValidPrevAlt = typeof prevAlt === "number" && !isNaN(prevAlt) && prevAlt !== 0;
+        const hasValidNewAlt = typeof alt === "number" && !isNaN(alt) && alt !== 0;
+        const hasAltChanged =
+            hasValidNewAlt &&
+            (!hasValidPrevAlt || Math.abs(alt - prevAlt) >= 0.5);
+
+        // Continuous Pre-Hike GPS Availability: update currentLocation when horizontal coordinates or 3D altitude change
+        if (hasCoordChanged || hasAltChanged || !prevLocation) {
             useHikeStore.getState().setCurrentLocation(latestCoord);
         }
 
