@@ -65,7 +65,7 @@ const ReceiptScreen = ({
     
     const totalPaid = capturedPayments.length > 0 
         ? capturedPayments.reduce((sum: number, p: IPayment<Date>) => sum + (p.amount || 0), 0) 
-        : (isRefunded ? 0 : totalAmount);
+        : (isRefunded ? 0 : (['completed', 'paid'].includes(bookingData?.status || '') ? totalAmount : 0));
     
     const remainingBalance = typeof bookingData?.remainingBalance === 'number'
         ? bookingData.remainingBalance
