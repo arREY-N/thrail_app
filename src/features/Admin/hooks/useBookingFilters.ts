@@ -5,10 +5,10 @@
 
 import { useMemo, useState } from 'react';
 
-import { Booking, BookingStatus } from '@/src/core/models/Booking/Booking';
+import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
 
-export const FILTER_OPTIONS = ['All', 'Needs Review', 'For Payment', 'Downpayment', 'Fully Paid', 'Completed', 'Rejected'];
+export const FILTER_OPTIONS = ['All', 'Needs Review', 'For Payment', 'Paid', 'Completed', 'Cancelled'];
 
 /**
  * useBookingFilters — Filters and sorts a list of bookings for an offer.
@@ -24,30 +24,85 @@ export default function useBookingFilters(bookings: Booking[], cancellations?: C
     const filteredBookings = useMemo(() => {
         if (!bookings) return [];
 
-        const getEffectiveStatus = (b: Booking): BookingStatus | string => {
+        const getBookingDetails = (b: Booking) => {
             const cancellation = cancellations?.find(c => c.bookingId === b.id && !c.isDeleted);
-            if (cancellation?.status === 'approved' && !['refund', 'refunded', 'cancelled'].includes(b.status || '')) {
-                return 'cancelled';
+            
+            const hasRefundedPayment = b.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+            const isVerifyingPayment = b.paymentVerificationStatus === 'pending_verification' ||
+                Boolean(b.payment?.some((p: IPayment<Date>) => p.gateway === 'manual_qr' && p.status === 'pending'));
+
+            const isNoRefund =
+                cancellation?.refundDecision === 'no_refund' ||
+                (cancellation?.status === 'approved' &&
+                    b.status === 'cancelled' &&
+                    cancellation?.refundAmount === 0 &&
+                    cancellation?.handshakeStep !== 'awaiting_user_wallet' &&
+                    cancellation?.handshakeStep !== 'awaiting_admin_payout' &&
+                    !cancellation?.adminRefundReceiptUrl);
+
+            const isRefundComplete =
+                !isNoRefund &&
+                (b.status === 'refunded' ||
+                    cancellation?.status === 'refund_completed' ||
+                    cancellation?.handshakeStep === 'completed' ||
+                    Boolean(cancellation?.userConfirmedReceivedAt) ||
+                    hasRefundedPayment);
+
+            const isRefunding =
+                !isRefundComplete &&
+                (b.status === 'refund' ||
+                    cancellation?.status === 'refund_pending' ||
+                    cancellation?.status === 'refund_submitted' ||
+                    cancellation?.status === 'refund_disputed' ||
+                    (cancellation?.status === 'approved' &&
+                        !isNoRefund &&
+                        (Boolean(cancellation?.refundAmount && cancellation.refundAmount > 0) ||
+                         Boolean(cancellation?.handshakeStep && cancellation.handshakeStep !== 'completed'))));
+
+            const isHikerCancellationPending = cancellation && cancellation.status === 'pending' && cancellation.cancelledBy !== 'admin' && b.status !== 'cancelled';
+
+            let status: string = b.status || '';
+            if (isNoRefund) {
+                status = 'cancelled';
+            } else if (isRefundComplete) {
+                status = 'refunded';
+            } else if (isRefunding) {
+                status = 'refund';
+            } else if (isHikerCancellationPending) {
+                status = 'for-cancellation';
+            } else if (isVerifyingPayment && (b.status === 'for-payment' || b.status === 'downpayment')) {
+                status = 'verifying-payment';
             }
-            if (cancellation?.status === 'pending') {
-                return 'for-cancellation';
-            }
-            return b.status || '';
+
+            const isRefundActionNeeded = isRefunding && (
+                cancellation?.handshakeStep === 'awaiting_admin_payout' ||
+                cancellation?.handshakeStep === 'awaiting_admin_refund_decision' ||
+                cancellation?.handshakeStep === 'refund_disputed' ||
+                cancellation?.status === 'refund_disputed' ||
+                (!cancellation?.adminRefundReceiptUrl && !cancellation?.handshakeStep)
+            );
+
+            const requiresAdminAction =
+                status === 'for-reservation' ||
+                status === 'verifying-payment' ||
+                status === 'for-cancellation' ||
+                status === 'for-reschedule' ||
+                (status === 'refund' && isRefundActionNeeded);
+
+            return { status, requiresAdminAction, cancellation };
         };
 
         let result = [...bookings];
 
         if (activeFilter !== 'All') {
             result = result.filter(b => {
-                const status = getEffectiveStatus(b);
-                const isNeedsReview = status === 'for-reservation' || status === 'for-cancellation' || status === 'for-reschedule' || status === 'refund';
+                const { status, requiresAdminAction } = getBookingDetails(b);
                 
-                if (activeFilter === 'Needs Review') return isNeedsReview;
-                if (activeFilter === 'Rejected') return ['reservation-rejected', 'cancelled', 'refunded', 'expired', 'cancellation-rejected', 'reschedule-rejected'].includes(status);
-                if (activeFilter === 'For Payment') return status === 'for-payment' || status === 'approved-docs';
-                if (activeFilter === 'Downpayment') return status === 'downpayment';
-                if (activeFilter === 'Fully Paid') return status === 'paid';
-                if (activeFilter === 'Completed') return status === 'completed' || status === 'finished' || status === 'rescheduled';
+                if (activeFilter === 'Needs Review') return requiresAdminAction;
+                if (activeFilter === 'For Payment') return status === 'for-payment' || status === 'approved-docs' || status === 'payment-rejected';
+                if (activeFilter === 'Paid') return status === 'paid' || status === 'downpayment' || status === 'rescheduled';
+                if (activeFilter === 'Completed') return status === 'completed' || status === 'finished';
+                if (activeFilter === 'Cancelled') return ['reservation-rejected', 'cancelled', 'refunded', 'expired', 'cancellation-rejected', 'reschedule-rejected'].includes(status);
                 
                 return true;
             });
@@ -73,22 +128,22 @@ export default function useBookingFilters(bookings: Booking[], cancellations?: C
             });
         }
 
-        // 3-Tier Hierarchy for 'All' tab: Action Required -> In-Progress -> Dead / Closed
+        // 3-Tier Hierarchy for 'All' tab: Action Required -> Confirmed/In-Progress -> Dead/Closed
         const getPriorityTier = (b: Booking): number => {
-            const s = getEffectiveStatus(b);
+            const { status, requiresAdminAction } = getBookingDetails(b);
 
             // Tier 1: Action Required by Admin (Top)
-            if (s === 'for-reservation' || s === 'for-cancellation' || s === 'for-reschedule' || s === 'paid') {
+            if (requiresAdminAction) {
                 return 1;
             }
 
-            // Tier 2: Active & In-Progress / Confirmed (Middle)
-            if (s === 'for-payment' || s === 'approved-docs' || s === 'downpayment' || s === 'completed' || s === 'rescheduled') {
+            // Tier 2: Confirmed / Active Hiker (Middle)
+            if (status === 'for-payment' || status === 'approved-docs' || status === 'downpayment' || status === 'paid' || status === 'rescheduled') {
                 return 2;
             }
 
-            // Tier 3: Dead / Closed / Finished Records (Bottom)
-            if (['finished', 'cancelled', 'reservation-rejected', 'refund', 'refunded', 'expired', 'cancellation-rejected', 'reschedule-rejected'].includes(s)) {
+            // Tier 3: Closed / Finished Records (Bottom)
+            if (['completed', 'finished', 'cancelled', 'reservation-rejected', 'refunded', 'expired', 'cancellation-rejected', 'reschedule-rejected'].includes(status)) {
                 return 3;
             }
 
