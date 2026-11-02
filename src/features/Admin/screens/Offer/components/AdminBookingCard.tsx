@@ -34,27 +34,64 @@ const AdminBookingCard = ({
     const isVerifyingPayment = booking.paymentVerificationStatus === 'pending_verification' ||
         Boolean(booking.payment?.some((p: IPayment<Date>) => p.gateway === 'manual_qr' && p.status === 'pending'));
 
+    const isNoRefund =
+        cancellation?.refundDecision === 'no_refund' ||
+        (cancellation?.status === 'approved' &&
+            booking?.status === 'cancelled' &&
+            cancellation?.refundAmount === 0 &&
+            cancellation?.handshakeStep !== 'awaiting_user_wallet' &&
+            cancellation?.handshakeStep !== 'awaiting_admin_payout' &&
+            !cancellation?.adminRefundReceiptUrl);
+
     const isRefundComplete =
-        booking.status === 'refunded' ||
-        cancellation?.status === 'refund_completed' ||
-        cancellation?.handshakeStep === 'completed' ||
-        (hasRefundedPayment && booking.status !== 'refund');
+        !isNoRefund &&
+        (booking.status === 'refunded' ||
+            cancellation?.status === 'refund_completed' ||
+            cancellation?.handshakeStep === 'completed' ||
+            Boolean(cancellation?.userConfirmedReceivedAt) ||
+            hasRefundedPayment);
 
     const isRefunding =
-        booking.status === 'refund' ||
-        (cancellation?.status === 'approved' && ['hiker_details_submitted', 'admin_payout_sent', 'user_declined_receipt', 'refund_disputed'].includes(cancellation?.handshakeStep || ''));
+        !isRefundComplete &&
+        (booking.status === 'refund' ||
+            cancellation?.status === 'refund_pending' ||
+            cancellation?.status === 'refund_submitted' ||
+            cancellation?.status === 'refund_disputed' ||
+            (cancellation?.status === 'approved' &&
+                !isNoRefund &&
+                (Boolean(cancellation?.refundAmount && cancellation.refundAmount > 0) ||
+                 Boolean(cancellation?.handshakeStep && cancellation.handshakeStep !== 'completed'))));
 
-    const displayStatus = isRefundComplete
-        ? 'refunded'
-        : (isRefunding
-            ? 'refund'
-            : (cancellation && cancellation.status === 'pending' && cancellation.cancelledBy === 'user' && booking.status !== 'cancelled'
-                ? 'for-cancellation'
-                : (isVerifyingPayment && booking.status === 'for-payment'
-                    ? 'verifying-payment'
-                    : booking.status)));
+    const isHikerCancellationPending = cancellation && cancellation.status === 'pending' && cancellation.cancelledBy !== 'admin' && booking.status !== 'cancelled';
 
-    const requiresAdminAction = !isOfferLocked && ['for-reservation', 'verifying-payment', 'downpayment', 'paid', 'for-cancellation', 'for-reschedule', 'refund'].includes(displayStatus);
+    let displayStatus: string = booking.status || '';
+    if (isNoRefund) {
+        displayStatus = 'cancelled';
+    } else if (isRefundComplete) {
+        displayStatus = 'refunded';
+    } else if (isRefunding) {
+        displayStatus = 'refund';
+    } else if (isHikerCancellationPending) {
+        displayStatus = 'for-cancellation';
+    } else if (isVerifyingPayment && (booking.status === 'for-payment' || booking.status === 'downpayment')) {
+        displayStatus = 'verifying-payment';
+    }
+
+    const isRefundActionNeeded = isRefunding && (
+        cancellation?.handshakeStep === 'awaiting_admin_payout' ||
+        cancellation?.handshakeStep === 'awaiting_admin_refund_decision' ||
+        cancellation?.handshakeStep === 'refund_disputed' ||
+        cancellation?.status === 'refund_disputed' ||
+        (!cancellation?.adminRefundReceiptUrl && !cancellation?.handshakeStep)
+    );
+
+    const requiresAdminAction = !isOfferLocked && (
+        displayStatus === 'for-reservation' ||
+        displayStatus === 'verifying-payment' ||
+        displayStatus === 'for-cancellation' ||
+        displayStatus === 'for-reschedule' ||
+        (displayStatus === 'refund' && isRefundActionNeeded)
+    );
 
     const firstName = booking.user?.firstname || 'Unknown';
     const lastName = booking.user?.lastname || 'Hiker';
