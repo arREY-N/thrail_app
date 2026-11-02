@@ -16,6 +16,8 @@ export const useHikeStore = create<HikeState>()(
                 timerStartTime: state.timerStartTime,
                 totalDistance: state.totalDistance,
                 totalElevationGain: state.totalElevationGain,
+                totalElevationLoss: state.totalElevationLoss,
+                elevationBaseline: state.elevationBaseline,
                 active: state.active,
                 profile: state.profile,
                 activeGroupId: state.activeGroupId,
