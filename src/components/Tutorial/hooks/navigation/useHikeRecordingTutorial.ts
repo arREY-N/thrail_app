@@ -7,13 +7,13 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Platform, View } from 'react-native';
 
+import { useTutorialGuide } from '@/src/components/Tutorial/hooks/useTutorialGuide';
+import { type TutorialTourId } from '@/src/components/Tutorial/interfaces/Tutorial.types';
 import {
     isTutorialMeasurementActive,
     registerMeasureCallback,
     registerTutorialLayout,
-    type TutorialTourId,
-    useTutorialGuide,
-} from '@/src/components/Tutorial/Tutorial';
+} from '@/src/components/Tutorial/utils/tutorialLayoutRegistry';
 import { getRecordingDiyTourSteps } from '@/src/components/Tutorial/constants/recordingTour';
 import { Booking } from '@/src/core/models/Booking/Booking';
 
