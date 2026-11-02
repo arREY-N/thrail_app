@@ -9,8 +9,8 @@ import { useToast } from '@/src/components/Toast/Toast';
 import {
     CustomTutorialModal,
     TutorialHelpButton,
+    usePaymentTutorial,
 } from '@/src/components/Tutorial/Tutorial';
-import { usePaymentTutorial } from '@/src/features/Book/screens/Payment/hooks/usePaymentTutorial';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
