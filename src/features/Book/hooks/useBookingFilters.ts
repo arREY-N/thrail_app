@@ -127,6 +127,14 @@ export const isActionNeededStatus = (
         return false;
     }
 
+    const isPaymentVerifying =
+        booking?.paymentVerificationStatus === 'pending_verification' ||
+        Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+
+    if (isPaymentVerifying) {
+        return false;
+    }
+
     if (status === 'refund') {
         return !cancellation?.userWallet?.accountNumber ||
             cancellation?.handshakeStep === 'awaiting_user_confirmation' ||
@@ -142,6 +150,7 @@ export const isActionNeededStatus = (
         'downpayment',
         'cancellation-rejected',
         'reschedule-rejected',
+        'payment-rejected',
     ].includes(status);
 };
 
@@ -286,6 +295,7 @@ export default function useBookingFilters(
                 'refunded',
                 'finished',
                 'expired',
+                'rescheduled',
             ].includes(status);
 
             // History bookings are terminal/archived records — they never increment action counts
@@ -353,6 +363,7 @@ export default function useBookingFilters(
                 'refunded',
                 'finished',
                 'expired',
+                'rescheduled',
             ].includes(status);
 
             if (isDead || isPast) {
@@ -374,7 +385,7 @@ export default function useBookingFilters(
             }
 
             if (activeTab === 'upcoming') {
-                return ['paid', 'downpayment', 'rescheduled', 'completed'].includes(status);
+                return ['paid', 'downpayment', 'completed'].includes(status);
             }
 
             return false;
@@ -386,12 +397,17 @@ export default function useBookingFilters(
                 return isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations), cancelDoc, b);
             });
         } else if (filterBy === 'waiting') {
-            filtered = filtered.filter(b => [
-                'for-reservation',
-                'for-reschedule',
-                'for-cancellation',
-                'refund',
-            ].includes(getBookingEffectiveStatus(b, userCancellations)));
+            filtered = filtered.filter(b => {
+                const isVerifying = b.paymentVerificationStatus === 'pending_verification' ||
+                    Boolean(b.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+                if (isVerifying) return true;
+                return [
+                    'for-reservation',
+                    'for-reschedule',
+                    'for-cancellation',
+                    'refund',
+                ].includes(getBookingEffectiveStatus(b, userCancellations));
+            });
         } else if (filterBy === 'partial') {
             filtered = filtered.filter(b => getBookingEffectiveStatus(b, userCancellations) === 'downpayment');
         }
