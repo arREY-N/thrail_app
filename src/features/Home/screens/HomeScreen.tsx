@@ -34,7 +34,7 @@ import { useWebDragScroll } from "@/src/hooks/useWebDragScroll";
 import {
   CustomTutorialModal,
   TutorialHelpButton,
-  useTutorialGuide,
+  useHomeTutorial,
 } from '@/src/components/Tutorial/Tutorial';
 
 import { getDetailedWeatherSafety } from "@/src/core/utility/weatherHelpers";
@@ -329,7 +329,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   const { width } = useWindowDimensions();
   const { isDesktop, isTablet } = useBreakpoints();
   const isWideScreen = isDesktop || isTablet;
-  const tutorial = useTutorialGuide('tabs', !isLoading);
+  const tutorial = useHomeTutorial({ isReady: !isLoading });
 
   const MAX_CONTAINER_WIDTH = 860;
   const effectiveWidth = Math.min(width, MAX_CONTAINER_WIDTH);
