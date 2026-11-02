@@ -360,6 +360,9 @@ export const TrackHikerGPSFlow = () => {
         const runInit = async () => {
             try {
                 let isGpsEnabled = await Location.hasServicesEnabledAsync();
+                if (globalActiveInstances <= 0) {
+                    return;
+                }
                 if (!isGpsEnabled) {
                     if (Platform.OS === "android") {
                         try {
@@ -369,6 +372,9 @@ export const TrackHikerGPSFlow = () => {
                             console.warn("Failed to enable network provider:", e);
                         }
                     }
+                }
+                if (globalActiveInstances <= 0) {
+                    return;
                 }
 
                 if (!isGpsEnabled) {
@@ -394,6 +400,9 @@ export const TrackHikerGPSFlow = () => {
                 }
 
                 const { status } = await Location.requestForegroundPermissionsAsync();
+                if (globalActiveInstances <= 0) {
+                    return;
+                }
                 if (status !== "granted") {
                     Alert.alert("Location Required", "Please enable GPS in settings.", [
                         { text: "Cancel", style: "cancel" },
