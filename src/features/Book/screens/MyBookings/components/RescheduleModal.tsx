@@ -1,24 +1,31 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+    Animated,
+    Dimensions,
     KeyboardAvoidingView,
     Modal,
     Platform,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 
 import { useBookingsStore } from '@/src/core/models/Booking/Booking';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import OfferCard, { OfferData } from '@/src/features/Book/components/OfferCard';
-import { formatDateToStandard } from '@/src/utils/dateFormatter';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export interface RescheduleModalProps {
     /** Whether the modal is visible */
@@ -43,8 +50,8 @@ const RESCHEDULE_SUGGESTIONS = [
 
 /**
  * Modal to select a reason and a new date from future offers to reschedule.
- * 
- * @param {RescheduleModalProps} props - Component props
+ * Adheres to responsive container layout (centered card on web, bottom-sheet on mobile)
+ * and enforces comprehensive Offer Calendar conditions.
  */
 const RescheduleModal = ({ 
     visible, 
@@ -52,27 +59,62 @@ const RescheduleModal = ({
     onConfirm, 
     availableFutureOffers = [] 
 }: RescheduleModalProps) => {
+    const insets = useSafeAreaInsets();
+    const { isDesktop, isTablet } = useBreakpoints();
+    const isWideScreen = isDesktop || isTablet;
+
+    const [renderModal, setRenderModal] = useState<boolean>(visible);
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+
+    const [animValue] = useState(() => new Animated.Value(0));
     const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
     const [reason, setReason] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const isSubmittingRef = useRef(false);
 
-    // Safeguard: Filter out any offers that the user already has an active booking for
+    useEffect(() => {
+        if (visible) {
+            Animated.timing(animValue, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: Platform.OS !== 'web',
+            }).start();
+        } else {
+            Animated.timing(animValue, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: Platform.OS !== 'web',
+            }).start(() => setRenderModal(false));
+        }
+    }, [visible, animValue]);
+
+    // Active booked offer IDs and dates
     const userBookings = useBookingsStore(s => s.userBookings);
+
     const activeBookedOfferIds = useMemo(() => {
         const ids = new Set<string>();
         for (const b of userBookings || []) {
             if (!['cancelled', 'refunded', 'expired', 'rescheduled'].includes(b.status)) {
-                const offId = b.offer?.id || (b as any).offerId;
-                if (offId) ids.add(offId);
+                if (b.offer?.id) ids.add(b.offer.id);
             }
         }
         return ids;
     }, [userBookings]);
 
-    const selectableOffers = useMemo(() => {
-        return availableFutureOffers.filter(o => o.id && !activeBookedOfferIds.has(o.id));
-    }, [availableFutureOffers, activeBookedOfferIds]);
+    const activeHikeDateStrings = useMemo(() => {
+        const dates = new Set<string>();
+        for (const b of userBookings || []) {
+            if (!['cancelled', 'refunded', 'expired', 'rescheduled'].includes(b.status)) {
+                if (b.offer?.date) {
+                    const d = safeParseDateString(b.offer.date);
+                    dates.add(d.toDateString());
+                }
+            }
+        }
+        return dates;
+    }, [userBookings]);
 
     const [prevVisible, setPrevVisible] = useState(visible);
     if (visible !== prevVisible) {
@@ -88,7 +130,7 @@ const RescheduleModal = ({
 
     const handleConfirm = () => {
         if (isSubmittingRef.current || isSubmitting) return;
-        const selected = selectableOffers.find(o => o.id === selectedOfferId);
+        const selected = availableFutureOffers.find(o => o.id === selectedOfferId);
         if (selected) {
             isSubmittingRef.current = true;
             setIsSubmitting(true);
@@ -106,174 +148,260 @@ const RescheduleModal = ({
         onClose();
     };
 
-    if (!visible) return null;
+    if (!renderModal) return null;
+
+    const now = new Date();
 
     return (
         <Modal 
-            transparent 
-            visible={visible} 
-            animationType="slide" 
+            transparent={true} 
+            visible={renderModal} 
+            animationType="none" 
             onRequestClose={handleClose}
         >
-            <KeyboardAvoidingView 
-                style={styles.overlay}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            >
-                <View style={styles.modalContent}>
-                    
-                    <View style={styles.header}>
-                        <CustomText variant="h2" style={styles.title}>
-                            Reschedule Hike
-                        </CustomText>
-                        <TouchableOpacity 
-                            onPress={handleClose} 
-                            style={styles.closeBtn} 
-                            activeOpacity={0.7}
-                        >
-                            <CustomIcon 
-                                library="Feather" 
-                                name="x" 
-                                size={24} 
-                                color={Colors.TEXT_PRIMARY} 
-                            />
-                        </TouchableOpacity>
-                    </View>
+            <View style={styles.modalContainer}>
+                {/* Backdrop with Fade */}
+                <Animated.View style={[styles.backdrop, { opacity: animValue }]}>
+                    <TouchableOpacity 
+                        style={styles.backdropTouch} 
+                        activeOpacity={1} 
+                        onPress={handleClose} 
+                    />
+                </Animated.View>
 
-                    <ScrollView 
-                        showsVerticalScrollIndicator={false} 
-                        contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
-                        keyboardShouldPersistTaps="handled"
+                {/* Animated Modal Surface */}
+                <Animated.View
+                    style={[
+                        styles.modalContent,
+                        isWideScreen ? styles.modalContentDesktop : styles.modalContentMobile,
+                        {
+                            transform: [
+                                {
+                                    translateY: animValue.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: isWideScreen ? [50, 0] : [SCREEN_HEIGHT, 0],
+                                    }),
+                                },
+                            ],
+                            opacity: isWideScreen ? animValue : 1,
+                        },
+                    ]}
+                >
+                    <KeyboardAvoidingView 
+                        style={styles.keyboardContainer}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     >
-                        {/* Reschedule Reason Input Section */}
-                        <View style={styles.reasonSection}>
-                            <CustomFeedbackInput
-                                label="Reason for Reschedule"
-                                placeholder="Please explain why you need to reschedule this hike..."
-                                helperText="Tap a suggestion above or type your own reason."
-                                value={reason}
-                                onChangeText={setReason}
-                                suggestions={RESCHEDULE_SUGGESTIONS}
-                                variant="primary"
-                            />
-                            <View style={styles.counterRow}>
-                                <CustomText variant="caption" style={styles.counterText}>
-                                    {reason.length} / 300 characters
-                                </CustomText>
-                            </View>
-                        </View>
-
-                        {/* Offers Section Header */}
-                        <View style={styles.offersHeader}>
-                            <CustomText variant="h3" style={styles.sectionTitle}>
-                                Select New Date
+                        {/* Header */}
+                        <View style={[styles.header, isWideScreen ? styles.headerDesktop : styles.headerMobile]}>
+                            <CustomText variant="h2" style={styles.title}>
+                                Reschedule Hike
                             </CustomText>
-                            <CustomText variant="caption" style={styles.sectionSubtitle}>
-                                Choose an available upcoming schedule from this organizer.
-                            </CustomText>
-                        </View>
-
-                        {selectableOffers.length > 0 ? (
-                            selectableOffers.map((offer, idx) => (
-                                <View key={offer.id || `offer-${idx}`} style={styles.cardWrapper}>
-                                    <CustomText variant="label" style={styles.trailLabel}>
-                                        {offer.trail?.name || 'Hike'} — {formatDateToStandard(offer.date)}
-                                    </CustomText>
-                                    
-                                    <OfferCard 
-                                        offer={offer as unknown as OfferData}
-                                        isSelected={Boolean(offer.id && selectedOfferId === offer.id)}
-                                        onSelect={() => {
-                                            if (offer.id) {
-                                                setSelectedOfferId(
-                                                    selectedOfferId === offer.id ? null : offer.id
-                                                );
-                                            }
-                                        }}
-                                    />
-                                </View>
-                            ))
-                        ) : (
-                            <View style={styles.emptyState}>
+                            <TouchableOpacity 
+                                onPress={handleClose} 
+                                style={styles.closeBtn} 
+                                activeOpacity={0.7}
+                            >
                                 <CustomIcon 
                                     library="Feather" 
-                                    name="calendar" 
-                                    size={48} 
-                                    color={Colors.GRAY_LIGHT} 
+                                    name="x" 
+                                    size={20} 
+                                    color={Colors.TEXT_PRIMARY} 
                                 />
-                                <CustomText style={styles.emptyText}>
-                                    No future dates available for this organizer.
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView 
+                            showsVerticalScrollIndicator={false} 
+                            contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
+                            keyboardShouldPersistTaps="handled"
+                        >
+                            {/* Reschedule Reason Input Section */}
+                            <View style={styles.reasonSection}>
+                                <CustomFeedbackInput
+                                    label="Reason for Reschedule"
+                                    placeholder="Please explain why you need to reschedule this hike..."
+                                    helperText="Tap a suggestion above or type your own reason."
+                                    value={reason}
+                                    onChangeText={setReason}
+                                    suggestions={RESCHEDULE_SUGGESTIONS}
+                                    variant="primary"
+                                />
+                                <View style={styles.counterRow}>
+                                    <CustomText variant="caption" style={styles.counterText}>
+                                        {reason.length} / 300 characters
+                                    </CustomText>
+                                </View>
+                            </View>
+
+                            {/* Offers Section Header */}
+                            <View style={styles.offersHeader}>
+                                <CustomText variant="h3" style={styles.sectionTitle}>
+                                    Select New Date
+                                </CustomText>
+                                <CustomText variant="caption" style={styles.sectionSubtitle}>
+                                    Choose an available upcoming schedule from this organizer.
                                 </CustomText>
                             </View>
-                        )}
-                    </ScrollView>
 
-                    <View style={styles.footerContainer}>
-                        <CustomStickyFooter 
-                            style={{ backgroundColor: Colors.WHITE, borderTopWidth: 1, borderTopColor: Colors.GRAY_ULTRALIGHT }}
-                            secondaryButton={{
-                                title: "Keep Current Date",
-                                onPress: handleClose,
-                                disabled: isSubmitting,
-                                variant: "outline"
-                            }}
-                            primaryButton={{
-                                title: selectableOffers.length === 0 
-                                    ? "Explore Mountains" 
-                                    : (isSubmitting ? "Rescheduling..." : "Confirm Reschedule"),
-                                onPress: selectableOffers.length === 0 
-                                    ? () => {
-                                        if (isSubmittingRef.current || isSubmitting) return;
-                                        isSubmittingRef.current = true;
-                                        setIsSubmitting(true);
-                                        onConfirm('explore');
-                                    } 
-                                    : handleConfirm,
-                                disabled: (selectableOffers.length > 0 && (!selectedOfferId || !isReasonValid)) || isSubmitting,
-                                isLoading: isSubmitting
-                            }}
-                        />
-                    </View>
+                            {availableFutureOffers.length > 0 ? (
+                                availableFutureOffers.map((offer, idx) => {
+                                    const isBooked = Boolean(offer.id && activeBookedOfferIds.has(offer.id));
+                                    const offerDate = safeParseDateString(offer.date);
+                                    const isDateConflict = !isBooked && activeHikeDateStrings.has(offerDate.toDateString());
 
-                </View>
-            </KeyboardAvoidingView>
+                                    const hasPaxLimit = Boolean(offer.maxPax && offer.maxPax > 0);
+                                    const remainingSlots = hasPaxLimit ? Math.max(0, (offer.maxPax || 0) - (offer.reservedPax || 0)) : null;
+                                    const isFullyBooked = hasPaxLimit && remainingSlots === 0;
+
+                                    const isToday = offerDate.toDateString() === now.toDateString();
+                                    const offerWithCutoff = offer as unknown as OfferData;
+                                    const cutoffDays = typeof offerWithCutoff.advanceBookingCutoffDays === 'number' ? offerWithCutoff.advanceBookingCutoffDays : 7;
+                                    const cutoffMs = cutoffDays * 24 * 60 * 60 * 1000;
+                                    const isWithinAdvanceCutoff = (offerDate.getTime() - now.getTime()) < cutoffMs;
+                                    const isClosed = (offer.status || '').toLowerCase() === 'closed';
+
+                                    const isDisabled = isBooked || isDateConflict || isFullyBooked || isWithinAdvanceCutoff || isClosed;
+
+                                    return (
+                                        <View key={offer.id || `offer-${idx}`} style={styles.cardWrapper}>
+                                            <CustomText variant="label" style={styles.trailLabel}>
+                                                {offer.trail?.name || 'Hike'} — {formatDateToStandard(offer.date)}
+                                            </CustomText>
+                                            
+                                            <OfferCard 
+                                                offer={offer as unknown as OfferData}
+                                                isSelected={Boolean(offer.id && selectedOfferId === offer.id)}
+                                                isBooked={isBooked}
+                                                isDateConflict={isDateConflict}
+                                                isClosed={isClosed}
+                                                isWithinAdvanceCutoff={isWithinAdvanceCutoff}
+                                                isToday={isToday}
+                                                onSelect={() => {
+                                                    if (isDisabled) return;
+                                                    if (offer.id) {
+                                                        setSelectedOfferId(
+                                                            selectedOfferId === offer.id ? null : offer.id
+                                                        );
+                                                    }
+                                                }}
+                                            />
+                                        </View>
+                                    );
+                                })
+                            ) : (
+                                <View style={styles.emptyState}>
+                                    <CustomIcon 
+                                        library="Feather" 
+                                        name="calendar" 
+                                        size={48} 
+                                        color={Colors.GRAY_LIGHT} 
+                                    />
+                                    <CustomText style={styles.emptyText}>
+                                        No future dates available for this organizer.
+                                    </CustomText>
+                                </View>
+                            )}
+                        </ScrollView>
+
+                        <View style={[styles.footerContainer, { paddingBottom: isWideScreen ? 16 : Math.max(insets.bottom, 16) }]}>
+                            <CustomStickyFooter 
+                                style={{ backgroundColor: Colors.WHITE, borderTopWidth: 1, borderTopColor: Colors.GRAY_ULTRALIGHT }}
+                                secondaryButton={{
+                                    title: "Keep Current Date",
+                                    onPress: handleClose,
+                                    disabled: isSubmitting,
+                                    variant: "outline"
+                                }}
+                                primaryButton={{
+                                    title: availableFutureOffers.length === 0 
+                                        ? "Explore Mountains" 
+                                        : (isSubmitting ? "Rescheduling..." : "Confirm Reschedule"),
+                                    onPress: availableFutureOffers.length === 0 
+                                        ? () => {
+                                            if (isSubmittingRef.current || isSubmitting) return;
+                                            isSubmittingRef.current = true;
+                                            setIsSubmitting(true);
+                                            onConfirm('explore');
+                                        } 
+                                        : handleConfirm,
+                                    disabled: (availableFutureOffers.length > 0 && (!selectedOfferId || !isReasonValid)) || isSubmitting,
+                                    isLoading: isSubmitting
+                                }}
+                            />
+                        </View>
+                    </KeyboardAvoidingView>
+                </Animated.View>
+            </View>
         </Modal>
     );
 };
 
 const styles = StyleSheet.create({
-    overlay: { 
-        flex: 1, 
-        backgroundColor: 'rgba(0,0,0,0.5)', 
-        justifyContent: 'flex-end' 
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'flex-end',
     },
-    modalContent: { 
-        backgroundColor: Colors.BACKGROUND, 
-        borderTopLeftRadius: 24, 
-        borderTopRightRadius: 24, 
-        height: '90%' 
+    backdrop: {
+        ...StyleSheet.absoluteFill,
+        backgroundColor: 'rgba(0, 0, 0, 0.55)',
     },
-    header: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        padding: 20, 
-        borderBottomWidth: 1, 
-        borderBottomColor: Colors.GRAY_ULTRALIGHT, 
-        backgroundColor: Colors.WHITE, 
-        borderTopLeftRadius: 24, 
-        borderTopRightRadius: 24 
+    backdropTouch: {
+        flex: 1,
     },
-    title: { 
-        marginBottom: 0 
+    modalContent: {
+        backgroundColor: Colors.BACKGROUND,
+        overflow: 'hidden',
     },
-    closeBtn: { 
-        padding: 4, 
-        backgroundColor: Colors.GRAY_ULTRALIGHT, 
-        borderRadius: 20 
+    modalContentDesktop: {
+        alignSelf: 'center',
+        width: '92%',
+        maxWidth: 580,
+        borderRadius: 24,
+        maxHeight: SCREEN_HEIGHT * 0.88,
+        marginBottom: 'auto',
+        marginTop: 'auto',
+        ...GlobalStyles.dropShadow(5),
     },
-    scrollContent: { 
-        padding: 20, 
-        paddingBottom: 100 
+    modalContentMobile: {
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        height: '90%',
+    },
+    keyboardContainer: {
+        flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.GRAY_ULTRALIGHT,
+        backgroundColor: Colors.WHITE,
+    },
+    headerDesktop: {
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+    },
+    headerMobile: {
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+    },
+    title: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+        marginBottom: 0,
+    },
+    closeBtn: {
+        padding: 6,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderRadius: 20,
+    },
+    scrollContent: {
+        padding: 20,
+        paddingBottom: 100,
     },
     reasonSection: {
         marginBottom: 20,
@@ -301,29 +429,28 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         fontSize: 12,
     },
-    cardWrapper: { 
-        marginBottom: 20 
+    cardWrapper: {
+        marginBottom: 20,
     },
-    trailLabel: { 
-        marginBottom: 12, 
-        color: Colors.PRIMARY, 
-        fontWeight: 'bold' 
+    trailLabel: {
+        marginBottom: 12,
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
     },
-    emptyState: { 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        paddingVertical: 60 
+    emptyState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
     },
-    emptyText: { 
-        marginTop: 12, 
-        color: Colors.TEXT_SECONDARY 
+    emptyText: {
+        marginTop: 12,
+        color: Colors.TEXT_SECONDARY,
     },
-    footerContainer: { 
-        backgroundColor: Colors.WHITE, 
+    footerContainer: {
+        backgroundColor: Colors.WHITE,
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY_ULTRALIGHT,
-        paddingBottom: 20 
-    }
+    },
 });
 
 export default RescheduleModal;
