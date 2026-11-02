@@ -27,7 +27,10 @@ export interface TermsSignatureProps {
     /** Callback to display toast message on parent screen */
     onShowToast?: (message: string) => void;
     /** Optional callback when signature input receives focus */
+    /** Optional callback when signature input receives focus */
     onSignatureFocus?: () => void;
+    /** Optional callback exposing current signature text */
+    onSignatureChange?: (text: string) => void;
 }
 
 /**
@@ -46,6 +49,7 @@ const TermsSignature = ({
     onBookingTermsPress,
     onShowToast,
     onSignatureFocus,
+    onSignatureChange,
 }: TermsSignatureProps): React.JSX.Element => {
     const { showToast } = useToast();
     const [signature, setSignature] = useState('');
@@ -56,9 +60,15 @@ const TermsSignature = ({
     const isPoliciesAcknowledged = !requireReadToAgree || hasReadPolicies;
 
     const cleanExpected = (expectedName || '').trim();
+    const cleanSignature = signature.trim();
     const isSignatureMatched = Boolean(
         cleanExpected.length > 0 && 
-        signature.trim().toLowerCase() === cleanExpected.toLowerCase()
+        cleanSignature === cleanExpected
+    );
+    const isCaseMismatch = Boolean(
+        cleanExpected.length > 0 &&
+        !isSignatureMatched &&
+        cleanSignature.toLowerCase() === cleanExpected.toLowerCase()
     );
 
     const isFullyValid = isPoliciesAcknowledged && isSignatureMatched;
@@ -205,12 +215,15 @@ const TermsSignature = ({
                             : (isMinor ? "Parent/Guardian Full Name" : "Digital Signature (Full Name)")
                     }
                     value={signature}
-                    onChangeText={setSignature}
+                    onChangeText={(val: string) => {
+                    setSignature(val);
+                    onSignatureChange?.(val);
+                }}
                     autoCapitalize="words"
                     editable={isInputEditable}
-                    icon={!isInputEditable ? "lock" : (isSignatureMatched ? "check-circle" : "edit-2")}
+                    icon={!isInputEditable ? "lock" : (isSignatureMatched ? "check-circle" : (isCaseMismatch ? "alert-circle" : "edit-2"))}
                     iconLibrary="Feather"
-                    iconColor={!isInputEditable ? Colors.TEXT_SECONDARY : (isSignatureMatched ? Colors.SUCCESS : undefined)}
+                    iconColor={!isInputEditable ? Colors.TEXT_SECONDARY : (isSignatureMatched ? Colors.SUCCESS : (isCaseMismatch ? Colors.ERROR : undefined))}
                     style={styles.inputSpacing}
                     pointerEvents={isInputEditable ? "auto" : "none"}
                     onFocus={onSignatureFocus}
