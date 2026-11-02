@@ -101,6 +101,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const currentLocation = useHikeStore((s) => s.currentLocation);
     const [showNoContactModal, setShowNoContactModal] = useState(false);
     const [copiedCoords, setCopiedCoords] = useState(false);
+    const copiedCoordsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const hasEmergencyContact = Boolean(
         emergencyContactNumber ||
@@ -150,6 +151,17 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const isEffectiveOffline = !isOnline || isOfflineMode;
     const [modeToast, setModeToast] = useState<string | null>(null);
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (toastTimeoutRef.current) {
+                clearTimeout(toastTimeoutRef.current);
+            }
+            if (copiedCoordsTimeoutRef.current) {
+                clearTimeout(copiedCoordsTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const handleToggleOffline = () => {
         if (!isOnline) return;
@@ -276,7 +288,10 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         const textToCopy = `THRAIL APP EMERGENCY SOS\nLocation: ${coordsText}${mapUrl ? `\nMap: ${mapUrl}` : ''}`;
         await Clipboard.setStringAsync(textToCopy);
         setCopiedCoords(true);
-        setTimeout(() => setCopiedCoords(false), 3000);
+        if (copiedCoordsTimeoutRef.current) {
+            clearTimeout(copiedCoordsTimeoutRef.current);
+        }
+        copiedCoordsTimeoutRef.current = setTimeout(() => setCopiedCoords(false), 3000);
     };
 
     const handleSendSMS = () => {
