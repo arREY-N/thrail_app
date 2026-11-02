@@ -1247,7 +1247,9 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
               <View style={styles.rescueGridCol}>
                 <Text style={styles.rescueGridLabel}>ALTITUDE</Text>
                 <Text style={styles.rescueGridValue}>
-                  {liveSelectedHiker.altitude != null ? `${Math.round(liveSelectedHiker.altitude)} m` : "—"}
+                  {typeof liveSelectedHiker.altitude === "number" && !isNaN(liveSelectedHiker.altitude) && liveSelectedHiker.altitude !== 0
+                    ? `${Math.round(liveSelectedHiker.altitude)} m`
+                    : "—"}
                 </Text>
               </View>
               <View style={styles.rescueGridCol}>
