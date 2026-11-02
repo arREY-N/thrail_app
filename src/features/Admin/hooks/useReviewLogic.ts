@@ -59,11 +59,17 @@ export default function useReviewLogic(
         cancellationRequest?.status === 'refund_completed' ||
         cancellationRequest?.handshakeStep === 'completed';
     
+    const isVerifyingPayment = 
+        booking?.paymentVerificationStatus === 'pending_verification' ||
+        Boolean(booking?.payment?.some((p) => p.gateway === 'manual_qr' && p.status === 'pending'));
+
     const currentStatus = hasRefundedPayment 
         ? 'refunded' 
         : (isOfferExpired && !isTerminalStatus
             ? 'expired'
-            : (booking?.status || 'for-reservation'));
+            : (isVerifyingPayment && (booking?.status === 'for-payment' || booking?.status === 'downpayment')
+                ? 'verifying-payment'
+                : (booking?.status || 'for-reservation')));
             
     const displayCancellationReason = hasRefundedPayment 
         ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? 'Refund processed.' : 'Refund processed securely via PayMongo.') 
