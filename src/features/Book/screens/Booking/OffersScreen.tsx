@@ -4,7 +4,7 @@
  * with dynamic offer counters, interactive booked states, multi-day overlap conflict blocking, consecutive hike confirmation modals, and CustomToast feedback.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
@@ -13,12 +13,7 @@ import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import { useToast } from '@/src/components/Toast/Toast';
-import {
-    isTutorialMeasurementActive,
-    registerMeasureCallback,
-    registerTutorialLayout,
-    requestTargetMeasurement,
-} from '@/src/components/Tutorial/Tutorial';
+import { useBookingOffersTutorial } from '@/src/components/Tutorial/Tutorial';
 import OfferCalendar from '@/src/features/Book/components/OfferCalendar';
 import OfferCard from '@/src/features/Book/components/OfferCard';
 
@@ -175,46 +170,16 @@ const OffersScreen = ({
     isTutorialVisible,
 }: OffersScreenProps): React.JSX.Element => {
     const { showToast } = useToast();
-    const scrollViewRef = useRef<ScrollView>(null);
-    const firstOfferCardRef = useRef<View>(null);
-    const offersSectionOffsetY = useRef<number>(0);
-
-    const measureFirstOfferCardNow = useCallback(() => {
-        firstOfferCardRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('booking_offers_card', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureFirstOfferCard = useCallback(() => {
-        if (!isTutorialMeasurementActive()) return;
-        measureFirstOfferCardNow();
-    }, [measureFirstOfferCardNow]);
-
-    useEffect(() => {
-        return registerMeasureCallback('booking_offers_card', measureFirstOfferCardNow);
-    }, [measureFirstOfferCardNow]);
-
-    // Bidirectional auto-scroll for OffersScreen tour steps (active only when tutorial is visible)
-    useEffect(() => {
-        if (!isTutorialVisible) return;
-
-        if (activeTutorialStep === 'booking_offers_card' || activeTutorialStep === 'booking_offers') {
-            scrollViewRef.current?.scrollTo({
-                y: Math.max(0, offersSectionOffsetY.current - 16),
-                animated: true,
-            });
-            const timer = setTimeout(measureFirstOfferCardNow, 250);
-            return () => clearTimeout(timer);
-        } else if (activeTutorialStep === 'booking_offers_calendar' || activeTutorialStep === 'booking_calendar') {
-            scrollViewRef.current?.scrollTo({
-                y: 0,
-                animated: true,
-            });
-            requestTargetMeasurement('booking_offers_calendar');
-        }
-    }, [isTutorialVisible, activeTutorialStep, measureFirstOfferCardNow]);
+    const {
+        scrollViewRef,
+        firstOfferCardRef,
+        measureFirstOfferCard,
+        handleOffersContainerLayout,
+    } = useBookingOffersTutorial({
+        activeTutorialStep,
+        isTutorialVisible,
+        onResetSelection: () => setLocalSelectedId(null),
+    });
 
 
     const safeOffers = useMemo(() => (Array.isArray(offers) ? offers : []), [offers]);
@@ -341,17 +306,7 @@ const OffersScreen = ({
         }
     }
 
-    // Reset scroll to top and reset localSelectedId when tutorial is triggered or finished
-    const prevTutorialVisible = useRef(isTutorialVisible);
-    useEffect(() => {
-        if (!prevTutorialVisible.current && isTutorialVisible) {
-            setLocalSelectedId(null);
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-        } else if (prevTutorialVisible.current && !isTutorialVisible) {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-        }
-        prevTutorialVisible.current = isTutorialVisible;
-    }, [isTutorialVisible]);
+
 
     const filteredOffers = useMemo(() => {
         if (!selectedDate) return [];
@@ -611,9 +566,7 @@ const OffersScreen = ({
 
                     <View
                         style={styles.offersContainer}
-                        onLayout={(e) => {
-                            offersSectionOffsetY.current = e.nativeEvent.layout.y;
-                        }}
+                        onLayout={handleOffersContainerLayout}
                     >
                         <View style={styles.sectionHeaderRow}>
                             <CustomText variant="h2" style={styles.sectionTitle}>
