@@ -552,6 +552,9 @@ const TrailMap = memo(
           }
         };
         map.once("idle", handleIdleStyle);
+        return () => {
+          map.off("idle", handleIdleStyle);
+        };
       }, [actuallyOffline, mapReady]);
 
       /* --------------------------- Resolve trail URLs ------------------------ */
@@ -759,8 +762,10 @@ const TrailMap = memo(
         const fitTarget =
           activeGeoJsonUrl ||
           (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile ? contextGeoJsonUrl : null);
+        let abortController: AbortController | null = null;
         if (!hasInitialCoords && fitTarget) {
-          fetch(fitTarget)
+          abortController = new AbortController();
+          fetch(fitTarget, { signal: abortController.signal })
             .then((r) => r.json())
             .then((json) => {
               const bounds = computeBounds(json);
@@ -777,9 +782,15 @@ const TrailMap = memo(
               }
             })
             .catch((err) => {
+              if (err?.name === "AbortError") return;
               console.warn("Trail fetch failed (check Firebase Storage CORS):", err);
             });
         }
+        return () => {
+          if (abortController) {
+            abortController.abort();
+          }
+        };
       }, [mapReady, contextGeoJsonUrl, activeGeoJsonUrl, styleVersion, hasInitialCoords, showNotice, mountainId, parsedLat, parsedLon]);
 
       /* --------------------------- Initial fly-to --------------------------- */
@@ -903,8 +914,10 @@ const TrailMap = memo(
         });
       }, [hikerLocations, currentUserId, mapReady, handleHikerPress]);
 
-      // Stable 10s ticker via ref so LKL state flips even if no new pings arrive
+      // Stable 10s ticker via ref so LKL state flips even if no new pings arrive (only active when hikers exist)
+      const hasHikers = Boolean(hikerLocations && hikerLocations.length > 0);
       useEffect(() => {
+        if (!hasHikers) return;
         const id = setInterval(() => {
           if (!isMountedRef.current) return;
           const locs = hikerLocationsRef.current;
@@ -914,7 +927,7 @@ const TrailMap = memo(
           forceTick((n) => n + 1);
         }, 10000);
         return () => clearInterval(id);
-      }, []);
+      }, [hasHikers]);
 
       const liveSelectedHiker = useMemo(() => {
         if (!selectedHiker) return null;
