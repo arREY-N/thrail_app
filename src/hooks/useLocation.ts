@@ -1,7 +1,36 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Platform, AppState, AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/src/core/models/User/User';
+import { useHikeStore } from '@/src/core/models/Hike/Hike';
+
+export const LAST_KNOWN_LOCATION_KEY = '@thrail_last_known_location';
+const MEMORY_LOCATION_TTL_MS = 5 * 60 * 1000; // 5 minutes session cache
+
+export interface CachedLastKnownLocation {
+    latitude: number;
+    longitude: number;
+    resolvedName: string | null;
+    geocodedName: string | null;
+    timestamp: number;
+}
+
+let memoryLocationCache: CachedLastKnownLocation | null = null;
+
+function isMemoryLocationFresh(cache: CachedLastKnownLocation | null): cache is CachedLastKnownLocation {
+    if (!cache) return false;
+    return Date.now() - cache.timestamp < MEMORY_LOCATION_TTL_MS;
+}
+
+async function persistLastKnownLocation(data: CachedLastKnownLocation): Promise<void> {
+    memoryLocationCache = data;
+    try {
+        await AsyncStorage.setItem(LAST_KNOWN_LOCATION_KEY, JSON.stringify(data));
+    } catch {
+        // Ignore AsyncStorage write failure
+    }
+}
 
 interface UseLocationProps {
     propLatitude?: number;
@@ -90,12 +119,22 @@ export const useLocation = (props?: UseLocationProps) => {
     const hasExplicitCoords = propLatitude !== undefined && propLongitude !== undefined;
     const isWeb = Platform.OS === 'web';
 
+    const hasFreshMemCache = !hasExplicitCoords && isMemoryLocationFresh(memoryLocationCache);
+
     const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(
-        hasExplicitCoords ? { latitude: propLatitude!, longitude: propLongitude! } : null
+        hasExplicitCoords
+            ? { latitude: propLatitude!, longitude: propLongitude! }
+            : hasFreshMemCache
+                ? { latitude: memoryLocationCache!.latitude, longitude: memoryLocationCache!.longitude }
+                : null
     );
-    const [resolvedName, setResolvedName] = useState<string | null>(propLocationName || null);
-    const [geocodedName, setGeocodedName] = useState<string | null>(null);
-    const [isLocating, setIsLocating] = useState<boolean>(!hasExplicitCoords && !propLocationName);
+    const [resolvedName, setResolvedName] = useState<string | null>(
+        propLocationName || (hasFreshMemCache ? memoryLocationCache!.resolvedName : null)
+    );
+    const [geocodedName, setGeocodedName] = useState<string | null>(
+        hasFreshMemCache ? memoryLocationCache!.geocodedName : null
+    );
+    const [isLocating, setIsLocating] = useState<boolean>(!hasExplicitCoords && !propLocationName && !hasFreshMemCache);
     const [isProfileFallback, setIsProfileFallback] = useState<boolean>(false);
 
     const isMountedRef = useRef(true);
@@ -106,7 +145,7 @@ export const useLocation = (props?: UseLocationProps) => {
         };
     }, []);
 
-    // Helper: Fall back to authenticated user profile address from Firebase Firestore
+    // Helper: Fall back to authenticated user profile address from Firebase Firestore or cached last-known location
     const tryFallbackToFirebaseProfile = useCallback(async () => {
         const profile = useAuthStore.getState().profile;
         const profileAddress = (profile?.address || '').trim();
@@ -123,7 +162,30 @@ export const useLocation = (props?: UseLocationProps) => {
             }
         }
 
-        // If made-up address or no address set in profile, do NOT use hardcoded Manila
+        // If profile.address is empty or fails to geocode, read @thrail_last_known_location from AsyncStorage
+        try {
+            const cachedLocStr = await AsyncStorage.getItem(LAST_KNOWN_LOCATION_KEY);
+            if (cachedLocStr) {
+                const cachedLoc: CachedLastKnownLocation = JSON.parse(cachedLocStr);
+                if (typeof cachedLoc?.latitude === 'number' && typeof cachedLoc?.longitude === 'number' && isMountedRef.current) {
+                    memoryLocationCache = cachedLoc;
+                    setCoords({ latitude: cachedLoc.latitude, longitude: cachedLoc.longitude });
+                    if (!propLocationName && cachedLoc.resolvedName) {
+                        setResolvedName(cachedLoc.resolvedName);
+                    }
+                    if (cachedLoc.geocodedName) {
+                        setGeocodedName(cachedLoc.geocodedName);
+                    }
+                    setIsProfileFallback(false);
+                    setIsLocating(false);
+                    return;
+                }
+            }
+        } catch {
+            // Ignore parse errors
+        }
+
+        // If made-up address or no address set in profile and no cached location, do NOT use hardcoded Manila
         if (isMountedRef.current) {
             setCoords(null);
             setResolvedName(null);
@@ -131,11 +193,51 @@ export const useLocation = (props?: UseLocationProps) => {
             setIsProfileFallback(false);
             setIsLocating(false);
         }
-    }, []);
+    }, [propLocationName]);
 
     // Main location resolver function
-    const resolveLocation = useCallback(async () => {
+    const resolveLocation = useCallback(async (forceRefresh = false) => {
         if (hasExplicitCoords) return;
+
+        // Fast-path: Reuse in-memory session cache when navigating between HomeScreen and WeatherScreen
+        if (!forceRefresh && isMemoryLocationFresh(memoryLocationCache)) {
+            if (isMountedRef.current) {
+                setCoords({ latitude: memoryLocationCache.latitude, longitude: memoryLocationCache.longitude });
+                if (!propLocationName && memoryLocationCache.resolvedName) {
+                    setResolvedName(memoryLocationCache.resolvedName);
+                }
+                if (memoryLocationCache.geocodedName) {
+                    setGeocodedName(memoryLocationCache.geocodedName);
+                }
+                setIsProfileFallback(false);
+                setIsLocating(false);
+            }
+            return;
+        }
+
+        // Fast-path: Reuse live GPS fix from Map/Hike engine (useHikeStore) if recorded within last 5 minutes
+        if (!forceRefresh) {
+            const liveHikeLoc = useHikeStore.getState().currentLocation;
+            if (
+                liveHikeLoc &&
+                typeof liveHikeLoc.latitude === 'number' &&
+                typeof liveHikeLoc.longitude === 'number' &&
+                !isNaN(liveHikeLoc.latitude) &&
+                !isNaN(liveHikeLoc.longitude)
+            ) {
+                const locTimeMs = liveHikeLoc.timestamp instanceof Date
+                    ? liveHikeLoc.timestamp.getTime()
+                    : new Date(liveHikeLoc.timestamp || 0).getTime();
+                if (locTimeMs > 0 && Date.now() - locTimeMs < MEMORY_LOCATION_TTL_MS) {
+                    if (isMountedRef.current) {
+                        setCoords({ latitude: liveHikeLoc.latitude, longitude: liveHikeLoc.longitude });
+                        setIsProfileFallback(false);
+                        setIsLocating(false);
+                    }
+                    return;
+                }
+            }
+        }
 
         setIsLocating(true);
 
@@ -153,6 +255,13 @@ export const useLocation = (props?: UseLocationProps) => {
                     setGeocodedName(details || ipLoc.city);
                     setIsProfileFallback(false);
                     setIsLocating(false);
+                    persistLastKnownLocation({
+                        latitude: ipLoc.latitude,
+                        longitude: ipLoc.longitude,
+                        resolvedName: propLocationName || ipLoc.city,
+                        geocodedName: details || ipLoc.city,
+                        timestamp: Date.now(),
+                    });
                     return;
                 }
                 await tryFallbackToFirebaseProfile();
@@ -201,12 +310,19 @@ export const useLocation = (props?: UseLocationProps) => {
 
             // 1. Fresh GPS fix with a 3.5s timeout (captures emulator coordinate updates and live movement)
             let location: Location.LocationObject | null = null;
+            let timeoutId: ReturnType<typeof setTimeout> | null = null;
             try {
                 const positionPromise = Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-                const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
+                const timeoutPromise = new Promise<null>((resolve) => {
+                    timeoutId = setTimeout(() => resolve(null), 3500);
+                });
                 location = await Promise.race([positionPromise, timeoutPromise]);
             } catch (posErr) {
                 console.warn('[useLocation] getCurrentPositionAsync error:', posErr);
+            } finally {
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                }
             }
 
             // 2. Fall back to last known cached position if fresh fix timed out (~10ms)
@@ -245,15 +361,25 @@ export const useLocation = (props?: UseLocationProps) => {
     // Web permission change listener: Auto-resolve location when user clicks "Allow" in browser dialog
     useEffect(() => {
         if (!isWeb || typeof navigator === 'undefined' || !navigator.permissions) return;
+        let activeStatus: PermissionStatus | null = null;
+        let cancelled = false;
         try {
             navigator.permissions.query({ name: 'geolocation' as PermissionName }).then((status) => {
+                if (cancelled) return;
+                activeStatus = status;
                 status.onchange = () => {
-                    if (status.state === 'granted') {
-                        resolveLocation();
+                    if (status.state === 'granted' && isMountedRef.current) {
+                        resolveLocation(true);
                     }
                 };
             }).catch(() => {});
         } catch {}
+        return () => {
+            cancelled = true;
+            if (activeStatus) {
+                activeStatus.onchange = null;
+            }
+        };
     }, [isWeb, resolveLocation]);
 
     // Listen to AppState resume: If user toggled GPS on in system settings and resumes app, refresh location
@@ -281,10 +407,62 @@ export const useLocation = (props?: UseLocationProps) => {
 
         if (effLat === undefined || effLon === undefined) return;
 
+        // If memory cache already matches these ~1km coordinates and state already holds the cached name, skip network call
+        if (
+            memoryLocationCache &&
+            memoryLocationCache.resolvedName &&
+            memoryLocationCache.resolvedName !== "Current Location" &&
+            Math.abs(memoryLocationCache.latitude - effLat) < 0.01 &&
+            Math.abs(memoryLocationCache.longitude - effLon) < 0.01 &&
+            resolvedName === memoryLocationCache.resolvedName
+        ) {
+            return;
+        }
+
         let isMounted = true;
 
         (async () => {
             try {
+                // Fast-path: Reuse cached reverse-geocoded name if within ~1km of the memory-cached coordinates
+                if (
+                    memoryLocationCache &&
+                    memoryLocationCache.resolvedName &&
+                    memoryLocationCache.resolvedName !== "Current Location" &&
+                    Math.abs(memoryLocationCache.latitude - effLat) < 0.01 &&
+                    Math.abs(memoryLocationCache.longitude - effLon) < 0.01
+                ) {
+                    const cachedResolved = memoryLocationCache.resolvedName;
+                    const cachedGeo = memoryLocationCache.geocodedName || cachedResolved;
+                    await Promise.resolve();
+                    if (isMounted) {
+                        if (!propLocationName) setResolvedName(cachedResolved);
+                        setGeocodedName(cachedGeo);
+                    }
+                    return;
+                }
+                // Helper to preserve existing or cached city name when offline reverse-geocoding fails
+                const fallbackToCachedOrDefaultName = async () => {
+                    try {
+                        const cachedLocStr = await AsyncStorage.getItem(LAST_KNOWN_LOCATION_KEY);
+                        if (cachedLocStr) {
+                            const cachedLoc: CachedLastKnownLocation = JSON.parse(cachedLocStr);
+                            if (cachedLoc?.resolvedName && cachedLoc.resolvedName !== "Current Location") {
+                                if (isMounted) {
+                                    if (!propLocationName) setResolvedName((prev) => prev || cachedLoc.resolvedName);
+                                    setGeocodedName((prev) => prev || cachedLoc.geocodedName || cachedLoc.resolvedName);
+                                }
+                                return;
+                            }
+                        }
+                    } catch {
+                        // Ignore cache read error
+                    }
+                    if (isMounted) {
+                        if (!propLocationName) setResolvedName((prev) => prev || "Current Location");
+                        setGeocodedName((prev) => prev || "Current Location");
+                    }
+                };
+
                 if (Platform.OS !== 'web') {
                     const geocodeResult = await Location.reverseGeocodeAsync({
                         latitude: effLat,
@@ -298,10 +476,16 @@ export const useLocation = (props?: UseLocationProps) => {
                         if (isMounted) {
                             if (!propLocationName) setResolvedName(nameToUse);
                             setGeocodedName(geoDetails || nameToUse);
+                            persistLastKnownLocation({
+                                latitude: effLat,
+                                longitude: effLon,
+                                resolvedName: propLocationName || nameToUse,
+                                geocodedName: geoDetails || nameToUse,
+                                timestamp: Date.now(),
+                            });
                         }
-                    } else if (isMounted) {
-                        if (!propLocationName) setResolvedName("Current Location");
-                        setGeocodedName("Current Location");
+                    } else {
+                        await fallbackToCachedOrDefaultName();
                     }
                 } else {
                     // On Web: Attempt lightweight client reverse geocoding or fallback gracefully
@@ -312,24 +496,39 @@ export const useLocation = (props?: UseLocationProps) => {
                             const cityName = data.city || data.locality || data.principalSubdivision;
                             const regionName = data.principalSubdivision;
                             const details = [cityName, regionName && regionName !== cityName ? regionName : null].filter(Boolean).join(', ');
-                            if (isMounted) {
-                                if (!propLocationName) setResolvedName(cityName || "Current Location");
-                                setGeocodedName(details || cityName || "Current Location");
+                            if (isMounted && cityName) {
+                                if (!propLocationName) setResolvedName(cityName);
+                                setGeocodedName(details || cityName);
+                                persistLastKnownLocation({
+                                    latitude: effLat,
+                                    longitude: effLon,
+                                    resolvedName: propLocationName || cityName,
+                                    geocodedName: details || cityName,
+                                    timestamp: Date.now(),
+                                });
+                                return;
                             }
-                            return;
                         }
                     } catch {
-                        // Network error or blocked -> fallback to Current Location
+                        // Network error or blocked -> fallback to cached location name
                     }
-                    if (isMounted) {
-                        if (!propLocationName) setResolvedName("Current Location");
-                        setGeocodedName("Current Location");
-                    }
+                    await fallbackToCachedOrDefaultName();
                 }
             } catch {
+                try {
+                    const cachedLocStr = await AsyncStorage.getItem(LAST_KNOWN_LOCATION_KEY);
+                    if (cachedLocStr) {
+                        const cachedLoc: CachedLastKnownLocation = JSON.parse(cachedLocStr);
+                        if (cachedLoc?.resolvedName && isMounted) {
+                            if (!propLocationName) setResolvedName((prev) => prev || cachedLoc.resolvedName);
+                            setGeocodedName((prev) => prev || cachedLoc.geocodedName || cachedLoc.resolvedName);
+                            return;
+                        }
+                    }
+                } catch {}
                 if (isMounted) {
-                    if (!propLocationName) setResolvedName("Current Location");
-                    setGeocodedName("Current Location");
+                    if (!propLocationName) setResolvedName((prev) => prev || "Current Location");
+                    setGeocodedName((prev) => prev || "Current Location");
                 }
             }
         })();
@@ -337,7 +536,7 @@ export const useLocation = (props?: UseLocationProps) => {
         return () => {
             isMounted = false;
         };
-    }, [propLatitude, propLongitude, coords, propLocationName, isProfileFallback]);
+    }, [propLatitude, propLongitude, coords, propLocationName, isProfileFallback, resolvedName]);
 
     return {
         latitude: propLatitude !== undefined ? propLatitude : coords?.latitude,
