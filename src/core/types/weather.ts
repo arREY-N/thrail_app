@@ -32,12 +32,15 @@ export interface WeatherApiResponse {
         windspeed_10m: number[];
         wind_speed_10m?: number[];
         winddirection_10m: number[];
+        wind_direction_10m?: number[];
         relativehumidity_2m: number[];
+        relative_humidity_2m?: number[];
         weathercode: number[];
         weather_code?: number[];
         apparent_temperature: number[];
         visibility: number[];
         windgusts_10m: number[];
+        wind_gusts_10m?: number[];
         uv_index: number[];
     };
     daily: {
@@ -79,6 +82,10 @@ export interface HourlyForecastItem {
     precipitationProbability: number;
     windSpeed: number;
     uvIndex: number;
+    windGusts?: number;
+    windDirection?: number;
+    humidity?: number;
+    visibility?: number;
 }
 
 export interface ProcessedWeatherData {
