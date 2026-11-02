@@ -18,12 +18,11 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import {
     CustomTutorialModal,
     TutorialHelpButton,
+    useWriteReviewTutorial,
 } from '@/src/components/Tutorial/Tutorial';
-
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import SelectionChip from '@/src/features/Auth/components/SelectionChip';
-import { useWriteReviewTutorial } from '@/src/features/Navigation/hooks/useWriteReviewTutorial';
 
 import { DIFFICULTY_FACTOR_MAPPINGS, DifficultyFactorOption } from '@/src/recommendation/utilities/FactorWeightsMapper';
 
