@@ -201,7 +201,7 @@ export const getPAGASARainfallWarning = (
     ========================================================================= */
 
     // 1. Torrential / Severe Rain / Hailstorm
-    if (rate >= 30 || (isExtremeHailStorm && rate >= 15)) {
+    if (rate >= 30 || (isExtremeHailStorm && rate >= 15) || (accumulatedMm >= 100 && prob >= 60 && rate >= 10)) {
         return {
             warningLevel: 'RED',
             badge: 'Torrential Rain',
@@ -211,7 +211,7 @@ export const getPAGASARainfallWarning = (
     }
 
     // 2. Intense / Heavy Rainfall
-    if (rate >= 7.5 || isHeavyRainCode) {
+    if (rate >= 7.5 || (isHeavyRainCode && prob >= 50)) {
         return {
             warningLevel: 'YELLOW',
             badge: 'Heavy Rain',
@@ -226,6 +226,16 @@ export const getPAGASARainfallWarning = (
             warningLevel: 'YELLOW',
             badge: 'Thunderstorm Risk',
             description: 'Thunderstorm activity detected. Avoid open summits and metallic gear exposure.',
+            alertLevel: 'warning',
+        };
+    }
+
+    // High rain probability >= 70%
+    if (prob >= 70) {
+        return {
+            warningLevel: 'YELLOW',
+            badge: 'Heavy Rain Risk',
+            description: 'High probability of rain showers. Trails will likely be slippery and muddy.',
             alertLevel: 'warning',
         };
     }
@@ -429,74 +439,42 @@ export const getSummitVisibilityInfo = (
     };
 };
 
-export const getHikingSafetyStatus = (data: ProcessedWeatherData): HikingSafetyStatus => {
-    const {
-        windSpeed,
-        windGusts,
-        precipitationProbability,
-        precipitationSum,
-        precipitationRate,
-        weatherCode,
-        apparentTemperature,
-        temperature,
-        hourlyForecast,
-    } = data;
-    
-    // Severe weather conditions: Severe thunderstorm, lightning, squalls
-    const isSevereWeather = [95, 96, 99].includes(weatherCode);
-    const effectiveGusts = windGusts || windSpeed || 0;
-    const heatIndex = Math.round(apparentTemperature ?? temperature ?? 0);
-    const currentPrecipRate = precipitationRate ?? 0;
+/**
+ * Resolves the 0-indexed hour position in hourlyForecast corresponding to the current wall-clock hour.
+ */
+export const getCurrentHourIndex = (hourlyForecast?: HourlyForecastItem[]): number => {
+    if (!hourlyForecast || hourlyForecast.length === 0) return 0;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const targetPrefix = `${year}-${month}-${day}T${hour}`;
 
-    // Scan near-term hours (next 3 hours) for upcoming rain spikes
-    let maxUpcomingPrecipProb = precipitationProbability ?? 0;
-    let hasUpcomingStorm = isSevereWeather;
-    let upcomingRainCode = false;
-    if (hourlyForecast && hourlyForecast.length > 0) {
-        const nextHours = hourlyForecast.slice(0, 3);
-        for (const h of nextHours) {
-            if ((h.precipitationProbability ?? 0) > maxUpcomingPrecipProb) {
-                maxUpcomingPrecipProb = h.precipitationProbability;
-            }
-            if ([95, 96, 99].includes(h.weatherCode)) {
-                hasUpcomingStorm = true;
-            }
-            if ((h.weatherCode >= 51 && h.weatherCode <= 67) || (h.weatherCode >= 80 && h.weatherCode <= 82)) {
-                upcomingRainCode = true;
-            }
-        }
-    }
+    const idx = hourlyForecast.findIndex(h => h.time && h.time.startsWith(targetPrefix));
+    if (idx !== -1) return idx;
 
-    // DANGER: True life-safety hazards
-    // (Severe storms, gale-force winds >= 60 km/h, torrential rain rate >= 30 mm/h, flooding >= 100mm with active rain, heat stroke >= 42°C)
-    if (
-        isSevereWeather || 
-        hasUpcomingStorm ||
-        windSpeed >= 60 || 
-        effectiveGusts >= 75 || 
-        currentPrecipRate >= 30 ||
-        (precipitationSum != null && precipitationSum >= 100 && maxUpcomingPrecipProb >= 50) ||
-        heatIndex >= 42
-    ) {
-        return "DANGER";
-    }
+    const nowLabelIdx = hourlyForecast.findIndex(h => h.hourLabel === 'Now');
+    if (nowLabelIdx !== -1) return nowLabelIdx;
 
-    // CAUTION: Active rain showers, wet slippery trails, strong breeze on ridges, heat advisory 33-41°C
-    // Evaluates hourly / near-term rain risk rather than static 24h past accumulation
-    // A drizzle/shower code (51-67, 80-82) only counts as active rain hazard if probability is at least 40% or rain rate >= 2.5 mm/h
-    const isRain = (maxUpcomingPrecipProb >= 50) || 
-                   currentPrecipRate >= 7.5 ||
-                   (isSevereWeather) ||
-                   (weatherCode === 95) ||
-                   (([51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode) || upcomingRainCode) && (maxUpcomingPrecipProb >= 40 || currentPrecipRate >= 2.5));
-    const isWindy = windSpeed >= 40 || effectiveGusts >= 50;
-    const isHeatAdvisory = heatIndex >= 33 && heatIndex < 42;
+    return 0;
+};
 
-    if (isRain || isWindy || isHeatAdvisory) {
-        return "CAUTION";
-    }
+/**
+ * Returns a near-term window of hourly forecast items starting from the specified or current hour.
+ */
+export const getUpcomingHoursWindow = (
+    hourlyForecast?: HourlyForecastItem[],
+    startIndex?: number,
+    windowSize: number = 3
+): HourlyForecastItem[] => {
+    if (!hourlyForecast || hourlyForecast.length === 0) return [];
+    const startIdx = startIndex ?? getCurrentHourIndex(hourlyForecast);
+    return hourlyForecast.slice(startIdx, startIdx + windowSize);
+};
 
-    return "SAFE";
+export const getHikingSafetyStatus = (data: ProcessedWeatherData | null | undefined): HikingSafetyStatus => {
+    return getDetailedWeatherSafety(data).status;
 };
 
 /**
@@ -549,7 +527,12 @@ export const getDetailedWeatherSafety = (
         hourlyForecast,
     } = data;
 
-    const currentPrecipChance = precipitationProbability ?? 0;
+    // Resolve current hour index dynamically
+    const currentHourIdx = getCurrentHourIndex(hourlyForecast);
+    const liveCurrentHour = hourlyForecast?.[currentHourIdx];
+
+    // Live sync for current precip probability & rate
+    const currentPrecipChance = liveCurrentHour?.precipitationProbability ?? precipitationProbability ?? 0;
     const dailyRainMm = precipitationSum ?? 0;
     const currentPrecipRate = precipitationRate ?? 0;
     const effectiveGusts = windGusts || windSpeed || 0;
@@ -557,45 +540,28 @@ export const getDetailedWeatherSafety = (
     const peakUv = uvIndexMax != null ? Math.round(uvIndexMax) : currentUv;
     const heatIndex = Math.round(apparentTemperature ?? temperature ?? 0);
 
-    // Scan near-term window (next 3 hours) for upcoming rain or storm changes
-    let maxUpcomingPrecipChance = currentPrecipChance;
-    let upcomingRainCode = false;
-    let upcomingThunderstorm = false;
-    let upcomingSevereStorm = false;
+    // Live current hour fallback/sync for weatherCode if cache crossed hour
+    const liveWeatherCode = (weatherCode <= 1 && liveCurrentHour && (liveCurrentHour.weatherCode >= 51 || (liveCurrentHour.precipitationProbability ?? 0) >= 50))
+        ? (liveCurrentHour.weatherCode >= 51 ? liveCurrentHour.weatherCode : 61)
+        : (liveCurrentHour?.weatherCode ?? weatherCode);
 
-    if (hourlyForecast && hourlyForecast.length > 0) {
-        const nextHours = hourlyForecast.slice(0, 3);
-        for (const h of nextHours) {
-            if ((h.precipitationProbability ?? 0) > maxUpcomingPrecipChance) {
-                maxUpcomingPrecipChance = h.precipitationProbability;
-            }
-            if ((h.weatherCode >= 51 && h.weatherCode <= 67) || (h.weatherCode >= 80 && h.weatherCode <= 82)) {
-                upcomingRainCode = true;
-            }
-            if (h.weatherCode === 95 || h.weatherCode === 96) {
-                upcomingThunderstorm = true;
-            }
-            if (h.weatherCode === 99) {
-                upcomingSevereStorm = true;
-            }
-        }
-    }
+    // Evaluate the exact active hour (Option A: 100% parity with the selected/current hour pill)
+    const maxUpcomingPrecipChance = currentPrecipChance;
 
     const isTorrentialRain = currentPrecipRate >= 30;
-    const isExtremeHailStorm = weatherCode === 99 || upcomingSevereStorm;
-    const isThunderstorm = weatherCode === 95 || weatherCode === 96 || upcomingThunderstorm;
-    const isHeavyRainCode = weatherCode === 65 || weatherCode === 82;
-    const isRainCode = (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82) || upcomingRainCode;
-    const isFogCode = weatherCode === 45 || weatherCode === 48 || (visibility != null && visibility < 2000);
-    const isCloudyOrRainy = (cloudCover != null && cloudCover >= 70) || isRainCode || isThunderstorm || isTorrentialRain;
+    const isExtremeHailStorm = liveWeatherCode === 99;
+    const isThunderstorm = liveWeatherCode === 95 || liveWeatherCode === 96;
+    const isHeavyRainCode = liveWeatherCode === 65 || liveWeatherCode === 82;
+    const isRainCode = (liveWeatherCode >= 51 && liveWeatherCode <= 67) || (liveWeatherCode >= 80 && liveWeatherCode <= 82);
+    const isFogCode = liveWeatherCode === 45 || liveWeatherCode === 48 || (visibility != null && visibility < 2000);
 
-    // 1. Rain Risk Level (Evaluated per hourly rate & near-term probability; strictly aligns with PAGASA Color-Coded Warning brackets)
+    // 1. Rain Risk Level (Evaluated per hourly rate & current/selected hour probability; strictly aligns with PAGASA Color-Coded Warning brackets)
     let rainRiskLevel: 'low' | 'moderate' | 'high' | 'severe' = 'low';
     if (isTorrentialRain || (isExtremeHailStorm && currentPrecipRate >= 15) || (dailyRainMm >= 100 && maxUpcomingPrecipChance >= 60 && currentPrecipRate >= 10)) {
         rainRiskLevel = 'severe';
-    } else if (isThunderstorm || currentPrecipRate >= 7.5 || isHeavyRainCode || maxUpcomingPrecipChance >= 70) {
+    } else if (isThunderstorm || currentPrecipRate >= 7.5 || (isHeavyRainCode && maxUpcomingPrecipChance >= 50) || maxUpcomingPrecipChance >= 70) {
         rainRiskLevel = 'high';
-    } else if (maxUpcomingPrecipChance >= 50 || currentPrecipRate >= 2.5 || (isRainCode && (maxUpcomingPrecipChance >= 40 || currentPrecipRate >= 1.0))) {
+    } else if (maxUpcomingPrecipChance >= 50 || currentPrecipRate >= 2.5) {
         rainRiskLevel = 'moderate';
     } else {
         rainRiskLevel = 'low';
@@ -609,7 +575,9 @@ export const getDetailedWeatherSafety = (
         windRiskLevel = 'moderate';
     }
 
-    // 3. UV Risk Level (Only flag active sunburn risk if skies are not overcast/raining)
+    // 3. UV Risk Level (Only flag active sunburn risk if skies are not overcast/raining or under active rain advisory)
+    const isCloudyOrRainy = (cloudCover != null && cloudCover >= 70) || isRainCode || isThunderstorm || isTorrentialRain || rainRiskLevel !== 'low' || maxUpcomingPrecipChance >= 50;
+
     let uvRiskLevel: 'low' | 'moderate' | 'high' | 'extreme' = 'low';
     if (!isCloudyOrRainy) {
         if (currentUv >= 11) {
@@ -635,7 +603,8 @@ export const getDetailedWeatherSafety = (
         windRiskLevel === 'moderate' || 
         uvRiskLevel === 'extreme' || 
         uvRiskLevel === 'high' ||
-        isCautionHeat
+        isCautionHeat ||
+        isFogCode
     ) {
         status = "CAUTION";
     }
@@ -656,7 +625,7 @@ export const getDetailedWeatherSafety = (
         if (isThunderstorm) keyRisks.push('Thunderstorm & lightning hazard on high ridgelines');
     } else if (rainRiskLevel === 'moderate') {
         keyRisks.push(`Rain showers expected (${maxUpcomingPrecipChance}%) with slippery, muddy trails`);
-    } else {
+    } else if (status === 'SAFE') {
         if (dailyRainMm >= 10 && maxUpcomingPrecipChance < 30) {
             keyRisks.push(`Trails may be damp or muddy from earlier rainfall (${dailyRainMm.toFixed(1)} mm recorded today)`);
         } else if (maxUpcomingPrecipChance >= 30) {
@@ -950,7 +919,15 @@ export const formatWeatherDisplay = (
     weatherData: ProcessedWeatherData | null | undefined
 ): WeatherDisplayValues => {
     const hasData = weatherData != null;
-    const { condition, icon, library } = getWeatherInfoUI(weatherData?.weatherCode);
+    let effectiveCode = weatherData?.weatherCode;
+    if (hasData && (effectiveCode == null || effectiveCode <= 1) && weatherData.hourlyForecast && weatherData.hourlyForecast.length > 0) {
+        const curIdx = getCurrentHourIndex(weatherData.hourlyForecast);
+        const liveCur = weatherData.hourlyForecast[curIdx];
+        if (liveCur && (liveCur.weatherCode >= 51 || liveCur.precipitationProbability >= 50)) {
+            effectiveCode = liveCur.weatherCode >= 51 ? liveCur.weatherCode : 61;
+        }
+    }
+    const { condition, icon, library } = getWeatherInfoUI(effectiveCode);
 
     const today: DailyForecast | undefined = weatherData?.forecast?.[0];
 
@@ -1115,22 +1092,44 @@ export const getHourlyForecastForDay = (
         }
 
         if (filtered.length > 0) {
-            // Option B: For "Today", only show current hour ("Now") and onwards until the end of today (11 PM)
+            // For "Today", dynamically start at the current wall-clock hour ("Now") and onwards
             if (isToday) {
-                const nowIdx = filtered.findIndex(h => h.hourLabel === 'Now');
-                if (nowIdx !== -1) {
-                    return filtered.slice(nowIdx);
-                }
                 const currentHour = new Date().getHours();
-                const fromCurrentHour = filtered.filter(h => {
+                let curIdx = filtered.findIndex(h => {
                     const parts = h.time.split("T");
-                    if (parts.length < 2) return true;
+                    if (parts.length < 2) return false;
                     const hourNum = parseInt(parts[1].split(":")[0], 10);
-                    return hourNum >= currentHour;
+                    return hourNum === currentHour;
                 });
-                if (fromCurrentHour.length > 0) {
-                    return fromCurrentHour;
+                if (curIdx === -1) {
+                    curIdx = filtered.findIndex(h => {
+                        const parts = h.time.split("T");
+                        if (parts.length < 2) return false;
+                        const hourNum = parseInt(parts[1].split(":")[0], 10);
+                        return hourNum >= currentHour;
+                    });
                 }
+                if (curIdx === -1) {
+                    curIdx = filtered.findIndex(h => h.hourLabel === 'Now');
+                }
+                if (curIdx === -1) {
+                    curIdx = 0;
+                }
+
+                const formatHourLabelFromTime = (timeStr: string, isNow: boolean): string => {
+                    if (isNow) return "Now";
+                    const parts = timeStr.split("T");
+                    if (parts.length < 2) return timeStr;
+                    const [h] = parts[1].split(":").map(Number);
+                    const ampm = h >= 12 ? "PM" : "AM";
+                    const displayH = h % 12 === 0 ? 12 : h % 12;
+                    return `${displayH} ${ampm}`;
+                };
+
+                return filtered.slice(curIdx).map((item, idx) => ({
+                    ...item,
+                    hourLabel: formatHourLabelFromTime(item.time, idx === 0),
+                }));
             }
             return filtered;
         }
@@ -1169,6 +1168,10 @@ export const getHourlyForecastForDay = (
             precipitationProbability: hourPrecip,
             windSpeed: activeDay?.windSpeedMax ?? weatherData.windSpeed ?? 15,
             uvIndex: (h >= 10 && h <= 15) ? (activeDay?.uvIndexMax ?? 8) : 0,
+            windGusts: activeDay?.windSpeedMax ?? weatherData.windGusts ?? weatherData.windSpeed ?? 15,
+            windDirection: weatherData.windDirection ?? 0,
+            humidity: weatherData.humidity ?? 60,
+            visibility: weatherData.visibility ?? 10000,
         });
     }
 
