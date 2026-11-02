@@ -28,6 +28,7 @@ import CustomText from '@/src/components/CustomText';
 import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { useToast } from '@/src/components/Toast/Toast';
+import { useManualQRMethodTutorial } from '@/src/components/Tutorial/Tutorial';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
@@ -37,7 +38,6 @@ import { IBusinessPaymentConfig } from '@/src/core/models/Business/Business';
 import { useOfferStore } from '@/src/core/models/Offer/Offer';
 import TermsSignature from '@/src/features/Book/components/TermsSignature';
 import { BookingNoticeBanner } from '@/src/features/Book/screens/MyBookings/components/BookingNoticeBanner';
-import { useManualQRMethodTutorial } from '@/src/features/Book/screens/Payment/hooks/usePaymentTutorial';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 export interface ManualQRMethodScreenProps {
