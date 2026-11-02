@@ -8,12 +8,12 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Platform, View } from 'react-native';
 
+import { useTutorialGuide } from '@/src/components/Tutorial/hooks/useTutorialGuide';
 import {
     isTutorialMeasurementActive,
     registerMeasureCallback,
     registerTutorialLayout,
-    useTutorialGuide,
-} from '@/src/components/Tutorial/Tutorial';
+} from '@/src/components/Tutorial/utils/tutorialLayoutRegistry';
 
 interface UseWriteReviewTutorialParams {
     isEditMode: boolean;
