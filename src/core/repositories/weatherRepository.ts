@@ -79,6 +79,10 @@ export const fetchWeatherFromApi = async (
       precipitationProbability: rawData.hourly.precipitation_probability?.at(idx) ?? 0,
       windSpeed: Math.round(rawData.hourly.wind_speed_10m?.at(idx) ?? rawData.hourly.windspeed_10m?.at(idx) ?? 0),
       uvIndex: rawData.hourly.uv_index?.at(idx) ?? 0,
+      windGusts: Math.round(rawData.hourly.wind_gusts_10m?.at(idx) ?? rawData.hourly.windgusts_10m?.at(idx) ?? 0),
+      windDirection: rawData.hourly.wind_direction_10m?.at(idx) ?? rawData.hourly.winddirection_10m?.at(idx) ?? 0,
+      humidity: Math.round(rawData.hourly.relative_humidity_2m?.at(idx) ?? rawData.hourly.relativehumidity_2m?.at(idx) ?? 0),
+      visibility: rawData.hourly.visibility?.at(idx) ?? 10000,
     }));
 
     const transformed: ProcessedWeatherData = {
@@ -151,8 +155,21 @@ export interface TrailWeatherBadgeData {
   weatherCode: number;
 }
 
-// In-memory cache for instant badge re-renders
+// In-memory cache for instant badge re-renders (bounded to MAX_BADGE_CACHE_ENTRIES)
+const MAX_BADGE_CACHE_ENTRIES = 50;
 const badgeMemoryCache = new Map<string, { data: TrailWeatherBadgeData; timestamp: number }>();
+
+const setBadgeMemoryCache = (key: string, entry: { data: TrailWeatherBadgeData; timestamp: number }) => {
+  if (badgeMemoryCache.has(key)) {
+    badgeMemoryCache.delete(key);
+  } else if (badgeMemoryCache.size >= MAX_BADGE_CACHE_ENTRIES) {
+    const oldestKey = badgeMemoryCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      badgeMemoryCache.delete(oldestKey);
+    }
+  }
+  badgeMemoryCache.set(key, entry);
+};
 
 // In-flight promise map to deduplicate identical concurrent calls
 const inFlightBadgeRequests = new Map<string, Promise<TrailWeatherBadgeData | null>>();
@@ -220,7 +237,7 @@ export const fetchTrailBadgeWeather = async (
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed.data && now - parsed.timestamp < CACHE_EXPIRY_MS) {
-          badgeMemoryCache.set(key, { data: parsed.data, timestamp: parsed.timestamp });
+          setBadgeMemoryCache(key, { data: parsed.data, timestamp: parsed.timestamp });
           return parsed.data;
         }
       }
@@ -246,7 +263,7 @@ export const fetchTrailBadgeWeather = async (
         };
 
         // Cache in memory and disk
-        badgeMemoryCache.set(key, { data: badgeData, timestamp: now });
+        setBadgeMemoryCache(key, { data: badgeData, timestamp: now });
         AsyncStorage.setItem(diskKey, JSON.stringify({ data: badgeData, timestamp: now })).catch(() => {});
 
         return badgeData;
