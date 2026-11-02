@@ -517,15 +517,16 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedHiker, setSelectedHiker] = useState<HikerLocation | null>(null);
 
-  // Centralized LKL ticker: runs a single 10s interval only when hikers are present
+  // Centralized LKL ticker: runs a single stable 10s interval only when hikers are present
+  const hasHikers = Boolean(hikerLocations && hikerLocations.length > 0);
   const [tickerTime, setTickerTime] = useState(() => Date.now());
   useEffect(() => {
-    if (!hikerLocations || hikerLocations.length === 0) return;
+    if (!hasHikers) return;
     const interval = setInterval(() => {
       setTickerTime(Date.now());
     }, 10000);
     return () => clearInterval(interval);
-  }, [hikerLocations]);
+  }, [hasHikers]);
 
   // Dynamic live hiker derivation: ensures rescue card stays continuously fresh as hiker moves
   const liveSelectedHiker = useMemo(() => {
