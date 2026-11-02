@@ -3,7 +3,7 @@
  * @description Production summary and confirmation screen displaying the outcome of a submitted hike reservation with canonical CustomText hierarchy, a 3-step next-actions timeline, and a streamlined 2-card layout (Card 1: Essential Booking Pass, Card 2: Preparation & Requirements).
  */
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -13,11 +13,7 @@ import {
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
-import {
-    isTutorialMeasurementActive,
-    registerMeasureCallback,
-    registerTutorialLayout,
-} from '@/src/components/Tutorial/Tutorial';
+import { useBookingStatusTutorial } from '@/src/components/Tutorial/Tutorial';
 import { cleanPhoneNumber } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -261,75 +257,17 @@ const StatusScreen: React.FC<StatusScreenProps> = ({
             variant: 'outline' as const,
         };
 
-    const scrollViewRef = useRef<ScrollView>(null);
-    const timelineCardRef = useRef<View>(null);
-    const summaryCardRef = useRef<View>(null);
-    const summarySectionOffsetY = useRef<number>(0);
-
-    const measureTimelineCardNow = useCallback(() => {
-        timelineCardRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('booking_status_timeline', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureSummaryCardNow = useCallback(() => {
-        summaryCardRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('booking_status_summary', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureTimelineCard = useCallback(() => {
-        if (!isTutorialMeasurementActive()) return;
-        measureTimelineCardNow();
-    }, [measureTimelineCardNow]);
-
-    const measureSummaryCard = useCallback(() => {
-        if (!isTutorialMeasurementActive()) return;
-        measureSummaryCardNow();
-    }, [measureSummaryCardNow]);
-
-    useEffect(() => {
-        const unsubTimeline = registerMeasureCallback('booking_status_timeline', measureTimelineCardNow);
-        const unsubSummary = registerMeasureCallback('booking_status_summary', measureSummaryCardNow);
-        return () => {
-            unsubTimeline();
-            unsubSummary();
-        };
-    }, [measureTimelineCardNow, measureSummaryCardNow]);
-
-    // Bidirectional auto-scroll for StatusScreen tour steps (active only when tutorial is visible)
-    useEffect(() => {
-        if (!isTutorialVisible) return;
-
-        if (
-            activeTutorialStep === 'booking_status_card' ||
-            activeTutorialStep === 'booking_status_timeline'
-        ) {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-            const timer = setTimeout(measureTimelineCardNow, 250);
-            return () => clearTimeout(timer);
-        } else if (activeTutorialStep === 'booking_status_summary') {
-            scrollViewRef.current?.scrollTo({
-                y: Math.max(0, summarySectionOffsetY.current - 16),
-                animated: true,
-            });
-            const timer = setTimeout(measureSummaryCardNow, 250);
-            return () => clearTimeout(timer);
-        }
-    }, [isTutorialVisible, activeTutorialStep, measureTimelineCardNow, measureSummaryCardNow]);
-
-    // Reset scroll on tutorial finish
-    const prevTutorialVisible = useRef(isTutorialVisible);
-    useEffect(() => {
-        if (prevTutorialVisible.current && !isTutorialVisible) {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-        }
-        prevTutorialVisible.current = isTutorialVisible;
-    }, [isTutorialVisible]);
+    const {
+        scrollViewRef,
+        timelineCardRef,
+        summaryCardRef,
+        measureTimelineCard,
+        measureSummaryCard,
+        handleSummarySectionLayout,
+    } = useBookingStatusTutorial({
+        activeTutorialStep,
+        isTutorialVisible,
+    });
 
     return (
         <View style={styles.container}>
@@ -451,9 +389,7 @@ const StatusScreen: React.FC<StatusScreenProps> = ({
                     {/* CARD 1: RESERVATION SUMMARY (Essential / Important) */}
                     <View 
                         style={styles.sectionContainer}
-                        onLayout={(e) => {
-                            summarySectionOffsetY.current = e.nativeEvent.layout.y;
-                        }}
+                        onLayout={handleSummarySectionLayout}
                     >
                         <View style={styles.sectionHeaderRow}>
                             <CustomText variant="h2" style={styles.sectionHeaderTitle}>
