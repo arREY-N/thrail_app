@@ -36,7 +36,7 @@ import StatusScreen, { BookingStatusOutcome } from '@/src/features/Book/screens/
 import {
     CustomTutorialModal,
     TutorialHelpButton,
-    useTutorialGuide,
+    useBookingTutorial,
 } from '@/src/components/Tutorial/Tutorial';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -96,9 +96,14 @@ const BookingScreen = ({
     const [bookingErrorMessage, setBookingErrorMessage] = useState<string | null>(null);
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
-    const isTourEnabled = !isSubmitting && (currentView !== 3 || bookingStatusOutcome === 'success');
-    const currentTourId = currentView === 1 ? 'booking_offers' : currentView === 2 ? 'booking_details' : 'booking_status';
-    const tutorial = useTutorialGuide(currentTourId, isTourEnabled);
+    const {
+        tutorial,
+        activeSpotlight,
+    } = useBookingTutorial({
+        currentView,
+        isSubmitting,
+        bookingStatusOutcome,
+    });
 
     useEffect(() => {
         if (Platform.OS === 'web') return;
@@ -355,8 +360,6 @@ const BookingScreen = ({
             return () => clearTimeout(timer);
         }
     }, [submitPhase]); 
-
-    const activeSpotlight = tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined;
     
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
