@@ -16,11 +16,8 @@ import CustomText from '@/src/components/CustomText';
 import { useToast } from '@/src/components/Toast/Toast';
 import {
     CustomTutorialModal,
-    isTutorialMeasurementActive,
-    registerMeasureCallback,
-    registerTutorialLayout,
     TutorialHelpButton,
-    useTutorialGuide,
+    useMyBookingDetailsTutorial,
 } from '@/src/components/Tutorial/Tutorial';
 import EmergencySetupModal, { UserSearchResult } from '@/src/components/EmergencyModal';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
@@ -542,160 +539,22 @@ const BookingDetailsScreen = ({
         onViewUpdatedBooking: handleViewUpdatedBooking,
     });
 
-    const tutorial = useTutorialGuide('my_booking_details', !isLoadingOffer);
-    const activeTutorialStep = tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined;
-
-    const scrollViewRef = useRef<ScrollView>(null);
-    const quickInfoRef = useRef<View>(null);
-    const statusTrackerRef = useRef<View>(null);
-    const documentsRef = useRef<View>(null);
-    const accordionsRef = useRef<View>(null);
-    const paymentSummaryRef = useRef<View>(null);
-
-    const statusOffsetY = useRef<number>(0);
-    const documentsOffsetY = useRef<number>(0);
-    const accordionsOffsetY = useRef<number>(0);
-    const paymentSummaryOffsetY = useRef<number>(0);
-
-    const measureQuickInfoNow = useCallback(() => {
-        quickInfoRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 40 && height > 16) {
-                registerTutorialLayout('my_booking_quick_info', {
-                    x: x + 20,
-                    y,
-                    width: width - 40,
-                    height: height - 16,
-                });
-            }
-        });
-    }, []);
-
-    const measureStatusTrackerNow = useCallback(() => {
-        statusTrackerRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 40 && height > 16) {
-                registerTutorialLayout('my_booking_status_tracker', {
-                    x: x + 20,
-                    y,
-                    width: width - 40,
-                    height: height - 16,
-                });
-            }
-        });
-    }, []);
-
-    const measureDocumentsNow = useCallback(() => {
-        documentsRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 40 && height > 12) {
-                registerTutorialLayout('my_booking_documents', {
-                    x: x + 20,
-                    y,
-                    width: width - 40,
-                    height: height - 12,
-                });
-            }
-        });
-    }, []);
-
-    const measureAccordionsNow = useCallback(() => {
-        accordionsRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 40 && height > 12) {
-                registerTutorialLayout('my_booking_accordions', {
-                    x: x + 20,
-                    y,
-                    width: width - 40,
-                    height: height - 12,
-                });
-            }
-        });
-    }, []);
-
-    const measurePaymentSummaryNow = useCallback(() => {
-        paymentSummaryRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 40 && height > 16) {
-                registerTutorialLayout('my_booking_payment_summary', {
-                    x: x + 20,
-                    y,
-                    width: width - 40,
-                    height: height - 16,
-                });
-            }
-        });
-    }, []);
-
-    useEffect(() => {
-        const unsubQuick = registerMeasureCallback('my_booking_quick_info', measureQuickInfoNow);
-        const unsubStatus = registerMeasureCallback('my_booking_status_tracker', measureStatusTrackerNow);
-        const unsubDocs = registerMeasureCallback('my_booking_documents', measureDocumentsNow);
-        const unsubAcc = registerMeasureCallback('my_booking_accordions', measureAccordionsNow);
-        const unsubPay = registerMeasureCallback('my_booking_payment_summary', measurePaymentSummaryNow);
-        return () => {
-            unsubQuick();
-            unsubStatus();
-            unsubDocs();
-            unsubAcc();
-            unsubPay();
-        };
-    }, [
-        measureQuickInfoNow,
-        measureStatusTrackerNow,
-        measureDocumentsNow,
-        measureAccordionsNow,
-        measurePaymentSummaryNow,
-    ]);
-
-    useEffect(() => {
-        if (!tutorial.isVisible) return;
-
-        if (activeTutorialStep === 'my_booking_quick_info' || activeTutorialStep === 'header_help') {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-            const timer = setTimeout(measureQuickInfoNow, 260);
-            return () => clearTimeout(timer);
-        } else if (activeTutorialStep === 'my_booking_status_tracker') {
-            scrollViewRef.current?.scrollTo({
-                y: Math.max(0, statusOffsetY.current - 24),
-                animated: true,
-            });
-            const timer = setTimeout(measureStatusTrackerNow, 260);
-            return () => clearTimeout(timer);
-        } else if (activeTutorialStep === 'my_booking_documents') {
-            scrollViewRef.current?.scrollTo({
-                y: Math.max(0, documentsOffsetY.current - 24),
-                animated: true,
-            });
-            const timer = setTimeout(measureDocumentsNow, 260);
-            return () => clearTimeout(timer);
-        } else if (activeTutorialStep === 'my_booking_accordions') {
-            scrollViewRef.current?.scrollTo({
-                y: Math.max(0, accordionsOffsetY.current - 24),
-                animated: true,
-            });
-            const timer = setTimeout(measureAccordionsNow, 260);
-            return () => clearTimeout(timer);
-        } else if (activeTutorialStep === 'my_booking_payment_summary') {
-            scrollViewRef.current?.scrollTo({
-                y: Math.max(0, paymentSummaryOffsetY.current - 24),
-                animated: true,
-            });
-            const timer = setTimeout(measurePaymentSummaryNow, 260);
-            return () => clearTimeout(timer);
-        }
-    }, [
-        tutorial.isVisible,
-        activeTutorialStep,
-        measureQuickInfoNow,
-        measureStatusTrackerNow,
-        measureDocumentsNow,
-        measureAccordionsNow,
-        measurePaymentSummaryNow,
-    ]);
-
-    const prevTutorialVisible = useRef(tutorial.isVisible);
-    useEffect(() => {
-        if (prevTutorialVisible.current && !tutorial.isVisible) {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-        }
-        prevTutorialVisible.current = tutorial.isVisible;
-    }, [tutorial.isVisible]);
+    const {
+        tutorial,
+        scrollViewRef,
+        quickInfoRef,
+        statusTrackerRef,
+        documentsRef,
+        accordionsRef,
+        paymentSummaryRef,
+        handlers: {
+            handleQuickInfoLayout,
+            handleStatusTrackerLayout,
+            handleDocumentsLayout,
+            handleAccordionsLayout,
+            handlePaymentSummaryLayout,
+        },
+    } = useMyBookingDetailsTutorial({ isLoadingOffer });
 
     if (isLoadingOffer) {
         return (
@@ -736,23 +595,14 @@ const BookingDetailsScreen = ({
 
                     <View
                         ref={quickInfoRef}
-                        onLayout={() => {
-                            if (isTutorialMeasurementActive()) {
-                                measureQuickInfoNow();
-                            }
-                        }}
+                        onLayout={handleQuickInfoLayout}
                     >
                         <QuickInfoCard booking={enhancedBooking} />
                     </View>
 
                     <View
                         ref={statusTrackerRef}
-                        onLayout={(e) => {
-                            statusOffsetY.current = e.nativeEvent.layout.y;
-                            if (isTutorialMeasurementActive()) {
-                                measureStatusTrackerNow();
-                            }
-                        }}
+                        onLayout={handleStatusTrackerLayout}
                     >
 
                     <BookingStatusComponent
@@ -956,12 +806,7 @@ const BookingDetailsScreen = ({
 
                     <View
                         ref={documentsRef}
-                        onLayout={(e) => {
-                            documentsOffsetY.current = e.nativeEvent.layout.y;
-                            if (isTutorialMeasurementActive()) {
-                                measureDocumentsNow();
-                            }
-                        }}
+                        onLayout={handleDocumentsLayout}
                     >
                     <RequiredDocumentsSection
                         localDocs={localDocs}
@@ -997,12 +842,7 @@ const BookingDetailsScreen = ({
 
                     <View
                         ref={accordionsRef}
-                        onLayout={(e) => {
-                            accordionsOffsetY.current = e.nativeEvent.layout.y;
-                            if (isTutorialMeasurementActive()) {
-                                measureAccordionsNow();
-                            }
-                        }}
+                        onLayout={handleAccordionsLayout}
                     >
                     {(user || localEmergencyContact) && (
                         <PersonalInformationSection
@@ -1066,12 +906,7 @@ const BookingDetailsScreen = ({
 
                     <View
                         ref={paymentSummaryRef}
-                        onLayout={(e) => {
-                            paymentSummaryOffsetY.current = e.nativeEvent.layout.y;
-                            if (isTutorialMeasurementActive()) {
-                                measurePaymentSummaryNow();
-                            }
-                        }}
+                        onLayout={handlePaymentSummaryLayout}
                     >
 
                     <PaymentSummaryCard
