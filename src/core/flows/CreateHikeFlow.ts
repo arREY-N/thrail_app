@@ -105,10 +105,11 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             Location.getLastKnownPositionAsync()
                 .then((lastPos) => {
                     if (lastPos && !useHikeStore.getState().currentLocation) {
+                        const rawAlt = lastPos.coords.altitude;
                         useHikeStore.getState().setCurrentLocation(newLocation({
                             latitude: lastPos.coords.latitude,
                             longitude: lastPos.coords.longitude,
-                            altitude: lastPos.coords.altitude ?? undefined,
+                            altitude: (typeof rawAlt === 'number' && !isNaN(rawAlt) && rawAlt !== 0) ? rawAlt : undefined,
                             accuracy: lastPos.coords.accuracy ?? undefined,
                             speed: lastPos.coords.speed ?? undefined,
                             timestamp: new Date(lastPos.timestamp || Date.now()),
@@ -148,10 +149,11 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             try {
                 const currentPos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
                 if (currentPos) {
+                    const rawAlt = currentPos.coords.altitude;
                     useHikeStore.getState().setCurrentLocation(newLocation({
                         latitude: currentPos.coords.latitude,
                         longitude: currentPos.coords.longitude,
-                        altitude: currentPos.coords.altitude ?? undefined,
+                        altitude: (typeof rawAlt === 'number' && !isNaN(rawAlt) && rawAlt !== 0) ? rawAlt : undefined,
                         accuracy: currentPos.coords.accuracy ?? undefined,
                         speed: currentPos.coords.speed ?? undefined,
                         timestamp: new Date(currentPos.timestamp || Date.now()),
@@ -327,6 +329,8 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                 timerStartTime: 0,
                 totalDistance: 0,
                 totalElevationGain: 0,
+                totalElevationLoss: 0,
+                elevationBaseline: null,
                 coordinates: [],
                 walkedRoute: [],
                 isSegmentFirstPoint: true,
@@ -407,6 +411,8 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                     timerStartTime: 0,
                     totalDistance: 0,
                     totalElevationGain: 0,
+                    totalElevationLoss: 0,
+                    elevationBaseline: null,
                     coordinates: [],
                     walkedRoute: [],
                     isSegmentFirstPoint: true,
@@ -428,6 +434,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         timerStartTime,
         totalDistance: useHikeStore(s => s.totalDistance),
         totalElevationGain: useHikeStore(s => s.totalElevationGain),
+        totalElevationLoss: useHikeStore(s => s.totalElevationLoss),
         shareLocationEnabled: useHikeStore(s => s.shareLocationEnabled),
 
         onEmergencyPress: () => { },
