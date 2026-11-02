@@ -163,8 +163,8 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
             iconName = 'activity';
             displayName = 'Maya';
         } else if (isCash) {
-            bgColor = '#D1FAE5';
-            textColor = '#065F46';
+            bgColor = Colors.STATUS_APPROVED_BG;
+            textColor = Colors.PRIMARY;
             iconName = 'check-circle';
             displayName = 'Onsite Cash';
         } else {
@@ -196,6 +196,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
 
     const allPayments = (booking?.payment || []).filter((p: IPayment<Date>) => p.status !== 'abandoned');
     const hasPendingPayment = allPayments.some((p: IPayment<Date>) => p.status === 'pending');
+    const hasCapturedManual = allPayments.some((p: IPayment<Date>) => (p.gateway === 'manual_qr' || Boolean(p.receiptUrl)) && p.status === 'captured');
     // Receipts history only shows verified/captured or refunded payments
     const verifiedPaymentsList = allPayments.filter((p: IPayment<Date>) => p.status === 'captured' || p.status === 'refunded');
 
@@ -204,7 +205,8 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
         booking.paymentVerificationStatus === 'pending_verification' || 
         currentStatus === 'for-payment' || 
         booking.paymentVerificationStatus === 'rejected' ||
-        Boolean(booking.overpayment)
+        Boolean(booking.overpayment) ||
+        hasCapturedManual
     );
 
     const handleConfirmCashSettlement = async () => {
@@ -561,8 +563,8 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                                             size="sm"
                                                             icon="rotate-ccw"
                                                             iconLibrary="Feather"
-                                                            iconColor="#D97706"
-                                                            textStyle={{ color: '#D97706' }}
+                                                            iconColor={Colors.WARNING}
+                                                            textStyle={{ color: Colors.WARNING }}
                                                             onPress={() => {
                                                                 const actualIndex = (booking.payment || []).indexOf(paymentRecord);
                                                                 setSelectedPaymentForRevert(paymentRecord);
@@ -726,7 +728,7 @@ const styles = StyleSheet.create({
     summaryCardTitle: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#374151',
+        color: Colors.TEXT_PRIMARY,
         marginBottom: 0,
         includeFontPadding: false,
     },
@@ -746,7 +748,7 @@ const styles = StyleSheet.create({
     paidTotalDenominator: {
         fontSize: 13,
         fontWeight: '500',
-        color: '#6B7280',
+        color: Colors.TEXT_SECONDARY,
         includeFontPadding: false,
     },
     progressContainer: {
@@ -775,7 +777,7 @@ const styles = StyleSheet.create({
     balanceLabel: {
         fontSize: 12.5,
         fontWeight: '500',
-        color: '#4B5563',
+        color: Colors.TEXT_SECONDARY,
         includeFontPadding: false,
     },
     balanceAmount: {
@@ -816,7 +818,7 @@ const styles = StyleSheet.create({
     receiptsCardTitle: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#374151',
+        color: Colors.TEXT_PRIMARY,
         letterSpacing: 0.5,
         marginBottom: 0,
         includeFontPadding: false,
@@ -1110,7 +1112,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
         paddingTop: 10,
         borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
+        borderTopColor: Colors.GRAY_ULTRALIGHT,
     },
     receiptActionBtn: {
         flex: 1,
