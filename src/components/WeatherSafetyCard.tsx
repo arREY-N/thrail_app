@@ -114,7 +114,7 @@ const WeatherSafetyCard: React.FC<WeatherSafetyCardProps> = ({
                         {report.badgeText}
                     </CustomText>
                 </View>
-                {report.precipitationChance >= 20 && (
+                {(report.rainRiskLevel !== 'low' || (report.status === 'SAFE' && report.precipitationChance >= 30)) && (
                     <View style={styles.metricPill}>
                         <CustomIcon library="Ionicons" name="rainy-outline" size={14} color={Colors.TEXT_SECONDARY} />
                         <CustomText variant="caption" style={styles.metricText}>
