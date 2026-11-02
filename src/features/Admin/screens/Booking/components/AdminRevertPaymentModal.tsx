@@ -159,7 +159,7 @@ export const AdminRevertPaymentModal: React.FC<AdminRevertPaymentModalProps> = (
                                 </View>
                                 <View>
                                     <CustomText style={styles.modalTitle}>
-                                        {isRejectionRevert ? 'Revert Payment Rejection' : 'Revert Payment Verification'}
+                                        {isRejectionRevert ? 'Undo Receipt Rejection' : 'Revert Payment Verification'}
                                     </CustomText>
                                     <CustomText style={styles.modalSubtitle}>
                                         Booking #{booking.id.slice(-6).toUpperCase()}
@@ -251,20 +251,22 @@ export const AdminRevertPaymentModal: React.FC<AdminRevertPaymentModalProps> = (
                                 </View>
                             )}
 
-                            {/* Optional Reversion Reason */}
-                            <CustomTextInput
-                                label="Reason for Reversion (Optional)"
-                                placeholder="e.g. Accidental click, need to re-verify details..."
-                                value={revertReason}
-                                maxLength={120}
-                                onFocus={() => {
-                                    setTimeout(() => {
-                                        scrollViewRef.current?.scrollToEnd({ animated: true });
-                                    }, 150);
-                                }}
-                                sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
-                                onChangeText={(val: string) => setRevertReason(stripEmojis(String(val || '')).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 120))}
-                            />
+                            {/* Optional Reversion Reason (Only for reverting captured payments) */}
+                            {!isRejectionRevert && (
+                                <CustomTextInput
+                                    label="Reason for Reversion (Optional)"
+                                    placeholder="e.g. Accidental click, need to re-verify details..."
+                                    value={revertReason}
+                                    maxLength={120}
+                                    onFocus={() => {
+                                        setTimeout(() => {
+                                            scrollViewRef.current?.scrollToEnd({ animated: true });
+                                        }, 150);
+                                    }}
+                                    sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
+                                    onChangeText={(val: string) => setRevertReason(stripEmojis(String(val || '')).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 120))}
+                                />
+                            )}
                         </ScrollView>
 
                         {/* Actions Row */}
@@ -280,8 +282,8 @@ export const AdminRevertPaymentModal: React.FC<AdminRevertPaymentModalProps> = (
                             </View>
                             <View style={styles.btnWrapper}>
                                 <CustomButton
-                                    title={isRejectionRevert ? 'Revert Rejection' : 'Confirm Revert'}
-                                    variant="destructive"
+                                    title={isRejectionRevert ? 'Revert to Pending' : 'Confirm Revert'}
+                                    variant={isRejectionRevert ? 'primary' : 'destructive'}
                                     icon="rotate-ccw"
                                     iconLibrary="Feather"
                                     onPress={handleConfirm}
