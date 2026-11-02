@@ -35,10 +35,11 @@ import { IEmergencyContact, User } from '@/src/core/models/User/User';
 import { logger } from '@/src/core/utility/errorFormatter';
 
 import { formatBookingDate } from '@/src/utils/dateFormatter';
-import { RescheduleRepo } from '@/src/core/models/Reschedule/repositories/RescheduleRepository';
+import { RescheduleRepo } from '@/src/core/models/Reschedule/Reschedule';
 import { Cancellation, IUserWalletDetails } from '@/src/core/models/Cancellation/Cancellation';
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem';
 import BookingActionMenuModal from '@/src/features/Book/screens/MyBookings/components/BookingActionMenuModal';
+import { BookingNoticeBanner } from '@/src/features/Book/screens/MyBookings/components/BookingNoticeBanner';
 import BookingStatusComponent from '@/src/features/Book/screens/MyBookings/components/BookingStatus';
 import CancelBookingModal from '@/src/features/Book/screens/MyBookings/components/CancelBookingModal';
 import CancellationCard from '@/src/features/Book/screens/MyBookings/components/CancellationCard';
@@ -99,6 +100,8 @@ export interface BookingDetailsScreenProps {
     onSyncBookingVerification?: (booking: Booking) => Promise<void>;
     /** Async user search passed to emergency setup modal */
     onSearchUser?: (email: string) => Promise<UserSearchResult[]>;
+    /** Callback to switch selected booking in view */
+    onSelectBooking?: (booking: Booking) => void;
 }
 
 /**
@@ -121,6 +124,7 @@ const BookingDetailsScreen = ({
     onSearchUser,
     availableFutureOffers = [],
     userBookings = [],
+    onSelectBooking,
     cancellation,
     onWithdrawCancellation,
     onUpdateCancellationReason,
@@ -137,6 +141,7 @@ const BookingDetailsScreen = ({
     const [showRescheduleModal, setShowRescheduleModal] = useState<boolean>(false);
     const [isDismissingDecline, setIsDismissingDecline] = useState<boolean>(false);
     const [isDeclineDismissedLocally, setIsDeclineDismissedLocally] = useState<boolean>(false);
+    const [nowTimestamp] = useState<number>(() => Date.now());
     const isReschedulingRef = useRef<boolean>(false);
 
     const handleDismissDecline = async () => {
@@ -167,7 +172,7 @@ const BookingDetailsScreen = ({
         const activeBookedOfferIds = new Set<string>();
         for (const b of effectiveBookings) {
             if (!['cancelled', 'refunded', 'expired', 'rescheduled'].includes(b.status)) {
-                const offId = b.offer?.id || (b as any).offerId;
+                const offId = b.offer?.id || (b as { offerId?: string }).offerId;
                 if (offId) activeBookedOfferIds.add(offId);
             }
         }
@@ -182,11 +187,11 @@ const BookingDetailsScreen = ({
             if (activeBookedOfferIds.has(offer.id)) return false;
 
             // Strictly require matching the current booking's organizer/business
-            const offerBusinessId = offer.business?.id || (offer as any).businessId;
+            const offerBusinessId = offer.business?.id || (offer as { businessId?: string }).businessId;
             if (!currentBusinessId || !offerBusinessId || offerBusinessId !== currentBusinessId) return false;
 
             // Must be strictly in the future
-            if (new Date(offer.date).getTime() <= Date.now()) return false;
+            if (new Date(offer.date).getTime() <= nowTimestamp) return false;
 
             // Exclude cancelled offers
             if ((offer.status || '').toLowerCase() === 'cancelled') return false;
@@ -195,7 +200,7 @@ const BookingDetailsScreen = ({
 
             return true;
         });
-    }, [availableFutureOffers, booking.offer?.id, booking.business?.id, effectiveBookings]);
+    }, [availableFutureOffers, booking.offer?.id, booking.business?.id, effectiveBookings, nowTimestamp]);
 
     const [showContactsModal, setShowContactsModal] = useState<boolean>(false);
 
@@ -504,6 +509,18 @@ const BookingDetailsScreen = ({
         hasStagedContactChanges || isPhoneRejection
     );
 
+    const handleViewUpdatedBooking = useCallback((newBookingId: string) => {
+        const target = userBookings?.find(b => b.id === newBookingId);
+        if (target && onSelectBooking) {
+            onSelectBooking(target);
+        } else {
+            router.replace({
+                pathname: '/(app)/(main)/book/list',
+                params: { bookingId: newBookingId, view: 'overview' },
+            });
+        }
+    }, [userBookings, onSelectBooking]);
+
     const footerConfig = getBookingFooterConfig({
         booking,
         displayStatus,
@@ -522,6 +539,7 @@ const BookingDetailsScreen = ({
         handleResubmitPress,
         onProceedToPayment,
         onViewReceipt,
+        onViewUpdatedBooking: handleViewUpdatedBooking,
     });
 
     const tutorial = useTutorialGuide('my_booking_details', !isLoadingOffer);
@@ -744,78 +762,64 @@ const BookingDetailsScreen = ({
                         isPaymentVerifying={isPaymentVerifying}
                     />
 
+                    {/* Transferred Provenance Banner if this booking is from a reschedule */}
+                    {Boolean((booking as Booking & { rescheduledFromBookingId?: string })?.rescheduledFromBookingId) && (
+                        <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
+                            <BookingNoticeBanner
+                                variant="success"
+                                icon="calendar"
+                                title="Transferred Hike Schedule"
+                                message="This reservation was created from a rescheduled hike. All verified payments and documents were transferred."
+                                actions={
+                                    <TouchableOpacity
+                                        activeOpacity={0.7}
+                                        onPress={() => {
+                                            const origId = (booking as Booking & { rescheduledFromBookingId?: string }).rescheduledFromBookingId;
+                                            if (origId) handleViewUpdatedBooking(origId);
+                                        }}
+                                        style={styles.provenanceLinkBtn}
+                                    >
+                                        <CustomText style={styles.provenanceLinkText}>
+                                            View original booking #{(booking as Booking & { rescheduledFromBookingId?: string }).rescheduledFromBookingId?.slice(-6).toUpperCase()}
+                                        </CustomText>
+                                        <CustomIcon library="Feather" name="arrow-right" size={12} color={Colors.PRIMARY} />
+                                    </TouchableOpacity>
+                                }
+                            />
+                        </View>
+                    )}
+
                     {isPaymentVerifying && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
-                            <View style={styles.paymentPendingBanner}>
-                                <View style={styles.paymentPendingHeader}>
-                                    <View style={styles.paymentPendingIconCircle}>
-                                        <CustomIcon library="Feather" name="clock" size={18} color={Colors.SUCCESS} />
-                                    </View>
-                                    <View style={styles.paymentPendingTitleContainer}>
-                                        <CustomText style={styles.paymentPendingTitle}>
-                                            Payment Verification in Progress
-                                        </CustomText>
-                                        <CustomText variant="caption" style={styles.paymentPendingSubtitle}>
-                                            Your payment receipt has been submitted and is currently being verified by the organizer. You will be notified once it is approved.
-                                        </CustomText>
-                                    </View>
-                                </View>
-                            </View>
+                            <BookingNoticeBanner
+                                variant="info"
+                                title="Payment Verification in Progress"
+                                message="Your payment receipt has been submitted and is currently being verified by the organizer. You will be notified once it is approved."
+                            />
                         </View>
                     )}
 
                     {isPaymentRejected && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
-                            <View style={styles.paymentRejectionBanner}>
-                                <View style={styles.paymentRejectionHeader}>
-                                    <View style={styles.paymentRejectionIconCircle}>
-                                        <CustomIcon library="Feather" name="alert-triangle" size={18} color={Colors.ERROR} />
-                                    </View>
-                                    <View style={styles.paymentRejectionTitleContainer}>
-                                        <CustomText style={styles.paymentRejectionTitle}>
-                                            Payment Verification Rejected
-                                        </CustomText>
-                                        <CustomText variant="caption" style={styles.paymentRejectionSubtitle}>
-                                            Your payment receipt could not be verified by the organizer.
-                                        </CustomText>
-                                    </View>
-                                </View>
-                                {booking?.paymentRejectionReason ? (
-                                    <View style={styles.paymentRejectionReasonBox}>
-                                        <CustomText variant="caption" style={styles.paymentRejectionReasonLabel}>
-                                            Organizer Feedback:
-                                        </CustomText>
-                                        <CustomText style={styles.paymentRejectionReasonText}>
-                                            {`"${booking.paymentRejectionReason}"`}
-                                        </CustomText>
-                                    </View>
-                                ) : null}
-                                <CustomText variant="caption" style={styles.paymentRejectionHintText}>
-                                    Please review the feedback above and resubmit your payment and valid receipt to confirm your reservation.
-                                </CustomText>
-                            </View>
+                            <BookingNoticeBanner
+                                variant="error"
+                                title="Payment Verification Rejected"
+                                message="Your payment receipt could not be verified by the organizer."
+                                details={booking?.paymentRejectionReason}
+                                detailsLabel="ORGANIZER FEEDBACK:"
+                                hint="Please review the feedback above and resubmit your payment and valid receipt to confirm your reservation."
+                            />
                         </View>
                     )}
 
                     {wasAdminCancellationLifted && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
-                            <View style={styles.revertNoticeBanner}>
-                                <CustomIcon library="Feather" name="info" size={18} color={Colors.PRIMARY} />
-                                <View style={styles.revertNoticeContent}>
-                                    <CustomText style={styles.revertNoticeTitle}>
-                                        Cancellation Lifted by Organizer
-                                    </CustomText>
-                                    <CustomText variant="caption" style={styles.revertNoticeText}>
-                                        The organizer has withdrawn the cancellation notice. Your reservation is active and proceeding normally.
-                                    </CustomText>
-                                </View>
-                                <TouchableOpacity
-                                    onPress={() => setWasAdminCancellationLifted(false)}
-                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                >
-                                    <CustomIcon library="Feather" name="x" size={16} color={Colors.TEXT_SECONDARY} />
-                                </TouchableOpacity>
-                            </View>
+                            <BookingNoticeBanner
+                                variant="info"
+                                title="Cancellation Lifted by Organizer"
+                                message="The organizer has withdrawn the cancellation notice. Your reservation is active and proceeding normally."
+                                onDismiss={() => setWasAdminCancellationLifted(false)}
+                            />
                         </View>
                     )}
 
@@ -880,86 +884,71 @@ const BookingDetailsScreen = ({
 
                     {displayStatus === 'for-reschedule' && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
-                            <View style={[styles.infoBanner, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
-                                <CustomIcon library="Feather" name="calendar" size={20} color="#0284C7" />
-                                <View style={{ flex: 1, marginLeft: 8 }}>
-                                    <CustomText variant="body" style={{ fontWeight: '600', color: '#0369A1' }}>
-                                        Reschedule Request Pending
-                                    </CustomText>
-                                    <CustomText variant="caption" style={{ color: '#0284C7', marginTop: 2 }}>
-                                        Your request to reschedule this hike has been submitted and is currently being reviewed by the organizer.
-                                    </CustomText>
-                                </View>
-                            </View>
+                            <BookingNoticeBanner
+                                variant="info"
+                                icon="calendar"
+                                title="Reschedule Request Pending"
+                                message="Your request to reschedule this hike has been submitted and is currently being reviewed by the organizer."
+                            />
                         </View>
                     )}
 
                     {displayStatus === 'rescheduled' && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
-                            <View style={[styles.infoBanner, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
-                                <CustomIcon library="Feather" name="check-circle" size={20} color="#059669" />
-                                <View style={{ flex: 1, marginLeft: 8 }}>
-                                    <CustomText variant="body" style={{ fontWeight: '600', color: '#065F46' }}>
-                                        Booking Rescheduled
-                                    </CustomText>
-                                    <CustomText variant="caption" style={{ color: '#047857', marginTop: 2 }}>
-                                        This booking was moved to a new hike schedule. Please view your My Bookings list for your updated booking.
-                                    </CustomText>
-                                </View>
-                            </View>
+                            <BookingNoticeBanner
+                                variant="success"
+                                icon="check-circle"
+                                title="Booking Rescheduled"
+                                message="This booking was moved to a new hike schedule. Please view your My Bookings list or click the button below to view your updated booking."
+                            />
                         </View>
                     )}
 
                     {!isDeclineDismissedLocally && Boolean(booking?.rescheduleDeclineReason) && displayStatus !== 'for-reschedule' && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
-                            <View style={[styles.infoBanner, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
-                                <CustomIcon library="Feather" name="calendar" size={20} color={Colors.ERROR} />
-                                <View style={{ flex: 1, marginLeft: 8 }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                                        <CustomText variant="body" style={{ fontWeight: '600', color: '#991B1B' }}>
-                                            Reschedule Request
-                                        </CustomText>
-                                        <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, borderWidth: 1, borderColor: '#FCA5A5' }}>
-                                            <CustomText style={{ fontSize: 10, fontWeight: '700', color: '#DC2626' }}>DECLINED</CustomText>
-                                        </View>
-                                    </View>
-                                    <CustomText variant="caption" style={{ color: '#B91C1C', marginTop: 2, lineHeight: 18 }}>
-                                        {`Organizer's note: "${booking.rescheduleDeclineReason}". `}
-                                        Your booking remains confirmed for your original hike schedule on {formatBookingDate(booking?.offer?.date, null, true)}.
-                                    </CustomText>
-                                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                            <BookingNoticeBanner
+                                variant="error"
+                                icon="calendar"
+                                title="Reschedule Request Declined"
+                                message={`Your booking remains confirmed for your original hike schedule on ${formatBookingDate(booking?.offer?.date, null, true)}.`}
+                                details={booking.rescheduleDeclineReason}
+                                detailsLabel="ORGANIZER NOTE:"
+                                actions={
+                                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
                                         <TouchableOpacity
                                             style={{
                                                 backgroundColor: Colors.PRIMARY,
                                                 paddingHorizontal: 12,
-                                                paddingVertical: 6,
-                                                borderRadius: 6,
+                                                paddingVertical: 7,
+                                                borderRadius: 8,
                                             }}
                                             onPress={() => setShowRescheduleModal(true)}
+                                            activeOpacity={0.7}
                                         >
-                                            <CustomText variant="caption" style={{ color: '#FFF', fontWeight: 'bold' }}>
+                                            <CustomText variant="caption" style={{ color: Colors.WHITE, fontWeight: 'bold' }}>
                                                 Request Another Date
                                             </CustomText>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             style={{
-                                                backgroundColor: '#FFF',
+                                                backgroundColor: Colors.WHITE,
                                                 borderWidth: 1,
                                                 borderColor: '#CBD5E1',
                                                 paddingHorizontal: 12,
-                                                paddingVertical: 6,
-                                                borderRadius: 6,
+                                                paddingVertical: 7,
+                                                borderRadius: 8,
                                             }}
                                             disabled={isDismissingDecline}
                                             onPress={handleDismissDecline}
+                                            activeOpacity={0.7}
                                         >
                                             <CustomText variant="caption" style={{ color: Colors.TEXT_PRIMARY, fontWeight: '600' }}>
                                                 {isDismissingDecline ? 'Dismissing...' : 'Dismiss'}
                                             </CustomText>
                                         </TouchableOpacity>
                                     </View>
-                                </View>
-                            </View>
+                                }
+                            />
                         </View>
                     )}
 
@@ -1129,7 +1118,7 @@ const BookingDetailsScreen = ({
                         } else if (activeCancelModal === 'refund') {
                             await onRefundConfirm(booking, reason, userWallet);
                             setActiveCancelModal(null);
-                            const isPaid = ['paid', 'downpayment'].includes(booking.status);
+                            const isPaid = ['paid', 'downpayment', 'completed'].includes(booking.status) || hasHistoricalPayments;
                             showToast.success(
                                 isPaid
                                     ? 'Cancellation & refund request submitted successfully.'
@@ -1288,7 +1277,7 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
     },
     scrollContent: {
-        paddingBottom: 100
+        paddingBottom: 160,
     },
     spacing: {
         height: 16
@@ -1425,11 +1414,11 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
     paymentPendingBanner: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
+        backgroundColor: Colors.STATUS_PENDING_BG,
         borderRadius: 12,
         padding: 16,
         borderWidth: 1.5,
-        borderColor: Colors.SUCCESS,
+        borderColor: Colors.STATUS_PENDING_BORDER,
         gap: 12,
     },
     paymentPendingHeader: {
@@ -1445,7 +1434,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: Colors.SUCCESS,
+        borderColor: Colors.STATUS_PENDING_BORDER,
     },
     paymentPendingTitleContainer: {
         flex: 1,
@@ -1454,11 +1443,28 @@ const styles = StyleSheet.create({
     paymentPendingTitle: {
         fontWeight: 'bold',
         fontSize: 15,
-        color: Colors.SUCCESS,
+        color: Colors.STATUS_PENDING_TEXT,
     },
     paymentPendingSubtitle: {
         color: Colors.TEXT_PRIMARY,
         lineHeight: 18,
+    },
+    provenanceLinkBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 8,
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_APPROVED_BORDER,
+    },
+    provenanceLinkText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.PRIMARY,
     },
 });
 
