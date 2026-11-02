@@ -183,6 +183,14 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const [modeToast, setModeToast] = useState<string | null>(null);
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    useEffect(() => {
+        return () => {
+            if (toastTimeoutRef.current) {
+                clearTimeout(toastTimeoutRef.current);
+            }
+        };
+    }, []);
+
     const handleToggleOffline = () => {
         if (!isOnline) return;
         const nextMode = !isEffectiveOffline;
