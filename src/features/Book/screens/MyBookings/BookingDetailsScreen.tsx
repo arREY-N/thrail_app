@@ -13,36 +13,37 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
+import EmergencySetupModal, { UserSearchResult } from '@/src/components/EmergencyModal';
+import ImagePreviewModal from '@/src/components/ImagePreviewModal';
+import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { useToast } from '@/src/components/Toast/Toast';
 import {
     CustomTutorialModal,
     TutorialHelpButton,
     useMyBookingDetailsTutorial,
 } from '@/src/components/Tutorial/Tutorial';
-import EmergencySetupModal, { UserSearchResult } from '@/src/components/EmergencyModal';
-import ImagePreviewModal from '@/src/components/ImagePreviewModal';
-import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
-import { Booking, BookingStatus, Requirements, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
+import { functions } from '@/src/core/config/Firebase';
+import { httpsCallable } from 'firebase/functions';
+import { Booking, BookingStatus, Requirements, useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { IOffer } from "@/src/core/models/Offer/Offer";
 import { IEmergencyContact, User } from '@/src/core/models/User/User';
 import { logger } from '@/src/core/utility/errorFormatter';
 
-import { formatBookingDate } from '@/src/utils/dateFormatter';
-import { RescheduleRepo } from '@/src/core/models/Reschedule/Reschedule';
 import { Cancellation, IUserWalletDetails } from '@/src/core/models/Cancellation/Cancellation';
+import { RescheduleRepo } from '@/src/core/models/Reschedule/Reschedule';
 import AccordionItem from '@/src/features/Book/screens/MyBookings/components/AccordionItem';
 import BookingActionMenuModal from '@/src/features/Book/screens/MyBookings/components/BookingActionMenuModal';
 import { BookingNoticeBanner } from '@/src/features/Book/screens/MyBookings/components/BookingNoticeBanner';
 import BookingStatusComponent from '@/src/features/Book/screens/MyBookings/components/BookingStatus';
 import CancelBookingModal from '@/src/features/Book/screens/MyBookings/components/CancelBookingModal';
 import CancellationCard from '@/src/features/Book/screens/MyBookings/components/CancellationCard';
-import OverpaymentRefundCard from '@/src/features/Book/screens/MyBookings/components/OverpaymentRefundCard';
 import HeroHeader from '@/src/features/Book/screens/MyBookings/components/HeroHeader';
 import ItinerarySection from '@/src/features/Book/screens/MyBookings/components/ItinerarySection';
+import OverpaymentRefundCard from '@/src/features/Book/screens/MyBookings/components/OverpaymentRefundCard';
 import PaymentSummaryCard from '@/src/features/Book/screens/MyBookings/components/PaymentSummaryCard';
 import PersonalInformationSection from '@/src/features/Book/screens/MyBookings/components/PersonalInformationSection';
 import QuickInfoCard from '@/src/features/Book/screens/MyBookings/components/QuickInfoCard';
@@ -131,12 +132,11 @@ const BookingDetailsScreen = ({
     const [showActionMenu, setShowActionMenu] = useState<boolean>(false);
     const [showCancelDraftModal, setShowCancelDraftModal] = useState<boolean>(false);
     const [isCancelingDraft, setIsCancelingDraft] = useState<boolean>(false);
-    const [activeCancelModal, setActiveCancelModal] = useState<'cancel' | 'refund' | 'update' | null>(null);
+    const [activeCancelModal, setActiveCancelModal] = useState<'cancel' | 'refund' | 'update' | 'overpayment' | null>(null);
     const [modalInitialReason, setModalInitialReason] = useState<string>('');
     const [modalErrorMessage, setModalErrorMessage] = useState<string | null>(null);
     const [isSubmittingCancellation, setIsSubmittingCancellation] = useState<boolean>(false);
     const [showRescheduleModal, setShowRescheduleModal] = useState<boolean>(false);
-    const [isDismissingDecline, setIsDismissingDecline] = useState<boolean>(false);
     const [isDeclineDismissedLocally, setIsDeclineDismissedLocally] = useState<boolean>(false);
     const [nowTimestamp] = useState<number>(() => Date.now());
     const isReschedulingRef = useRef<boolean>(false);
@@ -144,15 +144,12 @@ const BookingDetailsScreen = ({
     const handleDismissDecline = async () => {
         if (!booking?.id || !booking?.user?.id) return;
         setIsDeclineDismissedLocally(true);
-        setIsDismissingDecline(true);
         try {
             await RescheduleRepo.dismissRescheduleDecline(booking.user.id, booking.id);
             showToast.success('Reschedule notice dismissed.');
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Failed to dismiss notice';
             showToast.error(msg);
-        } finally {
-            setIsDismissingDecline(false);
         }
     };
 
@@ -422,7 +419,7 @@ const BookingDetailsScreen = ({
     ].includes(displayStatus || '') && !isCancelled && !hasActiveCancellation;
 
     const canCancelDraft = isPreApprovalDraft && !isCancelled && !hasActiveCancellation;
-    const canRefund = isConfirmed && !isCancelled && !hasActiveCancellation;
+    const canRefund = isConfirmed && !isCancelled && !hasActiveCancellation && booking?.overpayment?.status !== 'awaiting_user_confirmation';
     const canReschedule = (amountPaid > 0) &&
         displayStatus !== 'for-reschedule' &&
         displayStatus !== 'rescheduled' &&
@@ -430,7 +427,7 @@ const BookingDetailsScreen = ({
         !isAdminCancelled &&
         !hasActiveCancellation;
 
-    const showMenuIcon = canCancelDraft || canCancelBooking || canRefund || canReschedule;
+    const showMenuIcon = !isPaymentVerifying && (canCancelDraft || canCancelBooking || canRefund || canReschedule);
     const hasHistoricalPayments = (booking?.payment?.length || 0) > 0;
 
     const inclusions = useMemo((): string[] => {
@@ -537,6 +534,10 @@ const BookingDetailsScreen = ({
         onProceedToPayment,
         onViewReceipt,
         onViewUpdatedBooking: handleViewUpdatedBooking,
+        isDeclineDismissedLocally,
+        handleDismissDecline,
+        onReschedule: () => setShowRescheduleModal(true),
+        onOpenOverpaymentModal: () => setActiveCancelModal('overpayment'),
     });
 
     const {
@@ -675,16 +676,15 @@ const BookingDetailsScreen = ({
 
                     {/* Overpayment Refund Card (Case A: Excess Payment Without Cancelling Booking) */}
                     {booking?.overpayment && (
-                        <View style={styles.paddingHorizontal}>
-                            <OverpaymentRefundCard
-                                booking={booking}
-                                onRefresh={async () => {
-                                    if (onSyncBookingVerification) {
-                                        await onSyncBookingVerification(booking);
-                                    }
-                                }}
-                            />
-                        </View>
+                        <OverpaymentRefundCard
+                            booking={booking}
+                            onOpenWalletModal={() => setActiveCancelModal('overpayment')}
+                            onRefresh={async () => {
+                                if (onSyncBookingVerification) {
+                                    await onSyncBookingVerification(booking);
+                                }
+                            }}
+                        />
                     )}
 
                     <CancellationCard
@@ -757,47 +757,13 @@ const BookingDetailsScreen = ({
                     {!isDeclineDismissedLocally && Boolean(booking?.rescheduleDeclineReason) && displayStatus !== 'for-reschedule' && (
                         <View style={[styles.paddingHorizontal, styles.spacingBottom]}>
                             <BookingNoticeBanner
-                                variant="error"
+                                variant="warning"
                                 icon="calendar"
                                 title="Reschedule Request Declined"
-                                message={`Your booking remains confirmed for your original hike schedule on ${formatBookingDate(booking?.offer?.date, null, true)}.`}
+                                message="The organizer was unable to accommodate your requested change. Your reservation remains confirmed for your current schedule."
                                 details={booking.rescheduleDeclineReason}
-                                detailsLabel="ORGANIZER NOTE:"
-                                actions={
-                                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-                                        <TouchableOpacity
-                                            style={{
-                                                backgroundColor: Colors.PRIMARY,
-                                                paddingHorizontal: 12,
-                                                paddingVertical: 7,
-                                                borderRadius: 8,
-                                            }}
-                                            onPress={() => setShowRescheduleModal(true)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <CustomText variant="caption" style={{ color: Colors.WHITE, fontWeight: 'bold' }}>
-                                                Request Another Date
-                                            </CustomText>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={{
-                                                backgroundColor: Colors.WHITE,
-                                                borderWidth: 1,
-                                                borderColor: '#CBD5E1',
-                                                paddingHorizontal: 12,
-                                                paddingVertical: 7,
-                                                borderRadius: 8,
-                                            }}
-                                            disabled={isDismissingDecline}
-                                            onPress={handleDismissDecline}
-                                            activeOpacity={0.7}
-                                        >
-                                            <CustomText variant="caption" style={{ color: Colors.TEXT_PRIMARY, fontWeight: '600' }}>
-                                                {isDismissingDecline ? 'Dismissing...' : 'Dismiss'}
-                                            </CustomText>
-                                        </TouchableOpacity>
-                                    </View>
-                                }
+                                detailsLabel="ORGANIZER REASON:"
+                                onDismiss={handleDismissDecline}
                             />
                         </View>
                     )}
@@ -915,6 +881,10 @@ const BookingDetailsScreen = ({
                         remainingBalance={remainingBalance}
                         payments={booking?.payment || []}
                         refundedAmount={booking?.refundedAmount || cancellation?.refundAmount}
+                        overpayment={booking?.overpayment}
+                        rescheduledFromBookingId={(booking as Booking & { rescheduledFromBookingId?: string })?.rescheduledFromBookingId}
+                        rescheduledToBookingId={(booking as Booking & { rescheduledToBookingId?: string })?.rescheduledToBookingId}
+                        onNavigateToBooking={handleViewUpdatedBooking}
                     />
 
                 </View>
@@ -936,6 +906,7 @@ const BookingDetailsScreen = ({
                 previousReason={activeCancelModal === 'update' ? modalInitialReason : undefined}
                 isSubmitting={isSubmittingCancellation}
                 errorMessage={modalErrorMessage}
+                excessAmount={booking?.overpayment?.excessAmount}
                 isPaidBooking={['paid', 'downpayment', 'completed'].includes(booking.status) || (booking.payment || []).some(p => p.status === 'captured')}
                 onClose={() => {
                     setActiveCancelModal(null);
@@ -946,6 +917,28 @@ const BookingDetailsScreen = ({
                     setIsSubmittingCancellation(true);
                     setModalErrorMessage(null);
                     try {
+                        if (activeCancelModal === 'overpayment') {
+                            if (!userWallet) {
+                                throw new Error('Please enter your e-wallet details.');
+                            }
+                            const submitFn = httpsCallable(functions, 'submitOverpaymentWallet');
+                            await submitFn({
+                                bookingId: booking.id,
+                                userId: booking.user?.id,
+                                userWallet: {
+                                    walletType: userWallet.walletType,
+                                    accountNumber: userWallet.accountNumber,
+                                    accountName: userWallet.accountName,
+                                },
+                            });
+                            setActiveCancelModal(null);
+                            showToast.success('Wallet details submitted successfully.');
+                            if (onSyncBookingVerification) {
+                                await onSyncBookingVerification(booking);
+                            }
+                            return;
+                        }
+
                         if (activeCancelModal === 'cancel') {
                             await onCancelConfirm(booking, reason, userWallet);
                             setActiveCancelModal(null);
