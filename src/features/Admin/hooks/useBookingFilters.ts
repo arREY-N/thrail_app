@@ -27,18 +27,24 @@ export default function useBookingFilters(bookings: Booking[], cancellations?: C
         const getBookingDetails = (b: Booking) => {
             const cancellation = cancellations?.find(c => c.bookingId === b.id && !c.isDeleted);
             
-            const hasRefundedPayment = b.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+            const hasRefundedPayment = Boolean(
+                b.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0))
+            );
             const isVerifyingPayment = b.paymentVerificationStatus === 'pending_verification' ||
                 Boolean(b.payment?.some((p: IPayment<Date>) => p.gateway === 'manual_qr' && p.status === 'pending'));
 
-            const isNoRefund =
+            const isNoRefund = Boolean(
                 cancellation?.refundDecision === 'no_refund' ||
-                (cancellation?.status === 'approved' &&
-                    b.status === 'cancelled' &&
-                    cancellation?.refundAmount === 0 &&
+                ((cancellation?.status === 'approved' || b.status === 'cancelled') &&
+                    Boolean(cancellation) &&
+                    (cancellation?.refundAmount ?? 0) === 0 &&
+                    !hasRefundedPayment &&
+                    !cancellation?.adminRefundReceiptUrl &&
                     cancellation?.handshakeStep !== 'awaiting_user_wallet' &&
                     cancellation?.handshakeStep !== 'awaiting_admin_payout' &&
-                    !cancellation?.adminRefundReceiptUrl);
+                    cancellation?.handshakeStep !== 'awaiting_user_confirmation' &&
+                    cancellation?.handshakeStep !== 'refund_disputed')
+            );
 
             const isRefundComplete =
                 !isNoRefund &&
@@ -49,17 +55,26 @@ export default function useBookingFilters(bookings: Booking[], cancellations?: C
                     hasRefundedPayment);
 
             const isRefunding =
+                !isNoRefund &&
                 !isRefundComplete &&
                 (b.status === 'refund' ||
                     cancellation?.status === 'refund_pending' ||
                     cancellation?.status === 'refund_submitted' ||
                     cancellation?.status === 'refund_disputed' ||
                     (cancellation?.status === 'approved' &&
-                        !isNoRefund &&
                         (Boolean(cancellation?.refundAmount && cancellation.refundAmount > 0) ||
                          Boolean(cancellation?.handshakeStep && cancellation.handshakeStep !== 'completed'))));
 
             const isHikerCancellationPending = cancellation && cancellation.status === 'pending' && cancellation.cancelledBy !== 'admin' && b.status !== 'cancelled';
+
+            const isOverpaymentPending = Boolean(
+                b.overpayment &&
+                b.overpayment.status !== 'completed' &&
+                !isNoRefund &&
+                !isRefundComplete &&
+                !isRefunding &&
+                !isHikerCancellationPending
+            );
 
             let status: string = b.status || '';
             if (isNoRefund) {
@@ -72,6 +87,8 @@ export default function useBookingFilters(bookings: Booking[], cancellations?: C
                 status = 'for-cancellation';
             } else if (isVerifyingPayment && (b.status === 'for-payment' || b.status === 'downpayment')) {
                 status = 'verifying-payment';
+            } else if (isOverpaymentPending) {
+                status = 'overpaid';
             }
 
             const isRefundActionNeeded = isRefunding && (
@@ -82,12 +99,19 @@ export default function useBookingFilters(bookings: Booking[], cancellations?: C
                 (!cancellation?.adminRefundReceiptUrl && !cancellation?.handshakeStep)
             );
 
+            const isOverpaymentActionNeeded = Boolean(
+                b.overpayment &&
+                (b.overpayment.status === 'awaiting_admin_payout' ||
+                 b.overpayment.status === 'refund_disputed')
+            );
+
             const requiresAdminAction =
                 status === 'for-reservation' ||
                 status === 'verifying-payment' ||
                 status === 'for-cancellation' ||
                 status === 'for-reschedule' ||
-                (status === 'refund' && isRefundActionNeeded);
+                (status === 'refund' && isRefundActionNeeded) ||
+                isOverpaymentActionNeeded;
 
             return { status, requiresAdminAction, cancellation };
         };
@@ -100,8 +124,8 @@ export default function useBookingFilters(bookings: Booking[], cancellations?: C
                 
                 if (activeFilter === 'Needs Review') return requiresAdminAction;
                 if (activeFilter === 'For Payment') return status === 'for-payment' || status === 'approved-docs' || status === 'payment-rejected';
-                if (activeFilter === 'Paid') return status === 'paid' || status === 'downpayment' || status === 'rescheduled';
-                if (activeFilter === 'Completed') return status === 'completed' || status === 'finished';
+                if (activeFilter === 'Paid') return status === 'paid' || status === 'downpayment' || status === 'rescheduled' || status === 'overpaid';
+                if (activeFilter === 'Completed') return status === 'completed' || status === 'finished' || status === 'overpaid';
                 if (activeFilter === 'Cancelled') return ['reservation-rejected', 'cancelled', 'refunded', 'expired', 'cancellation-rejected', 'reschedule-rejected'].includes(status);
                 
                 return true;
@@ -138,7 +162,7 @@ export default function useBookingFilters(bookings: Booking[], cancellations?: C
             }
 
             // Tier 2: Confirmed / Active Hiker (Middle)
-            if (status === 'for-payment' || status === 'approved-docs' || status === 'downpayment' || status === 'paid' || status === 'rescheduled') {
+            if (status === 'for-payment' || status === 'approved-docs' || status === 'downpayment' || status === 'paid' || status === 'rescheduled' || status === 'overpaid') {
                 return 2;
             }
 
