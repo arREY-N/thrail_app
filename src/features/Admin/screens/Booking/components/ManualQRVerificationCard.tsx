@@ -8,16 +8,18 @@
 import React, { useState } from 'react';
 import {
     Image,
+    Keyboard,
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
-import * as ImagePicker from 'expo-image-picker';
 
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomStatusBadge from '@/src/components/CustomStatusBadge';
 import CustomText from '@/src/components/CustomText';
 import CustomTextInput, { stripEmojis } from '@/src/components/CustomTextInput';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
@@ -104,41 +106,10 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
     const [hasInspectedReceipt, setHasInspectedReceipt] = useState(false);
     const [isRejecting, setIsRejecting] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
-    const [isUploadingOverpaymentProof, setIsUploadingOverpaymentProof] = useState(false);
-    const [overpaymentProofPreview, setOverpaymentProofPreview] = useState(false);
-
     // Edit and Revert modal states
     const [showEditModal, setShowEditModal] = useState(false);
     const [showRevertModal, setShowRevertModal] = useState(false);
     const [isRejectionRevert, setIsRejectionRevert] = useState(false);
-
-    const handlePickOverpaymentProof = async () => {
-        if (!onUploadOverpaymentProof) return;
-        try {
-            const res = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: false,
-                quality: 0.8,
-            });
-            if (!res.canceled && res.assets && res.assets.length > 0) {
-                const asset = res.assets[0];
-                const fileName = asset.fileName || `excess_refund_${Date.now()}.jpg`;
-                setIsUploadingOverpaymentProof(true);
-                await onUploadOverpaymentProof({
-                    uri: asset.uri,
-                    name: fileName,
-                    mimeType: asset.mimeType || 'image/jpeg',
-                    size: asset.fileSize,
-                });
-                showToast.success('Excess refund proof uploaded successfully.');
-            }
-        } catch (err) {
-            console.error('Image picker error:', err);
-            showToast.error('Failed to upload excess refund proof.');
-        } finally {
-            setIsUploadingOverpaymentProof(false);
-        }
-    };
 
     const payments = booking?.payment || [];
     const manualPayment: IPayment<Date> | undefined = [...payments]
@@ -185,9 +156,74 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
     const isFullSettlement = isValidAmount && parsedAmount >= remainingBal;
     const remainingAfterVerification = isValidAmount ? Math.max(0, remainingBal - parsedAmount) : remainingBal;
 
-    const handleVerifySubmit = () => {
+    // Confirmation modal states
+    const [showVerifyConfirmModal, setShowVerifyConfirmModal] = useState(false);
+    const [showRejectConfirmModal, setShowRejectConfirmModal] = useState(false);
+    const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+    const [isRejectingReceipt, setIsRejectingReceipt] = useState(false);
+
+    const getBadgeConfig = () => {
+        if (isCaptured && manualPayment) {
+            return {
+                status: manualPayment.classification === 'downpayment' ? 'downpayment' : 'completed',
+                label: manualPayment.classification === 'downpayment' ? 'DOWNPAYMENT VERIFIED' : 'FULL PAYMENT VERIFIED',
+            };
+        }
+        if (isRejected) {
+            return {
+                status: 'reservation-rejected',
+                label: 'REJECTED',
+            };
+        }
+        if (isValidAmount) {
+            if (isOverpaid) {
+                return {
+                    status: 'overpaid',
+                    label: 'OVERPAID',
+                };
+            }
+            if (isFullSettlement) {
+                return {
+                    status: 'completed',
+                    label: 'FULL PAYMENT',
+                };
+            }
+            return {
+                status: 'downpayment',
+                label: 'DOWNPAYMENT',
+            };
+        }
+        return {
+            status: 'for-reservation',
+            label: 'PENDING REVIEW',
+        };
+    };
+    const badgeConfig = getBadgeConfig();
+
+    const handleInputFocus = () => {
+        if (!hasInspectedReceipt && receiptUrl) {
+            Keyboard.dismiss();
+            if (Platform.OS === 'web' && typeof document !== 'undefined') {
+                (document.activeElement as HTMLElement | null)?.blur?.();
+            }
+            setHasInspectedReceipt(true);
+            setPreviewVisible(true);
+        }
+    };
+
+    const handleRejectClick = () => {
         if (!hasInspectedReceipt) {
-            showToast.info('Please inspect the receipt image before verifying.');
+            setPreviewVisible(true);
+            setHasInspectedReceipt(true);
+            return;
+        }
+        setIsRejecting(true);
+    };
+
+    const handleVerifyClick = () => {
+        if (!hasInspectedReceipt) {
+            setPreviewVisible(true);
+            setHasInspectedReceipt(true);
             return;
         }
 
@@ -207,23 +243,51 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
             return;
         }
 
-        const combinedNote = [
-            adminNote.trim(),
-            `Ref: ${referenceNumber.trim()}`
-        ].filter(Boolean).join(' | ');
-
-        onVerifyPayment(
-            isFullSettlement ? 'full' : 'downpayment',
-            combinedNote,
-            parsedAmount
-        );
-
-        setVerifiedAmountInput('');
-        setReferenceNumber('');
-        setAdminNote('');
+        setShowVerifyConfirmModal(true);
     };
 
+    const handleConfirmVerify = async () => {
+        setIsVerifyingPayment(true);
+        try {
+            const combinedNote = [
+                adminNote.trim(),
+                `Ref: ${referenceNumber.trim()}`
+            ].filter(Boolean).join(' | ');
 
+            await onVerifyPayment(
+                isFullSettlement ? 'full' : 'downpayment',
+                combinedNote,
+                parsedAmount
+            );
+
+            setShowVerifyConfirmModal(false);
+            setVerifiedAmountInput('');
+            setReferenceNumber('');
+            setAdminNote('');
+        } finally {
+            setIsVerifyingPayment(false);
+        }
+    };
+
+    const handleConfirmRejectSubmit = () => {
+        if (!rejectionReason.trim()) {
+            showToast.error('Please provide a reason for rejection.');
+            return;
+        }
+        setShowRejectConfirmModal(true);
+    };
+
+    const handleConfirmReject = async () => {
+        setIsRejectingReceipt(true);
+        try {
+            await onRejectPayment(rejectionReason);
+            setShowRejectConfirmModal(false);
+            setIsRejecting(false);
+            setRejectionReason('');
+        } finally {
+            setIsRejectingReceipt(false);
+        }
+    };
 
     return (
         <View style={[styles.card, isMobile && styles.cardMobile]}>
@@ -232,102 +296,19 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                 <View style={styles.headerTitleRow}>
                     <CustomIcon library="MaterialCommunityIcons" name="receipt-text-check-outline" size={18} color={Colors.PRIMARY} />
                     <CustomText style={styles.cardTitle}>
-                        Review Receipt & Verify
+                        {isCaptured ? 'Hike Payment Receipt' : 'Review Receipt & Verify'}
                     </CustomText>
                 </View>
+                <CustomStatusBadge
+                    status={badgeConfig.status}
+                    label={badgeConfig.label}
+                    size="sm"
+                />
             </View>
 
             <View style={styles.divider} />
 
-            {/* Overpayment callout if booking has an active overpayment */}
-            {booking.overpayment && (
-                <View style={styles.overpaymentCallout}>
-                    <View style={styles.overpaymentCalloutHeader}>
-                        <CustomIcon library="Feather" name="alert-circle" size={16} color={Colors.WARNING} />
-                        <CustomText style={styles.overpaymentCalloutTitle}>
-                            Excess Payment Refund (₱{booking.overpayment.excessAmount.toFixed(2)})
-                        </CustomText>
-                    </View>
-                    <CustomText style={styles.overpaymentCalloutText}>
-                        {booking.overpayment.status === 'awaiting_hiker_wallet' && "Hiker has been notified to submit their GCash/Maya wallet details."}
-                        {booking.overpayment.status === 'awaiting_admin_payout' && `Hiker submitted wallet details. Please disburse ₱${booking.overpayment.excessAmount.toFixed(2)} and upload receipt proof below.`}
-                        {booking.overpayment.status === 'awaiting_user_confirmation' && "Refund payout uploaded. Awaiting hiker receipt confirmation."}
-                        {booking.overpayment.status === 'refund_disputed' && `⚠️ Hiker disputed payout (Attempt ${booking.overpayment.disputeCount || 1}/3): "${booking.overpayment.disputeReason || 'No reason provided'}". Please review and upload corrected proof.`}
-                        {booking.overpayment.status === 'completed' && "✅ Excess refund successfully received and confirmed by hiker."}
-                    </CustomText>
 
-                    {/* Hiker submitted wallet details with Copy button */}
-                    {booking.overpayment.userWallet && (
-                        <View style={styles.walletDetailsCard}>
-                            <View style={styles.walletDetailsRow}>
-                                <View style={styles.walletInfo}>
-                                    <CustomText style={styles.walletLabel}>
-                                        {booking.overpayment.userWallet.walletType.toUpperCase()} WALLET
-                                    </CustomText>
-                                    <CustomText style={styles.walletNumber} selectable={true}>
-                                        {booking.overpayment.userWallet.accountNumber}
-                                    </CustomText>
-                                    {Boolean(booking.overpayment.userWallet.accountName) && (
-                                        <CustomText style={styles.walletName}>
-                                            {booking.overpayment.userWallet.accountName}
-                                        </CustomText>
-                                    )}
-                                </View>
-                                <TouchableOpacity
-                                    activeOpacity={0.7}
-                                    style={styles.copyBtn}
-                                    onPress={async () => {
-                                        if (booking.overpayment?.userWallet?.accountNumber) {
-                                            await Clipboard.setStringAsync(booking.overpayment.userWallet.accountNumber);
-                                            showToast.success('Phone number copied to clipboard.');
-                                        }
-                                    }}
-                                >
-                                    <CustomIcon library="Feather" name="copy" size={14} color={Colors.PRIMARY} />
-                                    <CustomText style={styles.copyBtnText}>Copy</CustomText>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    )}
-
-                    {/* Admin Payout Proof Preview if uploaded */}
-                    {booking.overpayment.adminRefundReceiptUrl && (
-                        <TouchableOpacity
-                            activeOpacity={0.85}
-                            onPress={() => setOverpaymentProofPreview(true)}
-                            style={styles.proofPreviewRow}
-                        >
-                            <Image
-                                source={{ uri: booking.overpayment.adminRefundReceiptUrl }}
-                                style={styles.proofThumbnail}
-                                resizeMode="cover"
-                            />
-                            <View style={{ flex: 1 }}>
-                                <CustomText style={styles.proofLabel}>Uploaded Payout Proof</CustomText>
-                                <CustomText style={styles.proofSubtext}>Tap to inspect receipt screenshot</CustomText>
-                            </View>
-                            <CustomIcon library="Feather" name="maximize-2" size={16} color={Colors.TEXT_SECONDARY} />
-                        </TouchableOpacity>
-                    )}
-
-                    {/* Upload button for admin when awaiting payout or disputed */}
-                    {(booking.overpayment.status === 'awaiting_admin_payout' || booking.overpayment.status === 'refund_disputed') && onUploadOverpaymentProof && (
-                        <CustomButton
-                            title={
-                                booking.overpayment.status === 'refund_disputed'
-                                    ? `Upload Corrected Proof (₱${booking.overpayment.excessAmount.toFixed(2)})`
-                                    : `Upload Refund Receipt Proof (₱${booking.overpayment.excessAmount.toFixed(2)})`
-                            }
-                            variant="primary"
-                            icon="upload"
-                            iconLibrary="Feather"
-                            onPress={handlePickOverpaymentProof}
-                            isLoading={isUploadingOverpaymentProof}
-                            style={styles.uploadProofBtn}
-                        />
-                    )}
-                </View>
-            )}
 
             {/* Receipt Verification Content */}
             {receiptUrl ? (
@@ -370,13 +351,6 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                         {/* Right Column: If captured, show verified details & Edit/Revert. If pending/rejected, show inputs */}
                         {isCaptured && manualPayment ? (
                             <View style={styles.verifiedInfoColumn}>
-                                <View style={styles.verifiedHeaderPill}>
-                                    <CustomIcon library="Feather" name="check-circle" size={14} color={Colors.SUCCESS} />
-                                    <CustomText style={styles.verifiedHeaderPillText}>
-                                        {manualPayment.classification === 'downpayment' ? 'Downpayment Verified' : 'Full Payment Verified'}
-                                    </CustomText>
-                                </View>
-
                                 <View style={styles.verifiedDataCard}>
                                     <View style={styles.verifiedDataRow}>
                                         <CustomText style={styles.verifiedDataLabel}>Amount:</CustomText>
@@ -434,11 +408,15 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                             </View>
                         ) : isRejected ? (
                             <View style={styles.rejectedPlaceholderColumn}>
-                                <CustomIcon library="Feather" name="alert-triangle" size={24} color={Colors.STATUS_CANCELLED_TEXT} />
-                                <CustomText style={styles.rejectedPlaceholderTitle}>Receipt Verification Rejected</CustomText>
-                                <CustomText style={styles.rejectedPlaceholderText}>
-                                    &quot;{booking.paymentRejectionReason || 'Receipt image is blurry or unreadable'}&quot;
-                                </CustomText>
+                                <View style={styles.rejectedHeaderGroup}>
+                                    <CustomIcon library="Feather" name="alert-triangle" size={18} color={Colors.STATUS_CANCELLED_TEXT} />
+                                    <CustomText style={styles.rejectedPlaceholderTitle}>Receipt Verification Rejected</CustomText>
+                                </View>
+                                <View style={styles.rejectedQuoteBox}>
+                                    <CustomText style={styles.rejectedPlaceholderText}>
+                                        &quot;{booking.paymentRejectionReason || 'Receipt image is blurry or unreadable'}&quot;
+                                    </CustomText>
+                                </View>
                                 <CustomText style={styles.rejectedPlaceholderHint}>
                                     Revert rejection to re-open verification and review details.
                                 </CustomText>
@@ -446,9 +424,11 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                     <CustomButton
                                         title="Revert Rejection"
                                         variant="outline"
-                                        size="sm"
+                                        size="md"
                                         icon="rotate-ccw"
                                         iconLibrary="Feather"
+                                        iconColor={Colors.WARNING}
+                                        textStyle={{ color: Colors.WARNING }}
                                         onPress={() => {
                                             setIsRejectionRevert(true);
                                             setShowRevertModal(true);
@@ -470,40 +450,47 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                     maxLength={10}
                                     sanitizeText={sanitizeCurrencyInput}
                                     value={verifiedAmountInput}
+                                    onFocus={handleInputFocus}
                                     onChangeText={(val: string | Date | null) => setVerifiedAmountInput(sanitizeCurrencyInput(String(val || '')))}
                                 />
 
-                                {/* Live Payment Classification Badge Pill */}
+                                {/* Live calculation feedback banner directly under Amount */}
                                 {isValidAmount && (
-                                    <View style={styles.classificationPillRow}>
-                                        <View style={[
-                                            styles.classificationPill,
-                                            isFullSettlement ? styles.fullPaymentPill : styles.downpaymentPill
-                                        ]}>
-                                            <CustomIcon 
-                                                library="Feather" 
-                                                name={isFullSettlement ? "check-circle" : "pie-chart"} 
-                                                size={12} 
-                                                color={isFullSettlement ? Colors.PRIMARY : Colors.STATUS_DOWNPAYMENT_TEXT} 
-                                            />
+                                    <View style={styles.calcFeedbackBox}>
+                                        <CustomIcon 
+                                            library="Feather" 
+                                            name={isOverpaid ? "alert-triangle" : (isFullSettlement ? "check-circle" : "info")} 
+                                            size={14} 
+                                            color={isOverpaid ? Colors.WARNING : (isFullSettlement ? Colors.PRIMARY : Colors.STATUS_DOWNPAYMENT_TEXT)} 
+                                            style={{ marginTop: 2 }}
+                                        />
+                                        <CustomText style={styles.calcFeedbackText}>
                                             <CustomText style={[
-                                                styles.classificationPillText,
-                                                { color: isFullSettlement ? Colors.PRIMARY : Colors.STATUS_DOWNPAYMENT_TEXT }
+                                                styles.calcFeedbackLabel,
+                                                { color: isOverpaid ? Colors.WARNING : (isFullSettlement ? Colors.PRIMARY : Colors.STATUS_DOWNPAYMENT_TEXT) }
                                             ]}>
-                                                {isFullSettlement ? 'FULL PAYMENT' : 'DOWNPAYMENT'}
+                                                {isOverpaid ? 'Overpayment Detected: ' : (isFullSettlement ? 'Full Payment: ' : 'Downpayment: ')}
                                             </CustomText>
-                                        </View>
+                                            {isOverpaid 
+                                                ? `Hiker sent ₱${parsedAmount.toFixed(2)} for ₱${remainingBal.toFixed(2)} balance. ₱${excessAmount.toFixed(2)} excess refund will be initiated.`
+                                                : (isFullSettlement 
+                                                    ? `Booking will be marked Completed.` 
+                                                    : `Remaining balance to collect: ₱${remainingAfterVerification.toFixed(2)}`)}
+                                        </CustomText>
                                     </View>
                                 )}
 
                                 {/* Reference Number Input */}
                                 <CustomTextInput
-                                    label="REF Code *"
-                                    placeholder="e.g. GCash / Maya Ref Code"
+                                    label="Reference Number *"
+                                    placeholder="e.g. 10023482910"
+                                    type="numerical"
+                                    keyboardType="number-pad"
                                     value={referenceNumber}
-                                    maxLength={60}
-                                    sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
-                                    onChangeText={(val: string | Date | null) => setReferenceNumber(stripEmojis(String(val || '')).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 60))}
+                                    maxLength={30}
+                                    sanitizeText={(text) => text.replace(/[^0-9]/g, '')}
+                                    onFocus={handleInputFocus}
+                                    onChangeText={(val: string | Date | null) => setReferenceNumber(String(val || '').replace(/[^0-9]/g, '').slice(0, 30))}
                                 />
 
                                 {/* Note Input */}
@@ -515,71 +502,35 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                     sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
                                     onChangeText={(val: string | Date | null) => setAdminNote(stripEmojis(String(val || '')).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 120))}
                                 />
-
-                                {/* Live calculation feedback banner */}
-                                {isValidAmount && (
-                                    <View style={[
-                                        styles.calcFeedbackBox, 
-                                        isOverpaid 
-                                            ? styles.calcFeedbackOverpaid
-                                            : (isFullSettlement ? styles.calcFeedbackFull : styles.calcFeedbackPartial)
-                                    ]}>
-                                        <CustomIcon 
-                                            library="Feather" 
-                                            name={isOverpaid ? "alert-triangle" : (isFullSettlement ? "check-circle" : "info")} 
-                                            size={14} 
-                                            color={isOverpaid ? Colors.WARNING : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT)} 
-                                            style={{ marginTop: 2 }}
-                                        />
-                                        <CustomText style={[
-                                            styles.calcFeedbackText, 
-                                            { color: isOverpaid ? Colors.WARNING : (isFullSettlement ? Colors.SUCCESS : Colors.STATUS_DOWNPAYMENT_TEXT) }
-                                        ]}>
-                                            {isOverpaid 
-                                                ? `Overpayment Detected: Hiker sent ₱${parsedAmount.toFixed(2)} for ₱${remainingBal.toFixed(2)} balance. ₱${excessAmount.toFixed(2)} excess refund will be initiated.`
-                                                : (isFullSettlement 
-                                                    ? `Full payment verified. Booking will be marked Completed.` 
-                                                    : `Downpayment verified. Remaining balance to collect: ₱${remainingAfterVerification.toFixed(2)}`)}
-                                        </CustomText>
-                                    </View>
-                                )}
                             </View>
                         )}
                     </View>
 
-                    {/* Bottom Action Row: REJECT & VERIFY (only when not captured, not rejected, and not rejecting) */}
+                    {/* Bottom Action Row: Reject & Verify Payment (only when not captured, not rejected, and not rejecting) */}
                     {!isCaptured && !isRejecting && !isRejected && (
                         <View style={styles.actionButtonsRow}>
                             <CustomButton
-                                title="REJECT"
+                                title="Reject"
                                 variant="outline"
                                 size="md"
                                 icon="x"
                                 iconLibrary="Feather"
                                 iconColor={Colors.ERROR}
-                                onPress={() => {
-                                    if (!hasInspectedReceipt) {
-                                        showToast.info('Please inspect the receipt image before rejecting.');
-                                        setPreviewVisible(true);
-                                        setHasInspectedReceipt(true);
-                                        return;
-                                    }
-                                    setIsRejecting(true);
-                                }}
-                                style={styles.rejectBtn}
+                                onPress={handleRejectClick}
+                                style={[styles.rejectBtn, !hasInspectedReceipt && styles.btnIdle]}
                                 textStyle={styles.rejectBtnText}
                                 disabled={isProcessing}
                             />
                             <CustomButton
-                                title="VERIFY"
+                                title="Verify Payment"
                                 variant="primary"
                                 size="md"
                                 icon="check-circle"
                                 iconLibrary="Feather"
-                                onPress={handleVerifySubmit}
+                                onPress={handleVerifyClick}
                                 isLoading={isProcessing}
                                 disabled={!isValidAmount || !referenceNumber.trim() || isProcessing}
-                                style={styles.verifyBtn}
+                                style={[styles.verifyBtn, !hasInspectedReceipt && styles.btnIdle]}
                             />
                         </View>
                     )}
@@ -613,7 +564,7 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                                         title="Confirm Rejection"
                                         variant="destructive"
                                         style={styles.rejectionBtn}
-                                        onPress={() => onRejectPayment(rejectionReason)}
+                                        onPress={handleConfirmRejectSubmit}
                                         isLoading={isProcessing}
                                         disabled={!rejectionReason.trim()}
                                     />
@@ -640,13 +591,7 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                 />
             )}
 
-            {booking.overpayment?.adminRefundReceiptUrl && (
-                <ImagePreviewModal
-                    visible={overpaymentProofPreview}
-                    imageUrl={booking.overpayment.adminRefundReceiptUrl}
-                    onClose={() => setOverpaymentProofPreview(false)}
-                />
-            )}
+
 
             {/* Admin Edit Payment Modal */}
             {manualPayment && onEditPayment && (
@@ -681,6 +626,35 @@ export const ManualQRVerificationCard: React.FC<ManualQRVerificationCardProps> =
                     isSubmitting={isProcessing}
                 />
             )}
+
+            {/* Confirmation Modal for Verifying Payment */}
+            <ConfirmationModal
+                visible={showVerifyConfirmModal}
+                title="Confirm Payment Verification"
+                message={`Are you sure you want to verify ₱${parsedAmount.toFixed(2)} as ${isFullSettlement ? 'Full Payment' : 'Downpayment'} for Reference #${referenceNumber.trim()}? The booking will be updated and the hiker notified.`}
+                confirmText="Confirm Verification"
+                cancelText="Cancel"
+                iconName="check-circle"
+                iconLibrary="Feather"
+                isLoading={isVerifyingPayment}
+                onClose={() => setShowVerifyConfirmModal(false)}
+                onConfirm={handleConfirmVerify}
+            />
+
+            {/* Confirmation Modal for Rejecting Receipt */}
+            <ConfirmationModal
+                visible={showRejectConfirmModal}
+                title="Reject Payment Receipt?"
+                message={`Are you sure you want to reject this payment receipt? The hiker will receive your feedback: "${rejectionReason.trim()}".`}
+                confirmText="Yes, Reject Receipt"
+                cancelText="Cancel"
+                isDestructive={true}
+                iconName="alert-triangle"
+                iconLibrary="Feather"
+                isLoading={isRejectingReceipt}
+                onClose={() => setShowRejectConfirmModal(false)}
+                onConfirm={handleConfirmReject}
+            />
         </View>
     );
 };
@@ -801,37 +775,36 @@ const styles = StyleSheet.create({
     calcFeedbackBox: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: 6,
-        padding: 8,
+        gap: 8,
+        padding: 10,
         borderRadius: 8,
-        marginTop: 2,
-    },
-    calcFeedbackFull: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-    },
-    calcFeedbackPartial: {
-        backgroundColor: Colors.STATUS_DOWNPAYMENT_BG,
-    },
-    calcFeedbackOverpaid: {
-        backgroundColor: Colors.STATUS_WARNING_BG,
-        borderColor: Colors.STATUS_WARNING_BORDER,
+        marginTop: 4,
+        marginBottom: 4,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
     },
     calcFeedbackText: {
-        fontSize: 11,
-        fontWeight: '600',
+        fontSize: 11.5,
+        color: Colors.TEXT_SECONDARY,
         flex: 1,
-        lineHeight: 15,
+        lineHeight: 16,
+    },
+    calcFeedbackLabel: {
+        fontSize: 11.5,
+        fontWeight: '700',
     },
     actionButtonsRow: {
         flexDirection: 'row',
         gap: 12,
-        marginTop: 6,
-        alignItems: 'center',
+        marginTop: 8,
+        alignItems: 'stretch',
     },
     rejectBtn: {
         flex: 1,
+        minHeight: 52,
         borderColor: Colors.ERROR,
+        justifyContent: 'center',
     },
     rejectBtnText: {
         color: Colors.ERROR,
@@ -839,6 +812,11 @@ const styles = StyleSheet.create({
     },
     verifyBtn: {
         flex: 1,
+        minHeight: 52,
+        justifyContent: 'center',
+    },
+    btnIdle: {
+        opacity: 0.72,
     },
     noReceiptBox: {
         flexDirection: 'row',
@@ -874,64 +852,52 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
         marginTop: 2,
     },
-    classificationPillRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: -2,
-    },
-    classificationPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        borderRadius: 6,
-        borderWidth: 1,
-    },
-    fullPaymentPill: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        borderColor: Colors.STATUS_APPROVED_BORDER,
-    },
-    downpaymentPill: {
-        backgroundColor: Colors.STATUS_DOWNPAYMENT_BG,
-        borderColor: Colors.STATUS_DOWNPAYMENT_BORDER,
-    },
-    classificationPillText: {
-        fontSize: 11,
-        fontWeight: '700',
-    },
     rejectedPlaceholderColumn: {
         flex: 1,
-        gap: 6,
+        gap: 10,
         padding: 16,
-        borderRadius: 10,
-        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        borderRadius: 12,
+        backgroundColor: Colors.WHITE,
         borderWidth: 1,
-        borderColor: Colors.STATUS_CANCELLED_TEXT,
-        alignItems: 'center',
+        borderColor: Colors.GRAY_LIGHT,
+        alignItems: 'stretch',
         justifyContent: 'center',
     },
+    rejectedHeaderGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+    },
     rejectedPlaceholderTitle: {
-        fontSize: 13,
+        fontSize: 13.5,
         fontWeight: '700',
         color: Colors.STATUS_CANCELLED_TEXT,
+    },
+    rejectedQuoteBox: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        padding: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
     },
     rejectedPlaceholderText: {
         fontSize: 12,
         color: Colors.TEXT_PRIMARY,
         textAlign: 'center',
         fontStyle: 'italic',
+        lineHeight: 16,
     },
     rejectedPlaceholderHint: {
         fontSize: 11,
         color: Colors.TEXT_SECONDARY,
         textAlign: 'center',
-        marginTop: 4,
     },
     revertActionBtn: {
-        marginTop: 10,
+        marginTop: 6,
+        minHeight: 48,
         borderRadius: 10,
-        borderColor: Colors.STATUS_CANCELLED_TEXT,
+        borderColor: Colors.GRAY_LIGHT,
     },
     rejectionSection: {
         marginTop: 8,
@@ -1135,10 +1101,11 @@ const styles = StyleSheet.create({
     verifiedActionsRow: {
         flexDirection: 'row',
         gap: 10,
-        marginTop: 2,
+        marginTop: 6,
     },
     verifiedActionBtn: {
         flex: 1,
+        minHeight: 48,
     },
 });
 
