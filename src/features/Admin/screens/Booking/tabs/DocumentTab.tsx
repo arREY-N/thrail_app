@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import CustomButton from '@/src/components/CustomButton';
@@ -77,6 +77,8 @@ export interface DocumentTabProps {
     primaryButton?: FooterButtonConfig;
     secondaryButton?: FooterButtonConfig;
     isTutorialFooterPreview?: boolean;
+    decisionRef?: React.RefObject<View | null>;
+    onDecisionLayout?: () => void;
 }
 
 /**
@@ -103,25 +105,42 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
     primaryButton,
     secondaryButton,
     isTutorialFooterPreview = false,
+    decisionRef,
+    onDecisionLayout,
 }) => {
     const { showToast } = useToast();
     const actionsRef = useRef<View>(null);
-
-    const measureActionsNow = useCallback(() => {
-        actionsRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('booking_footer', { x, y, width, height });
-            }
-        });
-    }, []);
+    const resolvedActionsRef = decisionRef || actionsRef;
 
     useEffect(() => {
-        return registerMeasureCallback('booking_footer', measureActionsNow);
-    }, [measureActionsNow]);
+        const measureActions = () => {
+            const target = decisionRef?.current ?? actionsRef.current;
+            target?.measureInWindow((x, y, width, height) => {
+                if (width > 0 && height > 0) {
+                    registerTutorialLayout('admin_review_decision', { x, y, width, height });
+                    registerTutorialLayout('booking_footer', { x, y, width, height });
+                }
+            });
+        };
+
+        const u1 = registerMeasureCallback('admin_review_decision', measureActions);
+        const u2 = registerMeasureCallback('booking_footer', measureActions);
+        return () => {
+            u1();
+            u2();
+        };
+    }, [decisionRef]);
 
     const handleActionsLayout = () => {
+        onDecisionLayout?.();
         if (isTutorialMeasurementActive()) {
-            measureActionsNow();
+            const target = decisionRef?.current ?? actionsRef.current;
+            target?.measureInWindow((x, y, width, height) => {
+                if (width > 0 && height > 0) {
+                    registerTutorialLayout('admin_review_decision', { x, y, width, height });
+                    registerTutorialLayout('booking_footer', { x, y, width, height });
+                }
+            });
         }
     };
 
@@ -192,7 +211,7 @@ const DocumentTab: React.FC<DocumentTabProps> = ({
 
             {shouldShowButtons && (
                 <View
-                    ref={actionsRef}
+                    ref={resolvedActionsRef}
                     collapsable={false}
                     onLayout={handleActionsLayout}
                     style={styles.actionsContainer}
