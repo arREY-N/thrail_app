@@ -63,6 +63,7 @@ export interface AdminCancellationCardProps {
     isDeclining?: boolean;
     declineInputText?: string;
     onDeclineInputChange?: (text: string) => void;
+    decisionRef?: React.RefObject<View | null>;
 }
 
 /**
@@ -100,6 +101,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
     isDeclining = false,
     declineInputText = '',
     onDeclineInputChange,
+    decisionRef,
 }) => {
     const [previewAdminProof, setPreviewAdminProof] = useState<string | null>(null);
     const [localIsApproving, setLocalIsApproving] = useState(false);
@@ -771,7 +773,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
 
             {/* Pending Hiker Cancellation Review Actions */}
             {isPending && !isCancelledByAdmin && !isDeclined && (
-                <View style={{ marginTop: 12 }}>
+                <View ref={decisionRef} collapsable={false} style={{ marginTop: 12 }}>
                     {isDeclining ? (
                         <View style={{ marginTop: 4 }}>
                             <CustomFeedbackInput
