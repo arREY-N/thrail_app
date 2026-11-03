@@ -58,6 +58,7 @@ export interface PaymentTabProps {
     onSettleRemainingBalance?: (options?: { method?: 'cash' | 'manual_qr'; referenceCode?: string; adminNote?: string }) => Promise<void>;
     onUploadOverpaymentProof?: (file: SelectedFile) => Promise<void | string>;
     isProcessing?: boolean;
+    decisionRef?: React.RefObject<View | null>;
 }
 
 /**
@@ -76,6 +77,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     onSettleRemainingBalance,
     onUploadOverpaymentProof,
     isProcessing = false,
+    decisionRef,
 }) => {
     const { isMobile, width } = useBreakpoints();
     const isNarrow = isMobile && width < 380;
@@ -350,13 +352,15 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
 
                     {/* Paid Cash Button — Clean 'Paid Cash' only, no dollar icon */}
                     {remainingBalance > 0 && !isLockedStatus && onSettleRemainingBalance && (
-                        <CustomButton
-                            title="Paid Cash"
-                            variant="outline"
-                            size="sm"
-                            autoWidth={true}
-                            onPress={() => setShowPaidCashModal(true)}
-                                    />
+                        <View ref={decisionRef} collapsable={false}>
+                            <CustomButton
+                                title="Paid Cash"
+                                variant="outline"
+                                size="sm"
+                                autoWidth={true}
+                                onPress={() => setShowPaidCashModal(true)}
+                            />
+                        </View>
                     )}
                 </View>
 
