@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Linking,
@@ -22,17 +22,9 @@ import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { useToast } from '@/src/components/Toast/Toast';
 import {
-    adminBookingReviewDocSteps,
-    adminBookingReviewPaymentSteps,
-} from '@/src/components/Tutorial/constants';
-import {
     CustomTutorialModal,
-    isTutorialMeasurementActive,
-    registerMeasureCallback,
-    registerTutorialLayout,
-    requestTargetMeasurement,
     TutorialHelpButton,
-    useTutorialGuide,
+    useAdminBookingReviewTutorial,
 } from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
@@ -281,87 +273,55 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         }
     }, [availableTabIds, activeTab, isApprovedStatus, setActiveTab]);
 
-    const dynamicTourSteps = useMemo(() => {
-        return activeTab === 'payment'
-            ? adminBookingReviewPaymentSteps
-            : adminBookingReviewDocSteps;
-    }, [activeTab]);
 
-    const tutorial = useTutorialGuide('admin_booking_review', !isLoading && Boolean(booking), dynamicTourSteps);
-    const scrollViewRef = useRef<ScrollView>(null);
-    const leftColRef = useRef<View>(null);
-    const tabBarRef = useRef<View>(null);
-    const contentRef = useRef<View>(null);
-    const firstCardRef = useRef<View>(null);
-    const tabBarOffsetY = useRef<number>(360);
-
-    const measureProfileNow = useCallback(() => {
-        leftColRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('admin_review_profile', {
-                    x,
-                    y,
-                    width: w,
-                    height: h,
-                });
-            }
-        });
-    }, []);
-
-    const measureTabsNow = useCallback(() => {
-        tabBarRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('admin_review_tabs', { x, y, width: w, height: h });
-            }
-        });
-    }, []);
-
-    const measureContentNow = useCallback(() => {
-        const targetRef = activeTab === 'documents' ? firstCardRef : contentRef;
-        targetRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('admin_review_content', {
-                    x,
-                    y,
-                    width: w,
-                    height: h,
-                });
-            }
-        });
-    }, [activeTab]);
-
-    useEffect(() => {
-        const u1 = registerMeasureCallback('admin_review_profile', measureProfileNow);
-        const u2 = registerMeasureCallback('admin_review_tabs', measureTabsNow);
-        const u3 = registerMeasureCallback('admin_review_content', measureContentNow);
-        return () => {
-            u1();
-            u2();
-            u3();
-        };
-    }, [measureProfileNow, measureTabsNow, measureContentNow]);
-
-    useEffect(() => {
-        if (!tutorial.isVisible) return;
-        const step = tutorial.currentStep?.targetSpotlight;
-        if (!step) return;
-        if (step === 'admin_review_profile' || step === 'header_help') {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-        } else if (step === 'admin_review_tabs' || step === 'admin_review_content') {
-            if (!isWide) {
-                scrollViewRef.current?.scrollTo({
-                    y: Math.max(0, tabBarOffsetY.current - 32),
-                    animated: true,
-                });
-            }
-        } else if (step === 'booking_footer') {
-            scrollViewRef.current?.scrollToEnd({ animated: true });
-            setTimeout(() => {
-                requestTargetMeasurement('booking_footer');
-            }, 250);
+    const hasActiveActions = useMemo(() => {
+        if (activeTab === 'cancellation') {
+            return Boolean(hasActiveCancellation);
         }
-        requestTargetMeasurement(step);
-    }, [tutorial.isVisible, tutorial.currentStep?.targetSpotlight, isWide]);
+        if (activeTab === 'reschedule') {
+            return Boolean(hasActiveReschedule);
+        }
+        if (activeTab === 'payment') {
+            const hasRemaining = typeof booking?.payment !== 'undefined';
+            return Boolean(hasRemaining || onVerifyManualPayment || onSettleRemainingBalance);
+        }
+        // documents tab
+        return Boolean(!isReviewComplete && !isCancellationPending);
+    }, [
+        activeTab,
+        hasActiveCancellation,
+        hasActiveReschedule,
+        booking,
+        onVerifyManualPayment,
+        onSettleRemainingBalance,
+        isReviewComplete,
+        isCancellationPending,
+    ]);
+
+    const {
+        scrollViewRef,
+        leftColRef,
+        hikerCardRef,
+        contactsCardRef,
+        activityLogRef,
+        tabBarRef,
+        contentRef,
+        firstCardRef,
+        decisionRef,
+        handleHikerCardLayout,
+        handleContactsCardLayout,
+        handleActivityLogLayout,
+        handleProfileLayout,
+        handleTabsLayout,
+        handleContentLayout,
+        handleDecisionLayout,
+        tutorial,
+    } = useAdminBookingReviewTutorial({
+        isReady: !isLoading && Boolean(booking),
+        activeTab,
+        isWide,
+        hasActiveActions,
+    });
 
     const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
     const [isConfirmVisible, setIsConfirmVisible] = useState(false);
@@ -581,7 +541,10 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         };
     }, [isRejecting, isProcessingAction, handleSecondaryPress]);
 
-    const isTutorialFooterPreview = tutorial.isVisible && tutorial.currentStep?.targetSpotlight === 'booking_footer';
+    const isTutorialFooterPreview = tutorial.isVisible && (
+        tutorial.currentStep?.targetSpotlight === 'admin_review_decision' ||
+        tutorial.currentStep?.targetSpotlight === 'booking_footer'
+    );
 
     const confirmModalConfig = useMemo(() => {
         if (isRejecting) {
@@ -697,10 +660,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         <View
                             ref={leftColRef}
                             collapsable={false}
-                            onLayout={(e) => {
-                                tabBarOffsetY.current = e.nativeEvent.layout.height + 16;
-                                if (isTutorialMeasurementActive()) measureProfileNow();
-                            }}
+                            onLayout={(e) => handleProfileLayout(e.nativeEvent.layout.height)}
                             style={isWide ? styles.leftColumn : styles.fullWidthContainer}
                         >
                             <HikerProfileCard
@@ -721,9 +681,19 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 isMinor={isMinor}
                                 isEditable={currentStatus === 'for-reservation'}
                                 onLockedVerifyPress={handleLockedVerifyPress}
+                                hikerCardRef={hikerCardRef}
+                                contactsCardRef={contactsCardRef}
+                                onHikerCardLayout={handleHikerCardLayout}
+                                onContactsCardLayout={handleContactsCardLayout}
                             />
                             {isWide && (
-                                <ActivityLog booking={booking} cancellation={cancellationRequest} currentStatus={currentStatus} />
+                                <View
+                                    ref={activityLogRef}
+                                    collapsable={false}
+                                    onLayout={(e) => handleActivityLogLayout(e.nativeEvent.layout.y)}
+                                >
+                                    <ActivityLog booking={booking} cancellation={cancellationRequest} currentStatus={currentStatus} />
+                                </View>
                             )}
                         </View>
 
@@ -732,9 +702,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             <View
                                 ref={tabBarRef}
                                 collapsable={false}
-                                onLayout={() => {
-                                    if (isTutorialMeasurementActive()) measureTabsNow();
-                                }}
+                                onLayout={handleTabsLayout}
                                 style={{ marginBottom: 16 }}
                             >
                                 <CustomSegmentedTabs
@@ -747,9 +715,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             <View
                                 ref={contentRef}
                                 collapsable={false}
-                                onLayout={() => {
-                                    if (isTutorialMeasurementActive()) measureContentNow();
-                                }}
+                                onLayout={handleContentLayout}
                             >
                                 {isHikerCancellationPending && activeTab !== 'cancellation' && (
                                     <TouchableOpacity
@@ -799,11 +765,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                         primaryButton={primaryButtonConfig}
                                         secondaryButton={secondaryButtonConfig}
                                         isTutorialFooterPreview={isTutorialFooterPreview}
+                                        decisionRef={decisionRef}
+                                        onDecisionLayout={handleDecisionLayout}
                                     />
                                 )}
 
                                 {activeTab === 'payment' && (
                                     <PaymentTab
+                                        decisionRef={decisionRef}
                                         booking={booking}
                                         currentStatus={currentStatus}
                                         isApprovedStatus={isApprovedStatus}
@@ -876,6 +845,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 {activeTab === 'cancellation' && (
                                     <View>
                                         <AdminCancellationCard
+                                            decisionRef={decisionRef}
                                             status={currentStatus}
                                             cancellation={cancellationRequest}
                                             cancellationReason={cancellationRequest?.reason || (hasRejections ? undefined : booking.cancellationReason)}
@@ -954,6 +924,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
                                 {activeTab === 'reschedule' && (
                                     <RescheduleTab
+                                        decisionRef={decisionRef}
                                         booking={booking}
                                         offers={offers}
                                         reschedule={activeReschedule}
@@ -967,7 +938,13 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             </View>
 
                             {!isWide && (
-                                <ActivityLog booking={booking} cancellation={cancellationRequest} currentStatus={currentStatus} />
+                                <View
+                                    ref={activityLogRef}
+                                    collapsable={false}
+                                    onLayout={(e) => handleActivityLogLayout(e.nativeEvent.layout.y)}
+                                >
+                                    <ActivityLog booking={booking} cancellation={cancellationRequest} currentStatus={currentStatus} />
+                                </View>
                             )}
                         </View>
                     </View>
