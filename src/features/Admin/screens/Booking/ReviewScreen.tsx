@@ -16,7 +16,6 @@ import CustomIcon from '@/src/components/CustomIcon';
 import CustomLoading from '@/src/components/CustomLoading';
 import CustomSegmentedTabs, { SegmentedTabItem } from '@/src/components/CustomSegmentedTabs';
 import CustomSelectionModal from '@/src/components/CustomSelectionModal';
-import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
@@ -47,7 +46,7 @@ import AdminActionMenu from '@/src/features/Admin/screens/Booking/components/Adm
 import AdminCancelBookingModal from '@/src/features/Admin/screens/Booking/components/AdminCancelBookingModal';
 import AdminCancellationCard from '@/src/features/Admin/screens/Booking/components/AdminCancellationCard';
 import AdminRefundModal, { RefundType } from '@/src/features/Admin/screens/Booking/components/AdminRefundModal';
-import { AdminRescheduleCard } from '@/src/features/Admin/screens/Booking/components/AdminRescheduleCard';
+import { RescheduleTab } from '@/src/features/Admin/screens/Booking/tabs/RescheduleTab';
 import HikerProfileCard from '@/src/features/Admin/screens/Booking/components/HikerProfileCard';
 import DocumentTab, { DocState } from '@/src/features/Admin/screens/Booking/tabs/DocumentTab';
 import PaymentTab from '@/src/features/Admin/screens/Booking/tabs/PaymentTab';
@@ -582,30 +581,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
         };
     }, [isRejecting, isProcessingAction, handleSecondaryPress]);
 
-    const hasRemainingBalance = Boolean(booking?.remainingBalance !== undefined && booking.remainingBalance > 0);
-    const isDownpaymentStatus = currentStatus === 'downpayment' || hasRemainingBalance;
-    const isLockedStatus = isCancelledStatus || ['reservation-rejected', 'cancellation-rejected', 'for-cancellation', 'for-reschedule'].includes(currentStatus);
-    const isPaymentActionable = currentStatus === 'paid' && !hasRemainingBalance && !isLockedStatus;
     const isTutorialFooterPreview = tutorial.isVisible && tutorial.currentStep?.targetSpotlight === 'booking_footer';
-
-    const paymentPrimaryConfig = useMemo(() => {
-        const remainingBalAmount = booking?.remainingBalance ?? (booking?.offer?.price ? booking.offer.price / 2 : 0);
-        let buttonTitle = isProcessingAction ? "Completing..." : "Complete Booking";
-        if (isDownpaymentStatus) {
-            buttonTitle = `Balance Pending (₱${remainingBalAmount.toFixed(2)})`;
-        }
-
-        return {
-            title: buttonTitle,
-            variant: 'primary' as const,
-            disabled: !isPaymentActionable || isProcessingAction,
-            onPress: () => {
-                if (isPaymentActionable) {
-                    setIsConfirmPaymentVisible(true);
-                }
-            },
-        };
-    }, [isProcessingAction, isPaymentActionable, isDownpaymentStatus, booking?.remainingBalance, booking?.offer?.price]);
 
     const confirmModalConfig = useMemo(() => {
         if (isRejecting) {
@@ -708,7 +684,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 automaticallyAdjustKeyboardInsets={true}
                 contentContainerStyle={[
                     styles.scrollContent,
-                    activeTab === 'documents' && styles.scrollContentNoFooter,
+                    (activeTab === 'documents' || activeTab === 'payment') && styles.scrollContentNoFooter,
                 ]}
             >
                 <View style={styles.constrainer}>
@@ -835,7 +811,6 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                         isCancelledStatus={isCancelledStatus}
                                         onConfirmPaymentClick={() => setIsConfirmPaymentVisible(true)}
                                         onVerifyManualPayment={onVerifyManualPayment ? async (classification, note, verifiedAmount) => {
-                                            setIsProcessingAction(true);
                                             try {
                                                 await onVerifyManualPayment(classification, note, booking, verifiedAmount);
                                                 if (classification === 'downpayment') {
@@ -844,30 +819,22 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                                 // Complete payment toast removed per requirements
                                             } catch (err: unknown) {
                                                 showToast.error(err instanceof Error ? err.message : 'Failed to verify payment');
-                                            } finally {
-                                                setIsProcessingAction(false);
                                             }
                                         } : undefined}
                                         onRejectManualPayment={onRejectManualPayment ? async (reason) => {
-                                            setIsProcessingAction(true);
                                             try {
                                                 await onRejectManualPayment(reason, booking);
                                                 showToast.success('Payment receipt rejected. Hiker notified.');
                                             } catch (err: unknown) {
                                                 showToast.error(err instanceof Error ? err.message : 'Failed to reject payment');
-                                            } finally {
-                                                setIsProcessingAction(false);
                                             }
                                         } : undefined}
                                         onSettleRemainingBalance={onSettleRemainingBalance ? async (options) => {
-                                            setIsProcessingAction(true);
                                             try {
                                                 await onSettleRemainingBalance(booking, options);
                                                 // Complete payment toast removed per requirements
                                             } catch (err: unknown) {
                                                 showToast.error(err instanceof Error ? err.message : 'Failed to settle balance');
-                                            } finally {
-                                                setIsProcessingAction(false);
                                             }
                                         } : undefined}
                                         onUploadOverpaymentProof={onUploadOverpaymentProof ? async (file) => {
@@ -986,7 +953,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                                 )}
 
                                 {activeTab === 'reschedule' && (
-                                    <AdminRescheduleCard
+                                    <RescheduleTab
                                         booking={booking}
                                         offers={offers}
                                         reschedule={activeReschedule}
@@ -1007,12 +974,6 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 </View>
             </ScrollView>
 
-            {(activeTab === 'payment' && (isPaymentActionable || isTutorialFooterPreview) && !isHikerCancellationPending) ? (
-                <CustomStickyFooter
-                    enableToastDock={true}
-                    primaryButton={paymentPrimaryConfig}
-                />
-            ) : null}
 
             {isConfirmVisible && (
                 <ConfirmationModal
