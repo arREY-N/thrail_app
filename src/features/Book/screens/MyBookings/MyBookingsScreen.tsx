@@ -379,6 +379,12 @@ const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
                 bookingData={selectedBooking}
                 cancellation={selectedBookingCancellation}
                 onFinish={() => setCurrentView('overview')}
+                onNavigateToBooking={(targetBookingId) => {
+                    const target = userBookings?.find(b => b.id === targetBookingId);
+                    if (target) {
+                        handleBookingSelectPress(target);
+                    }
+                }}
             />
         );
     }
