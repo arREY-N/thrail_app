@@ -8,29 +8,47 @@ Computes error-driven profile evolution using completed hike feedback:
     P_new = clamp(Profile + Weights * Avg_Delta, 0.0, 1.0)
 """
 
+import sys
+from pathlib import Path
 from typing import Optional, Union, List, Tuple
 import numpy as np
+
+# Ensure parent directory is in sys.path so parameters can be imported cleanly
+_parent = str(Path(__file__).resolve().parent.parent)
+if _parent not in sys.path:
+    sys.path.insert(0, _parent)
+
+try:
+    from parameters import (
+        BETA_LEARNING_RATE_DIVISOR,
+        ANCHOR_MONOTONICITY_MIN_GAP
+    )
+except ImportError:
+    BETA_LEARNING_RATE_DIVISOR = 2.0
+    ANCHOR_MONOTONICITY_MIN_GAP = 0.05
 
 FEATURE_VECTOR_SIZE = 32
 PHYSICAL_INDICES_COUNT = 6  # Indices 0-5: classification, length, elevation, gain, slope, easy
 
 
-def compute_beta(rtu_score: float, is_match: bool) -> float:
+def compute_beta(rtu_score: float, is_match: bool, divisor: float = BETA_LEARNING_RATE_DIVISOR) -> float:
     """
     Computes the adaptive error-driven learning rate beta.
     
     Parameters:
         rtu_score: Recommendation distance in [0.0, 1.0] (0.0 = match, 1.0 = distant)
         is_match: User experience indicator (True = match, False = mismatch)
+        divisor: Configurable learning rate divisor (default: BETA_LEARNING_RATE_DIVISOR)
         
     Returns:
         beta scalar in [-0.5, +0.5]
     """
     score = max(0.0, min(1.0, float(rtu_score)))
+    div = max(1e-6, float(divisor))
     if is_match:
-        return score / 2.0
+        return score / div
     else:
-        return -(1.0 - score) / 2.0
+        return -(1.0 - score) / div
 
 
 def update_profile_vector(
@@ -38,7 +56,8 @@ def update_profile_vector(
     trail_vectors: Union[List[List[float]], np.ndarray],
     scores: Union[List[float], np.ndarray],
     matches: Union[List[bool], np.ndarray],
-    weights: Optional[Union[List[float], np.ndarray]] = None
+    weights: Optional[Union[List[float], np.ndarray]] = None,
+    beta_divisor: float = BETA_LEARNING_RATE_DIVISOR
 ) -> np.ndarray:
     """
     Updates a single anchor profile vector based on a batch of completed hikes.
@@ -104,7 +123,7 @@ def update_profile_vector(
         trail_feat = np.clip(trails[i], 0.0, 1.0)
         # Vector difference: moving towards trail on match (Trail - Profile)
         diff_i = trail_feat - p
-        beta_i = compute_beta(float(score_arr[i]), bool(match_arr[i]))
+        beta_i = compute_beta(float(score_arr[i]), bool(match_arr[i]), divisor=beta_divisor)
         # Apply hike-specific factor weights directly to this hike's delta BEFORE averaging
         hike_w = w_mat[i].copy()
         # Feature Presence Gating: For attribute/presence dimensions (indices 6..31),
@@ -127,7 +146,7 @@ def update_profile_vector(
 def enforce_anchor_monotonicity(
     easy_profile: Union[List[float], np.ndarray],
     diff_profile: Union[List[float], np.ndarray],
-    min_gap: float = 0.05
+    min_gap: float = ANCHOR_MONOTONICITY_MIN_GAP
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Guarantees that an updated Easy anchor does not exceed the Difficult anchor

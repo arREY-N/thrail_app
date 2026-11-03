@@ -27,6 +27,20 @@ from typing import Dict, Any, List, Optional, Union, Callable
 import numpy as np
 
 from tars import engine, engine_details, compute_alpha, GD, ED, CS
+from parameters import (
+    DEFAULT_CBF_ENGINE,
+    DEFAULT_CF_ENGINE,
+    CF_TOP_K,
+    CF_DISTANCE_CUTOFF_TAU,
+    ALPHA_COLD_START,
+    ALPHA_STEADY_STATE,
+    ALPHA_STEADY_STATE_USER_THRESHOLD,
+    BETA_LEARNING_RATE_DIVISOR,
+    ANCHOR_MONOTONICITY_MIN_GAP,
+    REVIEW_ACTIVE_FACTOR_WEIGHT,
+    REVIEW_BASELINE_UNSELECTED_WEIGHT,
+    TERRAIN_PRESENCE_THRESHOLD,
+)
 from profile_utils import (
     flatten_profile_features,
     extract_user_anchor_profiles,
@@ -52,8 +66,8 @@ logger = logging.getLogger("tharesys_engine")
 
 
 def run_batch_recommendations(
-    cbf_engine: Union[str, Callable] = "GD",
-    cf_engine: Union[str, Callable] = "GD",
+    cbf_engine: Union[str, Callable] = DEFAULT_CBF_ENGINE,
+    cf_engine: Union[str, Callable] = DEFAULT_CF_ENGINE,
     month_id: Optional[str] = None,
     candidate_trails: Optional[List[Dict[str, Any]]] = None,
     users: Optional[List[Dict[str, Any]]] = None,
@@ -63,7 +77,19 @@ def run_batch_recommendations(
     commit_to_firestore: bool = True,
     feature_weights: Optional[Dict[str, float]] = None,
     generate_ai_reasoning: bool = True,
-    update_profiles_from_reviews: bool = True
+    update_profiles_from_reviews: bool = True,
+    cf_k: int = CF_TOP_K,
+    cf_tau: float = CF_DISTANCE_CUTOFF_TAU,
+    target_user_ids: Optional[List[str]] = None,
+    alpha_override: Optional[float] = None,
+    alpha_steady_state: float = ALPHA_STEADY_STATE,
+    alpha_cold_start: float = ALPHA_COLD_START,
+    alpha_threshold: int = ALPHA_STEADY_STATE_USER_THRESHOLD,
+    beta_divisor: float = BETA_LEARNING_RATE_DIVISOR,
+    monotonicity_min_gap: float = ANCHOR_MONOTONICITY_MIN_GAP,
+    review_active_weight: float = REVIEW_ACTIVE_FACTOR_WEIGHT,
+    review_baseline_weight: float = REVIEW_BASELINE_UNSELECTED_WEIGHT,
+    terrain_presence_threshold: float = TERRAIN_PRESENCE_THRESHOLD
 ) -> Dict[str, Any]:
     """
     Executes a full recommendation batch run.
@@ -106,20 +132,54 @@ def run_batch_recommendations(
             "processed_users": 0
         }
 
-    # Filter users strictly to those with a saved 'profile' object (excludes accounts without a profile property)
-    user_list = []
+    # Check if specific target users were requested
+    target_id_set = set(str(tid).strip() for tid in target_user_ids) if target_user_ids else None
+
+    # Map all available users by ID for target validation
+    raw_user_map = {str(u.get("id") or ""): u for u in (raw_user_list or [])}
+
+    # If target users were explicitly provided, validate each one strictly
+    if target_id_set:
+        unprofiled_selected = []
+        missing_selected = []
+        for tid in target_id_set:
+            u = raw_user_map.get(tid)
+            if not u:
+                missing_selected.append(tid)
+                continue
+            prof = u.get("profile")
+            has_easy = bool(prof and isinstance(prof, dict) and prof.get("easy") and isinstance(prof.get("easy"), dict) and prof.get("easy", {}).get("features"))
+            has_diff = bool(prof and isinstance(prof, dict) and prof.get("difficult") and isinstance(prof.get("difficult"), dict) and prof.get("difficult", {}).get("features"))
+            if not (has_easy or has_diff):
+                uname = f"{u.get('firstname', '')} {u.get('lastname', '')}".strip() or u.get("username") or tid
+                unprofiled_selected.append(f"'{uname}' (ID: {tid})")
+
+        if missing_selected:
+            raise ValueError(f"Selected user ID(s) not found in database: {', '.join(missing_selected)}")
+        if unprofiled_selected:
+            raise ValueError(
+                f"Active Profile Required: The following selected user(s) do not have an active profile saved: {', '.join(unprofiled_selected)}. "
+                "Recommendations cannot be generated for accounts without an active profile."
+            )
+
+    # Filter users: only accounts with a valid saved profile
+    all_profiled_users = []
     for u in (raw_user_list or []):
         uid = str(u.get("id") or "")
         prof = u.get("profile")
         if not prof or not isinstance(prof, dict):
-            logger.info(f"Skipping user {uid}: no profile property found.")
             continue
         has_easy = bool(prof.get("easy") and isinstance(prof.get("easy"), dict) and prof.get("easy", {}).get("features"))
         has_diff = bool(prof.get("difficult") and isinstance(prof.get("difficult"), dict) and prof.get("difficult", {}).get("features"))
         if has_easy or has_diff:
-            user_list.append(u)
-        else:
-            logger.info(f"Skipping user {uid}: profile property exists but has no easy or difficult features.")
+            all_profiled_users.append(u)
+
+    # If target_user_ids was provided, only generate recommendations for those target users
+    # Notice: all_profiled_users can still serve as peer candidates for CF
+    if target_id_set:
+        user_list = [u for u in all_profiled_users if str(u.get("id") or "") in target_id_set]
+    else:
+        user_list = all_profiled_users
 
     if not user_list:
         logger.warning("No profiled users available for recommendation batch run.")
@@ -155,19 +215,35 @@ def run_batch_recommendations(
     # 3. Compute dynamic alpha and prepare peer vectors for CF
     # 3. Compute dynamic alpha and prepare peer vectors for CF
     user_count = len(user_list)
-    alpha = compute_alpha(user_count)
+    if alpha_override is not None:
+        alpha = float(np.clip(alpha_override, 0.0, 1.0))
+    else:
+        alpha = compute_alpha(
+            user_count,
+            steady_state_threshold=alpha_threshold,
+            cold_start_alpha=alpha_cold_start,
+            steady_state_alpha=alpha_steady_state,
+        )
 
     # Resolve 32-element feature weight vector
-    weight_vector = build_feature_weight_vector(feature_weights)
+    weight_vector = build_feature_weight_vector(
+        feature_weights,
+        default_unselected_weight=review_baseline_weight,
+    )
 
-    peer_vectors = []
-    for u in user_list:
-        u_easy_vec, _, _, _ = extract_user_anchor_profiles(u)
-        peer_vectors.append(u_easy_vec)
+    # CF Peer pool: derived from all available profiled users in the database
+    cf_peer_pool = all_profiled_users if all_profiled_users else user_list
+    peer_easy_vectors = []
+    peer_diff_vectors = []
+    for u in cf_peer_pool:
+        u_easy_vec, u_diff_vec, _, _ = extract_user_anchor_profiles(u)
+        peer_easy_vectors.append(u_easy_vec)
+        peer_diff_vectors.append(u_diff_vec)
 
     # 4. Generate recommendations for each user
     processed_count = 0
     sample_outputs = []
+    all_user_recommendations = {}
 
     for user in user_list:
         uid = str(user.get("id") or "")
@@ -255,7 +331,13 @@ def run_batch_recommendations(
                 is_match = is_user_easy if (predicted_cat == "easy") else (not is_user_easy)
 
                 hike_factors = r.get("difficultyFactors") or []
-                hike_weights = resolve_review_factor_weights(hike_factors, trail_features=trail_feats)
+                hike_weights = resolve_review_factor_weights(
+                    hike_factors,
+                    trail_features=trail_feats,
+                    active_weight=review_active_weight,
+                    baseline_weight=review_baseline_weight,
+                    terrain_presence_threshold=terrain_presence_threshold,
+                )
 
                 hike_feedbacks.append({
                     "trail_id": tid,
@@ -272,7 +354,10 @@ def run_batch_recommendations(
                     current_easy_profile=raw_easy,
                     current_diff_profile=raw_diff,
                     hike_records=hike_feedbacks,
-                    weights_map=feature_weights
+                    weights_map=feature_weights,
+                    beta_divisor=beta_divisor,
+                    min_gap=monotonicity_min_gap,
+                    default_unselected_weight=review_baseline_weight,
                 )
                 if commit_to_firestore and db:
                     formatted_profiles = {
@@ -297,7 +382,8 @@ def run_batch_recommendations(
         easy_items = []
         diff_items = []
 
-        other_peers = [p for i, p in enumerate(peer_vectors) if (user_list[i].get("id") or "") != uid]
+        other_easy_peers = [p for i, p in enumerate(peer_easy_vectors) if (cf_peer_pool[i].get("id") or "") != uid]
+        other_diff_peers = [p for i, p in enumerate(peer_diff_vectors) if (cf_peer_pool[i].get("id") or "") != uid]
 
         # Score every candidate trail for both easy and difficult categories
         for trail in prepared_trails:
@@ -313,8 +399,10 @@ def run_batch_recommendations(
                 array_1=easy_vec,
                 array_2=tvec,
                 a=alpha,
-                peer_profiles=other_peers if other_peers else None,
-                weights=weight_vector
+                peer_profiles=other_easy_peers if other_easy_peers else None,
+                weights=weight_vector,
+                k=cf_k,
+                tau=cf_tau
             )
 
             # Calculate Difficult Score & breakdown
@@ -324,8 +412,10 @@ def run_batch_recommendations(
                 array_1=diff_vec,
                 array_2=tvec,
                 a=alpha,
-                peer_profiles=other_peers if other_peers else None,
-                weights=weight_vector
+                peer_profiles=other_diff_peers if other_diff_peers else None,
+                weights=weight_vector,
+                k=cf_k,
+                tau=cf_tau
             )
 
             easy_score = round(float(res_easy["score"]), 4)
@@ -403,7 +493,15 @@ def run_batch_recommendations(
                 "cf": str(cf_engine),
                 "alpha": round(alpha, 4),
                 "userCount": user_count,
-                "featureWeights": feature_weights if feature_weights else "default"
+                "featureWeights": feature_weights if feature_weights else "default",
+                "cfK": cf_k,
+                "cfTau": cf_tau,
+                "alphaSteadyState": alpha_steady_state,
+                "alphaThreshold": alpha_threshold,
+                "targetUserCount": len(user_list),
+                "alphaOverride": alpha_override,
+                "betaDivisor": beta_divisor,
+                "monotonicityMinGap": monotonicity_min_gap
             },
             "profile": {
                 "easy": raw_easy,
@@ -418,6 +516,7 @@ def run_batch_recommendations(
         if commit_to_firestore and db:
             save_user_recommendations(uid, active_month, doc_data, db)
 
+        all_user_recommendations[uid] = doc_data
         processed_count += 1
 
         if len(sample_outputs) < 2:
@@ -437,14 +536,15 @@ def run_batch_recommendations(
         "total_users_processed": processed_count,
         "total_trails_scored": len(prepared_trails),
         "alpha": round(alpha, 4),
-        "samples": sample_outputs
+        "samples": sample_outputs,
+        "recommendations": all_user_recommendations
     }
 
 
 def run_single_user_recommendations(
     user_id: str,
-    cbf_engine: Union[str, Callable] = "GD",
-    cf_engine: Union[str, Callable] = "GD",
+    cbf_engine: Union[str, Callable] = DEFAULT_CBF_ENGINE,
+    cf_engine: Union[str, Callable] = DEFAULT_CF_ENGINE,
     month_id: Optional[str] = None,
     candidate_trails: Optional[List[Dict[str, Any]]] = None,
     user_doc: Optional[Dict[str, Any]] = None,
@@ -452,7 +552,13 @@ def run_single_user_recommendations(
     commit_to_firestore: bool = True,
     feature_weights: Optional[Dict[str, float]] = None,
     generate_ai_reasoning: bool = True,
-    db: Any = None
+    db: Any = None,
+    cf_k: int = CF_TOP_K,
+    cf_tau: float = CF_DISTANCE_CUTOFF_TAU,
+    alpha_override: Optional[float] = None,
+    alpha_steady_state: float = ALPHA_STEADY_STATE,
+    alpha_cold_start: float = ALPHA_COLD_START,
+    alpha_threshold: int = ALPHA_STEADY_STATE_USER_THRESHOLD
 ) -> Dict[str, Any]:
     """
     Executes a personalized recommendation run strictly for a single user (e.g. upon onboarding/sign up).
@@ -537,15 +643,25 @@ def run_single_user_recommendations(
     elif peer_users is None:
         peer_users = []
 
-    other_peers = []
+    other_easy_peers = []
+    other_diff_peers = []
     for p in peer_users:
         pid = str(p.get("id") or "")
         if pid and pid != user_id:
-            p_easy, _, _, _ = extract_user_anchor_profiles(p)
-            other_peers.append(p_easy)
+            p_easy, p_diff, _, _ = extract_user_anchor_profiles(p)
+            other_easy_peers.append(p_easy)
+            other_diff_peers.append(p_diff)
 
-    total_user_count = len(other_peers) + 1
-    alpha = compute_alpha(total_user_count)
+    total_user_count = len(other_easy_peers) + 1
+    if alpha_override is not None:
+        alpha = float(np.clip(alpha_override, 0.0, 1.0))
+    else:
+        alpha = compute_alpha(
+            total_user_count,
+            steady_state_threshold=alpha_threshold,
+            cold_start_alpha=alpha_cold_start,
+            steady_state_alpha=alpha_steady_state,
+        )
     weight_vector = build_feature_weight_vector(feature_weights)
 
     # 5. Fetch hike completion history
@@ -569,8 +685,10 @@ def run_single_user_recommendations(
             array_1=easy_vec,
             array_2=tvec,
             a=alpha,
-            peer_profiles=other_peers if other_peers else None,
-            weights=weight_vector
+            peer_profiles=other_easy_peers if other_easy_peers else None,
+            weights=weight_vector,
+            k=cf_k,
+            tau=cf_tau
         )
 
         res_diff = engine_details(
@@ -579,8 +697,10 @@ def run_single_user_recommendations(
             array_1=diff_vec,
             array_2=tvec,
             a=alpha,
-            peer_profiles=other_peers if other_peers else None,
-            weights=weight_vector
+            peer_profiles=other_diff_peers if other_diff_peers else None,
+            weights=weight_vector,
+            k=cf_k,
+            tau=cf_tau
         )
 
         easy_score = round(float(res_easy["score"]), 4)
@@ -651,7 +771,9 @@ def run_single_user_recommendations(
             "cf": str(cf_engine),
             "alpha": round(alpha, 4),
             "userCount": total_user_count,
-            "featureWeights": feature_weights if feature_weights else "default"
+            "featureWeights": feature_weights if feature_weights else "default",
+            "cfK": cf_k,
+            "cfTau": cf_tau
         },
         "profile": {
             "easy": raw_easy,

@@ -8,6 +8,15 @@ fixed-order 1D float arrays compatible with the THARESYS distance engines.
 from typing import Dict, Any, List, Tuple, Optional, Union
 import numpy as np
 
+from parameters import (
+    CANONICAL_FEATURES,
+    REVIEW_ACTIVE_FACTOR_WEIGHT,
+    REVIEW_BASELINE_UNSELECTED_WEIGHT,
+    TERRAIN_PRESENCE_THRESHOLD,
+    ANCHOR_MONOTONICITY_MIN_GAP,
+    BETA_LEARNING_RATE_DIVISOR,
+)
+
 # Canonical feature ordering for deterministic vector alignment
 PROVINCE_KEYS = ["cavite", "laguna", "batangas", "rizal", "quezon"]
 TERRAIN_KEYS = ["muddy", "rocky", "grassland", "ridges"]
@@ -19,68 +28,12 @@ TOURISM_KEYS = [
     "viewpoint", "network_connection"
 ]
 
-# Complete 32-dimensional canonical feature registry with calibrated default weights
-# Physical Exertion: ~50% total (safety & capability constraint)
-# Provinces: 20% total (regional affinity)
-# 5 Pillar Category Allocation:
-# 1. Physical Difficulty: 50.0% total (primary capability & safety threshold)
-# 2. Terrains: 20.0% total (technical footing & difficulty impact)
-# 3. Route Type: 15.0% total (physical trajectory & circuit structure > location)
-# 4. Provinces: 10.0% total (geographical accessibility preference)
-# 5. Scenery & Amenities: 5.0% total (smallest category, environmental & comfort tie-breakers)
-CANONICAL_FEATURES: List[Dict[str, Any]] = [
-    # 1. Core Physical Metrics (Indices 0..5, 50.0% total)
-    {"key": "classification", "label": "Trail Classification (Minor/Major)", "category": "Physical Exertion", "default_weight": 8.00},
-    {"key": "length", "label": "Trail Length (km)", "category": "Physical Exertion", "default_weight": 8.40},
-    {"key": "elevation", "label": "Peak Elevation (MASL)", "category": "Physical Exertion", "default_weight": 8.40},
-    {"key": "gain", "label": "Elevation Gain (m)", "category": "Physical Exertion", "default_weight": 8.40},
-    {"key": "slope", "label": "Trail Slope / Gradient (%)", "category": "Physical Exertion", "default_weight": 8.40},
-    {"key": "easy", "label": "Lasco / Easy Rating (1-9)", "category": "Physical Exertion", "default_weight": 8.40},
-
-    # 2. Provinces (Indices 6..10, 10.0% total, 2.0% each) - Regional preference
-    {"key": "cavite", "label": "Province: Cavite", "category": "Provinces", "default_weight": 2.00},
-    {"key": "laguna", "label": "Province: Laguna", "category": "Provinces", "default_weight": 2.00},
-    {"key": "batangas", "label": "Province: Batangas", "category": "Provinces", "default_weight": 2.00},
-    {"key": "rizal", "label": "Province: Rizal", "category": "Provinces", "default_weight": 2.00},
-    {"key": "quezon", "label": "Province: Quezon", "category": "Provinces", "default_weight": 2.00},
-
-    # 3. Terrains (Indices 11..14, 20.0% total, 5.0% each) - Technical difficulty & footing
-    {"key": "muddy", "label": "Terrain: Muddy Trails", "category": "Terrains", "default_weight": 5.00},
-    {"key": "rocky", "label": "Terrain: Rocky Scrambles", "category": "Terrains", "default_weight": 5.00},
-    {"key": "grassland", "label": "Terrain: Grassland / Open", "category": "Terrains", "default_weight": 5.00},
-    {"key": "ridges", "label": "Terrain: Exposed Ridges", "category": "Terrains", "default_weight": 5.00},
-
-    # 4. Circularity / Route (Indices 15..17, 15.0% total, 5.0% each) - Physical trajectory > Location
-    {"key": "out_and_back", "label": "Route: Out-and-Back", "category": "Route Type", "default_weight": 5.00},
-    {"key": "traverse", "label": "Route: Point-to-Point Traverse", "category": "Route Type", "default_weight": 5.00},
-    {"key": "circular", "label": "Route: Circular Loop", "category": "Route Type", "default_weight": 5.00},
-
-    # 5. Scenery & Amenities (Indices 18..31, 5.0% total)
-    # Waterforms (Indices 18..20, 1.40% subtotal)
-    {"key": "fall", "label": "Waterform: Waterfall", "category": "Waterforms", "default_weight": 0.50},
-    {"key": "river", "label": "Waterform: River Stream", "category": "Waterforms", "default_weight": 0.45},
-    {"key": "lake", "label": "Waterform: Lake", "category": "Waterforms", "default_weight": 0.45},
-
-    # Tourism Amenities (Indices 21..31, 3.60% subtotal)
-    {"key": "shelter", "label": "Amenity: Shelter / Shed", "category": "Tourism Amenities", "default_weight": 0.40},
-    {"key": "resting", "label": "Amenity: Resting Areas", "category": "Tourism Amenities", "default_weight": 0.40},
-    {"key": "clean_water", "label": "Amenity: Clean Water Supply", "category": "Tourism Amenities", "default_weight": 0.40},
-    {"key": "information_board", "label": "Amenity: Information Board", "category": "Tourism Amenities", "default_weight": 0.30},
-    {"key": "tourism_river", "label": "Amenity: River Access", "category": "Tourism Amenities", "default_weight": 0.30},
-    {"key": "tourism_lake", "label": "Amenity: Lake Access", "category": "Tourism Amenities", "default_weight": 0.30},
-    {"key": "tourism_waterfall", "label": "Amenity: Waterfall Access", "category": "Tourism Amenities", "default_weight": 0.30},
-    {"key": "monument", "label": "Amenity: Historical Monument", "category": "Tourism Amenities", "default_weight": 0.30},
-    {"key": "community", "label": "Amenity: Guide Station / Community", "category": "Tourism Amenities", "default_weight": 0.30},
-    {"key": "viewpoint", "label": "Amenity: Scenic Viewpoint", "category": "Tourism Amenities", "default_weight": 0.30},
-    {"key": "network_connection", "label": "Amenity: Cellular Reception", "category": "Tourism Amenities", "default_weight": 0.30},
-]
-
 FEATURE_VECTOR_SIZE = len(CANONICAL_FEATURES)  # 32
 
 
 def build_feature_weight_vector(
     weights_map: Optional[Dict[str, float]] = None,
-    default_unselected_weight: float = 0.20
+    default_unselected_weight: float = REVIEW_BASELINE_UNSELECTED_WEIGHT
 ) -> np.ndarray:
     """
     Constructs a 32-element 1D float array of weights aligned with CANONICAL_FEATURES.
@@ -203,7 +156,6 @@ def extract_user_anchor_profiles(user_doc: Dict[str, Any]) -> Tuple[np.ndarray, 
         return easy_vec, diff_vec, raw_easy, raw_diff
 
     # Fallback default beginner priors if profile is uninitialized
-    # Calibrated according to user_profile_generation_documentation.md (0.25 easy / 0.75 diff)
     has_med = bool(user_doc.get("medicalProfile", {}).get("hasCondition", False))
     factor = 0.80 if has_med else 1.00
     easy_val = 0.250 * factor
@@ -298,7 +250,10 @@ def process_dual_anchor_profile_update(
     current_easy_profile: Union[Dict[str, Any], List[float], np.ndarray],
     current_diff_profile: Union[Dict[str, Any], List[float], np.ndarray],
     hike_records: List[Dict[str, Any]],
-    weights_map: Optional[Dict[str, float]] = None
+    weights_map: Optional[Dict[str, float]] = None,
+    beta_divisor: float = BETA_LEARNING_RATE_DIVISOR,
+    min_gap: float = ANCHOR_MONOTONICITY_MIN_GAP,
+    default_unselected_weight: float = REVIEW_BASELINE_UNSELECTED_WEIGHT
 ) -> Dict[str, Any]:
     """
     Partitions completed hikes into Easy and Difficult batches based on their
@@ -312,7 +267,11 @@ def process_dual_anchor_profile_update(
     easy_vec = flatten_profile_features(current_easy_profile)
     diff_vec = flatten_profile_features(current_diff_profile)
 
-    default_w = build_feature_weight_vector(weights_map) if weights_map else np.ones(FEATURE_VECTOR_SIZE, dtype=np.float32)
+    default_w = (
+        build_feature_weight_vector(weights_map, default_unselected_weight=default_unselected_weight)
+        if weights_map
+        else np.ones(FEATURE_VECTOR_SIZE, dtype=np.float32)
+    )
 
     easy_trails: List[np.ndarray] = []
     easy_scores: List[float] = []
@@ -333,7 +292,9 @@ def process_dual_anchor_profile_update(
         # Check for distinct per-hike factor weights
         h_weight_dict = h.get("feature_weights") or h.get("weights")
         if h_weight_dict and isinstance(h_weight_dict, dict):
-            h_weight_vec = build_feature_weight_vector(h_weight_dict)
+            h_weight_vec = build_feature_weight_vector(
+                h_weight_dict, default_unselected_weight=default_unselected_weight
+            )
         elif h_weight_dict and isinstance(h_weight_dict, (list, np.ndarray)):
             h_weight_vec = np.array(h_weight_dict, dtype=np.float32)
         else:
@@ -357,7 +318,8 @@ def process_dual_anchor_profile_update(
         trail_vectors=easy_trails,
         scores=easy_scores,
         matches=easy_matches,
-        weights=easy_weights if easy_weights else None
+        weights=easy_weights if easy_weights else None,
+        beta_divisor=beta_divisor
     )
 
     # Update Difficult Anchor
@@ -366,11 +328,12 @@ def process_dual_anchor_profile_update(
         trail_vectors=diff_trails,
         scores=diff_scores,
         matches=diff_matches,
-        weights=diff_weights if diff_weights else None
+        weights=diff_weights if diff_weights else None,
+        beta_divisor=beta_divisor
     )
 
-    # Monotonicity check on physical indices (0..5)
-    adj_easy, adj_diff = enforce_anchor_monotonicity(updated_easy, updated_diff, min_gap=0.05)
+    # Monotonicity check on physical indices (0..5) using configurable minimum gap
+    adj_easy, adj_diff = enforce_anchor_monotonicity(updated_easy, updated_diff, min_gap=min_gap)
 
     return {
         "updated_easy_vector": adj_easy.tolist(),
@@ -385,8 +348,9 @@ def process_dual_anchor_profile_update(
 def resolve_review_factor_weights(
     selected_factors: List[str],
     trail_features: Optional[Dict[str, Any]] = None,
-    active_weight: float = 1.0,
-    baseline_weight: float = 0.20
+    active_weight: float = REVIEW_ACTIVE_FACTOR_WEIGHT,
+    baseline_weight: float = REVIEW_BASELINE_UNSELECTED_WEIGHT,
+    terrain_presence_threshold: float = TERRAIN_PRESENCE_THRESHOLD
 ) -> Dict[str, float]:
     """
     Parses review factor strings (both legacy canonical names and new conversational phrases)
@@ -424,10 +388,9 @@ def resolve_review_factor_weights(
 
         for key in TERRAIN_KEYS:
             val = float(terrain_dict.get(key, 0.0) or 0.0)
-            if val > 0.05:
+            if val > terrain_presence_threshold:
                 weights[key] = active_weight
             else:
                 weights[key] = 0.0
 
     return weights
-
