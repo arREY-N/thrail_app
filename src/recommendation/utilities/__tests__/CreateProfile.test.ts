@@ -1,4 +1,4 @@
-import { GenerateUserProfile } from "../CreateProfile";
+import { GenerateUserProfile, MatchSurveyTrails } from "../CreateProfile";
 
 jest.mock("@/src/core/models/Trail/Trail", () => ({
     useTrailStore: { getState: () => ({ fetchTrailByName: jest.fn() }) },
@@ -104,3 +104,28 @@ describe("medical scope", () => {
     });
 });
 
+
+describe("MatchSurveyTrails", () => {
+    const mk = (id: string, name: string, mountain: string, address: string) =>
+        ({ id, general: { name, mountain: [mountain], address } }) as any;
+    const catalog = [
+        mk("a", "Mt. Makiling Traverse (MakTrav)", "Mt. Makiling", "UPLB, Los Banos, Laguna"),
+        mk("b", "Mariang Makiling Trail (MMT)", "Mt. Makiling", "UPLB, Los Banos, Laguna"),
+        mk("c", "Batulao New Trail", "Mt. Batulao", "Mt. Batulao, Calatagan, Batangas"),
+        mk("d", "Mt. Batulao", "Mt. Batulao", "Nasugbu, Batangas"),
+    ];
+
+    it("a full trail name selects only that trail, not siblings on the same mountain", () => {
+        expect(MatchSurveyTrails(["Mt. Makiling Traverse (MakTrav)"], catalog).map((t) => t.id)).toEqual(["a"]);
+        expect(MatchSurveyTrails(["Mt. Batulao"], catalog).map((t) => t.id)).toEqual(["d"]);
+    });
+
+    it("a trail id selects only that trail", () => {
+        expect(MatchSurveyTrails(["b"], catalog).map((t) => t.id)).toEqual(["b"]);
+    });
+
+    it("a mountain-style survey answer still selects every trail on that mountain", () => {
+        const ids = MatchSurveyTrails(["Mt. Makiling (Laguna)"], catalog).map((t) => t.id).sort();
+        expect(ids).toEqual(["a", "b"]);
+    });
+});

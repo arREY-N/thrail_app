@@ -184,6 +184,8 @@ export const BatchTrailProfile = (profiles: Profile[]): Profile['features'] | nu
 /**
  * Resolves user-selected survey trail locations against available trail documents in the database.
  * Matches case-insensitively against trail ID, trail name, or trail general location.
+ * A query that equals a trail's ID or full name matches only that trail; otherwise
+ * the broader name, address and mountain matching applies.
  */
 export const MatchSurveyTrails = (
     surveyLocations: string[] = [],
@@ -199,6 +201,20 @@ export const MatchSurveyTrails = (
         if (!rawLoc || typeof rawLoc !== "string") continue;
         const query = rawLoc.trim().toLowerCase();
         if (!query) continue;
+
+        // Exact identity wins: a full trail ID or full trail name selects only that trail,
+        // so sibling trails sharing a mountain are not pulled in. Mountain/address
+        // matching below only applies when nothing matches exactly.
+        const exactMatches = availableTrails.filter(
+            (trail) =>
+                !!trail &&
+                (trail.id?.trim().toLowerCase() === query ||
+                    trail.general?.name?.trim().toLowerCase() === query)
+        );
+        if (exactMatches.length > 0) {
+            for (const trail of exactMatches) matchedMap.set(trail.id, trail);
+            continue;
+        }
 
         for (const trail of availableTrails) {
             if (!trail) continue;
