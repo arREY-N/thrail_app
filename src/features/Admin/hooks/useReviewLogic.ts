@@ -1,5 +1,5 @@
-import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { getStatusConfig } from '@/src/constants/statusConfig';
+import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import {
     calculateVerificationValidity,
     evaluateApprovalGuard,
@@ -53,23 +53,64 @@ export default function useReviewLogic(
     const isOfferExpired = offerDate ? offerDate.getTime() < new Date().setHours(0, 0, 0, 0) : false;
     const isTerminalStatus = ['completed', 'cancelled', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired'].includes(booking?.status ?? '');
 
+    const rawHasRefundedPayment = Boolean(
+        booking?.payment?.some((p) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0))
+    );
+
+    const isNoRefund = Boolean(
+        cancellationRequest?.refundDecision === 'no_refund' ||
+        ((cancellationRequest?.status === 'approved' || booking?.status === 'cancelled') &&
+            Boolean(cancellationRequest) &&
+            (cancellationRequest?.refundAmount ?? 0) === 0 &&
+            !rawHasRefundedPayment &&
+            !cancellationRequest?.adminRefundReceiptUrl &&
+            cancellationRequest?.handshakeStep !== 'awaiting_user_wallet' &&
+            cancellationRequest?.handshakeStep !== 'awaiting_admin_payout' &&
+            cancellationRequest?.handshakeStep !== 'awaiting_user_confirmation' &&
+            cancellationRequest?.handshakeStep !== 'refund_disputed')
+    );
+
     const hasRefundedPayment =
-        booking?.payment?.some((p) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0)) ||
-        booking?.status === 'refunded' ||
-        cancellationRequest?.status === 'refund_completed' ||
-        cancellationRequest?.handshakeStep === 'completed';
+        !isNoRefund &&
+        (rawHasRefundedPayment ||
+            booking?.status === 'refunded' ||
+            cancellationRequest?.status === 'refund_completed' ||
+            cancellationRequest?.handshakeStep === 'completed' ||
+            Boolean(cancellationRequest?.userConfirmedReceivedAt));
+
+    const isRefunding =
+        !isNoRefund &&
+        !hasRefundedPayment &&
+        (booking?.status === 'refund' ||
+            cancellationRequest?.status === 'refund_pending' ||
+            cancellationRequest?.status === 'refund_submitted' ||
+            cancellationRequest?.status === 'refund_disputed' ||
+            (cancellationRequest?.status === 'approved' &&
+                ((cancellationRequest?.refundAmount ?? 0) > 0 ||
+                    Boolean(cancellationRequest?.handshakeStep && cancellationRequest.handshakeStep !== 'completed'))));
     
     const isVerifyingPayment = 
         booking?.paymentVerificationStatus === 'pending_verification' ||
         Boolean(booking?.payment?.some((p) => p.gateway === 'manual_qr' && p.status === 'pending'));
 
-    const currentStatus = hasRefundedPayment 
-        ? 'refunded' 
-        : (isOfferExpired && !isTerminalStatus
-            ? 'expired'
-            : (isVerifyingPayment && (booking?.status === 'for-payment' || booking?.status === 'downpayment')
-                ? 'verifying-payment'
-                : (booking?.status || 'for-reservation')));
+    const isRawHikerCancellationPending = Boolean(
+        (cancellationRequest?.status === 'pending' && cancellationRequest?.cancelledBy !== 'admin' && booking?.status !== 'cancelled') ||
+        (booking?.status === 'for-cancellation' && cancellationRequest?.cancelledBy !== 'admin' && booking?.cancelledBy !== 'admin')
+    );
+
+    const currentStatus = isNoRefund
+        ? 'cancelled'
+        : hasRefundedPayment 
+            ? 'refunded' 
+            : isRefunding
+                ? 'refund'
+                : isRawHikerCancellationPending
+                    ? 'for-cancellation'
+                    : (isOfferExpired && !isTerminalStatus
+                        ? 'expired'
+                        : (isVerifyingPayment && (booking?.status === 'for-payment' || booking?.status === 'downpayment')
+                            ? 'verifying-payment'
+                            : (booking?.status || 'for-reservation')));
             
     const displayCancellationReason = hasRefundedPayment 
         ? (PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? 'Refund processed.' : 'Refund processed securely via PayMongo.') 
@@ -150,11 +191,22 @@ export default function useReviewLogic(
         loadEmergencyVerification();
     }, [booking?.emergencyContact]);
 
+    const isOverpaymentPending = Boolean(
+        booking?.overpayment &&
+        booking?.overpayment.status !== 'completed' &&
+        !isHikerCancellationPending &&
+        !isAdminCancellationPending &&
+        currentStatus !== 'cancelled' &&
+        currentStatus !== 'refunded'
+    );
+
     const adminStatusConfig = isHikerCancellationPending
         ? getStatusConfig('for-cancellation', 'admin')
         : (isAdminCancellationPending
             ? getStatusConfig('cancelled', 'admin')
-            : getStatusConfig(currentStatus, 'admin'));
+            : (isOverpaymentPending
+                ? getStatusConfig('overpaid', 'admin')
+                : getStatusConfig(currentStatus, 'admin')));
     const isMinor = checkIfMinor(booking?.user?.birthday);
 
     const currentSyncKey = [
