@@ -105,7 +105,7 @@ export const useManualQRMethodTutorial = ({
     const termsRef = useRef<View>(null);
 
     const currentScrollY = useRef<number>(0);
-    const activeTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+    const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const scrollDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const qrSectionOffsetY = useRef<number>(0);
@@ -182,19 +182,12 @@ export const useManualQRMethodTutorial = ({
         measureTermsNow,
     ]);
 
-    const clearAllTimers = useCallback(() => {
-        activeTimersRef.current.forEach((timer) => clearTimeout(timer));
-        activeTimersRef.current = [];
+    const clearSettleTimer = useCallback(() => {
+        if (settleTimerRef.current) {
+            clearTimeout(settleTimerRef.current);
+            settleTimerRef.current = null;
+        }
     }, []);
-
-    const scheduleMeasurements = useCallback((stepKey?: string) => {
-        clearAllTimers();
-        if (!stepKey) return;
-        const t1 = setTimeout(() => measureActiveStepNow(stepKey), 150);
-        const t2 = setTimeout(() => measureActiveStepNow(stepKey), 350);
-        const t3 = setTimeout(() => measureActiveStepNow(stepKey), 500);
-        activeTimersRef.current = [t1, t2, t3];
-    }, [clearAllTimers, measureActiveStepNow]);
 
     const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
         currentScrollY.current = e.nativeEvent.contentOffset.y;
@@ -239,46 +232,50 @@ export const useManualQRMethodTutorial = ({
         measureTermsNow,
     ]);
 
-    // Bidirectional section auto-scroll with multi-stage settling measurements
+    // Bidirectional section auto-scroll with crisp 250ms settling measurements
     useEffect(() => {
         if (!isTutorialVisible || !activeTutorialStep) return;
 
+        clearSettleTimer();
+
+        // Immediate measurement for in-viewport targets
+        measureActiveStepNow(activeTutorialStep);
+
         if (activeTutorialStep === 'payment_rejection_banner') {
             scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-            scheduleMeasurements('payment_rejection_banner');
         } else if (activeTutorialStep === 'payment_qr_card') {
             const targetY = isRejected ? Math.max(0, qrSectionOffsetY.current - 16) : 0;
             scrollViewRef.current?.scrollTo({ y: targetY, animated: true });
-            scheduleMeasurements('payment_qr_card');
         } else if (activeTutorialStep === 'payment_instructions') {
             scrollViewRef.current?.scrollTo({
                 y: Math.max(0, instructionsSectionOffsetY.current - 16),
                 animated: true,
             });
-            scheduleMeasurements('payment_instructions');
         } else if (activeTutorialStep === 'payment_receipt_upload') {
             scrollViewRef.current?.scrollTo({
                 y: Math.max(0, receiptSectionOffsetY.current - 16),
                 animated: true,
             });
-            scheduleMeasurements('payment_receipt_upload');
         } else if (activeTutorialStep === 'payment_terms') {
-            scrollViewRef.current?.scrollTo({
-                y: Math.max(0, termsSectionOffsetY.current - 16),
-                animated: true,
-            });
-            scheduleMeasurements('payment_terms');
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+        } else if (activeTutorialStep === 'booking_footer') {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
         }
 
+        // Single settled measurement lock at 250ms (once smooth scroll completes)
+        settleTimerRef.current = setTimeout(() => {
+            measureActiveStepNow(activeTutorialStep);
+        }, 250);
+
         return () => {
-            clearAllTimers();
+            clearSettleTimer();
         };
     }, [
         isTutorialVisible,
         activeTutorialStep,
         isRejected,
-        scheduleMeasurements,
-        clearAllTimers,
+        measureActiveStepNow,
+        clearSettleTimer,
     ]);
 
     // Reset scroll position to top when tutorial finishes or is dismissed
