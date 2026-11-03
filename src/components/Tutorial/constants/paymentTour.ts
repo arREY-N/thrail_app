@@ -40,7 +40,6 @@ export const paymentTourSteps: TutorialStep[] = [
             'Tap the upload button below to attach your payment receipt screenshot so the tour coordinator can verify your transaction and confirm your slot.',
         actionTip: 'Tap "Upload" to pick your payment receipt screenshot from your photo library or files.',
         spotlightShape: 'rect',
-        tooltipPlacement: 'bottom',
     },
     {
         id: 'pay-step-4-terms',
@@ -51,7 +50,6 @@ export const paymentTourSteps: TutorialStep[] = [
             'Review the Thrail Terms of Service, Privacy Policy, and Booking & Cancellation Policies, then type your full name to provide your digital signature.',
         actionTip: 'Type your name exactly as registered to unlock the submit button.',
         spotlightShape: 'rect',
-        tooltipPlacement: 'top',
     },
     {
         id: 'pay-step-5-submit',
@@ -109,7 +107,6 @@ export const paymentResubmitTourSteps: TutorialStep[] = [
             'Tap the red "Re-upload" button below to attach your new, clear payment receipt screenshot for organizer verification.',
         actionTip: 'Tap the highlighted "Re-upload" button to pick your replacement receipt screenshot.',
         spotlightShape: 'rect',
-        tooltipPlacement: 'bottom',
     },
     {
         id: 'pay-resubmit-step-5-terms',
@@ -120,7 +117,6 @@ export const paymentResubmitTourSteps: TutorialStep[] = [
             'Review the Thrail policies and re-verify your full name in the signature field before submitting your corrected payment.',
         actionTip: 'Type your name exactly as registered to authorize your resubmission.',
         spotlightShape: 'rect',
-        tooltipPlacement: 'top',
     },
     {
         id: 'pay-resubmit-step-6-submit',
