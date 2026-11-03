@@ -31,6 +31,7 @@ export interface RescheduleTabProps {
     onApproveReschedule?: (newOffer: Offer, booking?: Booking, adminNote?: string) => Promise<unknown>;
     onDeclineReschedule?: (reason: string, reschedule?: Reschedule | null, booking?: Booking) => Promise<void>;
     isProcessing?: boolean;
+    decisionRef?: React.RefObject<View | null>;
 }
 
 // Backward compatibility alias
@@ -51,6 +52,7 @@ export const RescheduleTab: React.FC<RescheduleTabProps> = ({
     onApproveReschedule: propOnApprove,
     onDeclineReschedule: propOnDecline,
     isProcessing: propIsProcessing = false,
+    decisionRef,
 }) => {
     const { showToast } = useToast();
 
@@ -410,7 +412,7 @@ export const RescheduleTab: React.FC<RescheduleTabProps> = ({
 
             {/* Action Buttons for Pending State */}
             {isPending && (
-                <View style={styles.actionContainer}>
+                <View ref={decisionRef} collapsable={false} style={styles.actionContainer}>
                     {isDeclineExpanded ? (
                         <View style={styles.declineForm}>
                             <CustomFeedbackInput
