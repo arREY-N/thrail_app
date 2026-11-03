@@ -93,7 +93,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                 overrideLabel = 'VERIFYING';
                 overrideIcon = 'clock';
             } else {
-                overrideLabel = 'DOWNPAYMENT';
+                overrideLabel = 'DOWN PAYMENT';
                 overrideIcon = 'pie-chart';
             }
             break;
@@ -255,6 +255,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                                         isCurrent && styles.boldText
                                     ]}
                                     numberOfLines={2}
+                                    adjustsFontSizeToFit={true}
                                 >
                                     {labelText}
                                 </CustomText>
