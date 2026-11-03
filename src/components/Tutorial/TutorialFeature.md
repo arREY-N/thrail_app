@@ -33,8 +33,15 @@ src/
         │   │   ├── useHikeRecordingTutorial.ts   <- Live hike recording HUD & GPS walkthrough
         │   │   └── useWriteReviewTutorial.ts     <- 2-Phase post-hike review creation walkthrough
         │   │
-        │   └── payment/                          <- Payment flow screen orchestration hooks
-        │       └── usePaymentTutorial.ts         <- Payment method, manual QR, & status walkthroughs
+        │   ├── payment/                          <- Payment flow screen orchestration hooks
+        │   │   └── usePaymentTutorial.ts         <- Payment method, manual QR, & status walkthroughs
+        │   │
+        │   ├── admin/                            <- Admin domain screen orchestration hooks
+        │   │   ├── useAdminDashboardTutorial.ts     <- Admin dashboard overview & quick actions walkthrough
+        │   │   ├── useAdminOfferListTutorial.ts     <- Admin offer list (filters, offer card, add-offer footer)
+        │   │   ├── useAdminOfferViewTutorial.ts     <- Admin offer bookings (summary, filters, booking card + autoscroll)
+        │   │   ├── useAdminOfferWriteTutorial.ts    <- Admin offer create/edit form (5-step autoscroll)
+        │   │   └── useAdminBookingReviewTutorial.ts <- Admin booking review (tab-aware Docs/Payment steps + mobile autoscroll)
         │
         ├── utils/                                <- Demand-driven 2D coordinate registries
         │   ├── tutorialLayoutRegistry.ts         <- Window coordinate registry (measureInWindow) for screen targets
