@@ -30,18 +30,24 @@ const AdminBookingCard = ({
     style,
     cancellation,
 }: AdminBookingCardProps) => {
-    const hasRefundedPayment = booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+    const hasRefundedPayment = Boolean(
+        booking?.payment?.some((p: IPayment<Date>) => p.status === 'refunded' || ((p.refundedAmount || 0) > 0))
+    );
     const isVerifyingPayment = booking.paymentVerificationStatus === 'pending_verification' ||
         Boolean(booking.payment?.some((p: IPayment<Date>) => p.gateway === 'manual_qr' && p.status === 'pending'));
 
-    const isNoRefund =
+    const isNoRefund = Boolean(
         cancellation?.refundDecision === 'no_refund' ||
-        (cancellation?.status === 'approved' &&
-            booking?.status === 'cancelled' &&
-            cancellation?.refundAmount === 0 &&
+        ((cancellation?.status === 'approved' || booking?.status === 'cancelled') &&
+            Boolean(cancellation) &&
+            (cancellation?.refundAmount ?? 0) === 0 &&
+            !hasRefundedPayment &&
+            !cancellation?.adminRefundReceiptUrl &&
             cancellation?.handshakeStep !== 'awaiting_user_wallet' &&
             cancellation?.handshakeStep !== 'awaiting_admin_payout' &&
-            !cancellation?.adminRefundReceiptUrl);
+            cancellation?.handshakeStep !== 'awaiting_user_confirmation' &&
+            cancellation?.handshakeStep !== 'refund_disputed')
+    );
 
     const isRefundComplete =
         !isNoRefund &&
@@ -52,17 +58,26 @@ const AdminBookingCard = ({
             hasRefundedPayment);
 
     const isRefunding =
+        !isNoRefund &&
         !isRefundComplete &&
         (booking.status === 'refund' ||
             cancellation?.status === 'refund_pending' ||
             cancellation?.status === 'refund_submitted' ||
             cancellation?.status === 'refund_disputed' ||
             (cancellation?.status === 'approved' &&
-                !isNoRefund &&
                 (Boolean(cancellation?.refundAmount && cancellation.refundAmount > 0) ||
                  Boolean(cancellation?.handshakeStep && cancellation.handshakeStep !== 'completed'))));
 
     const isHikerCancellationPending = cancellation && cancellation.status === 'pending' && cancellation.cancelledBy !== 'admin' && booking.status !== 'cancelled';
+
+    const isOverpaymentPending = Boolean(
+        booking.overpayment &&
+        booking.overpayment.status !== 'completed' &&
+        !isNoRefund &&
+        !isRefundComplete &&
+        !isRefunding &&
+        !isHikerCancellationPending
+    );
 
     let displayStatus: string = booking.status || '';
     if (isNoRefund) {
@@ -75,6 +90,8 @@ const AdminBookingCard = ({
         displayStatus = 'for-cancellation';
     } else if (isVerifyingPayment && (booking.status === 'for-payment' || booking.status === 'downpayment')) {
         displayStatus = 'verifying-payment';
+    } else if (isOverpaymentPending) {
+        displayStatus = 'overpaid';
     }
 
     const isRefundActionNeeded = isRefunding && (
@@ -85,12 +102,19 @@ const AdminBookingCard = ({
         (!cancellation?.adminRefundReceiptUrl && !cancellation?.handshakeStep)
     );
 
+    const isOverpaymentActionNeeded = Boolean(
+        booking.overpayment &&
+        (booking.overpayment.status === 'awaiting_admin_payout' ||
+         booking.overpayment.status === 'refund_disputed')
+    );
+
     const requiresAdminAction = !isOfferLocked && (
         displayStatus === 'for-reservation' ||
         displayStatus === 'verifying-payment' ||
         displayStatus === 'for-cancellation' ||
         displayStatus === 'for-reschedule' ||
-        (displayStatus === 'refund' && isRefundActionNeeded)
+        (displayStatus === 'refund' && isRefundActionNeeded) ||
+        isOverpaymentActionNeeded
     );
 
     const firstName = booking.user?.firstname || 'Unknown';
