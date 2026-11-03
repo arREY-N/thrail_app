@@ -122,6 +122,13 @@ export const STATUS_UI_CONFIG = {
         adminLabel: 'REVIEW OVERPAYMENT', adminType: 'ACTION',
         icon: 'dollar-sign'
     },
+    'overpaid': {
+        userLabel: 'OVERPAID',
+        userType: 'WARNING',
+        adminLabel: 'OVERPAID',
+        adminType: 'WARNING',
+        icon: 'alert-circle',
+    },
     'refunded': {
         userLabel: 'REFUNDED', userType: 'ERROR',         
         adminLabel: 'REFUNDED', adminType: 'ERROR',
