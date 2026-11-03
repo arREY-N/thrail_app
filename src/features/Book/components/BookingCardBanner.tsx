@@ -27,12 +27,75 @@ const BookingCardBanner = ({
 }: BookingCardBannerProps): React.JSX.Element | null => {
     if (!status) return null;
 
-    // 1. Rejection reasons: reservation-rejected, payment-rejected, cancellation-rejected
+    // 1. Reschedule rejected / declined banner (warm amber warning style matching rejected layout)
+    if (status === 'reschedule-rejected') {
+        const displayText = reason?.trim() ? `"${reason.trim()}"` : (fallbackText || 'Request was declined by the organizer.');
+
+        return (
+            <View style={styles.warningContainer}>
+                <CustomText variant="caption" style={styles.warningHeader}>
+                    RESCHEDULE DECLINED:
+                </CustomText>
+                <CustomText style={styles.warningBody} numberOfLines={1} ellipsizeMode="tail">
+                    {displayText}
+                </CustomText>
+            </View>
+        );
+    }
+
+    // 1b. Overpayment wallet needed banner (warm amber warning style)
+    if (status === 'overpayment-wallet-needed') {
+        const displayText = reason?.trim() || 'Excess payment detected. Tap to submit refund e-wallet.';
+
+        return (
+            <View style={styles.warningContainer}>
+                <CustomText variant="caption" style={styles.warningHeader}>
+                    EXCESS PAYMENT:
+                </CustomText>
+                <CustomText style={styles.warningBody} numberOfLines={1} ellipsizeMode="tail">
+                    {displayText}
+                </CustomText>
+            </View>
+        );
+    }
+
+    // 1c. Overpayment payout verify needed banner (unified warm amber warning style)
+    if (status === 'overpayment-verify-needed') {
+        const displayText = reason?.trim() || 'Refund payout proof uploaded. Tap to verify receipt.';
+
+        return (
+            <View style={styles.warningContainer}>
+                <CustomText variant="caption" style={styles.warningHeader}>
+                    EXCESS REFUND:
+                </CustomText>
+                <CustomText style={styles.warningBody} numberOfLines={1} ellipsizeMode="tail">
+                    {displayText}
+                </CustomText>
+            </View>
+        );
+    }
+
+    // 1d. Overpayment disputed banner (soft red alert style)
+    if (status === 'overpayment-disputed') {
+        const displayText = reason?.trim() ? `"${reason.trim()}"` : 'Payout reported not received.';
+
+        return (
+            <View style={styles.rejectionContainer}>
+                <CustomText variant="caption" style={styles.rejectionHeader}>
+                    EXCESS DISPUTED:
+                </CustomText>
+                <CustomText style={styles.rejectionBody} numberOfLines={1} ellipsizeMode="tail">
+                    {displayText}
+                </CustomText>
+            </View>
+        );
+    }
+
+    // 2. Rejection reasons: reservation-rejected, payment-rejected, cancellation-rejected
     const isRejection = [
         'reservation-rejected',
         'payment-rejected',
         'cancellation-rejected',
-        'reschedule-rejected',
     ].includes(status);
 
     if (isRejection) {
@@ -40,14 +103,14 @@ const BookingCardBanner = ({
             ? 'Payment receipt rejected. Please tap to resubmit.'
             : status === 'reservation-rejected'
                 ? 'Reservation documents rejected. Please tap to update documents.'
-                : 'Request was declined by the organizer.';
+                : 'Cancellation request declined by organizer.';
 
         const displayText = reason?.trim() ? `"${reason.trim()}"` : (fallbackText || defaultFallback);
 
         return (
             <View style={styles.rejectionContainer}>
                 <CustomText variant="caption" style={styles.rejectionHeader}>
-                    REASON:
+                    {status === 'cancellation-rejected' ? 'CANCELLATION DECLINED:' : 'REASON:'}
                 </CustomText>
                 <CustomText style={styles.rejectionBody} numberOfLines={1} ellipsizeMode="tail">
                     {displayText}
@@ -83,6 +146,32 @@ const BookingCardBanner = ({
 };
 
 const styles = StyleSheet.create({
+    warningContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.STATUS_WARNING_BG,
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_WARNING_BORDER,
+        gap: 6,
+    },
+    warningHeader: {
+        fontWeight: 'bold',
+        fontSize: 10,
+        letterSpacing: 0.5,
+        color: Colors.STATUS_WARNING_TEXT,
+        textTransform: 'uppercase',
+        flexShrink: 0,
+    },
+    warningBody: {
+        flex: 1,
+        fontSize: 12,
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 16,
+    },
     rejectionContainer: {
         flexDirection: 'row',
         alignItems: 'center',
