@@ -12,7 +12,7 @@ export const adminDashboardSteps: TutorialStep[] = [
         targetSpotlight: 'admin_dash_overview',
         title: 'Organization & Profile Overview',
         description:
-            'Welcome to the Admin Dashboard! The top cards display your Business Profile status (Active/Archived), serviced locations, and your logged-in Admin credentials.',
+            'Welcome to the Admin Dashboard! The top cards display your Business Profile status (Active/Archived), serviced locations, logged-in Admin credentials, and Owner Manual Payment QR setup.',
         actionTip: 'Use the Quick Actions bar below to manage your trails, offers, and staff.',
     },
     {
