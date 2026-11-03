@@ -42,6 +42,14 @@ export interface GetBookingFooterConfigProps {
     onViewReceipt: (booking: Booking) => void;
     /** Callback triggered to navigate to the new rescheduled booking. */
     onViewUpdatedBooking?: (newBookingId: string) => void;
+    /** Indicates if the user has dismissed the reschedule decline notice locally. */
+    isDeclineDismissedLocally?: boolean;
+    /** Callback triggered when the user dismisses the reschedule decline notice. */
+    handleDismissDecline?: () => void;
+    /** Callback triggered to request another date for rescheduling. */
+    onReschedule?: () => void;
+    /** Callback triggered to open the overpayment refund wallet modal. */
+    onOpenOverpaymentModal?: () => void;
 }
 
 /**
@@ -70,6 +78,10 @@ export const getBookingFooterConfig = ({
     onProceedToPayment,
     onViewReceipt,
     onViewUpdatedBooking,
+    isDeclineDismissedLocally,
+    handleDismissDecline,
+    onReschedule,
+    onOpenOverpaymentModal,
 }: GetBookingFooterConfigProps) => {
     if (isRejectedReservation && (totalRejectedCount > 0 || isPhoneRejection || hasStagedContactChanges)) {
         const buttonTitle = getResubmitButtonTitle(
@@ -118,6 +130,23 @@ export const getBookingFooterConfig = ({
         booking?.paymentVerificationStatus === 'pending_verification' ||
         Boolean(booking?.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'))
     );
+
+    if (!isDeclineDismissedLocally && Boolean(booking?.rescheduleDeclineReason) && displayStatus !== 'for-reschedule' && !isCancelled) {
+        return {
+            secondaryButton: {
+                title: "Keep Schedule",
+                variant: "outline" as const,
+                style: { borderRadius: 12 },
+                onPress: handleDismissDecline || (() => {}),
+            },
+            primaryButton: {
+                title: "Request Another Date",
+                variant: "primary" as const,
+                style: { borderRadius: 12 },
+                onPress: onReschedule || (() => {}),
+            },
+        };
+    }
 
     if (isPaymentVerifying) {
         return null;
@@ -203,6 +232,23 @@ export const getBookingFooterConfig = ({
                 style: { borderRadius: 12, backgroundColor: Colors.PRIMARY },
                 onPress: () => onProceedToPayment(booking)
             }
+        };
+    }
+
+    if (booking?.overpayment?.status === 'awaiting_hiker_wallet') {
+        return {
+            secondaryButton: hasHistoricalPayments ? {
+                title: "View Receipt",
+                variant: "outline" as const,
+                style: { borderRadius: 12 },
+                onPress: () => onViewReceipt(booking),
+            } : undefined,
+            primaryButton: {
+                title: "Submit Refund Details",
+                variant: "primary" as const,
+                style: { borderRadius: 12 },
+                onPress: onOpenOverpaymentModal || (() => {}),
+            },
         };
     }
 
