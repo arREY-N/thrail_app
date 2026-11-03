@@ -24,12 +24,16 @@ const getFormattedUpdateStatus = (
     updatedAt: DateInput,
     createdAt: DateInput,
     status?: string,
-    offerDate?: DateInput
+    offerDate?: DateInput,
+    isPaymentVerifying?: boolean
 ): string => {
     let prefix = 'Updated';
     let targetDateInput: DateInput = updatedAt || createdAt;
 
-    if (status === 'expired') {
+    if (isPaymentVerifying) {
+        prefix = 'Submitted';
+        targetDateInput = updatedAt || createdAt;
+    } else if (status === 'expired') {
         prefix = 'Expired';
         targetDateInput = offerDate || updatedAt || createdAt;
     } else if (status === 'finished' || status === 'completed') {
@@ -224,7 +228,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
     );
 
     let actionLabel = "View Details";
-    let actionColor: string = Colors.PRIMARY;
+    let actionColor: string = isPaymentVerifying ? Colors.STATUS_PENDING_TEXT : Colors.PRIMARY;
     let actionIcon = "chevron-right";
 
     if (!isPast && !isDead) {
@@ -255,7 +259,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
                 actionColor = Colors.ERROR;
             } else if (isPaymentVerifying) {
                 actionLabel = "View Details";
-                actionColor = Colors.PRIMARY;
+                actionColor = Colors.STATUS_PENDING_TEXT;
             } else {
                 actionLabel = "Pay Now";
                 actionColor = Colors.SUCCESS;
@@ -264,8 +268,16 @@ const BookingCard: React.FC<BookingCardProps> = ({
             actionLabel = "Update Docs";
             actionColor = Colors.ERROR;
         } else if (displayStatus === 'downpayment') {
-            actionLabel = "Pay Balance";
-            actionColor = Colors.WARNING;
+            if (isPaymentVerifying) {
+                actionLabel = "View Details";
+                actionColor = Colors.STATUS_PENDING_TEXT;
+            } else if (isPaymentRejected) {
+                actionLabel = "Resubmit Payment";
+                actionColor = Colors.ERROR;
+            } else {
+                actionLabel = "Pay Balance";
+                actionColor = Colors.WARNING;
+            }
         } else if (displayStatus === 'for-reschedule') {
             actionLabel = "View Details";
             actionColor = Colors.STATUS_PENDING_TEXT;
@@ -280,18 +292,32 @@ const BookingCard: React.FC<BookingCardProps> = ({
     const isWalletNeeded = displayStatus === 'refund' && !isPayMongo && !cancellation?.userWallet?.accountNumber;
     const isConfirmReceiptNeeded = displayStatus === 'refund' && !isPayMongo && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted');
     const isOverpaymentActionNeeded = booking?.overpayment?.status === 'awaiting_hiker_wallet' || booking?.overpayment?.status === 'awaiting_user_confirmation';
-    const isDownpayment = displayStatus === 'downpayment';
+    const isOverpaymentWaiting = booking?.overpayment?.status === 'awaiting_admin_payout' || booking?.overpayment?.status === 'refund_disputed';
+    const hasActiveOverpayment = isOverpaymentActionNeeded || isOverpaymentWaiting;
+    const isDownpayment = displayStatus === 'downpayment' && !isPaymentVerifying && !isPaymentRejected;
+
+    if (isOverpaymentActionNeeded) {
+        if (booking?.overpayment?.status === 'awaiting_hiker_wallet') {
+            actionLabel = "Submit Wallet";
+            actionColor = Colors.WARNING;
+        } else if (booking?.overpayment?.status === 'awaiting_user_confirmation') {
+            actionLabel = "Confirm Receipt";
+            actionColor = Colors.WARNING;
+        }
+    }
 
     const borderHighlightStyle = !isPast && !isDead
         ? isRejection || (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed'))
             ? styles.rejectionBorder
-            : (isPaymentNeeded || isWalletNeeded || isConfirmReceiptNeeded || isOverpaymentActionNeeded)
-                ? styles.paymentBorder
-                : isDownpayment
-                    ? styles.downpaymentBorder
-                    : displayStatus === 'for-reschedule'
-                        ? styles.rescheduleBorder
-                        : null
+            : isOverpaymentActionNeeded
+                ? styles.downpaymentBorder
+                : (isPaymentNeeded || isWalletNeeded || isConfirmReceiptNeeded)
+                    ? styles.paymentBorder
+                    : isDownpayment
+                        ? styles.downpaymentBorder
+                        : displayStatus === 'for-reschedule'
+                            ? styles.rescheduleBorder
+                            : null
         : null;
 
     const bookingUpdateTime = booking?.updatedAt ? safeParseDateString(booking.updatedAt).getTime() : 0;
@@ -307,7 +333,8 @@ const BookingCard: React.FC<BookingCardProps> = ({
         effectiveUpdatedAt,
         booking?.createdAt,
         displayStatus,
-        booking?.offer?.date
+        booking?.offer?.date,
+        isPaymentVerifying
     );
     const trailName = booking?.trail?.name || 'Hiking Package';
     const businessName = booking?.business?.name || 'Independent Guide';
@@ -321,6 +348,10 @@ const BookingCard: React.FC<BookingCardProps> = ({
     });
     const newOfferDate = targetOffer?.date || targetBooking?.offer?.date;
     const newDateFormatted = newOfferDate ? formatBookingDate(newOfferDate, undefined, true) : null;
+    const isNewRescheduledBooking = Boolean(
+        extBooking?.rescheduledFromBookingId ||
+        (booking?.id && userBookings?.some(b => (b as RescheduledBooking).rescheduledToBookingId === booking.id))
+    );
 
     const price = booking?.offer?.price || 0;
     const capturedAmount = booking?.payment?.reduce((sum: number, p: IPayment<Date>) => p.status === 'captured' ? sum + (p.amount || 0) : sum, 0) || 0;
@@ -333,51 +364,65 @@ const BookingCard: React.FC<BookingCardProps> = ({
         ? Colors.ERROR_BG
         : (isPaymentVerifying
             ? Colors.STATUS_PENDING_BG
-            : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
-                ? Colors.STATUS_WARNING_BG
-                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
-                    ? Colors.ERROR_BG
-                    : statusConfig.bgColor)));
+            : (hasActiveOverpayment
+                ? (isOverpaymentActionNeeded ? Colors.STATUS_WARNING_BG : Colors.STATUS_PENDING_BG)
+                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                    ? Colors.STATUS_WARNING_BG
+                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                        ? Colors.ERROR_BG
+                        : statusConfig.bgColor))));
 
     const pillBorderColor = isPaymentRejected
         ? Colors.ERROR_BORDER
         : (isPaymentVerifying
             ? Colors.STATUS_PENDING_BORDER
-            : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
-                ? Colors.STATUS_WARNING_BORDER
-                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
-                    ? Colors.ERROR_BORDER
-                    : (statusConfig.borderColor || Colors.STATUS_PENDING_BORDER))));
+            : (hasActiveOverpayment
+                ? (isOverpaymentActionNeeded ? Colors.STATUS_WARNING_BORDER : Colors.STATUS_PENDING_BORDER)
+                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                    ? Colors.STATUS_WARNING_BORDER
+                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                        ? Colors.ERROR_BORDER
+                        : (statusConfig.borderColor || Colors.STATUS_PENDING_BORDER)))));
 
     const pillTextColor = isPaymentRejected
         ? Colors.ERROR
         : (isPaymentVerifying
             ? Colors.STATUS_PENDING_TEXT
-            : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
-                ? Colors.STATUS_WARNING_TEXT
-                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
-                    ? Colors.ERROR
-                    : statusConfig.textColor)));
+            : (hasActiveOverpayment
+                ? (isOverpaymentActionNeeded ? Colors.STATUS_WARNING_TEXT : Colors.STATUS_PENDING_TEXT)
+                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                    ? Colors.STATUS_WARNING_TEXT
+                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                        ? Colors.ERROR
+                        : statusConfig.textColor))));
 
     const pillIconName = isPaymentRejected
         ? "alert-triangle"
         : (isPaymentVerifying
             ? "clock"
-            : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
-                ? "alert-circle"
-                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
-                    ? "alert-triangle"
-                    : statusConfig.icon)));
+            : (hasActiveOverpayment
+                ? (isOverpaymentActionNeeded ? "alert-circle" : "clock")
+                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                    ? "alert-circle"
+                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                        ? "alert-triangle"
+                        : statusConfig.icon))));
 
     const pillLabel = isPaymentRejected
         ? "PAYMENT REJECTED"
         : (isPaymentVerifying
             ? "VERIFYING PAYMENT"
-            : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
-                ? "ACTION REQUIRED: CONFIRM RECEIPT"
-                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
-                    ? "REFUND DISPUTED"
-                    : statusConfig.label)));
+            : (hasActiveOverpayment
+                ? (booking?.overpayment?.status === 'awaiting_user_confirmation'
+                    ? "CONFIRM REFUND"
+                    : (booking?.overpayment?.status === 'awaiting_hiker_wallet'
+                        ? "SUBMIT WALLET"
+                        : "REFUND PENDING"))
+                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                    ? "CONFIRM REFUND"
+                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                        ? "REFUND DISPUTED"
+                        : statusConfig.label))));
 
     return (
         <TouchableOpacity
@@ -443,8 +488,9 @@ const BookingCard: React.FC<BookingCardProps> = ({
                         name="calendar"
                         size={14}
                         color={Colors.TEXT_PLACEHOLDER}
+                        style={styles.dateIcon}
                     />
-                    {displayStatus === 'rescheduled' && newDateFormatted ? (
+                    {((displayStatus === 'rescheduled' || displayStatus === 'for-reschedule') && newDateFormatted) ? (
                         <View style={styles.dateTransitionRow}>
                             <CustomText variant="caption" style={styles.dateOldText}>
                                 {formattedDate}
@@ -453,16 +499,29 @@ const BookingCard: React.FC<BookingCardProps> = ({
                                 library="Feather"
                                 name="arrow-right"
                                 size={11}
-                                color={Colors.PRIMARY}
+                                color={displayStatus === 'for-reschedule' ? Colors.STATUS_PENDING_TEXT : Colors.PRIMARY}
                             />
-                            <CustomText variant="caption" style={styles.dateNewText}>
+                            <CustomText
+                                variant="caption"
+                                style={[
+                                    styles.dateNewText,
+                                    displayStatus === 'for-reschedule' && styles.datePendingNewText,
+                                ]}
+                            >
                                 {newDateFormatted}
                             </CustomText>
                         </View>
                     ) : (
-                        <CustomText variant="caption" style={styles.infoText}>
-                            {formattedDate}
-                        </CustomText>
+                        <View style={styles.dateRowWithChip}>
+                            <CustomText variant="caption" style={styles.infoText}>
+                                {formattedDate}
+                                {isNewRescheduledBooking && (
+                                    <CustomText style={styles.rescheduledInlineText}>
+                                        {' '}•{' '}Rescheduled
+                                    </CustomText>
+                                )}
+                            </CustomText>
+                        </View>
                     )}
                 </View>
             </View>
@@ -481,18 +540,41 @@ const BookingCard: React.FC<BookingCardProps> = ({
                 />
             )}
 
-            {displayStatus === 'cancellation-rejected' && (
+            {(displayStatus === 'cancellation-rejected' || cancellation?.status === 'rejected') && displayStatus !== 'cancelled' && booking?.status !== 'cancelled' && (
                 <BookingCardBanner
                     status="cancellation-rejected"
                     reason={cancellation?.adminNote}
                 />
             )}
 
-            {displayStatus === 'for-reschedule' && (
+            {Boolean(booking?.rescheduleDeclineReason) && displayStatus !== 'for-reschedule' && (
                 <BookingCardBanner
-                    status="for-reschedule"
+                    status="reschedule-rejected"
+                    reason={booking?.rescheduleDeclineReason}
                 />
             )}
+
+            {booking?.overpayment?.status === 'awaiting_hiker_wallet' && (
+                <BookingCardBanner
+                    status="overpayment-wallet-needed"
+                    reason={`₱${(booking.overpayment.excessAmount || 0).toFixed(2)} overpayment to be refunded to your e-wallet.`}
+                />
+            )}
+
+            {booking?.overpayment?.status === 'awaiting_user_confirmation' && (
+                <BookingCardBanner
+                    status="overpayment-verify-needed"
+                    reason={`₱${(booking.overpayment.excessAmount || 0).toFixed(2)} payout proof uploaded. Tap to verify receipt.`}
+                />
+            )}
+
+            {booking?.overpayment?.status === 'refund_disputed' && (
+                <BookingCardBanner
+                    status="overpayment-disputed"
+                    reason={booking.overpayment.disputeReason}
+                />
+            )}
+
 
             <View style={styles.dottedDivider} />
 
@@ -506,7 +588,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
                             variant="h2"
                             style={[
                                 styles.dataValue,
-                                { color: Colors.WARNING }
+                                { color: isPaymentVerifying ? Colors.TEXT_PRIMARY : Colors.WARNING }
                             ]}
                             numberOfLines={1}
                             adjustsFontSizeToFit={true}
@@ -607,17 +689,25 @@ const styles = StyleSheet.create({
     },
     infoWrapper: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         gap: 8,
+        flex: 1,
+    },
+    dateIcon: {
+        marginTop: 2,
     },
     infoText: {
         color: Colors.TEXT_SECONDARY,
         fontSize: 13,
+        flexShrink: 1,
     },
     dateTransitionRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        flexWrap: 'wrap',
+        flex: 1,
+        rowGap: 2,
+        columnGap: 6,
     },
     dateOldText: {
         color: Colors.TEXT_SECONDARY,
@@ -627,6 +717,10 @@ const styles = StyleSheet.create({
         color: Colors.PRIMARY,
         fontSize: 13,
         fontWeight: '600',
+    },
+    datePendingNewText: {
+        color: Colors.STATUS_PENDING_TEXT,
+        fontWeight: 'bold',
     },
     dottedDivider: {
         height: 1,
@@ -683,6 +777,18 @@ const styles = StyleSheet.create({
     rescheduleBorder: {
         borderColor: Colors.STATUS_PENDING_BORDER,
         borderWidth: 1.5,
+    },
+    dateRowWithChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+        flex: 1,
+    },
+    rescheduledInlineText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: Colors.PRIMARY,
     },
 });
 
