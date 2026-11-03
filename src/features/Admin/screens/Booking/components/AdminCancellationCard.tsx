@@ -6,6 +6,7 @@ import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomInfoRow from '@/src/components/CustomInfoRow';
+import CustomStatusBadge from '@/src/components/CustomStatusBadge';
 import CustomText from '@/src/components/CustomText';
 import ExpandableText from '@/src/components/ExpandableText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
@@ -438,39 +439,29 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
                 </View>
 
                 {isApproved && (
-                    <View style={[
-                        styles.approvedBadge,
-                        isAwaitingRefundDecision && styles.actionRequiredBadge
-                    ]}>
-                        <CustomIcon
-                            library="Feather"
-                            name={isAwaitingRefundDecision ? "alert-circle" : "check"}
-                            size={12}
-                            color={isAwaitingRefundDecision ? "Colors.STATUS_WARNING_TEXT" : Colors.SUCCESS}
-                        />
-                        <CustomText style={[
-                            styles.approvedBadgeText,
-                            isAwaitingRefundDecision && styles.actionRequiredBadgeText
-                        ]}>
-                            {isAwaitingRefundDecision
-                                ? (isCancelledByAdmin ? 'ACCEPTED BY HIKER' : 'NEEDS REFUND DECISION')
-                                : 'APPROVED'}
-                        </CustomText>
-                    </View>
+                    <CustomStatusBadge
+                        status={isAwaitingRefundDecision ? 'pending' : 'completed'}
+                        label={isAwaitingRefundDecision
+                            ? (isCancelledByAdmin ? 'ACCEPTED BY HIKER' : 'NEEDS REFUND DECISION')
+                            : 'APPROVED'}
+                        size="sm"
+                    />
                 )}
 
                 {isDeclined && (
-                    <View style={styles.declinedBadge}>
-                        <CustomIcon
-                            library="Feather"
-                            name="x-circle"
-                            size={12}
-                            color={Colors.ERROR}
-                        />
-                        <CustomText style={styles.declinedBadgeText}>
-                            DECLINED
-                        </CustomText>
-                    </View>
+                    <CustomStatusBadge
+                        status="reservation-rejected"
+                        label="DECLINED"
+                        size="sm"
+                    />
+                )}
+
+                {isPending && (
+                    <CustomStatusBadge
+                        status="for-reservation"
+                        label="PENDING REVIEW"
+                        size="sm"
+                    />
                 )}
             </View>
 
