@@ -54,6 +54,18 @@ export type { UseLegalTermsTutorialParams } from '@/src/components/Tutorial/hook
 export { useEmergencyModalTutorial } from '@/src/components/Tutorial/hooks/modals/useEmergencyModalTutorial';
 export type { UseEmergencyModalTutorialParams } from '@/src/components/Tutorial/hooks/modals/useEmergencyModalTutorial';
 
+// Admin Domain
+export { useAdminDashboardTutorial } from '@/src/components/Tutorial/hooks/admin/useAdminDashboardTutorial';
+export type { UseAdminDashboardTutorialParams } from '@/src/components/Tutorial/hooks/admin/useAdminDashboardTutorial';
+export { useAdminOfferListTutorial } from '@/src/components/Tutorial/hooks/admin/useAdminOfferListTutorial';
+export type { UseAdminOfferListTutorialParams } from '@/src/components/Tutorial/hooks/admin/useAdminOfferListTutorial';
+export { useAdminOfferViewTutorial } from '@/src/components/Tutorial/hooks/admin/useAdminOfferViewTutorial';
+export type { UseAdminOfferViewTutorialParams } from '@/src/components/Tutorial/hooks/admin/useAdminOfferViewTutorial';
+export { useAdminOfferWriteTutorial } from '@/src/components/Tutorial/hooks/admin/useAdminOfferWriteTutorial';
+export type { UseAdminOfferWriteTutorialParams } from '@/src/components/Tutorial/hooks/admin/useAdminOfferWriteTutorial';
+export { useAdminBookingReviewTutorial } from '@/src/components/Tutorial/hooks/admin/useAdminBookingReviewTutorial';
+export type { UseAdminBookingReviewTutorialParams } from '@/src/components/Tutorial/hooks/admin/useAdminBookingReviewTutorial';
+
 // CONFIG REGISTRY
 export { createReplayHelpStep, TUTORIAL_TOURS } from '@/src/components/Tutorial/constants';
 
