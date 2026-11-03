@@ -1,3 +1,10 @@
+/**
+ * @file RescheduleTab.tsx
+ * @description Admin component displaying reschedule request review, comparison between
+ * current and requested hike, financial reconciliation preview, and approve/decline workflows.
+ * Responsive for Web and Mobile.
+ */
+
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -6,6 +13,7 @@ import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomStatusBadge from '@/src/components/CustomStatusBadge';
 import CustomText from '@/src/components/CustomText';
 import { useToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
@@ -15,7 +23,7 @@ import { Offer, useOfferStore } from '@/src/core/models/Offer/Offer';
 import { Reschedule, useRescheduleAdmin } from '@/src/core/models/Reschedule/Reschedule';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
-export interface AdminRescheduleCardProps {
+export interface RescheduleTabProps {
     booking?: Booking | null;
     offers?: Offer[];
     reschedule?: Reschedule | null;
@@ -25,6 +33,9 @@ export interface AdminRescheduleCardProps {
     isProcessing?: boolean;
 }
 
+// Backward compatibility alias
+export type AdminRescheduleCardProps = RescheduleTabProps;
+
 const RESCHEDULE_DECLINE_SUGGESTIONS = [
     'Target hike is fully booked or at maximum capacity',
     'Requested hike date is no longer available',
@@ -32,7 +43,7 @@ const RESCHEDULE_DECLINE_SUGGESTIONS = [
     'Logistical or trail constraints on the requested date',
 ];
 
-export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
+export const RescheduleTab: React.FC<RescheduleTabProps> = ({
     booking,
     offers = [],
     reschedule: propReschedule,
@@ -192,7 +203,7 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
     };
 
     // Header metadata
-    const headerTitle = isPending
+        const headerTitle = isPending
         ? 'Reschedule Request Review'
         : isApproved
             ? 'Reschedule Approved'
@@ -201,69 +212,66 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
     const headerIcon = isPending ? 'calendar' : isApproved ? 'check-circle' : 'x-circle';
     const headerIconColor = isPending ? Colors.PRIMARY : isApproved ? Colors.SUCCESS : Colors.ERROR;
 
-    const badgeText = isPending ? 'PENDING APPROVAL' : isApproved ? 'APPROVED' : 'DECLINED';
-    const badgeStyle = isPending ? styles.badgePending : isApproved ? styles.badgeApproved : styles.badgeDeclined;
-    const badgeTextStyle = isPending ? styles.badgeTextPending : isApproved ? styles.badgeTextApproved : styles.badgeTextDeclined;
+    const subtitleText = isPending
+        ? 'Hiker requested to reschedule this booking to another date. Review details and inventory.'
+        : isApproved
+            ? 'This booking has been rescheduled. A new reservation document has been issued with transferred payments.'
+            : 'This reschedule request was declined. The original reservation remains active under its previous payment status.';
+
+    const statusBadgeStatus = isApproved ? 'completed' : isDeclined ? 'reservation-rejected' : 'for-reservation';
+    const badgeText = isPending ? 'PENDING REVIEW' : isApproved ? 'APPROVED' : 'DECLINED';
 
     return (
         <View style={styles.cardContainer}>
-            {/* Header Row */}
+            {/* Header Row: Title & Icon on Left, Canonical Status Badge on Right */}
             <View style={styles.headerRow}>
                 <View style={styles.headerLeft}>
-                    <View style={[styles.iconContainer, { backgroundColor: isPending ? Colors.STATUS_PENDING_BG : isApproved ? Colors.STATUS_APPROVED_BG : Colors.ERROR_BG }]}>
-                        <CustomIcon library="Feather" name={headerIcon} size={16} color={headerIconColor} />
-                    </View>
+                    <CustomIcon library="Feather" name={headerIcon} size={16} color={headerIconColor} />
                     <CustomText style={styles.headerTitle}>{headerTitle}</CustomText>
                 </View>
-                {!isPending && (
-                    <View style={[styles.badge, badgeStyle]}>
-                        <CustomText style={[styles.badgeText, badgeTextStyle]}>{badgeText}</CustomText>
-                    </View>
-                )}
+                <CustomStatusBadge
+                    status={statusBadgeStatus}
+                    label={badgeText}
+                    size="sm"
+                />
             </View>
 
-            {isApproved && (
-                <View style={styles.approvedBanner}>
-                    <CustomIcon library="Feather" name="check" size={15} color={Colors.SUCCESS} />
-                    <CustomText style={styles.approvedBannerText}>
-                        This booking has been rescheduled. A new reservation document has been issued with transferred payments.
-                    </CustomText>
-                </View>
-            )}
+            <CustomText variant="caption" style={styles.headerSubtitle}>
+                {subtitleText}
+            </CustomText>
 
-            {isDeclined && (
-                <View style={styles.declinedBanner}>
-                    <CustomIcon library="Feather" name="alert-circle" size={15} color={Colors.ERROR} />
-                    <CustomText style={styles.declinedBannerText}>
-                        This reschedule request was declined. The original reservation remains active under its previous payment status.
-                    </CustomText>
-                </View>
-            )}
-
-            {/* Hiker Submitted Reason */}
-            {(activeReschedule?.reason || booking?.rescheduleReason) && (
-                <View style={styles.reasonSection}>
-                    <CustomText style={styles.sectionLabel}>HIKER&apos;S SUBMITTED REASON</CustomText>
-                    <View style={styles.neutralQuoteBox}>
-                        <CustomText style={styles.reasonQuoteText}>
-                            &quot;{activeReschedule?.reason || booking?.rescheduleReason}&quot;
+            {/* Hiker Submitted Reason (Cancellation Tab InfoBox Style) */}
+            {(activeReschedule?.reason || booking?.rescheduleReason) ? (
+                <View style={styles.infoBox}>
+                    <View style={styles.infoBoxHeader}>
+                        <CustomText variant="caption" style={styles.infoBoxLabel}>
+                            HIKER&apos;S SUBMITTED REASON
                         </CustomText>
+                        {(activeReschedule?.createdAt || booking?.updatedAt) && (
+                            <CustomText variant="caption" style={styles.infoBoxTimestamp}>
+                                {formatBookingDate(activeReschedule?.createdAt || booking?.updatedAt, null, true)}
+                            </CustomText>
+                        )}
                     </View>
+                    <CustomText style={styles.infoBoxText}>
+                        &quot;{activeReschedule?.reason || booking?.rescheduleReason}&quot;
+                    </CustomText>
                 </View>
-            )}
+            ) : null}
 
             {/* Organizer Decline Reason (if declined) */}
-            {isDeclined && (activeReschedule?.adminNote || booking?.rescheduleDeclineReason) && (
-                <View style={styles.reasonSection}>
-                    <CustomText style={[styles.sectionLabel, { color: Colors.ERROR }]}>ORGANIZER DECLINE REASON</CustomText>
-                    <View style={[styles.reasonBox, styles.declineReasonBox]}>
-                        <CustomIcon library="Feather" name="alert-triangle" size={14} color={Colors.ERROR} style={styles.reasonIcon} />
-                        <CustomText style={[styles.reasonText, { color: Colors.ERROR }]}>
-                            {activeReschedule?.adminNote || booking?.rescheduleDeclineReason}
+            {isDeclined && (activeReschedule?.adminNote || booking?.rescheduleDeclineReason) ? (
+                <View style={[styles.infoBox, styles.declineInfoBox]}>
+                    <View style={styles.infoBoxHeader}>
+                        <CustomText variant="caption" style={styles.declineBoxLabel}>
+                            ORGANIZER&apos;S DECLINE REASON
                         </CustomText>
                     </View>
+                    <CustomText style={styles.declineBoxText}>
+                        {activeReschedule?.adminNote || booking?.rescheduleDeclineReason}
+                    </CustomText>
                 </View>
-            )}
+            ) : null}
 
             {/* Hike Comparison Section */}
             <View style={styles.comparisonContainer}>
@@ -327,38 +335,47 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
                 </View>
             </View>
 
-            {/* Financial Reconciliation Breakdown (3-Line Ledger) */}
-            <View style={styles.reconciliationCard}>
-                <CustomText style={styles.reconciliationTitle}>FINANCIAL RECONCILIATION PREVIEW</CustomText>
+            {/* Payment & Slot Summary Breakdown */}
+            <View style={styles.summaryCard}>
+                <CustomText style={styles.summaryTitle}>PAYMENT &amp; SLOT SUMMARY</CustomText>
 
-                <View style={styles.reconcileRow}>
-                    <CustomText style={styles.reconcileLabel}>Original Booking Paid:</CustomText>
-                    <CustomText style={styles.reconcileValue}>
+                <View style={styles.summaryRow}>
+                    <CustomText style={styles.summaryLabel}>Original Booking Paid:</CustomText>
+                    <CustomText style={styles.summaryValue}>
                         ₱{totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </CustomText>
                 </View>
-                <View style={styles.reconcileRow}>
-                    <CustomText style={styles.reconcileLabel}>New Offer Price:</CustomText>
-                    <CustomText style={styles.reconcileValue}>
+                <View style={styles.summaryRow}>
+                    <CustomText style={styles.summaryLabel}>New Offer Price:</CustomText>
+                    <CustomText style={styles.summaryValue}>
                         ₱{newPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </CustomText>
                 </View>
+                <View style={styles.summaryRow}>
+                    <CustomText style={styles.summaryLabel}>Original Slot:</CustomText>
+                    <CustomText style={[
+                        styles.summaryValue,
+                        isApproved ? styles.slotReleasedText : styles.slotPendingText
+                    ]}>
+                        {isApproved ? 'Released to Tour' : 'Releases to Tour on approval'}
+                    </CustomText>
+                </View>
 
-                <View style={styles.reconcileDivider} />
+                <View style={styles.summaryDivider} />
 
-                <View style={styles.reconcileRow}>
-                    <CustomText style={[styles.reconcileLabel, { fontWeight: '700', color: Colors.TEXT_PRIMARY }]}>
+                <View style={styles.summaryRow}>
+                    <CustomText style={[styles.summaryLabel, { fontWeight: '700', color: Colors.TEXT_PRIMARY }]}>
                         {totalPaid > newPrice ? 'Excess Refund Due:' : newPrice > totalPaid ? 'Balance Due from Hiker:' : 'Financial Settlement:'}
                     </CustomText>
                     <CustomText style={[
-                        styles.reconcileValue,
+                        styles.summaryValue,
                         { fontWeight: '700' },
                         totalPaid > newPrice ? styles.textAmber : newPrice > totalPaid ? styles.textAmber : styles.textGreen
                     ]}>
                         {totalPaid > newPrice
                             ? `Refund: ₱${resultingOverpayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                             : newPrice > totalPaid
-                                ? `Balance: ₱${resultingRemainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                ? `₱${resultingRemainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                                 : 'Fully Covered (₱0.00)'}
                     </CustomText>
                 </View>
@@ -435,9 +452,11 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
                                 variant="outline"
                                 onPress={() => setIsDeclineExpanded(true)}
                                 disabled={isBusy}
-                                style={styles.flexButton}
+                                style={[styles.flexButton, styles.declineBtn]}
+                                textStyle={styles.declineBtnText}
                                 icon="x-circle"
                                 iconLibrary="Feather"
+                                iconColor={Colors.ERROR}
                             />
                             <CustomButton
                                 title="Approve Reschedule"
@@ -491,7 +510,8 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
     );
 };
 
-export default AdminRescheduleCard;
+export { RescheduleTab as AdminRescheduleCard };
+export default RescheduleTab;
 
 const styles = StyleSheet.create({
     cardContainer: {
@@ -507,20 +527,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 14,
+        marginBottom: 4,
     },
     headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 8,
         flex: 1,
-    },
-    iconContainer: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     headerTitle: {
         fontSize: 16,
@@ -528,131 +541,62 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
         flex: 1,
     },
-    badge: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 20,
-    },
-    badgePending: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-    },
-    badgeApproved: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-    },
-    badgeDeclined: {
-        backgroundColor: Colors.ERROR_BG,
-    },
-    badgeText: {
-        fontSize: 11,
-        fontWeight: '700',
-        letterSpacing: 0.5,
-    },
-    badgeTextPending: {
-        color: Colors.PRIMARY,
-    },
-    badgeTextApproved: {
-        color: Colors.PRIMARY,
-    },
-    badgeTextDeclined: {
-        color: Colors.ERROR,
-    },
-    pendingBanner: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 8,
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        padding: 12,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: Colors.STATUS_APPROVED_BORDER,
-        marginBottom: 14,
-    },
-    bannerText: {
-        fontSize: 13,
-        color: Colors.PRIMARY,
-        flex: 1,
-        lineHeight: 18,
-    },
-    approvedBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        padding: 12,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: Colors.STATUS_APPROVED_BORDER,
-        marginBottom: 14,
-    },
-    approvedBannerText: {
-        fontSize: 13,
-        color: Colors.PRIMARY,
-        flex: 1,
-        lineHeight: 18,
-    },
-    declinedBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: Colors.ERROR_BG,
-        padding: 12,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: Colors.ERROR_BORDER,
-        marginBottom: 14,
-    },
-    declinedBannerText: {
-        fontSize: 13,
-        color: Colors.ERROR,
-        flex: 1,
-        lineHeight: 18,
-    },
-    reasonSection: {
-        marginBottom: 14,
-    },
-    sectionLabel: {
-        fontSize: 11,
-        fontWeight: '700',
+    headerSubtitle: {
         color: Colors.TEXT_SECONDARY,
-        letterSpacing: 0.5,
-        marginBottom: 6,
+        fontSize: 12,
+        marginBottom: 14,
+        lineHeight: 16,
     },
-    reasonBox: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 8,
+    infoBox: {
         backgroundColor: Colors.GRAY_ULTRALIGHT,
-        borderLeftWidth: 3,
-        borderLeftColor: Colors.PRIMARY,
-        padding: 10,
-        borderRadius: 6,
-    },
-    neutralQuoteBox: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 8,
+        borderRadius: 10,
+        padding: 14,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
-        padding: 12,
+        borderColor: Colors.GRAY_LIGHT,
+        marginBottom: 12,
     },
-    reasonQuoteText: {
+    declineInfoBox: {
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        borderColor: Colors.ERROR_BORDER,
+    },
+    infoBoxHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        flexWrap: 'wrap',
+        rowGap: 4,
+        columnGap: 8,
+        marginBottom: 10,
+    },
+    infoBoxLabel: {
+        fontWeight: 'bold',
+        fontSize: 10,
+        letterSpacing: 0.5,
+        color: Colors.TEXT_SECONDARY,
+    },
+    declineBoxLabel: {
+        fontWeight: 'bold',
+        fontSize: 10,
+        letterSpacing: 0.5,
+        color: Colors.ERROR,
+    },
+    infoBoxTimestamp: {
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 11,
+        fontWeight: '500',
+    },
+    infoBoxText: {
         fontSize: 13,
-        color: Colors.TEXT_PRIMARY,
         fontStyle: 'italic',
-        lineHeight: 18,
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 20,
     },
-    declineReasonBox: {
-        borderLeftColor: Colors.ERROR,
-        backgroundColor: Colors.ERROR_BG,
-    },
-    reasonIcon: {
-        marginTop: 2,
-    },
-    reasonText: {
+    declineBoxText: {
         fontSize: 13,
-        color: Colors.TEXT_PRIMARY,
-        flex: 1,
         fontStyle: 'italic',
-        lineHeight: 18,
+        color: Colors.ERROR,
+        fontWeight: '500',
+        lineHeight: 20,
     },
     comparisonContainer: {
         flexDirection: 'row',
@@ -662,7 +606,7 @@ const styles = StyleSheet.create({
         padding: 12,
         marginBottom: 14,
         borderWidth: 1,
-        borderColor: Colors.GRAY_ULTRALIGHT,
+        borderColor: Colors.GRAY_LIGHT,
     },
     comparisonColumn: {
         flex: 1,
@@ -672,7 +616,7 @@ const styles = StyleSheet.create({
         padding: 8,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: Colors.STATUS_APPROVED_BG,
+        borderColor: Colors.STATUS_APPROVED_BORDER,
     },
     columnHeader: {
         fontSize: 10,
@@ -706,35 +650,43 @@ const styles = StyleSheet.create({
         color: Colors.PRIMARY,
         fontWeight: '600',
     },
-    reconciliationCard: {
-        backgroundColor: Colors.WHITE,
+    summaryCard: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderRadius: 10,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
-        padding: 12,
+        padding: 14,
         marginBottom: 16,
     },
-    reconciliationTitle: {
+    summaryTitle: {
         fontSize: 10,
         fontWeight: '800',
         color: Colors.TEXT_SECONDARY,
         letterSpacing: 0.5,
-        marginBottom: 8,
+        marginBottom: 10,
     },
-    reconcileRow: {
+    summaryRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 4,
+        marginBottom: 6,
     },
-    reconcileLabel: {
+    summaryLabel: {
         fontSize: 12,
         color: Colors.TEXT_SECONDARY,
     },
-    reconcileValue: {
+    summaryValue: {
         fontSize: 12,
         fontWeight: '600',
         color: Colors.TEXT_PRIMARY,
+    },
+    slotReleasedText: {
+        color: Colors.PRIMARY,
+        fontWeight: '700',
+    },
+    slotPendingText: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '500',
     },
     textAmber: {
         color: Colors.WARNING,
@@ -742,9 +694,9 @@ const styles = StyleSheet.create({
     textGreen: {
         color: Colors.SUCCESS,
     },
-    reconcileDivider: {
+    summaryDivider: {
         height: 1,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        backgroundColor: Colors.GRAY_LIGHT,
         marginVertical: 8,
     },
     actionContainer: {
@@ -756,6 +708,15 @@ const styles = StyleSheet.create({
     },
     flexButton: {
         flex: 1,
+        minHeight: 52,
+        justifyContent: 'center',
+    },
+    declineBtn: {
+        borderColor: Colors.ERROR,
+    },
+    declineBtnText: {
+        color: Colors.ERROR,
+        fontWeight: '600',
     },
     declineForm: {
         gap: 12,
@@ -767,3 +728,4 @@ const styles = StyleSheet.create({
         width: '100%',
     },
 });
+
