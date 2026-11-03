@@ -19,7 +19,7 @@ import {
     ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Polygon, Rect } from 'react-native-svg';
+import Svg, { Path, Polygon } from 'react-native-svg';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -207,6 +207,9 @@ interface TargetGeometry {
  * on active or backgrounded stack screens attach zero listeners and perform zero geometry work.
  */
 
+/**
+ * Detects whether a spotlight target element is on a vertically scrollable container section.
+ */
 const isPotentiallyScrolledTarget = (spotlightType?: string): boolean => {
     if (!spotlightType) return false;
     return (
@@ -215,14 +218,20 @@ const isPotentiallyScrolledTarget = (spotlightType?: string): boolean => {
         spotlightType.includes('status') ||
         spotlightType.includes('documents') ||
         spotlightType.includes('accordions') ||
+        spotlightType.includes('quick_info') ||
         spotlightType.includes('payment') ||
         spotlightType.includes('emergency') ||
         spotlightType.includes('review') ||
+        spotlightType.includes('activity_log') ||
+        spotlightType.includes('write') ||
+        spotlightType.includes('schedule') ||
+        spotlightType.includes('checklists') ||
+        spotlightType.includes('filters') ||
         spotlightType.includes('bottom') ||
+        spotlightType.includes('decision') ||
         spotlightType.includes('footer')
     );
 };
-
 
 /**
  * Standalone pure geometry calculator computing viewport bounding box and placement
@@ -501,6 +510,18 @@ const computeTargetGeometry = (
             };
         }
 
+        if (spotlightType === 'my_booking_quick_info') {
+            const cardY = insets.top + (width < 600 ? 175 : 165);
+            return {
+                x: contentX + 20,
+                y: cardY,
+                width: contentW - 40,
+                height: 100,
+                rx: 16,
+                placement: 'top',
+            };
+        }
+
         if (spotlightType === 'booking_details_docs') {
             return {
                 x: contentX,
@@ -647,129 +668,121 @@ const ActiveTutorialModalContent = ({
     const [measuredCardHeight, setMeasuredCardHeight] = useState<number>(235);
     const [registryVersion, setRegistryVersion] = useState<number>(0);
     const containerRef = useRef<View>(null);
-        // Animated values for GPU-accelerated micro-transition (Native Driver on Android/iOS)
-        const [cardOpacity] = useState(() => new Animated.Value(0));
+    // Animated values for GPU-accelerated micro-transition (Native Driver on Android/iOS)
+    const [cardOpacity] = useState(() => new Animated.Value(0));
     const [cardScale] = useState(() => new Animated.Value(0.96));
     const [cardTranslateY] = useState(() => new Animated.Value(-6));
-    const [cardPosAnim] = useState(() => new Animated.ValueXY({ x: 16, y: 100 }));
 
-    // Internal state representing the step currently rendered inside the tooltip card
-    const [displayedStep, setDisplayedStep] = useState<TutorialStep>(currentStep);
-    const [displayedStepIndex, setDisplayedStepIndex] = useState<number>(currentStepIndex);
+    // Smooth & adaptive spotlight ring bloom
+    const [spotlightRingOpacity] = useState(() => new Animated.Value(0));
 
-    // Track active transition to avoid race conditions and handle autoscroll synchronization
-    const isTransitioningRef = useRef<boolean>(false);
-    const pendingStepRef = useRef<{ step: TutorialStep; index: number } | null>(null);
+    // Track previous step to distinguish initial open from step changes
+    const prevStepIndexRef = useRef<number>(currentStepIndex);
+    const isFirstMountRef = useRef<boolean>(true);
+    const settleTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const lastNextTapRef = useRef<number>(0);
 
-    // Initial entrance bloom on first mount
+    // Coordinated Entrance & Transition Bloom on Step Change (with Mobile Autoscroll Settle Gate)
     useEffect(() => {
-        Animated.parallel([
-            Animated.timing(cardOpacity, {
-                toValue: 1,
-                duration: 200,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: Platform.OS !== 'web',
-            }),
-            Animated.timing(cardScale, {
-                toValue: 1,
-                duration: 220,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: Platform.OS !== 'web',
-            }),
-            Animated.timing(cardTranslateY, {
-                toValue: 0,
-                duration: 220,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: Platform.OS !== 'web',
-            }),
-        ]).start();
-    }, [cardOpacity, cardScale, cardTranslateY]);
-
-    // Coordinated Two-Phase Step Transition & Autoscroll Settle Gate
-    useEffect(() => {
-        if (currentStepIndex === displayedStepIndex) {
-            return;
+        if (settleTimerRef.current) {
+            clearTimeout(settleTimerRef.current);
+            settleTimerRef.current = null;
         }
 
-        pendingStepRef.current = { step: currentStep, index: currentStepIndex };
+        cardOpacity.stopAnimation();
+        cardScale.stopAnimation();
+        cardTranslateY.stopAnimation();
+        spotlightRingOpacity.stopAnimation();
 
-        if (isTransitioningRef.current) {
-            return;
+        const isScrollStep =
+            isPotentiallyScrolledTarget(currentStep?.targetSpotlight) ||
+            isPotentiallyScrolledTarget(currentStep?.secondaryTargetSpotlight);
+
+        let settleDelay = 0;
+        let isAdvancing = true;
+
+        if (isFirstMountRef.current) {
+            isFirstMountRef.current = false;
+            cardOpacity.setValue(0);
+            cardScale.setValue(0.96);
+            cardTranslateY.setValue(-4);
+            spotlightRingOpacity.setValue(0);
+        } else {
+            isAdvancing = currentStepIndex >= prevStepIndexRef.current;
+            prevStepIndexRef.current = currentStepIndex;
+
+            if (isScrollStep) {
+                // Wait for the ~280ms native scroll glide to complete first (Web & Mobile)
+                settleDelay = 300;
+                cardOpacity.setValue(0);
+                spotlightRingOpacity.setValue(0);
+            } else {
+                // On in-viewport steps, bloom immediately
+                cardOpacity.setValue(0.2);
+                cardScale.setValue(0.97);
+                cardTranslateY.setValue(-3);
+                spotlightRingOpacity.setValue(0.2);
+            }
         }
 
-        isTransitioningRef.current = true;
+        const triggerBloom = () => {
+            // Directional vertical entrance float:
+            // Downward travel -> float down into place (-10 -> 0)
+            // Upward travel -> float up into place (+10 -> 0)
+            // In-place -> subtle float (-4 -> 0)
+            const initialTranslateY = isScrollStep ? (isAdvancing ? -10 : 10) : -4;
+            cardTranslateY.setValue(initialTranslateY);
+            cardScale.setValue(0.96);
 
-        // Phase 1: Micro-exit (fast, snappy 75ms fade & scale down)
-        Animated.parallel([
-            Animated.timing(cardOpacity, {
-                toValue: 0,
-                duration: 75,
-                useNativeDriver: Platform.OS !== 'web',
-            }),
-            Animated.timing(cardScale, {
-                toValue: 0.96,
-                duration: 75,
-                useNativeDriver: Platform.OS !== 'web',
-            }),
-            Animated.timing(cardTranslateY, {
-                toValue: 4,
-                duration: 75,
-                useNativeDriver: Platform.OS !== 'web',
-            }),
-        ]).start(({ finished }) => {
-            if (!finished) return;
+            Animated.parallel([
+                Animated.timing(cardOpacity, {
+                    toValue: 1,
+                    duration: 160,
+                    easing: Easing.out(Easing.cubic),
+                    useNativeDriver: Platform.OS !== 'web',
+                }),
+                Animated.timing(cardScale, {
+                    toValue: 1,
+                    duration: 160,
+                    easing: Easing.out(Easing.cubic),
+                    useNativeDriver: Platform.OS !== 'web',
+                }),
+                Animated.timing(cardTranslateY, {
+                    toValue: 0,
+                    duration: 160,
+                    easing: Easing.out(Easing.cubic),
+                    useNativeDriver: Platform.OS !== 'web',
+                }),
+                Animated.timing(spotlightRingOpacity, {
+                    toValue: 1,
+                    duration: 160,
+                    easing: Easing.out(Easing.cubic),
+                    useNativeDriver: Platform.OS !== 'web',
+                }),
+            ]).start();
+        };
 
-            const next = pendingStepRef.current || { step: currentStep, index: currentStepIndex };
-            setDisplayedStep(next.step);
-            setDisplayedStepIndex(next.index);
+        if (settleDelay > 0) {
+            settleTimerRef.current = setTimeout(triggerBloom, settleDelay);
+        } else {
+            triggerBloom();
+        }
 
-            // Check if either the old or next target is on a scrollable section
-            const isScrollStep =
-                isPotentiallyScrolledTarget(displayedStep?.targetSpotlight) ||
-                isPotentiallyScrolledTarget(next.step?.targetSpotlight);
-
-            // If an autoscroll is in motion, wait for the ~250ms scroll transition to settle
-            const settleDelay = isScrollStep ? 130 : 25;
-
-            const enterTimer = setTimeout(() => {
-                // Prepare Phase 2 initial values
-                cardTranslateY.setValue(-6);
-                cardScale.setValue(0.96);
-
-                // Phase 2: Micro-enter (180ms ease-out smooth bloom)
-                Animated.parallel([
-                    Animated.timing(cardOpacity, {
-                        toValue: 1,
-                        duration: 160,
-                        useNativeDriver: Platform.OS !== 'web',
-                    }),
-                    Animated.timing(cardScale, {
-                        toValue: 1,
-                        duration: 180,
-                        easing: Easing.out(Easing.cubic),
-                        useNativeDriver: Platform.OS !== 'web',
-                    }),
-                    Animated.timing(cardTranslateY, {
-                        toValue: 0,
-                        duration: 180,
-                        easing: Easing.out(Easing.cubic),
-                        useNativeDriver: Platform.OS !== 'web',
-                    }),
-                ]).start(() => {
-                    isTransitioningRef.current = false;
-                });
-            }, settleDelay);
-
-            return () => clearTimeout(enterTimer);
-        });
+        return () => {
+            if (settleTimerRef.current) {
+                clearTimeout(settleTimerRef.current);
+                settleTimerRef.current = null;
+            }
+        };
     }, [
         currentStepIndex,
-        currentStep,
-        displayedStepIndex,
-        displayedStep,
+        currentStep?.targetSpotlight,
+        currentStep?.secondaryTargetSpotlight,
+        width,
         cardOpacity,
         cardScale,
         cardTranslateY,
+        spotlightRingOpacity,
     ]);
     const [overlayOrigin, setOverlayOrigin] = useState<{ x: number; y: number }>({
         x: 0,
@@ -802,7 +815,7 @@ const ActiveTutorialModalContent = ({
         };
     }, []);
 
-    // Resolve which element is being targeted for the transparent cutout spotlight
+    // Resolve which element is being targeted for the transparent cutout spotlight & tooltip
     const targetSpotlightType: TargetSpotlightType = useMemo(() => {
         if (currentStep?.targetSpotlight) {
             return currentStep.targetSpotlight;
@@ -817,20 +830,7 @@ const ActiveTutorialModalContent = ({
         return 'content_center';
     }, [currentStep]);
 
-    // Resolve which element is being targeted for the tooltip card & arrow (anchored to displayedStep)
-    const displayedTargetSpotlightType: TargetSpotlightType = useMemo(() => {
-        if (displayedStep?.targetSpotlight) {
-            return displayedStep.targetSpotlight;
-        }
-        if (displayedStep?.highlightHeaderHelp) {
-            return 'header_help';
-        }
-        if (typeof displayedStep?.highlightTabIndex === 'number') {
-            const idx = Math.max(0, Math.min(4, displayedStep.highlightTabIndex));
-            return `tab_${idx}` as TargetSpotlightType;
-        }
-        return 'content_center';
-    }, [displayedStep]);
+    const displayedTargetSpotlightType = targetSpotlightType;
 
     // Request on-demand measurement and auto-scroll for the active spotlight target
     useEffect(() => {
@@ -884,7 +884,7 @@ const ActiveTutorialModalContent = ({
         return computeTargetGeometry(targetSpotlightType, width, height, insets, overlayOrigin);
     }, [targetSpotlightType, width, height, insets, registryVersion, overlayOrigin]);
 
-    // Calculate pixel coordinates for the tooltip card (firmly locked to displayedStep)
+    // Calculate pixel coordinates for the tooltip card
     const cardTargetGeom: TargetGeometry = useMemo(() => {
         void registryVersion;
         return computeTargetGeometry(displayedTargetSpotlightType, width, height, insets, overlayOrigin);
@@ -977,8 +977,8 @@ const ActiveTutorialModalContent = ({
         return paths.join(' ');
     }, [targetGeom, secondaryGeom, width, height]);
 
-    const isFirstStep = displayedStepIndex === 0;
-    const isLastStep = displayedStepIndex === totalSteps - 1;
+    const isFirstStep = currentStepIndex === 0;
+    const isLastStep = currentStepIndex === totalSteps - 1;
 
     const minSafeTop = insets.top + 12;
     const maxSafeBottom = height - insets.bottom - 12;
@@ -1010,7 +1010,7 @@ const ActiveTutorialModalContent = ({
         );
     } else {
         const neededSpace = measuredCardHeight + 14;
-        const explicitPlacement = displayedStep?.tooltipPlacement;
+        const explicitPlacement = currentStep?.tooltipPlacement;
         let preferAbove = false;
 
         if (explicitPlacement === 'top') {
@@ -1109,32 +1109,25 @@ const ActiveTutorialModalContent = ({
         return null;
     }, [secondaryGeom, cardLeft, cardMaxWidth, cardTop, measuredCardHeight]);
 
-    // Position gliding animation for post-scroll settling adjustments
-
-    useEffect(() => {
-        if (isTransitioningRef.current) {
-            // Instantly snap coordinates while card is 100% invisible (opacity = 0)
-            cardPosAnim.setValue({ x: cardLeft, y: cardTop });
+    // Throttled Next Press (prevents touch bounces from microsecond double-skips)
+    const handleNextPress = useCallback(() => {
+        const now = Date.now();
+        if (now - lastNextTapRef.current < 120) {
             return;
         }
-
-        // Card is already visible on the current step: gently glide if position adjusted
-        Animated.timing(cardPosAnim, {
-            toValue: { x: cardLeft, y: cardTop },
-            duration: 140,
-            useNativeDriver: false,
-        }).start();
-    }, [cardLeft, cardTop, cardPosAnim]);
+        lastNextTapRef.current = now;
+        onNext();
+    }, [onNext]);
 
     const categoryLabel =
-        displayedStep.category ||
+        currentStep.category ||
         (targetSpotlightType.startsWith('web_drawer_')
             ? 'Sidebar Navigation'
-            : typeof displayedStep.highlightTabIndex === 'number'
-                ? `${TAB_NAMES[displayedStep.highlightTabIndex]} Tab`
-                : displayedStep.highlightHeaderHelp
+            : typeof currentStep.highlightTabIndex === 'number'
+                ? `${TAB_NAMES[currentStep.highlightTabIndex]} Tab`
+                : currentStep.highlightHeaderHelp
                     ? 'Replay Guide'
-                    : `Step ${displayedStepIndex + 1} of ${totalSteps}`);
+                    : `Step ${currentStepIndex + 1} of ${totalSteps}`);
 
     const overlayContent = (
         <View
@@ -1142,7 +1135,7 @@ const ActiveTutorialModalContent = ({
             style={styles.fullscreenContainer}
             onLayout={measureOverlayOrigin}
         >
-            {/* 1. Fullscreen SVG: Dimmed Backdrop + Spotlight Frame */}
+            {/* 1. Fullscreen SVG: Steady, Non-Flashing Dimmed Backdrop */}
             <Svg
                 width={width}
                 height={height}
@@ -1154,48 +1147,55 @@ const ActiveTutorialModalContent = ({
                     fill="rgba(0, 0, 0, 0.58)"
                     fillRule="evenodd"
                 />
-                <Rect
-                    x={targetGeom.x - 1}
-                    y={targetGeom.y - 1}
-                    width={targetGeom.width + 2}
-                    height={targetGeom.height + 2}
-                    rx={targetGeom.rx}
-                    ry={targetGeom.rx}
-                    fill="none"
-                    stroke={Colors.PRIMARY}
-                    strokeWidth={2.5}
-                />
-                {secondaryGeom && (
-                    <Rect
-                        x={secondaryGeom.x - 1}
-                        y={secondaryGeom.y - 1}
-                        width={secondaryGeom.width + 2}
-                        height={secondaryGeom.height + 2}
-                        rx={secondaryGeom.rx}
-                        ry={secondaryGeom.rx}
-                        fill="none"
-                        stroke={Colors.PRIMARY}
-                        strokeWidth={2.5}
-                    />
-                )}
             </Svg>
 
-            {/* 2. Interactive Backdrop: Tapping outside the tooltip advances to the next step */}
+            {/* 2. Spotlight Highlight Frame: Soft Accent Bloom over Active Target */}
+            <Animated.View
+                pointerEvents="none"
+                style={[
+                    styles.spotlightHighlightFrame,
+                    {
+                        left: targetGeom.x - 1,
+                        top: targetGeom.y - 1,
+                        width: targetGeom.width + 2,
+                        height: targetGeom.height + 2,
+                        borderRadius: targetGeom.rx,
+                        opacity: spotlightRingOpacity,
+                    },
+                ]}
+            />
+            {secondaryGeom && (
+                <View
+                    pointerEvents="none"
+                    style={[
+                        styles.spotlightHighlightFrame,
+                        {
+                            left: secondaryGeom.x - 1,
+                            top: secondaryGeom.y - 1,
+                            width: secondaryGeom.width + 2,
+                            height: secondaryGeom.height + 2,
+                            borderRadius: secondaryGeom.rx,
+                        },
+                    ]}
+                />
+            )}
+
+            {/* 3. Interactive Backdrop: Tapping outside the tooltip advances to the next step */}
             <TouchableOpacity
                 activeOpacity={1}
                 style={StyleSheet.absoluteFill}
-                onPress={onNext}
+                onPress={handleNextPress}
                 accessibilityRole="button"
                 accessibilityLabel="Next tutorial step"
             />
 
-            {/* 3. Floating Speech-Bubble Tooltip */}
+            {/* 4. Floating Speech-Bubble Tooltip (Direct in-place positioning & adaptive micro-bloom) */}
             <Animated.View
                 style={[
                     styles.tooltipWrapper,
                     {
-                        left: cardPosAnim.x,
-                        top: cardPosAnim.y,
+                        left: cardLeft,
+                        top: cardTop,
                         width: cardMaxWidth,
                         opacity: cardOpacity,
                         transform: [
@@ -1266,14 +1266,14 @@ const ActiveTutorialModalContent = ({
                     </View>
 
                     <CustomText variant="h3" style={styles.tooltipTitle}>
-                        {displayedStep.title}
+                        {currentStep.title}
                     </CustomText>
 
                     <CustomText variant="body" style={styles.tooltipDescription}>
-                        {displayedStep.description}
+                        {currentStep.description}
                     </CustomText>
 
-                    {Boolean(displayedStep.actionTip) && (
+                    {Boolean(currentStep.actionTip) && (
                         <View style={styles.tipRow}>
                             <CustomIcon
                                 library="Feather"
@@ -1282,7 +1282,7 @@ const ActiveTutorialModalContent = ({
                                 color={Colors.PRIMARY}
                             />
                             <CustomText variant="caption" style={styles.tipText}>
-                                {displayedStep.actionTip}
+                                {currentStep.actionTip}
                             </CustomText>
                         </View>
                     )}
@@ -1307,7 +1307,7 @@ const ActiveTutorialModalContent = ({
                                 const stepCount = tourConfig.steps.length;
                                 if (stepCount <= 7) {
                                     return tourConfig.steps.map((_, idx) => {
-                                        const isActive = idx === displayedStepIndex;
+                                        const isActive = idx === currentStepIndex;
                                         return (
                                             <View
                                                 key={idx}
@@ -1322,7 +1322,7 @@ const ActiveTutorialModalContent = ({
 
                                 // Adaptive sliding window capped at 7 dots
                                 const WINDOW_SIZE = 7;
-                                let windowStart = Math.max(0, displayedStepIndex - 3);
+                                let windowStart = Math.max(0, currentStepIndex - 3);
                                 let windowEnd = windowStart + WINDOW_SIZE - 1;
                                 if (windowEnd >= stepCount) {
                                     windowEnd = stepCount - 1;
@@ -1331,7 +1331,7 @@ const ActiveTutorialModalContent = ({
 
                                 const visibleDots: React.JSX.Element[] = [];
                                 for (let i = windowStart; i <= windowEnd; i++) {
-                                    const isActive = i === displayedStepIndex;
+                                    const isActive = i === currentStepIndex;
                                     const isLeftEdge = i === windowStart && windowStart > 0;
                                     const isRightEdge = i === windowEnd && windowEnd < stepCount - 1;
                                     const isEdge = isLeftEdge || isRightEdge;
@@ -1355,7 +1355,7 @@ const ActiveTutorialModalContent = ({
                         </View>
 
                         <TouchableOpacity
-                            onPress={onNext}
+                            onPress={handleNextPress}
                             activeOpacity={0.8}
                             style={styles.nextButton}
                         >
@@ -1435,6 +1435,12 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         zIndex: 9999,
+    },
+    spotlightHighlightFrame: {
+        position: 'absolute',
+        borderColor: Colors.PRIMARY,
+        borderWidth: 2.5,
+        zIndex: 90,
     },
     helpIconButton: {
         padding: 4,
