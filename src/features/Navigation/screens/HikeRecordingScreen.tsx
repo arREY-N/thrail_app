@@ -88,7 +88,7 @@ HikeDurationTimer.displayName = "HikeDurationTimer";
 
 const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     hike, booking, currentGroup, hikerLocations, error, fullOffer,
-    baseElapsedTime, timerStartTime, totalDistance, totalElevationGain, totalElevationLoss = 0,
+    baseElapsedTime, timerStartTime, totalDistance, totalElevationGain,
     isLoading, lon, lat,
     onStartHike, onPauseHike, onResumeHike, onCompleteHike, onResetHike, onAddReview, onBackPress,
     onTriggerBackendSOS, onTriggerEmergencySOS, onOpenSOSCamera, emergencyContactNumber,
@@ -397,21 +397,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         return `${(meters / 1000).toFixed(2)} km`;
     };
     const liveDistanceStr = isTracking ? formatDistance(totalDistance) : "--";
-
-    const rawCurrentAlt = currentLocation?.altitude;
-    const hasValidCurrentAlt =
-        typeof rawCurrentAlt === "number" &&
-        !isNaN(rawCurrentAlt) &&
-        isFinite(rawCurrentAlt) &&
-        rawCurrentAlt !== 0;
-
-    // Show live MASL altitude whenever a valid 3D fix is available (or fallback to --)
-    const liveAltitudeMaslStr = hasValidCurrentAlt
-        ? `${Math.round(rawCurrentAlt)} m`
-        : "--";
-
-    const liveGainStr = `↑ ${Math.round(totalElevationGain || 0)}m`;
-    const liveLossStr = `↓ ${Math.round(totalElevationLoss || 0)}m`;
+    const liveElevationStr = isTracking ? `${Math.round(totalElevationGain)} m` : "--";
 
     return (
         <View style={styles.container}>
@@ -616,14 +602,8 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                         />
                         <View style={styles.metricDivider} />
                         <View style={styles.metricItem}>
-                            <CustomText style={styles.metricValue}>{liveAltitudeMaslStr}</CustomText>
+                            <CustomText style={styles.metricValue}>{liveElevationStr}</CustomText>
                             <CustomText style={styles.metricLabel}>Elevation</CustomText>
-                            {isTracking && (
-                                <View style={styles.elevationDeltaRow}>
-                                    <CustomText style={styles.elevationGainText} numberOfLines={1}>{liveGainStr}</CustomText>
-                                    <CustomText style={styles.elevationLossText} numberOfLines={1}>{liveLossStr}</CustomText>
-                                </View>
-                            )}
                         </View>
                     </View>
                 </View>
@@ -1086,23 +1066,6 @@ const styles = StyleSheet.create({
     metricDivider: { width: 1, height: '80%', backgroundColor: Colors.GRAY_LIGHT },
     metricValue: { fontSize: 18, fontWeight: "900", color: Colors.TEXT_PRIMARY, letterSpacing: -0.5 },
     metricLabel: { color: Colors.TEXT_SECONDARY, fontSize: 10, fontWeight: "700", textTransform: "uppercase", marginTop: 4 },
-    elevationDeltaRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        marginTop: 2,
-    },
-    elevationGainText: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: Colors.PRIMARY,
-    },
-    elevationLossText: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: Colors.TEXT_SECONDARY,
-    },
 
     actionRow: { flexDirection: "row", gap: 12, width: '100%', maxWidth: Layout.MAX_WIDTH },
 
