@@ -7,6 +7,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
+    Animated,
     Dimensions,
     Keyboard,
     Modal,
@@ -21,7 +22,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomTextInput, { stripEmojis } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
@@ -65,7 +65,36 @@ export const AdminRevertPaymentModal: React.FC<AdminRevertPaymentModalProps> = (
 
     const scrollViewRef = useRef<ScrollView>(null);
     const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
-    const [revertReason, setRevertReason] = useState<string>('');
+
+    const [renderModal, setRenderModal] = useState<boolean>(visible);
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+    const [animValue] = useState(() => new Animated.Value(0));
+
+    const [prevVisible, setPrevVisible] = useState(visible);
+    if (visible !== prevVisible) {
+        setPrevVisible(visible);
+        if (visible) {
+            setRenderModal(true);
+        }
+    }
+
+    useEffect(() => {
+        if (visible) {
+            Animated.timing(animValue, {
+                toValue: 1,
+                duration: 280,
+                useNativeDriver: Platform.OS !== 'web',
+            }).start();
+        } else {
+            Animated.timing(animValue, {
+                toValue: 0,
+                duration: 220,
+                useNativeDriver: Platform.OS !== 'web',
+            }).start(() => setRenderModal(false));
+        }
+    }, [visible, animValue]);
 
     // Track software keyboard height on mobile to dynamically lift the modal bottom sheet
     useEffect(() => {
@@ -106,34 +135,47 @@ export const AdminRevertPaymentModal: React.FC<AdminRevertPaymentModalProps> = (
             await onConfirm({
                 paymentIndex,
                 revertRejection: isRejectionRevert,
-                reason: revertReason.trim() || undefined,
             });
-            setRevertReason('');
             onClose();
         } catch {
             // Handled by caller
         }
     };
 
+    if (!renderModal) return null;
+
     return (
         <Modal
-            visible={visible}
+            visible={renderModal}
             transparent={true}
-            animationType={isMobile ? 'slide' : 'fade'}
+            animationType="none"
             onRequestClose={onClose}
             statusBarTranslucent={true}
         >
             <View style={[styles.overlay, isWideScreen ? styles.overlayDialog : styles.overlaySheet]}>
-                <TouchableOpacity
-                    style={StyleSheet.absoluteFill}
-                    activeOpacity={1}
-                    onPress={onClose}
-                />
-                <View
+                <Animated.View style={[styles.backdrop, { opacity: animValue }]}>
+                    <TouchableOpacity
+                        style={StyleSheet.absoluteFill}
+                        activeOpacity={1}
+                        onPress={onClose}
+                    />
+                </Animated.View>
+                <Animated.View
                     style={[
                         styles.container,
                         isWideScreen ? styles.containerDialog : styles.containerSheet,
                         !isWideScreen && keyboardHeight > 0 && { paddingBottom: keyboardHeight },
+                        {
+                            transform: [
+                                {
+                                    translateY: animValue.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: isWideScreen ? [40, 0] : [SCREEN_HEIGHT, 0],
+                                    }),
+                                },
+                            ],
+                            opacity: isWideScreen ? animValue : 1,
+                        },
                     ]}
                 >
                     <View style={[
@@ -196,6 +238,21 @@ export const AdminRevertPaymentModal: React.FC<AdminRevertPaymentModalProps> = (
                             automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
                             showsVerticalScrollIndicator={false}
                         >
+                            {/* Excess Disbursed Danger Banner */}
+                            {!isRejectionRevert && Boolean(booking.overpayment && (booking.overpayment.adminRefundReceiptUrl || booking.overpayment.status !== 'completed')) && (
+                                <View style={[styles.warningBanner, styles.dangerBanner]}>
+                                    <CustomIcon library="Feather" name="alert-octagon" size={18} color={Colors.ERROR} style={{ marginTop: 2 }} />
+                                    <View style={{ flex: 1 }}>
+                                        <CustomText style={[styles.warningTitle, { color: Colors.ERROR }]}>
+                                            Caution: Excess Refund In Progress
+                                        </CustomText>
+                                        <CustomText style={[styles.warningText, { color: Colors.ERROR }]}>
+                                            An excess refund of ₱{(booking.overpayment?.excessAmount || 0).toFixed(2)} has already been {booking.overpayment?.adminRefundReceiptUrl ? 'uploaded/disbursed' : 'initiated'} for this payment. Reverting will reset the hike payment to pending, but the refund record must be manually reconciled.
+                                        </CustomText>
+                                    </View>
+                                </View>
+                            )}
+
                             {/* Warning Banner */}
                             <View style={styles.warningBanner}>
                                 <CustomIcon library="Feather" name="alert-triangle" size={16} color="#B45309" style={{ marginTop: 2 }} />
@@ -251,22 +308,7 @@ export const AdminRevertPaymentModal: React.FC<AdminRevertPaymentModalProps> = (
                                 </View>
                             )}
 
-                            {/* Optional Reversion Reason (Only for reverting captured payments) */}
-                            {!isRejectionRevert && (
-                                <CustomTextInput
-                                    label="Reason for Reversion (Optional)"
-                                    placeholder="e.g. Accidental click, need to re-verify details..."
-                                    value={revertReason}
-                                    maxLength={120}
-                                    onFocus={() => {
-                                        setTimeout(() => {
-                                            scrollViewRef.current?.scrollToEnd({ animated: true });
-                                        }, 150);
-                                    }}
-                                    sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
-                                    onChangeText={(val: string) => setRevertReason(stripEmojis(String(val || '')).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 120))}
-                                />
-                            )}
+
                         </ScrollView>
 
                         {/* Actions Row */}
@@ -293,16 +335,19 @@ export const AdminRevertPaymentModal: React.FC<AdminRevertPaymentModalProps> = (
                             </View>
                         </View>
                     </View>
-                </View>
+                </Animated.View>
             </View>
         </Modal>
     );
 };
 
 const styles = StyleSheet.create({
+    backdrop: {
+        ...StyleSheet.absoluteFill,
+        backgroundColor: Colors.MODAL_OVERLAY,
+    },
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.45)',
         alignItems: 'center',
     },
     overlayDialog: {
@@ -404,6 +449,10 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         borderWidth: 1,
         borderColor: '#FDE68A',
+    },
+    dangerBanner: {
+        backgroundColor: Colors.ERROR_BG,
+        borderColor: Colors.ERROR_BORDER,
     },
     warningTitle: {
         fontSize: 13,
