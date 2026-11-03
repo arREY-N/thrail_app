@@ -100,7 +100,6 @@ const StatusScreen = ({
         );
     }
 
-    const formattedAmount = `₱${Number(amountToPay || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const displayMethod = selectedMethod || 'Manual QR (GCash / Maya)';
 
     const effectiveDate = paymentDate ? new Date(paymentDate) : new Date();
@@ -238,15 +237,10 @@ const StatusScreen = ({
                             <CustomText style={styles.infoValue}>{displayMethod}</CustomText>
                         </View>
 
-                        <View style={styles.infoRow}>
-                            <CustomText style={styles.infoLabel}>Amount Submitted</CustomText>
-                            <CustomText style={styles.infoValueHighlight}>{formattedAmount}</CustomText>
-                        </View>
-
                         {bookingId ? (
                             <View style={styles.infoRow}>
                                 <CustomText style={styles.infoLabel}>Booking Reference</CustomText>
-                                <CustomText style={styles.infoValue}>{bookingId}</CustomText>
+                                <CustomText style={styles.infoValue}>#{bookingId.slice(-6).toUpperCase()}</CustomText>
                             </View>
                         ) : null}
 
