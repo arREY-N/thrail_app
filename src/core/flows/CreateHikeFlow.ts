@@ -387,6 +387,47 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         }
     }
 
+    // Auto-pause crash recovery guard on mount
+    useEffect(() => {
+        const state = useHikeStore.getState();
+        if (state.active && state.currentHike && state.currentHike.status === 'started') {
+            const now = Date.now();
+            const timerStart = state.timerStartTime || 0;
+            const elapsed = state.elapsedTime || 0;
+
+            let lastActivityTime = timerStart > 0 ? timerStart + elapsed : 0;
+            const lastCoord = state.coordinates && state.coordinates.length > 0
+                ? state.coordinates[state.coordinates.length - 1]
+                : null;
+
+            if (lastCoord?.timestamp) {
+                const coordTime = new Date(lastCoord.timestamp).getTime();
+                if (!isNaN(coordTime) && coordTime > 0) {
+                    lastActivityTime = Math.max(lastActivityTime, coordTime);
+                }
+            }
+
+            const CRASH_GAP_THRESHOLD_MS = 120000; // 2 minutes
+            if (lastActivityTime > 0 && now - lastActivityTime > CRASH_GAP_THRESHOLD_MS) {
+                const safeElapsed = Math.max(
+                    elapsed,
+                    timerStart > 0 && lastActivityTime > timerStart ? lastActivityTime - timerStart : elapsed
+                );
+                updateHikeStore({
+                    elapsedTime: safeElapsed,
+                    timerStartTime: 0,
+                    isSegmentFirstPoint: true,
+                });
+                updateCurrentHike({ status: 'paused' });
+                useHikeStore.getState().logHikeEvent('HIKE_PAUSED', lastCoord ? {
+                    latitude: lastCoord.latitude,
+                    longitude: lastCoord.longitude,
+                    altitude: lastCoord.altitude ?? undefined,
+                } : undefined);
+            }
+        }
+    }, [updateCurrentHike, updateHikeStore]);
+
     useEffect(() => {
         if (currentHike?.status !== 'started') {
             return;
