@@ -596,6 +596,7 @@ const BookingDetailsScreen = ({
 
                     <View
                         ref={quickInfoRef}
+                        collapsable={false}
                         onLayout={handleQuickInfoLayout}
                     >
                         <QuickInfoCard booking={enhancedBooking} />
@@ -603,6 +604,7 @@ const BookingDetailsScreen = ({
 
                     <View
                         ref={statusTrackerRef}
+                        collapsable={false}
                         onLayout={handleStatusTrackerLayout}
                     >
 
@@ -772,6 +774,7 @@ const BookingDetailsScreen = ({
 
                     <View
                         ref={documentsRef}
+                        collapsable={false}
                         onLayout={handleDocumentsLayout}
                     >
                     <RequiredDocumentsSection
@@ -808,6 +811,7 @@ const BookingDetailsScreen = ({
 
                     <View
                         ref={accordionsRef}
+                        collapsable={false}
                         onLayout={handleAccordionsLayout}
                     >
                     {(user || localEmergencyContact) && (
@@ -872,6 +876,7 @@ const BookingDetailsScreen = ({
 
                     <View
                         ref={paymentSummaryRef}
+                        collapsable={false}
                         onLayout={handlePaymentSummaryLayout}
                     >
 
