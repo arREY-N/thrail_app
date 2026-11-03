@@ -136,41 +136,46 @@ export const useMyBookingDetailsTutorial = ({
         measurePaymentSummaryNow,
     ]);
 
-    // Bidirectional auto-scroll with 260ms settling delay re-measurement
+    // Bidirectional auto-scroll with immediate & 250ms settling re-measurement
     useEffect(() => {
         if (!tutorial.isVisible) return;
 
         if (activeTutorialStep === 'my_booking_quick_info' || activeTutorialStep === 'header_help') {
+            measureQuickInfoNow();
             scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-            const timer = setTimeout(measureQuickInfoNow, 260);
+            const timer = setTimeout(measureQuickInfoNow, 250);
             return () => clearTimeout(timer);
         } else if (activeTutorialStep === 'my_booking_status_tracker') {
+            measureStatusTrackerNow();
             scrollViewRef.current?.scrollTo({
                 y: Math.max(0, statusOffsetY.current - 24),
                 animated: true,
             });
-            const timer = setTimeout(measureStatusTrackerNow, 260);
+            const timer = setTimeout(measureStatusTrackerNow, 250);
             return () => clearTimeout(timer);
         } else if (activeTutorialStep === 'my_booking_documents') {
+            measureDocumentsNow();
             scrollViewRef.current?.scrollTo({
                 y: Math.max(0, documentsOffsetY.current - 24),
                 animated: true,
             });
-            const timer = setTimeout(measureDocumentsNow, 260);
+            const timer = setTimeout(measureDocumentsNow, 250);
             return () => clearTimeout(timer);
         } else if (activeTutorialStep === 'my_booking_accordions') {
+            measureAccordionsNow();
             scrollViewRef.current?.scrollTo({
                 y: Math.max(0, accordionsOffsetY.current - 24),
                 animated: true,
             });
-            const timer = setTimeout(measureAccordionsNow, 260);
+            const timer = setTimeout(measureAccordionsNow, 250);
             return () => clearTimeout(timer);
         } else if (activeTutorialStep === 'my_booking_payment_summary') {
+            measurePaymentSummaryNow();
             scrollViewRef.current?.scrollTo({
                 y: Math.max(0, paymentSummaryOffsetY.current - 24),
                 animated: true,
             });
-            const timer = setTimeout(measurePaymentSummaryNow, 260);
+            const timer = setTimeout(measurePaymentSummaryNow, 250);
             return () => clearTimeout(timer);
         }
     }, [
