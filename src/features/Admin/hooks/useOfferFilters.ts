@@ -90,18 +90,24 @@ export default function useOfferFilters(
             list.forEach(b => {
                 const cancellation = cancellationByBooking.get(b.id);
 
-                const hasRefundedPayment = b.payment?.some(p => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
+                const hasRefundedPayment = Boolean(
+                    b.payment?.some(p => p.status === 'refunded' || ((p.refundedAmount || 0) > 0))
+                );
                 const isVerifyingPayment = b.paymentVerificationStatus === 'pending_verification' ||
                     Boolean(b.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
 
-                const isNoRefund =
+                const isNoRefund = Boolean(
                     cancellation?.refundDecision === 'no_refund' ||
-                    (cancellation?.status === 'approved' &&
-                        b.status === 'cancelled' &&
-                        cancellation?.refundAmount === 0 &&
+                    ((cancellation?.status === 'approved' || b.status === 'cancelled') &&
+                        Boolean(cancellation) &&
+                        (cancellation?.refundAmount ?? 0) === 0 &&
+                        !hasRefundedPayment &&
+                        !cancellation?.adminRefundReceiptUrl &&
                         cancellation?.handshakeStep !== 'awaiting_user_wallet' &&
                         cancellation?.handshakeStep !== 'awaiting_admin_payout' &&
-                        !cancellation?.adminRefundReceiptUrl);
+                        cancellation?.handshakeStep !== 'awaiting_user_confirmation' &&
+                        cancellation?.handshakeStep !== 'refund_disputed')
+                );
 
                 const isRefundComplete =
                     !isNoRefund &&
@@ -112,13 +118,13 @@ export default function useOfferFilters(
                         hasRefundedPayment);
 
                 const isRefunding =
+                    !isNoRefund &&
                     !isRefundComplete &&
                     (b.status === 'refund' ||
                         cancellation?.status === 'refund_pending' ||
                         cancellation?.status === 'refund_submitted' ||
                         cancellation?.status === 'refund_disputed' ||
                         (cancellation?.status === 'approved' &&
-                            !isNoRefund &&
                             (Boolean(cancellation?.refundAmount && cancellation.refundAmount > 0) ||
                              Boolean(cancellation?.handshakeStep && cancellation.handshakeStep !== 'completed'))));
 
