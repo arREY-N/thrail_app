@@ -6,6 +6,7 @@ import {
     CATEGORY_GROUPS,
     CategoryGroupId,
     checkTarsHealth,
+    DEFAULT_ENGINE_HYPERPARAMETERS,
     runTarsEngine,
     TarsBatchResponse
 } from "@/src/features/SuperAdmin/services/tarsApiService";
@@ -29,6 +30,9 @@ export interface ConfigureEngineModalProps {
     onSuccess?: (report: TarsBatchResponse) => void;
     userCount?: number;
     trailCount?: number;
+    selectedUserIds?: string[];
+    selectedUserNames?: string[];
+    onClearSelectedUsers?: () => void;
 }
 
 type FormulaType = "GD" | "ED" | "CS";
@@ -45,6 +49,9 @@ export default function ConfigureEngineModal({
     onSuccess,
     userCount,
     trailCount,
+    selectedUserIds = [],
+    selectedUserNames = [],
+    onClearSelectedUsers,
 }: ConfigureEngineModalProps) {
     const [cbfEngine, setCbfEngine] = useState<FormulaType>("GD");
     const [cfEngine, setCfEngine] = useState<FormulaType>("GD");
@@ -52,6 +59,35 @@ export default function ConfigureEngineModal({
     const [isRunning, setIsRunning] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [report, setReport] = useState<TarsBatchResponse | null>(null);
+
+    // Adjustable Hyperparameters (defaulting to engine/parameters.py values)
+    const [cfTau, setCfTau] = useState<string>(String(DEFAULT_ENGINE_HYPERPARAMETERS.cf_tau));
+    const [cfK, setCfK] = useState<string>(String(DEFAULT_ENGINE_HYPERPARAMETERS.cf_k));
+    const [alphaSteadyState, setAlphaSteadyState] = useState<string>(String(DEFAULT_ENGINE_HYPERPARAMETERS.alpha_steady_state));
+    const [alphaThreshold, setAlphaThreshold] = useState<string>(String(DEFAULT_ENGINE_HYPERPARAMETERS.alpha_threshold));
+    const [alphaOverride, setAlphaOverride] = useState<string>("");
+    const [betaDivisor, setBetaDivisor] = useState<string>(String(DEFAULT_ENGINE_HYPERPARAMETERS.beta_divisor));
+    const [monotonicityMinGap, setMonotonicityMinGap] = useState<string>(String(DEFAULT_ENGINE_HYPERPARAMETERS.monotonicity_min_gap));
+    const [reviewActiveWeight, setReviewActiveWeight] = useState<string>(String(DEFAULT_ENGINE_HYPERPARAMETERS.review_active_weight));
+    const [reviewBaselineWeight, setReviewBaselineWeight] = useState<string>(String(DEFAULT_ENGINE_HYPERPARAMETERS.review_baseline_weight));
+    const [terrainThreshold, setTerrainThreshold] = useState<string>(String(DEFAULT_ENGINE_HYPERPARAMETERS.terrain_presence_threshold));
+    const [commitToFirestore, setCommitToFirestore] = useState<boolean>(true);
+    const [generateAiReasoning, setGenerateAiReasoning] = useState<boolean>(true);
+
+    const handleResetHyperparameters = () => {
+        if (isRunning) return;
+        setCfTau(String(DEFAULT_ENGINE_HYPERPARAMETERS.cf_tau));
+        setCfK(String(DEFAULT_ENGINE_HYPERPARAMETERS.cf_k));
+        setAlphaSteadyState(String(DEFAULT_ENGINE_HYPERPARAMETERS.alpha_steady_state));
+        setAlphaThreshold(String(DEFAULT_ENGINE_HYPERPARAMETERS.alpha_threshold));
+        setAlphaOverride("");
+        setBetaDivisor(String(DEFAULT_ENGINE_HYPERPARAMETERS.beta_divisor));
+        setMonotonicityMinGap(String(DEFAULT_ENGINE_HYPERPARAMETERS.monotonicity_min_gap));
+        setReviewActiveWeight(String(DEFAULT_ENGINE_HYPERPARAMETERS.review_active_weight));
+        setReviewBaselineWeight(String(DEFAULT_ENGINE_HYPERPARAMETERS.review_baseline_weight));
+        setTerrainThreshold(String(DEFAULT_ENGINE_HYPERPARAMETERS.terrain_presence_threshold));
+        setGenerateAiReasoning(true);
+    };
 
     // 5 Category Groups State
     const [categoryWeights, setCategoryWeights] = useState<Record<CategoryGroupId, string>>(() => {
@@ -328,12 +364,35 @@ export default function ConfigureEngineModal({
 
         setIsRunning(true);
         try {
+            const parsedTau = parseFloat(cfTau);
+            const parsedK = parseInt(cfK, 10);
+            const parsedAlphaSS = parseFloat(alphaSteadyState);
+            const parsedAlphaThresh = parseInt(alphaThreshold, 10);
+            const parsedAlphaOverride = alphaOverride.trim() !== "" ? parseFloat(alphaOverride) : null;
+            const parsedBetaDiv = parseFloat(betaDivisor);
+            const parsedMinGap = parseFloat(monotonicityMinGap);
+            const parsedActiveW = parseFloat(reviewActiveWeight);
+            const parsedBaselineW = parseFloat(reviewBaselineWeight);
+            const parsedTerrThresh = parseFloat(terrainThreshold);
+
             const result = await runTarsEngine({
                 cbf_engine: cbfEngine,
                 cf_engine: cfEngine,
                 month_id: monthId.trim() || getRecoID(),
-                commit_to_firestore: true,
+                commit_to_firestore: commitToFirestore,
                 feature_weights: compiledWeights,
+                cf_tau: !isNaN(parsedTau) ? parsedTau : DEFAULT_ENGINE_HYPERPARAMETERS.cf_tau,
+                cf_k: !isNaN(parsedK) && parsedK > 0 ? parsedK : DEFAULT_ENGINE_HYPERPARAMETERS.cf_k,
+                alpha_steady_state: !isNaN(parsedAlphaSS) ? parsedAlphaSS : DEFAULT_ENGINE_HYPERPARAMETERS.alpha_steady_state,
+                alpha_threshold: !isNaN(parsedAlphaThresh) && parsedAlphaThresh > 1 ? parsedAlphaThresh : DEFAULT_ENGINE_HYPERPARAMETERS.alpha_threshold,
+                alpha_override: parsedAlphaOverride !== null && !isNaN(parsedAlphaOverride) ? parsedAlphaOverride : null,
+                beta_divisor: !isNaN(parsedBetaDiv) && parsedBetaDiv > 0 ? parsedBetaDiv : DEFAULT_ENGINE_HYPERPARAMETERS.beta_divisor,
+                monotonicity_min_gap: !isNaN(parsedMinGap) ? parsedMinGap : DEFAULT_ENGINE_HYPERPARAMETERS.monotonicity_min_gap,
+                review_active_weight: !isNaN(parsedActiveW) ? parsedActiveW : DEFAULT_ENGINE_HYPERPARAMETERS.review_active_weight,
+                review_baseline_weight: !isNaN(parsedBaselineW) ? parsedBaselineW : DEFAULT_ENGINE_HYPERPARAMETERS.review_baseline_weight,
+                terrain_presence_threshold: !isNaN(parsedTerrThresh) ? parsedTerrThresh : DEFAULT_ENGINE_HYPERPARAMETERS.terrain_presence_threshold,
+                target_user_ids: selectedUserIds && selectedUserIds.length > 0 ? selectedUserIds : undefined,
+                generate_ai_reasoning: generateAiReasoning,
             });
 
             setReport(result);
@@ -379,6 +438,43 @@ export default function ConfigureEngineModal({
                     </View>
 
                     <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
+                        {/* Selected User Generation Scope Banner */}
+                        {selectedUserIds && selectedUserIds.length > 0 ? (
+                            <View style={[styles.offlineAlert, { backgroundColor: Palette.Green50, borderColor: Palette.Green200, marginBottom: 12 }]}>
+                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+                                        <CustomIcon library="Feather" name="user-check" size={16} color={Palette.Green700} />
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.offlineAlertText, { color: Palette.Green900, fontWeight: "700" }]}>
+                                                Selected Account Flow Active ({selectedUserIds.length} user{selectedUserIds.length > 1 ? "s" : ""})
+                                            </Text>
+                                            <Text style={[styles.offlineAlertText, { color: Palette.Green800, fontSize: 11, marginTop: 2 }]} numberOfLines={2}>
+                                                Generating exclusively for: {selectedUserNames.length > 0 ? selectedUserNames.join(", ") : selectedUserIds.join(", ")}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    {onClearSelectedUsers && (
+                                        <TouchableOpacity
+                                            style={[styles.recheckBtn, { borderColor: Palette.Green300 }]}
+                                            onPress={onClearSelectedUsers}
+                                            disabled={isRunning}
+                                        >
+                                            <Text style={[styles.recheckText, { color: Palette.Green800 }]}>Clear</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            </View>
+                        ) : (
+                            <View style={[styles.statusRow, { backgroundColor: Palette.Slate50, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: Palette.Slate200 }]}>
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                    <CustomIcon library="Feather" name="users" size={13} color={Colors.TEXT_SECONDARY} />
+                                    <Text style={[styles.statusText, { fontSize: 12, color: Colors.TEXT_SECONDARY }]}>
+                                        Target Scope: <Text style={{ fontWeight: "700", color: Palette.Slate800 }}>Default (All accounts with active profile)</Text>
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+
                         {/* Server Status Pill */}
                         <View style={styles.statusRow}>
                             <View style={styles.statusIndicator}>
@@ -817,6 +913,197 @@ export default function ConfigureEngineModal({
                             </View>
                         </View>
 
+                        {/* Section 5: Hyperparameters & Simulation Controls */}
+                        <View style={styles.section}>
+                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.sectionTitle}>5. Hyperparameters & Simulation Controls</Text>
+                                    <Text style={styles.sectionDesc}>
+                                        Optional overrides for Collaborative Filtering (τ, k), Hybrid Blending (α), and Adaptive Profile Evolution (β). Defaults come from engine/parameters.py.
+                                    </Text>
+                                </View>
+                                <TouchableOpacity
+                                    style={styles.quickActionBtn}
+                                    onPress={handleResetHyperparameters}
+                                    disabled={isRunning}
+                                >
+                                    <CustomIcon library="Feather" name="rotate-ccw" size={12} color={Colors.PRIMARY} />
+                                    <Text style={styles.quickActionBtnText}>Reset Hyperparameters</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Simulation / Persistence Toggle */}
+                            <TouchableOpacity
+                                style={[
+                                    styles.categoryGroupCard,
+                                    { padding: 12, marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }
+                                ]}
+                                onPress={() => !isRunning && setCommitToFirestore((prev) => !prev)}
+                                disabled={isRunning}
+                            >
+                                <View style={{ flex: 1, paddingRight: 12 }}>
+                                    <Text style={styles.categoryTitle}>
+                                        {commitToFirestore ? "Live Mode: Commit to Firestore" : "Simulation Mode (Dry Run)"}
+                                    </Text>
+                                    <Text style={styles.categorySubtitle}>
+                                        {commitToFirestore
+                                            ? "Saves generated recommendations and updated profiles to Firestore."
+                                            : "Runs simulation in-memory without overwriting Firestore documents."}
+                                    </Text>
+                                </View>
+                                <View style={[styles.checkboxBox, commitToFirestore && styles.checkboxBoxActive]}>
+                                    {commitToFirestore && (
+                                        <CustomIcon library="Feather" name="check" size={12} color={Colors.WHITE} />
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+
+                            {/* Gemini AI Reasoning Toggle */}
+                            <TouchableOpacity
+                                style={[
+                                    styles.categoryGroupCard,
+                                    { padding: 12, marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }
+                                ]}
+                                onPress={() => !isRunning && setGenerateAiReasoning((prev) => !prev)}
+                                disabled={isRunning}
+                            >
+                                <View style={{ flex: 1, paddingRight: 12 }}>
+                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                        <Text style={styles.categoryTitle}>
+                                            {generateAiReasoning
+                                                ? "Gemini AI Reasoning: Enabled"
+                                                : "Gemini AI Reasoning: Disabled (Fast Simulation)"}
+                                        </Text>
+                                        <View
+                                            style={[
+                                                styles.activePill,
+                                                !generateAiReasoning && { backgroundColor: Palette.Amber100 },
+                                            ]}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.activePillText,
+                                                    !generateAiReasoning && { color: Palette.Amber800 },
+                                                ]}
+                                            >
+                                                {generateAiReasoning ? "Standard" : "Fast (~10x Speedup)"}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <Text style={styles.categorySubtitle}>
+                                        {generateAiReasoning
+                                            ? "Pre-generates personalized Gemini AI explanations for each user's top trail (takes ~1-2s per user)."
+                                            : "Skips Gemini LLM calls to reduce processing time drastically during simulations and parameter sweeps."}
+                                    </Text>
+                                </View>
+                                <View style={[styles.checkboxBox, generateAiReasoning && styles.checkboxBoxActive]}>
+                                    {generateAiReasoning && (
+                                        <CustomIcon library="Feather" name="check" size={12} color={Colors.WHITE} />
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+
+                            {/* Grid of Hyperparameter Inputs */}
+                            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 8 }}>
+                                <View style={[styles.categoryGroupCard, { flex: 1, minWidth: 165, padding: 10 }]}>
+                                    <Text style={styles.drawerFeatLabel}>CF Cutoff Distance (τ)</Text>
+                                    <Text style={styles.drawerFeatSub}>Max peer distance (default 0.35)</Text>
+                                    <TextInput
+                                        style={[styles.monthInput, { marginTop: 6, borderWidth: 1, borderColor: Palette.Slate200, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }]}
+                                        value={cfTau}
+                                        onChangeText={setCfTau}
+                                        keyboardType="decimal-pad"
+                                        editable={!isRunning}
+                                    />
+                                </View>
+
+                                <View style={[styles.categoryGroupCard, { flex: 1, minWidth: 165, padding: 10 }]}>
+                                    <Text style={styles.drawerFeatLabel}>CF Top-k Peers (k)</Text>
+                                    <Text style={styles.drawerFeatSub}>Max closest peers (default 5)</Text>
+                                    <TextInput
+                                        style={[styles.monthInput, { marginTop: 6, borderWidth: 1, borderColor: Palette.Slate200, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }]}
+                                        value={cfK}
+                                        onChangeText={setCfK}
+                                        keyboardType="number-pad"
+                                        editable={!isRunning}
+                                    />
+                                </View>
+
+                                <View style={[styles.categoryGroupCard, { flex: 1, minWidth: 165, padding: 10 }]}>
+                                    <Text style={styles.drawerFeatLabel}>Steady-State Alpha (α)</Text>
+                                    <Text style={styles.drawerFeatSub}>Min CBF weight (default 0.50)</Text>
+                                    <TextInput
+                                        style={[styles.monthInput, { marginTop: 6, borderWidth: 1, borderColor: Palette.Slate200, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }]}
+                                        value={alphaSteadyState}
+                                        onChangeText={setAlphaSteadyState}
+                                        keyboardType="decimal-pad"
+                                        editable={!isRunning}
+                                    />
+                                </View>
+
+                                <View style={[styles.categoryGroupCard, { flex: 1, minWidth: 165, padding: 10 }]}>
+                                    <Text style={styles.drawerFeatLabel}>Alpha User Threshold</Text>
+                                    <Text style={styles.drawerFeatSub}>Users for steady α (default 50)</Text>
+                                    <TextInput
+                                        style={[styles.monthInput, { marginTop: 6, borderWidth: 1, borderColor: Palette.Slate200, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }]}
+                                        value={alphaThreshold}
+                                        onChangeText={setAlphaThreshold}
+                                        keyboardType="number-pad"
+                                        editable={!isRunning}
+                                    />
+                                </View>
+
+                                <View style={[styles.categoryGroupCard, { flex: 1, minWidth: 165, padding: 10 }]}>
+                                    <Text style={styles.drawerFeatLabel}>Fixed Alpha Override</Text>
+                                    <Text style={styles.drawerFeatSub}>Blank = dynamic, or [0.0–1.0]</Text>
+                                    <TextInput
+                                        style={[styles.monthInput, { marginTop: 6, borderWidth: 1, borderColor: Palette.Slate200, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }]}
+                                        value={alphaOverride}
+                                        onChangeText={setAlphaOverride}
+                                        placeholder="Auto (Dynamic)"
+                                        keyboardType="decimal-pad"
+                                        editable={!isRunning}
+                                    />
+                                </View>
+
+                                <View style={[styles.categoryGroupCard, { flex: 1, minWidth: 165, padding: 10 }]}>
+                                    <Text style={styles.drawerFeatLabel}>Beta Divisor (β)</Text>
+                                    <Text style={styles.drawerFeatSub}>Learning step divisor (default 2.0)</Text>
+                                    <TextInput
+                                        style={[styles.monthInput, { marginTop: 6, borderWidth: 1, borderColor: Palette.Slate200, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }]}
+                                        value={betaDivisor}
+                                        onChangeText={setBetaDivisor}
+                                        keyboardType="decimal-pad"
+                                        editable={!isRunning}
+                                    />
+                                </View>
+
+                                <View style={[styles.categoryGroupCard, { flex: 1, minWidth: 165, padding: 10 }]}>
+                                    <Text style={styles.drawerFeatLabel}>Monotonicity Gap</Text>
+                                    <Text style={styles.drawerFeatSub}>Min Easy/Diff gap (default 0.05)</Text>
+                                    <TextInput
+                                        style={[styles.monthInput, { marginTop: 6, borderWidth: 1, borderColor: Palette.Slate200, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }]}
+                                        value={monotonicityMinGap}
+                                        onChangeText={setMonotonicityMinGap}
+                                        keyboardType="decimal-pad"
+                                        editable={!isRunning}
+                                    />
+                                </View>
+
+                                <View style={[styles.categoryGroupCard, { flex: 1, minWidth: 165, padding: 10 }]}>
+                                    <Text style={styles.drawerFeatLabel}>Baseline Factor Weight</Text>
+                                    <Text style={styles.drawerFeatSub}>Unselected weight (default 0.20)</Text>
+                                    <TextInput
+                                        style={[styles.monthInput, { marginTop: 6, borderWidth: 1, borderColor: Palette.Slate200, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }]}
+                                        value={reviewBaselineWeight}
+                                        onChangeText={setReviewBaselineWeight}
+                                        keyboardType="decimal-pad"
+                                        editable={!isRunning}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+
                         {/* Error Banner inside scroll body */}
                         {error && (
                             <View style={styles.errorBox}>
@@ -899,15 +1186,15 @@ export default function ConfigureEngineModal({
 function getCategoryBadgeStyle(category: string) {
     switch (category) {
         case "Physical Exertion":
-            return { backgroundColor: Palette.Emerald50, borderColor: Palette.Emerald200 };
+            return { backgroundColor: Palette.Green50, borderColor: Palette.Green200 };
         case "Provinces":
-            return { backgroundColor: Palette.Indigo50, borderColor: Palette.Indigo200 };
+            return { backgroundColor: "#EEF2FF", borderColor: "#C7D2FE" };
         case "Terrains":
             return { backgroundColor: Palette.Amber50, borderColor: Palette.Amber200 };
         case "Route Type":
-            return { backgroundColor: Palette.Purple50, borderColor: Palette.Purple200 };
+            return { backgroundColor: "#F5F3FF", borderColor: "#DDD6FE" };
         case "Waterforms":
-            return { backgroundColor: Palette.Sky50, borderColor: Palette.Sky200 };
+            return { backgroundColor: "#F0F9FF", borderColor: "#BAE6FD" };
         case "Tourism Amenities":
         default:
             return { backgroundColor: Palette.Slate100, borderColor: Palette.Slate200 };
@@ -923,7 +1210,7 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     backdrop: {
-        ...StyleSheet.absoluteFillObject,
+        position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
     },
     modalCard: {
         width: "100%",

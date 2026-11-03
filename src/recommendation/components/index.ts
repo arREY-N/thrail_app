@@ -7,4 +7,5 @@ export * from "./UserDataset";
 export { default as UserDataset } from "./UserDataset";
 export * from "./UserRecommendationsModal";
 export { default as UserRecommendationsModal } from "./UserRecommendationsModal";
-
+export * from "./RecommendationMatrix";
+export { default as RecommendationMatrix } from "./RecommendationMatrix";
