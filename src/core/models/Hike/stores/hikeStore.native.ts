@@ -28,6 +28,49 @@ export const useHikeStore = create<HikeState>()(
                 events: state.events,
                 isSegmentFirstPoint: state.isSegmentFirstPoint,
             }),
+            onRehydrateStorage: () => (state) => {
+                if (!state) return;
+                // Auto-pause crash recovery: detect if an active session was abruptly killed by battery death / shutdown
+                if (state.active && state.currentHike && state.currentHike.status === 'started') {
+                    const now = Date.now();
+                    const timerStart = state.timerStartTime || 0;
+                    const elapsed = state.elapsedTime || 0;
+
+                    let lastActivityTime = timerStart > 0 ? timerStart + elapsed : 0;
+                    const lastCoord = state.coordinates && state.coordinates.length > 0
+                        ? state.coordinates[state.coordinates.length - 1]
+                        : null;
+
+                    if (lastCoord?.timestamp) {
+                        const coordTime = new Date(lastCoord.timestamp).getTime();
+                        if (!isNaN(coordTime) && coordTime > 0) {
+                            lastActivityTime = Math.max(lastActivityTime, coordTime);
+                        }
+                    }
+
+                    const CRASH_GAP_THRESHOLD_MS = 120000; // 2 minutes
+                    if (lastActivityTime > 0 && now - lastActivityTime > CRASH_GAP_THRESHOLD_MS) {
+                        console.log(`[useHikeStore] Battery death / crash detected. Gap: ${((now - lastActivityTime) / 1000).toFixed(0)}s. Auto-pausing session.`);
+                        const safeElapsed = Math.max(
+                            elapsed,
+                            timerStart > 0 && lastActivityTime > timerStart ? lastActivityTime - timerStart : elapsed
+                        );
+                        useHikeStore.setState((draft) => {
+                            if (draft.currentHike) {
+                                draft.currentHike.status = 'paused';
+                            }
+                            draft.elapsedTime = safeElapsed;
+                            draft.timerStartTime = 0;
+                            draft.isSegmentFirstPoint = true;
+                        });
+                        useHikeStore.getState().logHikeEvent('HIKE_PAUSED', lastCoord ? {
+                            latitude: lastCoord.latitude,
+                            longitude: lastCoord.longitude,
+                            altitude: lastCoord.altitude ?? undefined,
+                        } : undefined);
+                    }
+                }
+            },
         }
     )
 );
