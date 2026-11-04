@@ -13,7 +13,8 @@ import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { newLocation } from "@/src/core/models/Location/Location";
 import { sharedGpsKalmanFilter, smoothCompassHeading } from "@/src/core/utility/gpsKalmanFilter";
 import { exportHikeData } from "@/src/core/utility/hikeStorage";
-import { LOCATION_TASK } from "@/src/core/utility/locationTask";
+
+export const LOCATION_TASK = "background-location-task";
 
 let globalActiveInstances = 0;
 let globalAppStateSub: NativeEventSubscription | null = null;
