@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     },
     detailCard: {
         backgroundColor: Colors.WHITE,
-        borderRadius: 24,
+        borderRadius: 16,
         padding: 20,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,

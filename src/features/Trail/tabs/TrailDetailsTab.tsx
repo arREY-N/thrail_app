@@ -1,18 +1,33 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, LayoutChangeEvent, Modal, Platform, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+    ActivityIndicator,
+    LayoutChangeEvent,
+    Modal,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
+import MountainCard from '@/src/components/MountainCard';
+import NetworkStatusBanner from '@/src/components/NetworkStatusBanner';
 import { Colors, Palette } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import NetworkStatusBanner from '@/src/components/NetworkStatusBanner';
 import { useNetworkStatus } from '@/src/core/flows/TrackHikerGPSFlow';
+import { IOffer } from '@/src/core/models/Offer/Offer';
 import { getPinConfig, getStaticMapAsset, IWaypointPoint, StaticTrailMap, TrailMap, TrailMapRef } from '@/src/features/Map/Map';
+import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
+import { getTrailOffersCount } from '@/src/utils/offerHelpers';
 
 import { Layout } from '@/src/constants/layout';
-import { ITrail, ITrailStats, computeTrailMidpoint } from '@/src/core/models/Trail/Trail';
+import { computeTrailMidpoint, ITrail, ITrailStats } from '@/src/core/models/Trail/Trail';
 import { GlossaryTooltip, SectionHeader, StatItem, StyledListItem, Tag } from '@/src/features/Trail/components/TrailDetailsComponents';
 import { getArray, getClassColor, getDifficultyColor, getStatusColor, getStatusIconInfo, isFeatureEnabled, ROUTE_GLOSSARY } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
@@ -24,6 +39,10 @@ export interface TrailDetailsTabProps {
     trailStats?: ITrailStats | null;
     statsLoading: boolean;
     trail?: ITrail | null;
+    similarTrails?: ITrail[];
+    offers?: IOffer[];
+    getItemRating?: (id: string) => number | string;
+    onSelectSimilarTrail?: (id: string) => void;
 }
 
 interface LegacyTrail extends ITrail {
@@ -39,8 +58,24 @@ interface LegacyTrail extends ITrail {
     monument?: boolean;
 }
 
-const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, statsLoading, trail }) => {
+const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({
+    stats,
+    trailStats,
+    statsLoading,
+    trail,
+    similarTrails = [],
+    offers = [],
+    getItemRating,
+    onSelectSimilarTrail,
+}) => {
     const insets = useSafeAreaInsets();
+    const { width } = useWindowDimensions();
+    const similarScrollRef = useRef<ScrollView>(null);
+    const hasSimilarTrails = similarTrails.length > 0;
+    useWebDragScroll(similarScrollRef, hasSimilarTrails, similarTrails);
+    const isWideScreen = width >= Layout.MAX_WIDTH;
+    const similarCardWidth = Math.min(width * 0.75, 300);
+
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
     const [activeStat, setActiveStat] = useState<string | null>(null);
     const [showRouteInfo, setShowRouteInfo] = useState(false);
@@ -73,11 +108,11 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
     }, []);
 
     const handleMapCardLayout = useCallback((event: LayoutChangeEvent) => {
-        const { width, height } = event.nativeEvent.layout;
-        if (width > 0 && height > 0) {
+        const { width: w, height: h } = event.nativeEvent.layout;
+        if (w > 0 && h > 0) {
             setMapCardLayout(prev => {
-                if (prev.width === width && prev.height === height) return prev;
-                return { width, height };
+                if (prev.width === w && prev.height === h) return prev;
+                return { width: w, height: h };
             });
         }
     }, []);
@@ -189,20 +224,15 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                     let percentY = point.y;
 
                     if (containerAspect > MAP_ASPECT_RATIO) {
-                        // Container is wider than 4:3 (e.g. desktop widescreen or mobile landscape):
-                        // The image fills the width and overflows/crops vertically (top and bottom).
                         const scale = containerAspect / MAP_ASPECT_RATIO;
                         percentX = point.x;
                         percentY = (point.y - 50) * scale + 50;
                     } else {
-                        // Container is taller than 4:3 (e.g. narrow mobile portrait):
-                        // The image fills the height and overflows/crops horizontally (left and right).
                         const scale = MAP_ASPECT_RATIO / containerAspect;
                         percentX = (point.x - 50) * scale + 50;
                         percentY = point.y;
                     }
 
-                    // If point falls completely outside the cropped viewport boundary, skip rendering
                     if (percentX < -5 || percentX > 105 || percentY < -5 || percentY > 105) {
                         return null;
                     }
@@ -271,13 +301,6 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                         )}
                     </View>
                 </View>
-                // <View style={styles.criticalCard}>
-                //     <CustomIcon library="Feather" name="alert-triangle" size={20} color={Colors.ERROR} />
-                //     <View style={styles.criticalTextContainer}>
-                //         <CustomText style={styles.criticalTitle}>Critical Trail Update</CustomText>
-                //         <CustomText style={styles.criticalText}>{criticalInfo}</CustomText>
-                //     </View>
-                // </View>
             )}
 
             {/* 3. About the Mountain */}
@@ -352,7 +375,6 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
             <View style={styles.section}>
                 <SectionHeader iconLib="Feather" iconName="map" title="Trail Route Map" />
                 <View style={styles.mapCard}>
-                    {/* Live Vector Map rendered to trail's coordinate location when preview modal is not active */}
                     {hasValidCoords && !isMapPreviewVisible ? (
                         <View style={StyleSheet.absoluteFill} pointerEvents="none">
                             <TrailMap
@@ -367,7 +389,6 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                             />
                         </View>
                     ) : (
-                        /* Fallback to static image when coordinates are not available or modal is open */
                         <CustomImage
                             source={routeMapImageSource}
                             style={styles.mapImage}
@@ -377,7 +398,6 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
 
                     <View style={styles.mapDarkenOverlay} pointerEvents="none" />
 
-                    {/* Mini Waypoint Pins Rendered on Route Thumbnail Card only when static image fallback is active */}
                     {(!hasValidCoords || isMapPreviewVisible) && renderedMiniPins}
 
                     <TouchableOpacity
@@ -476,6 +496,40 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                 </View>
             )}
 
+            {/* 10. Similar Trails Section */}
+            {hasSimilarTrails && (
+                <View style={styles.section}>
+                    <SectionHeader iconLib="Feather" iconName="compass" title="Similar Trails" />
+                    <ScrollView
+                        ref={similarScrollRef}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={[
+                            styles.similarTrailsList,
+                            !isWideScreen && styles.similarTrailsListMobile,
+                        ]}
+                        style={[
+                            styles.similarTrailsScroll,
+                            !isWideScreen && styles.similarTrailsScrollMobile,
+                        ]}
+                    >
+                        {similarTrails.map((similarItem) => (
+                            <MountainCard
+                                key={`similar-${similarItem.id}`}
+                                item={similarItem}
+                                rating={getItemRating ? getItemRating(similarItem.id) : similarItem.general?.rating}
+                                offersCount={getTrailOffersCount(similarItem.id, offers)}
+                                onPress={() => onSelectSimilarTrail?.(similarItem.id)}
+                                style={{
+                                    width: similarCardWidth,
+                                    marginRight: 16,
+                                }}
+                            />
+                        ))}
+                    </ScrollView>
+                </View>
+            )}
+
             {/* Interactive Trail Route Map Viewer Modal (Translucent Dark Theme) - Lazy Mounted */}
             {isMapPreviewVisible && (
                 <Modal
@@ -488,7 +542,6 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                 >
                     <StatusBar barStyle="light-content" backgroundColor="transparent" />
                 <View style={[styles.modalRootContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-                    {/* Dark Translucent Frosted Header */}
                     <View style={[styles.modalHeader, { paddingTop: Math.max(insets.top + 10, 16) }]}>
                         <View style={styles.modalHeaderSpacer} />
                         <View style={styles.modalHeaderInfo}>
@@ -512,7 +565,6 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                         </TouchableOpacity>
                     </View>
 
-                    {/* Mode Toast Banner */}
                     <NetworkStatusBanner isOnline={isOnline} top={insets.top + 70} />
 
                     {Platform.OS !== 'web' && modeToast && (
@@ -531,7 +583,6 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                         </View>
                     )}
 
-                    {/* Main Modal Viewport - Terrain Map */}
                     <View style={styles.modalMapWrapper}>
                         {hasValidCoords ? (
                             <TrailMap
@@ -630,6 +681,29 @@ const styles = StyleSheet.create({
     routeInfoOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', padding: 24, justifyContent: 'center', zIndex: 1 },
     routeInfoTitle: { color: Colors.WHITE, fontWeight: 'bold', fontSize: 18, marginBottom: 8 },
     routeInfoText: { color: Colors.GRAY_LIGHT, fontSize: 14, lineHeight: 22 },
+    similarTrailsList: {
+        paddingTop: 12,
+        paddingBottom: 16,
+        paddingLeft: 12,
+        paddingRight: 12,
+    },
+    similarTrailsListMobile: {
+        paddingRight: 24,
+    },
+    similarTrailsScroll: {
+        marginTop: -8,
+        marginLeft: -12,
+        marginRight: -12,
+        ...Platform.select({
+            web: {
+                paddingBottom: 4,
+                marginBottom: -4,
+            },
+        }),
+    },
+    similarTrailsScrollMobile: {
+        marginRight: -24,
+    },
     modalRootContainer: { flex: 1, backgroundColor: Colors.MAP_MODAL_BACKDROP },
     modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 16, backgroundColor: 'rgba(10, 10, 10, 0.98)', borderBottomWidth: 1, borderBottomColor: Colors.MAP_CARD_BORDER, ...GlobalStyles.dropShadow(3), zIndex: 5 },
     modalHeaderSpacer: { width: 36, height: 36 },

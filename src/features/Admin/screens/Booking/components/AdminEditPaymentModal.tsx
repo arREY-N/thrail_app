@@ -7,6 +7,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
+    Animated,
     Dimensions,
     Keyboard,
     Modal,
@@ -76,6 +77,36 @@ export const AdminEditPaymentModal: React.FC<AdminEditPaymentModalProps> = ({
 
     const scrollViewRef = useRef<ScrollView>(null);
     const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+    const [renderModal, setRenderModal] = useState<boolean>(visible);
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+    const [animValue] = useState(() => new Animated.Value(0));
+
+    const [prevVisible, setPrevVisible] = useState(visible);
+    if (visible !== prevVisible) {
+        setPrevVisible(visible);
+        if (visible) {
+            setRenderModal(true);
+        }
+    }
+
+    useEffect(() => {
+        if (visible) {
+            Animated.timing(animValue, {
+                toValue: 1,
+                duration: 280,
+                useNativeDriver: Platform.OS !== 'web',
+            }).start();
+        } else {
+            Animated.timing(animValue, {
+                toValue: 0,
+                duration: 220,
+                useNativeDriver: Platform.OS !== 'web',
+            }).start(() => setRenderModal(false));
+        }
+    }, [visible, animValue]);
 
     // Track software keyboard height on mobile to dynamically lift the modal bottom sheet
     useEffect(() => {
@@ -165,25 +196,40 @@ export const AdminEditPaymentModal: React.FC<AdminEditPaymentModalProps> = ({
         }
     };
 
+    if (!renderModal) return null;
+
     return (
         <Modal
-            visible={visible}
+            visible={renderModal}
             transparent={true}
-            animationType={isMobile ? 'slide' : 'fade'}
+            animationType="none"
             onRequestClose={onClose}
             statusBarTranslucent={true}
         >
             <View style={[styles.overlay, isWideScreen ? styles.overlayDialog : styles.overlaySheet]}>
-                <TouchableOpacity
-                    style={StyleSheet.absoluteFill}
-                    activeOpacity={1}
-                    onPress={onClose}
-                />
-                <View
+                <Animated.View style={[styles.backdrop, { opacity: animValue }]}>
+                    <TouchableOpacity
+                        style={StyleSheet.absoluteFill}
+                        activeOpacity={1}
+                        onPress={onClose}
+                    />
+                </Animated.View>
+                <Animated.View
                     style={[
                         styles.container,
                         isWideScreen ? styles.containerDialog : styles.containerSheet,
                         !isWideScreen && keyboardHeight > 0 && { paddingBottom: keyboardHeight },
+                        {
+                            transform: [
+                                {
+                                    translateY: animValue.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: isWideScreen ? [40, 0] : [SCREEN_HEIGHT, 0],
+                                    }),
+                                },
+                            ],
+                            opacity: isWideScreen ? animValue : 1,
+                        },
                     ]}
                 >
                     <View style={[
@@ -264,6 +310,16 @@ export const AdminEditPaymentModal: React.FC<AdminEditPaymentModalProps> = ({
                                 </View>
                             </View>
 
+                            {/* Payout Proof Already Uploaded Warning */}
+                            {Boolean(booking.overpayment?.adminRefundReceiptUrl) && (
+                                <View style={[styles.calcFeedbackBox, styles.calcFeedbackOverpaid, { marginBottom: 12 }]}>
+                                    <CustomIcon library="Feather" name="alert-triangle" size={14} color="#D97706" style={{ marginTop: 2 }} />
+                                    <CustomText style={[styles.calcFeedbackText, { color: '#D97706' }]}>
+                                        Caution: Excess refund payout proof has already been uploaded for this booking. Editing the verified amount may cause a discrepancy with the disbursed refund.
+                                    </CustomText>
+                                </View>
+                            )}
+
                             {/* Amount Input */}
                             <CustomTextInput
                                 label="Verified Amount (₱) *"
@@ -283,17 +339,19 @@ export const AdminEditPaymentModal: React.FC<AdminEditPaymentModalProps> = ({
 
                             {/* Reference Number */}
                             <CustomTextInput
-                                label="REF Code *"
-                                placeholder="e.g. GCash / Maya Ref Code"
+                                label="Reference Number *"
+                                placeholder="e.g. 10023482910"
+                                type="numerical"
+                                keyboardType="number-pad"
                                 value={referenceCode}
-                                maxLength={60}
+                                maxLength={30}
                                 onFocus={() => {
                                     setTimeout(() => {
                                         scrollViewRef.current?.scrollTo({ y: 120, animated: true });
                                     }, 150);
                                 }}
-                                sanitizeText={(text) => stripEmojis(text).replace(/[\x00-\x1F\x7F]/g, '')}
-                                onChangeText={(val: string) => setReferenceCode(stripEmojis(String(val || '')).replace(/[\x00-\x1F\x7F]/g, '').slice(0, 60))}
+                                sanitizeText={(text) => text.replace(/[^0-9]/g, '')}
+                                onChangeText={(val: string) => setReferenceCode(String(val || '').replace(/[^0-9]/g, '').slice(0, 30))}
                             />
 
                             {/* Classification Selector */}
@@ -304,7 +362,7 @@ export const AdminEditPaymentModal: React.FC<AdminEditPaymentModalProps> = ({
                                         activeOpacity={0.8}
                                         style={[
                                             styles.classificationOption,
-                                            classification === 'downpayment' && styles.classificationOptionActive
+                                            classification === 'downpayment' && styles.classificationOptionDownpaymentActive
                                         ]}
                                         onPress={() => setClassification('downpayment')}
                                     >
@@ -312,11 +370,11 @@ export const AdminEditPaymentModal: React.FC<AdminEditPaymentModalProps> = ({
                                             library="Feather"
                                             name="pie-chart"
                                             size={14}
-                                            color={classification === 'downpayment' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
+                                            color={classification === 'downpayment' ? Colors.STATUS_DOWNPAYMENT_TEXT : Colors.TEXT_SECONDARY}
                                         />
                                         <CustomText style={[
                                             styles.classificationOptionText,
-                                            classification === 'downpayment' && styles.classificationOptionTextActive
+                                            classification === 'downpayment' && styles.classificationOptionDownpaymentText
                                         ]}>
                                             Downpayment
                                         </CustomText>
@@ -413,16 +471,19 @@ export const AdminEditPaymentModal: React.FC<AdminEditPaymentModalProps> = ({
                             </View>
                         </View>
                     </View>
-                </View>
+                </Animated.View>
             </View>
         </Modal>
     );
 };
 
 const styles = StyleSheet.create({
+    backdrop: {
+        ...StyleSheet.absoluteFill,
+        backgroundColor: Colors.MODAL_OVERLAY,
+    },
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.45)',
         alignItems: 'center',
     },
     overlayDialog: {
@@ -576,6 +637,10 @@ const styles = StyleSheet.create({
         borderColor: Colors.PRIMARY,
         backgroundColor: '#F0FDF4',
     },
+    classificationOptionDownpaymentActive: {
+        borderColor: Colors.STATUS_DOWNPAYMENT_BORDER,
+        backgroundColor: Colors.STATUS_DOWNPAYMENT_BG,
+    },
     classificationOptionText: {
         fontSize: 13,
         fontWeight: '600',
@@ -583,6 +648,10 @@ const styles = StyleSheet.create({
     },
     classificationOptionTextActive: {
         color: Colors.PRIMARY,
+        fontWeight: '700',
+    },
+    classificationOptionDownpaymentText: {
+        color: Colors.STATUS_DOWNPAYMENT_TEXT,
         fontWeight: '700',
     },
     calcFeedbackBox: {

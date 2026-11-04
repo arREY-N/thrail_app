@@ -6,7 +6,7 @@
 import LoadingScreen from "@/src/app/loading";
 import { CreateBookingFlow } from "@/src/core/flows/CreateBookingFlow";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
-import { useOfferTrails } from "@/src/core/models/Offer/Offer";
+import { useOfferList, useOfferTrails } from "@/src/core/models/Offer/Offer";
 import getSearchParam from "@/src/core/utility/getSearchParam";
 import BookingScreen from "@/src/features/Book/screens/Booking/BookingScreen";
 import { router, useLocalSearchParams } from "expo-router";
@@ -22,6 +22,10 @@ export default function ListOffer() {
         isLoading,
         error: offerError,
     } = useOfferTrails(trailId);
+
+    const {
+        offers: allOffers,
+    } = useOfferList();
 
     const {
         userBookings,
@@ -48,8 +52,9 @@ export default function ListOffer() {
     if (isLoading) return <LoadingScreen />;
 
     return (
-        <BookingScreen 
+        <BookingScreen
             offers={trailOffers}
+            allOffers={allOffers}
             userBookings={userBookings}
             error={displayError}
             onSetOffer={onSetOffer}
@@ -58,6 +63,6 @@ export default function ListOffer() {
             onCompleteOffer={onCompleteBook}
             onViewBookingDetails={handleViewBookingDetails}
             onSearchUser={findUser}
-        />  
+        />
     );
 }

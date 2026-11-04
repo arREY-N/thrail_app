@@ -3,7 +3,7 @@
  * @description Screen component for hiker contact details, document upload requirements, and digital signature for booking reservations.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     LayoutAnimation,
     Platform,
@@ -21,11 +21,7 @@ import CustomText from '@/src/components/CustomText';
 import DocumentUploadCard, { getDocSubtitle, getStrictDocKey } from '@/src/components/DocumentUploadCard';
 import EmergencySetupModal, { UserSearchResult } from '@/src/components/EmergencyModal';
 import { useToast } from '@/src/components/Toast/Toast';
-import {
-    isTutorialMeasurementActive,
-    registerMeasureCallback,
-    registerTutorialLayout,
-} from '@/src/components/Tutorial/Tutorial';
+import { useBookingDetailsTutorial } from '@/src/components/Tutorial/Tutorial';
 
 import { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src/components/CustomTextInput';
 import { Colors } from '@/src/constants/colors';
@@ -110,99 +106,18 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
     const [showUnifiedModal, setShowUnifiedModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const isConfirmingRef = useRef(false);
-    const scrollViewRef = useRef<ScrollView>(null);
-    const contactCardRef = useRef<View>(null);
-    const firstDocCardRef = useRef<View>(null);
-    const termsSectionRef = useRef<View>(null);
-    const docsSectionOffsetY = useRef<number>(0);
-    const termsSectionOffsetY = useRef<number>(0);
-
-    const measureContactCardNow = useCallback(() => {
-        contactCardRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('booking_details_contact', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureFirstDocCardNow = useCallback(() => {
-        firstDocCardRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('booking_details_docs', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureTermsSectionNow = useCallback(() => {
-        termsSectionRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('booking_details_terms', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureContactCard = useCallback(() => {
-        if (!isTutorialMeasurementActive()) return;
-        measureContactCardNow();
-    }, [measureContactCardNow]);
-
-    const measureFirstDocCard = useCallback(() => {
-        if (!isTutorialMeasurementActive()) return;
-        measureFirstDocCardNow();
-    }, [measureFirstDocCardNow]);
-
-    const measureTermsSection = useCallback(() => {
-        if (!isTutorialMeasurementActive()) return;
-        measureTermsSectionNow();
-    }, [measureTermsSectionNow]);
-
-    useEffect(() => {
-        const unsubContact = registerMeasureCallback('booking_details_contact', measureContactCardNow);
-        const unsubDocs = registerMeasureCallback('booking_details_docs', measureFirstDocCardNow);
-        const unsubTerms = registerMeasureCallback('booking_details_terms', measureTermsSectionNow);
-        return () => {
-            unsubContact();
-            unsubDocs();
-            unsubTerms();
-        };
-    }, [measureContactCardNow, measureFirstDocCardNow, measureTermsSectionNow]);
-
-    // Bidirectional auto-scroll for DetailsScreen tour steps (active only when tutorial is visible)
-    useEffect(() => {
-        if (!isTutorialVisible) return;
-
-        if (activeTutorialStep === 'booking_details_contact') {
-            scrollViewRef.current?.scrollTo({
-                y: 0,
-                animated: true,
-            });
-            const timer = setTimeout(measureContactCardNow, 250);
-            return () => clearTimeout(timer);
-        } else if (activeTutorialStep === 'booking_details_docs') {
-            scrollViewRef.current?.scrollTo({
-                y: Math.max(0, docsSectionOffsetY.current - 16),
-                animated: true,
-            });
-            const timer = setTimeout(measureFirstDocCardNow, 250);
-            return () => clearTimeout(timer);
-        } else if (activeTutorialStep === 'booking_details_terms') {
-            scrollViewRef.current?.scrollTo({
-                y: Math.max(0, termsSectionOffsetY.current - 16),
-                animated: true,
-            });
-            const timer = setTimeout(measureTermsSectionNow, 250);
-            return () => clearTimeout(timer);
-        }
-    }, [isTutorialVisible, activeTutorialStep, measureContactCardNow, measureFirstDocCardNow, measureTermsSectionNow]);
-
-    // Reset scroll to top when tutorial finishes / closes
-    const prevTutorialVisible = useRef(isTutorialVisible);
-    useEffect(() => {
-        if (prevTutorialVisible.current && !isTutorialVisible) {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-        }
-        prevTutorialVisible.current = isTutorialVisible;
-    }, [isTutorialVisible]);
+    const {
+        scrollViewRef,
+        contactCardRef,
+        firstDocCardRef,
+        termsSectionRef,
+        measureContactCard,
+        handleDocsSectionLayout,
+        handleTermsSectionLayout,
+    } = useBookingDetailsTutorial({
+        activeTutorialStep,
+        isTutorialVisible,
+    });
 
     const userAge = profile?.birthday ? calculateAge(profile.birthday) : 0;
     const isInvalidOrUnsetBirthday = !profile?.birthday || userAge < 10;
@@ -506,10 +421,7 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                     {activeDocuments.length > 0 && (
                         <View
                             style={styles.section}
-                            onLayout={(e) => {
-                                docsSectionOffsetY.current = e.nativeEvent.layout.y;
-                                measureFirstDocCard();
-                            }}
+                            onLayout={handleDocsSectionLayout}
                         >
                             <View style={styles.sectionHeaderRow}>
                                 <CustomText variant="h2" style={styles.sectionTitleFlat}>
@@ -544,10 +456,7 @@ const DetailsScreen: React.FC<DetailsScreenProps> = ({
                     {/* Section 3: Terms and Conditions */}
                     <View
                         ref={termsSectionRef}
-                        onLayout={(e) => {
-                            termsSectionOffsetY.current = e.nativeEvent.layout.y;
-                            measureTermsSection();
-                        }}
+                        onLayout={handleTermsSectionLayout}
                         style={styles.lastsection}
                     >
                         <TermsSignature 

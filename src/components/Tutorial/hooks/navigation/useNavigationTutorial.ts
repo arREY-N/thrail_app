@@ -10,13 +10,13 @@ import * as Location from 'expo-location';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform, View } from 'react-native';
 
+import { useTutorialGuide } from '@/src/components/Tutorial/hooks/useTutorialGuide';
+import { type TutorialTourId } from '@/src/components/Tutorial/interfaces/Tutorial.types';
 import {
     isTutorialMeasurementActive,
     registerMeasureCallback,
     registerTutorialLayout,
-    type TutorialTourId,
-    useTutorialGuide,
-} from '@/src/components/Tutorial/Tutorial';
+} from '@/src/components/Tutorial/utils/tutorialLayoutRegistry';
 import {
     getNavigationDiyTourSteps,
     navigationBookedTourSteps,

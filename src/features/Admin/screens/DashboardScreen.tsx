@@ -3,7 +3,7 @@
  * @description Screen displaying organization profile details, admin staff details, and action buttons.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     StyleSheet,
@@ -22,11 +22,8 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import {
     CustomTutorialModal,
-    isTutorialMeasurementActive,
-    registerMeasureCallback,
-    registerTutorialLayout,
     TutorialHelpButton,
-    useTutorialGuide,
+    useAdminDashboardTutorial,
 } from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
@@ -83,23 +80,12 @@ const DashboardScreen = ({
 }: DashboardScreenProps): React.JSX.Element => {
     const { isDesktop, isTablet } = useBreakpoints();
     const isWideScreen = isDesktop || isTablet;
-    const tutorial = useTutorialGuide('admin_dashboard', !isLoading && !error);
+    const { overviewRef, handleOverviewLayout, tutorial } = useAdminDashboardTutorial({
+        isReady: !isLoading && !error,
+    });
 
     const [showQRModal, setShowQRModal] = useState<boolean>(false);
     const isNavigatingRef = useRef<boolean>(false);
-    const overviewRef = useRef<View>(null);
-
-    const measureOverviewNow = useCallback(() => {
-        overviewRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('admin_dash_overview', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    useEffect(() => {
-        return registerMeasureCallback('admin_dash_overview', measureOverviewNow);
-    }, [measureOverviewNow]);
 
     useFocusEffect(
         useCallback(() => {
@@ -309,9 +295,7 @@ const DashboardScreen = ({
                         <View
                             ref={overviewRef}
                             collapsable={false}
-                            onLayout={() => {
-                                if (isTutorialMeasurementActive()) measureOverviewNow();
-                            }}
+                            onLayout={handleOverviewLayout}
                             style={styles.desktopColumns}
                         >
                             <View style={styles.columnWide}>
@@ -325,9 +309,7 @@ const DashboardScreen = ({
                         <View
                             ref={overviewRef}
                             collapsable={false}
-                            onLayout={() => {
-                                if (isTutorialMeasurementActive()) measureOverviewNow();
-                            }}
+                            onLayout={handleOverviewLayout}
                             style={styles.mobileStack}
                         >
                             {renderBusinessCard()}

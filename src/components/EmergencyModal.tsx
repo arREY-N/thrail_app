@@ -29,15 +29,9 @@ import CustomTextInput, { cleanPhoneNumber, formatLocalPhoneNumber } from '@/src
 import { CustomToast } from '@/src/components/Toast/Toast';
 import {
     CustomTutorialModal,
-    registerMeasureCallback,
-    registerTutorialLayout,
     TutorialHelpButton,
-    useTutorialGuide,
+    useEmergencyModalTutorial,
 } from '@/src/components/Tutorial/Tutorial';
-import {
-    emergencyModalOnlySteps,
-    emergencyModalUnifiedSteps,
-} from '@/src/components/Tutorial/constants';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { calculateVerificationValidity } from '@/src/core/flows/PhoneVerificationFlow';
@@ -240,88 +234,18 @@ const EmergencyModal = ({
         };
     }, []);
 
-    const phoneInputRef = useRef<View>(null);
-    const searchAccountRef = useRef<View>(null);
-    const manualContactRef = useRef<View>(null);
-    const saveBtnRef = useRef<View>(null);
-
-    const dynamicTourSteps = useMemo(() => {
-        const isUnified = mode === 'unified';
-        return isUnified ? emergencyModalUnifiedSteps : emergencyModalOnlySteps;
-    }, [mode]);
-
-    const tutorial = useTutorialGuide('emergency_modal', visible && renderModal, dynamicTourSteps);
-
-    const measurePhoneNow = useCallback(() => {
-        phoneInputRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('emergency_user_phone', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureSearchAccountNow = useCallback(() => {
-        searchAccountRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('emergency_search_account', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureManualContactNow = useCallback(() => {
-        manualContactRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('emergency_manual_contact', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureSaveBtnNow = useCallback(() => {
-        saveBtnRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('emergency_save_btn', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    useEffect(() => {
-        const unsubPhone = registerMeasureCallback('emergency_user_phone', measurePhoneNow);
-        const unsubSearch = registerMeasureCallback('emergency_search_account', measureSearchAccountNow);
-        const unsubManual = registerMeasureCallback('emergency_manual_contact', measureManualContactNow);
-        const unsubSave = registerMeasureCallback('emergency_save_btn', measureSaveBtnNow);
-        return () => {
-            unsubPhone();
-            unsubSearch();
-            unsubManual();
-            unsubSave();
-        };
-    }, [measurePhoneNow, measureSearchAccountNow, measureManualContactNow, measureSaveBtnNow]);
-
-    useEffect(() => {
-        if (visible && renderModal && tutorial.isVisible) {
-            const stepTarget = tutorial.currentStep?.targetSpotlight;
-            if (stepTarget === 'emergency_user_phone' || stepTarget === 'emergency_search_account') {
-                scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-            }
-            const timer = setTimeout(() => {
-                measurePhoneNow();
-                measureSearchAccountNow();
-                measureManualContactNow();
-                measureSaveBtnNow();
-            }, 260);
-            return () => clearTimeout(timer);
-        }
-    }, [
+    const {
+        phoneInputRef,
+        searchAccountRef,
+        manualContactRef,
+        saveBtnRef,
+        tutorial,
+    } = useEmergencyModalTutorial({
         visible,
         renderModal,
-        tutorial.isVisible,
-        tutorial.currentStepIndex,
-        tutorial.currentStep?.targetSpotlight,
-        measurePhoneNow,
-        measureSearchAccountNow,
-        measureManualContactNow,
-        measureSaveBtnNow,
-    ]);
+        mode,
+        scrollViewRef,
+    });
 
     useEffect(() => {
         if (visible) {

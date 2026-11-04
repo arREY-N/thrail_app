@@ -121,7 +121,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
             color: getStatusThemeColor('reservation-rejected'),
             sortDate: getEventDate(booking.createdAt ? new Date(new Date(booking.createdAt).getTime() + 1000) : booking.updatedAt)
         });
-    } else if (!hasRejectedDocs && (hasAllDocsApproved || ['approved-docs', 'for-payment', 'paid', 'downpayment', 'completed', 'finished', 'cancelled', 'refunded'].includes(booking.status))) {
+    } else if (!hasRejectedDocs && (hasAllDocsApproved || ['approved-docs', 'for-payment', 'paid', 'downpayment', 'completed', 'finished', 'cancelled', 'refund', 'refunded', 'for-cancellation'].includes(booking.status))) {
         // Documents were verified before payment was captured
         const firstPaymentDate = booking.payment?.[0]?.createdAt;
         const docsDate = firstPaymentDate 
@@ -140,12 +140,10 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
 
     // 4. Payment Transitions
     if (Array.isArray(booking.payment)) {
+        let runningCapturedTotal = 0;
         booking.payment.forEach((paymentRecord: IPayment<Date>) => {
             const paymentDate = getEventDate(paymentRecord.createdAt);
             const offerPrice = booking.offer?.price || 0;
-            const isFullPayment = offerPrice > 0 ? paymentRecord.amount >= (offerPrice - 1) : true;
-            const percentage = offerPrice > 0 ? Math.round((paymentRecord.amount / offerPrice) * 100) : 100;
-            const paymentTypeLabel = isFullPayment ? "FULLY PAID" : `DOWNPAYMENT (${percentage}%)`;
 
             // If the payment was captured (now or in the past before being refunded), log the capture event
             const wasEverCaptured = paymentRecord.status === 'captured' || 
@@ -153,6 +151,15 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
                                     ((paymentRecord.refundedAmount || 0) > 0);
 
             if (wasEverCaptured) {
+                runningCapturedTotal += paymentRecord.amount || 0;
+                const isFullPayment =
+                    paymentRecord.classification === 'full' ||
+                    (offerPrice > 0 ? runningCapturedTotal >= (offerPrice - 1) : true);
+                const percentage = offerPrice > 0
+                    ? Math.min(100, Math.round((runningCapturedTotal / offerPrice) * 100))
+                    : 100;
+                const paymentTypeLabel = isFullPayment ? "FULLY PAID" : `DOWNPAYMENT (${percentage}%)`;
+
                 timelineEvents.push({
                     title: "Payment Captured",
                     time: paymentRecord.createdAt ? formatDateToStandard(paymentRecord.createdAt) : '',
@@ -375,7 +382,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ booking, currentStatus
 
     // 8. Explicit Refund Status (Fallback if payment array does not contain refund details)
     const hasLoggedPaymentRefund = Array.isArray(booking.payment) && booking.payment.some(p => p.status === 'refunded' || ((p.refundedAmount || 0) > 0));
-    if ((booking.status === 'refund' || booking.status === 'refunded' || hasRefund) && !hasLoggedPaymentRefund) {
+    if ((currentStatus === 'refunded' || hasRefund) && !hasLoggedPaymentRefund) {
         const totalRefunded = booking.payment?.reduce((sum, p) => sum + (p.refundedAmount || (p.status === 'refunded' ? p.amount : 0)), 0) || 0;
         timelineEvents.push({
             title: "Booking Refunded",

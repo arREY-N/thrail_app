@@ -77,7 +77,7 @@ export function useAppNavigation() {
     const onSeeMoreDiscoverPress = () => {
         router.replace({
             pathname: '/explore',
-            params: { filter: 'trending' }
+            params: { filter: 'all' }
         })
     }
 
@@ -125,10 +125,6 @@ export function useAppNavigation() {
         router.push('/settings/about');
     }
 
-    const onTestSettingsPress = () => {
-        router.push('/settings/test');
-    }
-
     const onHelpSettingsPress = () => {
         router.push('/settings/help');
     }
@@ -167,7 +163,6 @@ export function useAppNavigation() {
         onSecuritySettingsPress,
         onPrivacySettingsPress,
         onAboutSettingsPress,
-        onTestSettingsPress,
         onHelpSettingsPress,
         onHikingPreferencesPress,
         onTermsSettingsPress,

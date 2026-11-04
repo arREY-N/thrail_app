@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ImageSourcePropType,
@@ -23,12 +24,13 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { IOffer } from '@/src/core/models/Offer/Offer';
 import { IReview } from '@/src/core/models/Review/Review';
 import { ITrail, useTrailStats } from '@/src/core/models/Trail/Trail';
 import { useWeatherStore } from '@/src/core/stores/weatherStore';
-import { resolveCoordsForTrail } from '@/src/core/utility/weatherHelpers';
+import { getTrailElevation, resolveCoordsForTrail } from '@/src/core/utility/weatherHelpers';
 import { ScrollToTopPill } from '@/src/features/Community/components/ScrollToTopPill';
-import { getHeroImageSource } from '@/src/features/Trail/utils/TrailDetailsHelpers';
+import { getTrailHeroPhoto } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
 import TrailDetailsTab from '@/src/features/Trail/tabs/TrailDetailsTab';
 import TrailReviewsTab from '@/src/features/Trail/tabs/TrailReviewsTab';
@@ -52,8 +54,13 @@ export interface TrailScreenProps {
     isOwned: (review: IReview) => boolean;
     offersCount?: number;
     initialTab?: string;
+    onRefresh?: () => Promise<void> | void;
     bookButtonTitle?: string;
     isBookDisabled?: boolean;
+    similarTrails?: ITrail[];
+    offers?: IOffer[];
+    getItemRating?: (id: string) => number | string;
+    onSelectSimilarTrail?: (id: string) => void;
 }
 
 const TrailScreen: React.FC<TrailScreenProps> = ({
@@ -74,8 +81,13 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
     isOwned,
     offersCount = 0,
     initialTab,
+    onRefresh: onRefreshProp,
     bookButtonTitle,
     isBookDisabled,
+    similarTrails = [],
+    offers = [],
+    getItemRating,
+    onSelectSimilarTrail,
 }) => {
     const canEdit = canEditProp ?? Boolean(isSuperadmin || isAdmin);
     const [activeTab, setActiveTab] = useState(initialTab || 'Details');
@@ -109,6 +121,11 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
         setActiveTab(tab);
         setShowScrollTopPill(false);
     }, []);
+
+    const handleSelectSimilar = useCallback((selectedId: string) => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        onSelectSimilarTrail?.(selectedId);
+    }, [onSelectSimilarTrail]);
 
     // Fast path: If curated length and gain/elevation are already provided, skip heavy GeoJSON parsing
     const hasCuratedMetrics = Boolean(
@@ -150,28 +167,19 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
 
     const [isImagePreviewVisible, setIsImagePreviewVisible] = useState(false);
 
-    const heroImage = useMemo(
-        () => getHeroImageSource(trail),
+    const heroPhoto = useMemo(
+        () => getTrailHeroPhoto(trail),
         [trail]
     );
     const name = trail?.general?.name || "Unnamed Trail";
 
-    const coverImage = trail?.coverImage;
-    const routeMapImage = trail?.routeMapImage;
-
     const previewImages = useMemo(() => {
         const list: (string | { uri: string } | ImageSourcePropType)[] = [];
-        if (coverImage) {
-            list.push(coverImage);
-        }
-        if (routeMapImage && routeMapImage !== coverImage) {
-            list.push(routeMapImage);
-        }
-        if (list.length === 0 && heroImage) {
-            list.push(heroImage);
+        if (heroPhoto) {
+            list.push(heroPhoto);
         }
         return list;
-    }, [coverImage, routeMapImage, heroImage]);
+    }, [heroPhoto]);
 
     const location = Array.isArray(trail?.general?.province)
         ? trail.general.province.join(', ')
@@ -179,7 +187,7 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
 
     const address = trail?.general?.address || location;
 
-    const rating = trail?.general.rating
+    const rating = trail?.general.rating;
     const reviewsCount = reviews?.length || 0;
 
     const stats = {
@@ -208,14 +216,18 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
             }
 
             if (coords) {
-                await useWeatherStore.getState().loadWeather(coords.lat, coords.lon, true);
+                const elevation = getTrailElevation(trail);
+                await Promise.all([
+                    useWeatherStore.getState().loadWeather(coords.lat, coords.lon, elevation, true),
+                    onRefreshProp ? Promise.resolve(onRefreshProp()) : Promise.resolve(),
+                ]);
             }
         } catch (e) {
             console.warn('Weather refresh failed:', e);
         } finally {
             setIsRefreshing(false);
         }
-    }, [latitude, longitude, trail]);
+    }, [latitude, longitude, trail, onRefreshProp]);
 
     const hasOffers = (offersCount ?? 0) > 0;
     const resolvedBookTitle = bookButtonTitle ?? (hasOffers ? "Book" : "Offers Coming Soon");
@@ -269,19 +281,44 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                     />
                 }
             >
-                <TouchableOpacity
-                    style={styles.imageContainer}
-                    onPress={() => setIsImagePreviewVisible(true)}
-                    activeOpacity={0.9}
-                    accessibilityLabel="View full photo"
-                    accessibilityRole="button"
-                >
-                    <CustomImage
-                        source={heroImage}
-                        style={styles.headerImage}
-                        resizeMode="cover"
-                    />
-                </TouchableOpacity>
+                {heroPhoto ? (
+                    <TouchableOpacity
+                        style={styles.imageContainer}
+                        onPress={() => setIsImagePreviewVisible(true)}
+                        activeOpacity={0.9}
+                        accessibilityLabel="View full photo"
+                        accessibilityRole="button"
+                    >
+                        <CustomImage
+                            source={heroPhoto}
+                            style={styles.headerImage}
+                            resizeMode="cover"
+                        />
+                    </TouchableOpacity>
+                ) : (
+                    <View style={styles.imageContainerPlaceholder}>
+                        <LinearGradient
+                            colors={["#064e3b", "#065f46", "#047857"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.scenicHeroBanner}
+                        >
+                            <View style={styles.scenicEmblemCircle}>
+                                <CustomIcon
+                                    library="FontAwesome6"
+                                    name="mountain"
+                                    size={30}
+                                    color="rgba(255, 255, 255, 0.75)"
+                                />
+                            </View>
+                            <View style={styles.scenicHeroPill}>
+                                <CustomText variant="caption" style={styles.scenicHeroCaption}>
+                                    Photo Coming Soon
+                                </CustomText>
+                            </View>
+                        </LinearGradient>
+                    </View>
+                )}
 
                 <View style={styles.bodyContainer}>
                     <View style={styles.headerInfo}>
@@ -338,6 +375,10 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                             trailStats={trailStats}
                             statsLoading={statsLoading}
                             trail={trail}
+                            similarTrails={similarTrails}
+                            offers={offers}
+                            getItemRating={getItemRating}
+                            onSelectSimilarTrail={handleSelectSimilar}
                         />
                     )}
 
@@ -395,7 +436,7 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
                 } : undefined}
             />
 
-            {isImagePreviewVisible && (
+            {isImagePreviewVisible && previewImages.length > 0 && (
                 <ImagePreviewModal
                     visible={isImagePreviewVisible}
                     images={previewImages}
@@ -423,9 +464,46 @@ const styles = StyleSheet.create({
         position: 'relative',
         backgroundColor: Colors.GRAY_LIGHT,
     },
+    imageContainerPlaceholder: {
+        height: 240,
+        width: '100%',
+        position: 'relative',
+        backgroundColor: Colors.PRIMARY,
+    },
     headerImage: {
         width: '100%',
         height: '100%',
+    },
+    scenicHeroBanner: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        paddingBottom: 20,
+    },
+    scenicEmblemCircle: {
+        width: 68,
+        height: 68,
+        borderRadius: 34,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    scenicHeroPill: {
+        paddingHorizontal: 14,
+        paddingVertical: 5,
+        borderRadius: 999,
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.14)',
+    },
+    scenicHeroCaption: {
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontWeight: '600',
+        letterSpacing: 0.4,
     },
     backButton: {
         position: 'absolute',

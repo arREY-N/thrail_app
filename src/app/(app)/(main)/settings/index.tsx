@@ -20,7 +20,6 @@ export default function Settings() {
         onSecuritySettingsPress,
         onPrivacySettingsPress,
         onAboutSettingsPress,
-        onTestSettingsPress,
         onUserViewPress
     } = useAppNavigation();
 
@@ -46,7 +45,6 @@ export default function Settings() {
             onPrivacySettingsPress={onPrivacySettingsPress}
 
             onAboutPress={onAboutSettingsPress}
-            onTestPress={onTestSettingsPress}
 
             onSignOutPress={signOut}
         />

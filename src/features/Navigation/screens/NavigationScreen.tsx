@@ -8,27 +8,27 @@ import CustomIcon from "@/src/components/CustomIcon";
 import CustomSearchBar from "@/src/components/CustomSearchBar";
 import CustomText from "@/src/components/CustomText";
 
+import NetworkStatusBanner from "@/src/components/NetworkStatusBanner";
 import { Colors, Palette } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
-import { Trail, computeTrailMidpoint } from "@/src/core/models/Trail/Trail";
-import NetworkStatusBanner from "@/src/components/NetworkStatusBanner";
 import { useNetworkStatus } from "@/src/core/flows/TrackHikerGPSFlow";
+import { computeTrailMidpoint, Trail } from "@/src/core/models/Trail/Trail";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
 
+import {
+    CustomTutorialModal,
+    TutorialHelpButton,
+    useNavigationTutorial,
+} from "@/src/components/Tutorial/Tutorial";
 import { useWebDrawer } from "@/src/core/context/WebDrawerContext";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { formatTime } from "@/src/core/utility/formatTime";
 import UpcomingHikesModal from "@/src/features/Navigation/components/UpcomingHikesModal";
-import {
-    CustomTutorialModal,
-    TutorialHelpButton,
-} from "@/src/components/Tutorial/Tutorial";
-import { useNavigationTutorial } from "@/src/features/Navigation/hooks/useNavigationTutorial";
 
 interface NavigationScreenProps {
     upcomingBookings: Booking[];

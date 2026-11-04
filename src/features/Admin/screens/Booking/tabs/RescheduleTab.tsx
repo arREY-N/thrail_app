@@ -1,3 +1,11 @@
+/**
+ * @file RescheduleTab.tsx
+ * @description Admin component displaying reschedule request review, comparison between
+ * current and requested hike, financial reconciliation preview, and approve/decline workflows.
+ * Responsive for Web and Mobile.
+ */
+
+import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -5,6 +13,7 @@ import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomStatusBadge from '@/src/components/CustomStatusBadge';
 import CustomText from '@/src/components/CustomText';
 import { useToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
@@ -14,7 +23,7 @@ import { Offer, useOfferStore } from '@/src/core/models/Offer/Offer';
 import { Reschedule, useRescheduleAdmin } from '@/src/core/models/Reschedule/Reschedule';
 import { formatBookingDate } from '@/src/utils/dateFormatter';
 
-export interface AdminRescheduleCardProps {
+export interface RescheduleTabProps {
     booking?: Booking | null;
     offers?: Offer[];
     reschedule?: Reschedule | null;
@@ -22,7 +31,11 @@ export interface AdminRescheduleCardProps {
     onApproveReschedule?: (newOffer: Offer, booking?: Booking, adminNote?: string) => Promise<unknown>;
     onDeclineReschedule?: (reason: string, reschedule?: Reschedule | null, booking?: Booking) => Promise<void>;
     isProcessing?: boolean;
+    decisionRef?: React.RefObject<View | null>;
 }
+
+// Backward compatibility alias
+export type AdminRescheduleCardProps = RescheduleTabProps;
 
 const RESCHEDULE_DECLINE_SUGGESTIONS = [
     'Target hike is fully booked or at maximum capacity',
@@ -31,7 +44,7 @@ const RESCHEDULE_DECLINE_SUGGESTIONS = [
     'Logistical or trail constraints on the requested date',
 ];
 
-export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
+export const RescheduleTab: React.FC<RescheduleTabProps> = ({
     booking,
     offers = [],
     reschedule: propReschedule,
@@ -39,6 +52,7 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
     onApproveReschedule: propOnApprove,
     onDeclineReschedule: propOnDecline,
     isProcessing: propIsProcessing = false,
+    decisionRef,
 }) => {
     const { showToast } = useToast();
 
@@ -75,6 +89,7 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
 
     // Target offer resolution
     const targetOfferId = activeReschedule?.newOfferId || booking?.rescheduledToOfferId;
+    const targetBookingId = (booking as Booking & { rescheduledToBookingId?: string })?.rescheduledToBookingId || (activeReschedule as unknown as { newBookingId?: string })?.newBookingId;
     const [fetchedTargetOffer, setFetchedTargetOffer] = useState<Offer | null>(null);
 
     const targetOffer = useMemo(() => {
@@ -190,7 +205,7 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
     };
 
     // Header metadata
-    const headerTitle = isPending
+        const headerTitle = isPending
         ? 'Reschedule Request Review'
         : isApproved
             ? 'Reschedule Approved'
@@ -199,78 +214,66 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
     const headerIcon = isPending ? 'calendar' : isApproved ? 'check-circle' : 'x-circle';
     const headerIconColor = isPending ? Colors.PRIMARY : isApproved ? Colors.SUCCESS : Colors.ERROR;
 
-    const badgeText = isPending ? 'PENDING APPROVAL' : isApproved ? 'APPROVED' : 'DECLINED';
-    const badgeStyle = isPending ? styles.badgePending : isApproved ? styles.badgeApproved : styles.badgeDeclined;
-    const badgeTextStyle = isPending ? styles.badgeTextPending : isApproved ? styles.badgeTextApproved : styles.badgeTextDeclined;
+    const subtitleText = isPending
+        ? 'Hiker requested to reschedule this booking to another date. Review details and inventory.'
+        : isApproved
+            ? 'This booking has been rescheduled. A new reservation document has been issued with transferred payments.'
+            : 'This reschedule request was declined. The original reservation remains active under its previous payment status.';
+
+    const statusBadgeStatus = isApproved ? 'completed' : isDeclined ? 'reservation-rejected' : 'for-reservation';
+    const badgeText = isPending ? 'PENDING REVIEW' : isApproved ? 'APPROVED' : 'DECLINED';
 
     return (
         <View style={styles.cardContainer}>
-            {/* Header Row */}
+            {/* Header Row: Title & Icon on Left, Canonical Status Badge on Right */}
             <View style={styles.headerRow}>
                 <View style={styles.headerLeft}>
-                    <View style={[styles.iconContainer, { backgroundColor: isPending ? '#E8F5E9' : isApproved ? '#DCFCE7' : '#FEE2E2' }]}>
-                        <CustomIcon library="Feather" name={headerIcon} size={16} color={headerIconColor} />
-                    </View>
+                    <CustomIcon library="Feather" name={headerIcon} size={16} color={headerIconColor} />
                     <CustomText style={styles.headerTitle}>{headerTitle}</CustomText>
                 </View>
-                <View style={[styles.badge, badgeStyle]}>
-                    <CustomText style={[styles.badgeText, badgeTextStyle]}>{badgeText}</CustomText>
-                </View>
+                <CustomStatusBadge
+                    status={statusBadgeStatus}
+                    label={badgeText}
+                    size="sm"
+                />
             </View>
 
-            {/* Status Informational Banner */}
-            {isPending && (
-                <View style={styles.pendingBanner}>
-                    <CustomIcon library="Feather" name="info" size={15} color={Colors.PRIMARY} />
-                    <CustomText style={styles.bannerText}>
-                        The hiker submitted a reschedule request to move their reservation to a different hike date. Review target availability and price reconciliation below.
-                    </CustomText>
-                </View>
-            )}
+            <CustomText variant="caption" style={styles.headerSubtitle}>
+                {subtitleText}
+            </CustomText>
 
-            {isApproved && (
-                <View style={styles.approvedBanner}>
-                    <CustomIcon library="Feather" name="check" size={15} color={Colors.SUCCESS} />
-                    <CustomText style={styles.approvedBannerText}>
-                        This booking has been rescheduled. A new reservation document has been issued with transferred payments.
-                    </CustomText>
-                </View>
-            )}
-
-            {isDeclined && (
-                <View style={styles.declinedBanner}>
-                    <CustomIcon library="Feather" name="alert-circle" size={15} color={Colors.ERROR} />
-                    <CustomText style={styles.declinedBannerText}>
-                        This reschedule request was declined. The original reservation remains active under its previous payment status.
-                    </CustomText>
-                </View>
-            )}
-
-            {/* Hiker Submitted Reason */}
-            {(activeReschedule?.reason || booking?.rescheduleReason) && (
-                <View style={styles.reasonSection}>
-                    <CustomText style={styles.sectionLabel}>HIKER&apos;S SUBMITTED REASON</CustomText>
-                    <View style={styles.reasonBox}>
-                        <CustomIcon library="Feather" name="message-square" size={14} color="#64748B" style={styles.reasonIcon} />
-                        <CustomText style={styles.reasonText}>
-                            &quot;{activeReschedule?.reason || booking?.rescheduleReason}&quot;
+            {/* Hiker Submitted Reason (Cancellation Tab InfoBox Style) */}
+            {(activeReschedule?.reason || booking?.rescheduleReason) ? (
+                <View style={styles.infoBox}>
+                    <View style={styles.infoBoxHeader}>
+                        <CustomText variant="caption" style={styles.infoBoxLabel}>
+                            HIKER&apos;S SUBMITTED REASON
                         </CustomText>
+                        {(activeReschedule?.createdAt || booking?.updatedAt) && (
+                            <CustomText variant="caption" style={styles.infoBoxTimestamp}>
+                                {formatBookingDate(activeReschedule?.createdAt || booking?.updatedAt, null, true)}
+                            </CustomText>
+                        )}
                     </View>
+                    <CustomText style={styles.infoBoxText}>
+                        &quot;{activeReschedule?.reason || booking?.rescheduleReason}&quot;
+                    </CustomText>
                 </View>
-            )}
+            ) : null}
 
             {/* Organizer Decline Reason (if declined) */}
-            {isDeclined && (activeReschedule?.adminNote || booking?.rescheduleDeclineReason) && (
-                <View style={styles.reasonSection}>
-                    <CustomText style={[styles.sectionLabel, { color: Colors.ERROR }]}>ORGANIZER DECLINE REASON</CustomText>
-                    <View style={[styles.reasonBox, styles.declineReasonBox]}>
-                        <CustomIcon library="Feather" name="alert-triangle" size={14} color={Colors.ERROR} style={styles.reasonIcon} />
-                        <CustomText style={[styles.reasonText, { color: '#991B1B' }]}>
-                            {activeReschedule?.adminNote || booking?.rescheduleDeclineReason}
+            {isDeclined && (activeReschedule?.adminNote || booking?.rescheduleDeclineReason) ? (
+                <View style={[styles.infoBox, styles.declineInfoBox]}>
+                    <View style={styles.infoBoxHeader}>
+                        <CustomText variant="caption" style={styles.declineBoxLabel}>
+                            ORGANIZER&apos;S DECLINE REASON
                         </CustomText>
                     </View>
+                    <CustomText style={styles.declineBoxText}>
+                        {activeReschedule?.adminNote || booking?.rescheduleDeclineReason}
+                    </CustomText>
                 </View>
-            )}
+            ) : null}
 
             {/* Hike Comparison Section */}
             <View style={styles.comparisonContainer}>
@@ -278,19 +281,19 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
                 <View style={styles.comparisonColumn}>
                     <CustomText style={styles.columnHeader}>CURRENT HIKE</CustomText>
                     <View style={styles.infoRow}>
-                        <CustomIcon library="Feather" name="calendar" size={13} color="#64748B" />
+                        <CustomIcon library="Feather" name="calendar" size={13} color={Colors.TEXT_SECONDARY} />
                         <CustomText style={styles.infoText}>
                             {formatBookingDate(booking?.offer?.date, null, true)}
                         </CustomText>
                     </View>
                     <View style={styles.infoRow}>
-                        <CustomIcon library="Feather" name="map-pin" size={13} color="#64748B" />
+                        <CustomIcon library="Feather" name="map-pin" size={13} color={Colors.TEXT_SECONDARY} />
                         <CustomText style={styles.infoText} numberOfLines={1}>
                             {booking?.trail?.name || 'Current Trail'}
                         </CustomText>
                     </View>
                     <View style={styles.infoRow}>
-                        <CustomIcon library="Feather" name="tag" size={13} color="#64748B" />
+                        <CustomIcon library="Feather" name="tag" size={13} color={Colors.TEXT_SECONDARY} />
                         <CustomText style={styles.infoText}>
                             ₱{oldPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </CustomText>
@@ -299,7 +302,7 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
 
                 {/* Arrow Divider */}
                 <View style={styles.arrowDivider}>
-                    <CustomIcon library="Feather" name="arrow-right" size={18} color="#94A3B8" />
+                    <CustomIcon library="Feather" name="arrow-right" size={18} color={Colors.TEXT_SECONDARY} />
                 </View>
 
                 {/* Requested Target Hike */}
@@ -334,43 +337,82 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
                 </View>
             </View>
 
-            {/* Financial Reconciliation Breakdown */}
-            <View style={styles.reconciliationCard}>
-                <CustomText style={styles.reconciliationTitle}>FINANCIAL RECONCILIATION PREVIEW</CustomText>
+            {/* Payment & Slot Summary Breakdown */}
+            <View style={styles.summaryCard}>
+                <CustomText style={styles.summaryTitle}>PAYMENT &amp; SLOT SUMMARY</CustomText>
 
-                <View style={styles.reconcileRow}>
-                    <CustomText style={styles.reconcileLabel}>Total payments received:</CustomText>
-                    <CustomText style={styles.reconcileValue}>
+                <View style={styles.summaryRow}>
+                    <CustomText style={styles.summaryLabel}>Original Booking Paid:</CustomText>
+                    <CustomText style={styles.summaryValue}>
                         ₱{totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </CustomText>
                 </View>
-                <View style={styles.reconcileRow}>
-                    <CustomText style={styles.reconcileLabel}>Target offer price:</CustomText>
-                    <CustomText style={styles.reconcileValue}>
+                <View style={styles.summaryRow}>
+                    <CustomText style={styles.summaryLabel}>New Offer Price:</CustomText>
+                    <CustomText style={styles.summaryValue}>
                         ₱{newPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </CustomText>
                 </View>
-
-                <View style={styles.reconcileDivider} />
-
-                <View style={styles.reconcileRow}>
-                    <CustomText style={[styles.reconcileLabel, { fontWeight: '600', color: '#1E293B' }]}>Payment action:</CustomText>
+                <View style={styles.summaryRow}>
+                    <CustomText style={styles.summaryLabel}>Original Slot:</CustomText>
                     <CustomText style={[
-                        styles.reconcileValue,
-                        totalPaid > newPrice ? styles.textGreen : newPrice > totalPaid ? styles.textAmber : styles.textGreen
+                        styles.summaryValue,
+                        isApproved ? styles.slotReleasedText : styles.slotPendingText
+                    ]}>
+                        {isApproved ? 'Released to Tour' : 'Releases to Tour on approval'}
+                    </CustomText>
+                </View>
+
+                <View style={styles.summaryDivider} />
+
+                <View style={styles.summaryRow}>
+                    <CustomText style={[styles.summaryLabel, { fontWeight: '700', color: Colors.TEXT_PRIMARY }]}>
+                        {totalPaid > newPrice ? 'Excess Refund Due:' : newPrice > totalPaid ? 'Balance Due from Hiker:' : 'Financial Settlement:'}
+                    </CustomText>
+                    <CustomText style={[
+                        styles.summaryValue,
+                        { fontWeight: '700' },
+                        totalPaid > newPrice ? styles.textAmber : newPrice > totalPaid ? styles.textAmber : styles.textGreen
                     ]}>
                         {totalPaid > newPrice
-                            ? `Refund excess: ₱${resultingOverpayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            ? `Refund: ₱${resultingOverpayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                             : newPrice > totalPaid
-                                ? `Balance: ₱${resultingRemainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                : 'No balance (₱0.00)'}
+                                ? `₱${resultingRemainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : 'Fully Covered (₱0.00)'}
                     </CustomText>
                 </View>
             </View>
 
+            {/* Post-Approval Shortcut to Target Offer or Direct Booking Review */}
+            {isApproved && Boolean(targetOfferId) && (
+                <View style={styles.approvedActionRow}>
+                    <CustomButton
+                        title={targetBookingId ? "View New Booking Review" : "View New Booking in Offer"}
+                        variant="outline"
+                        icon="arrow-right"
+                        iconLibrary="Feather"
+                        iconPosition="right"
+                        onPress={() => {
+                            if (targetBookingId) {
+                                router.push({
+                                    pathname: '/(app)/(main)/admin/booking/view',
+                                    params: { bookingId: targetBookingId, offerId: targetOfferId }
+                                });
+                            } else {
+                                router.push({
+                                    pathname: '/(app)/(main)/admin/offer/view',
+                                    params: { offerId: targetOfferId }
+                                });
+                            }
+                        }}
+                        style={styles.viewOfferBtn}
+                    />
+                </View>
+            )}
+
             {/* Action Buttons for Pending State */}
             {isPending && (
-                <View style={styles.actionContainer}>
+                <View ref={decisionRef} collapsable={false} style={styles.actionContainer}>
                     {isDeclineExpanded ? (
                         <View style={styles.declineForm}>
                             <CustomFeedbackInput
@@ -412,9 +454,11 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
                                 variant="outline"
                                 onPress={() => setIsDeclineExpanded(true)}
                                 disabled={isBusy}
-                                style={styles.flexButton}
+                                style={[styles.flexButton, styles.declineBtn]}
+                                textStyle={styles.declineBtnText}
                                 icon="x-circle"
                                 iconLibrary="Feather"
+                                iconColor={Colors.ERROR}
                             />
                             <CustomButton
                                 title="Approve Reschedule"
@@ -468,15 +512,16 @@ export const AdminRescheduleCard: React.FC<AdminRescheduleCardProps> = ({
     );
 };
 
-export default AdminRescheduleCard;
+export { RescheduleTab as AdminRescheduleCard };
+export default RescheduleTab;
 
 const styles = StyleSheet.create({
     cardContainer: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: Colors.WHITE,
         borderRadius: 16,
         padding: 18,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: Colors.GRAY_LIGHT,
         marginBottom: 16,
         ...GlobalStyles.dropShadow(2),
     },
@@ -484,164 +529,101 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 14,
+        marginBottom: 4,
     },
     headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 8,
         flex: 1,
-    },
-    iconContainer: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     headerTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#0F172A',
+        color: Colors.TEXT_PRIMARY,
         flex: 1,
     },
-    badge: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 20,
+    headerSubtitle: {
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 12,
+        marginBottom: 14,
+        lineHeight: 16,
     },
-    badgePending: {
-        backgroundColor: '#E8F5E9',
+    infoBox: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderRadius: 10,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        marginBottom: 12,
     },
-    badgeApproved: {
-        backgroundColor: '#DCFCE7',
+    declineInfoBox: {
+        backgroundColor: Colors.STATUS_CANCELLED_BG,
+        borderColor: Colors.ERROR_BORDER,
     },
-    badgeDeclined: {
-        backgroundColor: '#FEE2E2',
+    infoBoxHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        flexWrap: 'wrap',
+        rowGap: 4,
+        columnGap: 8,
+        marginBottom: 10,
     },
-    badgeText: {
-        fontSize: 11,
-        fontWeight: '700',
+    infoBoxLabel: {
+        fontWeight: 'bold',
+        fontSize: 10,
         letterSpacing: 0.5,
+        color: Colors.TEXT_SECONDARY,
     },
-    badgeTextPending: {
-        color: '#166534',
-    },
-    badgeTextApproved: {
-        color: '#15803D',
-    },
-    badgeTextDeclined: {
-        color: '#B91C1C',
-    },
-    pendingBanner: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 8,
-        backgroundColor: '#F0FDF4',
-        padding: 12,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#BBF7D0',
-        marginBottom: 14,
-    },
-    bannerText: {
-        fontSize: 13,
-        color: '#166534',
-        flex: 1,
-        lineHeight: 18,
-    },
-    approvedBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: '#F0FDF4',
-        padding: 12,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#BBF7D0',
-        marginBottom: 14,
-    },
-    approvedBannerText: {
-        fontSize: 13,
-        color: '#15803D',
-        flex: 1,
-        lineHeight: 18,
-    },
-    declinedBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: '#FEF2F2',
-        padding: 12,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#FECACA',
-        marginBottom: 14,
-    },
-    declinedBannerText: {
-        fontSize: 13,
-        color: '#991B1B',
-        flex: 1,
-        lineHeight: 18,
-    },
-    reasonSection: {
-        marginBottom: 14,
-    },
-    sectionLabel: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: '#64748B',
+    declineBoxLabel: {
+        fontWeight: 'bold',
+        fontSize: 10,
         letterSpacing: 0.5,
-        marginBottom: 6,
+        color: Colors.ERROR,
     },
-    reasonBox: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 8,
-        backgroundColor: '#F8FAFC',
-        borderLeftWidth: 3,
-        borderLeftColor: Colors.PRIMARY,
-        padding: 10,
-        borderRadius: 6,
+    infoBoxTimestamp: {
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 11,
+        fontWeight: '500',
     },
-    declineReasonBox: {
-        borderLeftColor: Colors.ERROR,
-        backgroundColor: '#FEF2F2',
-    },
-    reasonIcon: {
-        marginTop: 2,
-    },
-    reasonText: {
+    infoBoxText: {
         fontSize: 13,
-        color: '#334155',
-        flex: 1,
         fontStyle: 'italic',
-        lineHeight: 18,
+        color: Colors.TEXT_PRIMARY,
+        lineHeight: 20,
+    },
+    declineBoxText: {
+        fontSize: 13,
+        fontStyle: 'italic',
+        color: Colors.ERROR,
+        fontWeight: '500',
+        lineHeight: 20,
     },
     comparisonContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderRadius: 12,
         padding: 12,
         marginBottom: 14,
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: Colors.GRAY_LIGHT,
     },
     comparisonColumn: {
         flex: 1,
     },
     targetColumn: {
-        backgroundColor: '#F0FDF4',
+        backgroundColor: Colors.STATUS_APPROVED_BG,
         padding: 8,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#DCFCE7',
+        borderColor: Colors.STATUS_APPROVED_BORDER,
     },
     columnHeader: {
         fontSize: 10,
         fontWeight: '800',
-        color: '#64748B',
+        color: Colors.TEXT_SECONDARY,
         letterSpacing: 0.5,
         marginBottom: 6,
     },
@@ -658,7 +640,7 @@ const styles = StyleSheet.create({
     },
     infoText: {
         fontSize: 12,
-        color: '#334155',
+        color: Colors.TEXT_PRIMARY,
         fontWeight: '500',
     },
     highlightText: {
@@ -670,45 +652,53 @@ const styles = StyleSheet.create({
         color: Colors.PRIMARY,
         fontWeight: '600',
     },
-    reconciliationCard: {
-        backgroundColor: '#FFFFFF',
+    summaryCard: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
-        padding: 12,
+        borderColor: Colors.GRAY_LIGHT,
+        padding: 14,
         marginBottom: 16,
     },
-    reconciliationTitle: {
+    summaryTitle: {
         fontSize: 10,
         fontWeight: '800',
-        color: '#475569',
+        color: Colors.TEXT_SECONDARY,
         letterSpacing: 0.5,
-        marginBottom: 8,
+        marginBottom: 10,
     },
-    reconcileRow: {
+    summaryRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 4,
+        marginBottom: 6,
     },
-    reconcileLabel: {
+    summaryLabel: {
         fontSize: 12,
-        color: '#64748B',
+        color: Colors.TEXT_SECONDARY,
     },
-    reconcileValue: {
+    summaryValue: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#1E293B',
+        color: Colors.TEXT_PRIMARY,
+    },
+    slotReleasedText: {
+        color: Colors.PRIMARY,
+        fontWeight: '700',
+    },
+    slotPendingText: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: '500',
     },
     textAmber: {
-        color: '#D97706',
+        color: Colors.WARNING,
     },
     textGreen: {
         color: Colors.SUCCESS,
     },
-    reconcileDivider: {
+    summaryDivider: {
         height: 1,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: Colors.GRAY_LIGHT,
         marginVertical: 8,
     },
     actionContainer: {
@@ -720,8 +710,24 @@ const styles = StyleSheet.create({
     },
     flexButton: {
         flex: 1,
+        minHeight: 52,
+        justifyContent: 'center',
+    },
+    declineBtn: {
+        borderColor: Colors.ERROR,
+    },
+    declineBtnText: {
+        color: Colors.ERROR,
+        fontWeight: '600',
     },
     declineForm: {
         gap: 12,
     },
+    approvedActionRow: {
+        marginBottom: 16,
+    },
+    viewOfferBtn: {
+        width: '100%',
+    },
 });
+
