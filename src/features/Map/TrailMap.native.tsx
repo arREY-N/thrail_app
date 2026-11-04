@@ -8,8 +8,7 @@ import {
   Marker,
   StyleSpecification,
 } from "@maplibre/maplibre-react-native";
-import { Asset } from "expo-asset";
-import * as FileSystem from "expo-file-system/legacy";
+import NetInfo from "@react-native-community/netinfo";
 import React, { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { Animated, Easing, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -18,54 +17,17 @@ import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
 import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
 import { resolveOfflineSprites } from "@/src/utils/resolveOfflineSprites";
 import {
+  downloadOfflineMap,
+  getOfflineMapLocalUri,
   getOrDownloadAllMountainsGeoJson,
   getOrDownloadTrailGeoJson,
+  isOfflineMapReady,
   MOUNTAIN_TRAIL_REGISTRY,
   resolveMountainId,
   resolveMountainIdByCoords,
 } from "./services/TrailOfflineManager";
 import { buildOfflineStyle } from "./styles/offlineStyle";
 import { onlineStyle } from "./styles/onlineStyle";
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const offlineMapTileAsset = require("../../assets/tiles/thrail-offline-map.pmtiles");
-
-// Expected archive size is ~35.4MB (35,443,673 bytes).
-// Require at least 34MB (~96%) to reject incomplete writes.
-const MIN_PMTILES_SIZE_BYTES = 34_000_000;
-
-/**
- * Validates PMTiles archive integrity by checking both file size
- * and the PMTiles v3 magic header ("PMTiles" ASCII string at byte offset 0).
- */
-async function isPmtilesValid(uri: string): Promise<boolean> {
-  try {
-    const info = await FileSystem.getInfoAsync(uri);
-    if (!info.exists || !info.size || info.size < MIN_PMTILES_SIZE_BYTES) {
-      return false;
-    }
-    // On Android expo-file-system, position & length are ONLY respected when encoding is Base64.
-    // UTF8 encoding ignores position/length and attempts to read the entire 35MB file into a string.
-    try {
-      const base64Header = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-        position: 0,
-        length: 7,
-      });
-      // Base64 of ASCII "PMTiles" (0x50, 0x4D, 0x54, 0x69, 0x6C, 0x65, 0x73) is "UE1UaWxlcw=="
-      if (base64Header === "UE1UaWxlcw==" || base64Header.startsWith("UE1UaWxl")) {
-        return true;
-      }
-    } catch (readErr) {
-      console.warn("⚠️ Failed reading PMTiles header via Base64, falling back to size verification:", readErr);
-    }
-    // Fallback: If header read failed or unsupported, file existence and verified size (>= 34MB) suffices
-    return info.size >= MIN_PMTILES_SIZE_BYTES;
-  } catch (error) {
-    console.warn("⚠️ Error verifying PMTiles:", error);
-    return false;
-  }
-}
 
 interface LegacyCameraRef {
   setCamera?: (options: {
@@ -160,102 +122,42 @@ interface AnimatedHikerMarkerProps {
 }
 
 /**
- * Smoothly interpolates hiker marker coordinates on the map over ~1200ms
- * upon receiving remote location updates. Automatically transitions to
- * Last Known Location (LKL) state if no updates are received for >= 2 minutes.
+ * Optimized hiker marker on the map.
+ * Bypasses high-frequency JS bridge animation loops and directly positions
+ * markers via MapLibre's native Marker coordinate mapping.
+ * Automatically transitions to Last Known Location (LKL) state if no updates
+ * are received for >= 2 minutes.
  */
 const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, onPress, now = Date.now() }) => {
-  const [coords, setCoords] = useState<[number, number]>([hiker.longitude, hiker.latitude]);
-  const prevCoordsRef = useRef<[number, number]>([hiker.longitude, hiker.latitude]);
-  const animValue = useRef(new Animated.Value(1)).current;
-  const animRef = useRef<Animated.CompositeAnimation | null>(null);
-
-  // Smoothly interpolate coordinate movements across updates
-  useEffect(() => {
-    const prev = prevCoordsRef.current;
-    const targetLon = hiker.longitude;
-    const targetLat = hiker.latitude;
-
-    const dLon = targetLon - prev[0];
-    const dLat = targetLat - prev[1];
-    const distSq = dLon * dLon + dLat * dLat;
-
-    // If movement is negligible (< ~0.000001 deg, ~3m) or huge (> ~0.05 deg, initial load or warp), snap directly
-    if (distSq < 0.000000001 || distSq > 0.0025) {
-      prevCoordsRef.current = [targetLon, targetLat];
-      setCoords([targetLon, targetLat]);
-      return;
-    }
-
-    if (animRef.current) {
-      animRef.current.stop();
-    }
-
-    const startLon = prev[0];
-    const startLat = prev[1];
-
-    animValue.setValue(0);
-    let lastRenderTime = 0;
-
-    // Throttle React state re-renders to ~12 FPS (every 80ms) to prevent JS bridge congestion
-    const listenerId = animValue.addListener(({ value }) => {
-      const currentTime = Date.now();
-      if (currentTime - lastRenderTime >= 80 || value >= 0.99) {
-        lastRenderTime = currentTime;
-        const currentLon = startLon + (targetLon - startLon) * value;
-        const currentLat = startLat + (targetLat - startLat) * value;
-        setCoords([currentLon, currentLat]);
-      }
-    });
-
-    const animation = Animated.timing(animValue, {
-      toValue: 1,
-      duration: 1200,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: false,
-    });
-
-    animRef.current = animation;
-    animation.start(({ finished }) => {
-      if (finished) {
-        prevCoordsRef.current = [targetLon, targetLat];
-        setCoords([targetLon, targetLat]);
-      }
-      animValue.removeListener(listenerId);
-      animRef.current = null;
-    });
-
-    return () => {
-      animValue.removeListener(listenerId);
-      if (animRef.current) {
-        animRef.current.stop();
-      }
-    };
-  }, [hiker.longitude, hiker.latitude, animValue]);
-
-  const initials = hiker.hikerName
-    ? hiker.hikerName
-      .split(" ")
-      .map((n: string) => n[0])
-      .join("")
-      .substring(0, 2)
-      .toUpperCase()
-    : "?";
+  const initials = useMemo(() => {
+    return hiker.hikerName
+      ? hiker.hikerName
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .substring(0, 2)
+          .toUpperCase()
+      : "?";
+  }, [hiker.hikerName]);
 
   // LKL condition: 2 or more minutes since last recorded update
   const elapsedMinutes = getElapsedMinutes(hiker.timestamp, now);
   const isLkl = elapsedMinutes >= 2;
   const timeAgoText = formatTimeAgo(hiker.timestamp, now);
 
+  const handlePress = useCallback(() => {
+    onPress(hiker);
+  }, [onPress, hiker]);
+
   return (
     <Marker
       key={`hiker-${hiker.id}`}
       id={`hiker-${hiker.id}`}
-      lngLat={coords}
+      lngLat={[hiker.longitude, hiker.latitude]}
     >
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => onPress(hiker)}
+        onPress={handlePress}
         style={styles.hikerMarkerContainer}
       >
         <View style={[styles.hikerMarkerCircle, isLkl && styles.hikerMarkerCircleLkl]}>
@@ -277,6 +179,16 @@ const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, o
         </View>
       </TouchableOpacity>
     </Marker>
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.hiker.id === nextProps.hiker.id &&
+    prevProps.hiker.latitude === nextProps.hiker.latitude &&
+    prevProps.hiker.longitude === nextProps.hiker.longitude &&
+    prevProps.hiker.timestamp === nextProps.hiker.timestamp &&
+    prevProps.hiker.hikerName === nextProps.hiker.hikerName &&
+    prevProps.now === nextProps.now &&
+    prevProps.onPress === nextProps.onPress
   );
 });
 
@@ -642,7 +554,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const actuallyOfflineRef = useRef(actuallyOffline);
   actuallyOfflineRef.current = actuallyOffline;
 
-  const currentStyleMode: "offline" | "online" = actuallyOffline ? "offline" : "online";
+  const currentStyleMode: "offline" | "online" = (actuallyOffline && !!offlineTileUrl) ? "offline" : "online";
   const currentStyleModeRef = useRef<"offline" | "online">(currentStyleMode);
   currentStyleModeRef.current = currentStyleMode;
 
@@ -740,8 +652,8 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     let timer: NodeJS.Timeout | null = null;
 
     async function resolveOfflineMap() {
-      const fileUri = `${FileSystem.documentDirectory ?? ""}thrail-offline-map.pmtiles`;
-      const isCachedValid = await isPmtilesValid(fileUri);
+      const fileUri = getOfflineMapLocalUri();
+      const isCachedValid = await isOfflineMapReady();
 
       if (isCachedValid) {
         console.log("✅ Offline map cache is healthy & verified.");
@@ -749,40 +661,33 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         return;
       }
 
-      // If corrupted or truncated file exists, clean it up before re-copying
-      const fileInfo = await FileSystem.getInfoAsync(fileUri);
-      if (fileInfo.exists) {
-        console.warn("⚠️ Existing PMTiles cache failed integrity check (corrupt or partial). Deleting...");
-        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      const netState = await NetInfo.fetch();
+      const isConnected = Boolean(netState.isConnected);
+
+      // 1. If device is completely offline with no cached map, show offline notice cleanly without throwing
+      if (!isConnected) {
+        console.warn("📴 Device is completely offline and no cached offline map exists.");
+        if (isMounted) setLoadState("error");
+        return;
       }
 
-      const [asset] = await Asset.loadAsync(offlineMapTileAsset);
-      if (!asset) {
-        throw new Error("Unable to load offline map asset from module.");
-      }
-
-      const sourceUri = asset.localUri || asset.uri;
-      if (!sourceUri) {
-        throw new Error("Offline map asset source URI could not be resolved.");
-      }
-
-      console.log(`📦 Copying offline map asset from: ${sourceUri}`);
-
-      if (sourceUri.startsWith("http://") || sourceUri.startsWith("https://")) {
-        // Dev environment (asset served over HTTP via Metro bundler)
-        await FileSystem.downloadAsync(sourceUri, fileUri);
-      } else {
-        // Production release APK/AAB or standalone bundle (asset:// or file://)
-        await FileSystem.copyAsync({ from: sourceUri, to: fileUri });
-      }
-
-      const isCopiedValid = await isPmtilesValid(fileUri);
-      if (!isCopiedValid) {
-        throw new Error("Offline map copy completed, but file failed integrity verification (PMTiles magic header or size check failed).");
-      }
-
-      console.log(`✅ Offline map installed and verified successfully.`);
-      if (isMounted) setOfflineTileUrl(`pmtiles://${fileUri}`);
+      // 2. If connected to internet (Wi-Fi, Ethernet, or Mobile Data):
+      // Automatically pre-fetch the offline map in background silently without blocking or prompting!
+      console.log(`☁️ Connected to internet (${netState.type || 'online'}): silently pre-fetching offline map in background...`);
+      downloadOfflineMap()
+        .then((downloadedUri) => {
+          if (isMounted) {
+            console.log("🎉 [TrailMap] Offline map download completed! Auto-switching to offline vector map...");
+            setLoadedStyleMode(null);
+            scheduleRaf(() => {
+              setOfflineTileUrl(`pmtiles://${downloadedUri}`);
+            });
+          }
+        })
+        .catch((err) => {
+          console.warn("⚠️ Background offline map download warning:", err);
+        });
+      return;
     }
 
     async function loadAssets() {
@@ -799,7 +704,6 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         const tasks: Promise<unknown>[] = [
           resolveOfflineMap().catch((err) => {
             console.warn("⚠️ Offline map preparation warning:", err);
-            if (actuallyOfflineRef.current) throw err;
           }),
           resolveOfflineFonts()
             .then((dir) => {
@@ -807,7 +711,6 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
             })
             .catch((err) => {
               console.warn("⚠️ Offline fonts preparation warning:", err);
-              if (actuallyOfflineRef.current) throw err;
             }),
           resolveOfflineSprites()
             .then((uri) => {
@@ -824,10 +727,10 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         ]);
 
         if (isMounted) {
-          setLoadState("ready");
+          setLoadState((prev) => (prev === "error" ? "error" : "ready"));
         }
       } catch (err) {
-        console.error("❌ Failed to load map assets:", err);
+        console.warn("⚠️ Map assets loading caught error:", err);
         if (isMounted) {
           setLoadState("error");
         }
@@ -842,7 +745,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
       isMounted = false;
       if (timer) clearTimeout(timer);
     };
-  }, [reloadKey]);
+  }, [reloadKey, scheduleRaf]);
 
   useEffect(() => {
     if (!mapReady || !hasInitialCoords) return;
@@ -992,9 +895,10 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
 
   // Memoize offline style generation to avoid allocating a new layer JSON tree on every render
   const activeStyle: StyleSpecification | string = useMemo(() => {
-    return actuallyOffline
-      ? (buildOfflineStyle(offlineTileUrl, fontBaseDir, spriteBaseUri) as unknown as StyleSpecification)
-      : onlineStyle;
+    if (actuallyOffline && offlineTileUrl) {
+      return buildOfflineStyle(offlineTileUrl, fontBaseDir, spriteBaseUri) as unknown as StyleSpecification;
+    }
+    return onlineStyle;
   }, [actuallyOffline, offlineTileUrl, fontBaseDir, spriteBaseUri]);
 
   // Memoize GeoJSON Feature for walked path MultiLineString to prevent re-serializing on unrelated renders
@@ -1007,17 +911,16 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     };
   }, [validSegments]);
 
-
-
   // If offline mode is active but offline assets failed or are incomplete, show error UI instead of falling back to onlineStyle
-  if (loadState === "error" || (actuallyOffline && loadState === "ready" && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
+  if (loadState === "error" || (actuallyOffline && !isOnline && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
     return (
       <View style={styles.centered}>
         <MaterialIcons name="cloud-off" size={48} color="#d9534f" />
-        <Text style={styles.errorText}>Failed to load map assets.{"\n"}Check storage or try again.</Text>
+        <Text style={styles.errorText}>Regional offline map is not ready.{"\n"}Connect to Wi-Fi/Internet and tap Retry to download.</Text>
         <TouchableOpacity
           style={styles.retryButton}
           onPress={() => {
+            setForceOffline(false);
             setLoadState("loading");
             setReloadKey((k) => k + 1);
           }}
@@ -1028,7 +931,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     );
   }
 
-  if (loadState === "loading" || (actuallyOffline && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
+  if (loadState === "loading" || (actuallyOffline && !isOnline && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
     return <LoadingScreen />;
   }
 
@@ -1048,9 +951,18 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         onDidFailLoadingMap={() => {
           mapReadyRef.current = false;
           if (!actuallyOfflineRef.current) {
-            console.warn("⚠️ Online map style failed to load; falling back to offline map.");
-            setLoadedStyleMode(null);
-            setForceOffline(true);
+            console.warn("⚠️ Online map style failed to load.");
+            isOfflineMapReady()
+              .then((offlineReady) => {
+                if (offlineReady) {
+                  console.log("📂 Offline map verified. Switching to offline map mode.");
+                  setLoadedStyleMode(null);
+                  setForceOffline(true);
+                }
+              })
+              .catch((err) => {
+                console.warn("⚠️ Offline map check failed on error:", err);
+              });
           }
         }}
         onRegionWillChange={handleRegionWillChange}
