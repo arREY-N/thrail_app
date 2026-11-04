@@ -59,7 +59,7 @@ export function useAppNavigation() {
     const onSeeMoreDiscoverPress = () => {
         router.replace({
             pathname: '/explore',
-            params: { filter: 'trending' }
+            params: { filter: 'all' }
         })
     }
 
