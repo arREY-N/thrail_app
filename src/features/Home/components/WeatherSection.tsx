@@ -96,7 +96,7 @@ const WeatherSection = ({
     : null;
 
   // 1. Loading / Locating / Refreshing State
-  if ((loading && !weatherData) || isRefreshing) {
+  if (loading && !weatherData) {
     return (
       <View style={styles.wrapper}>
         <View style={styles.container}>
