@@ -46,14 +46,14 @@ const ensureNetInfoMonitoring = (): void => {
 
     NetInfo.fetch()
         .then((state) => {
-            const reach = state.isInternetReachable === null ? (state.isConnected ?? true) : !!state.isInternetReachable;
+            const reach = Boolean(state.isConnected);
             globalLastReach = reach;
             onlineListeners.forEach((fn) => fn(reach));
         })
         .catch(() => {});
 
     globalNetInfoSub = NetInfo.addEventListener((state) => {
-        const reach = state.isInternetReachable === null ? (state.isConnected ?? true) : !!state.isInternetReachable;
+        const reach = Boolean(state.isConnected);
         const wasOffline = !globalLastReach;
         globalLastReach = reach;
         onlineListeners.forEach((fn) => fn(reach));
