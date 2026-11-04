@@ -615,7 +615,7 @@ const AdminCancellationCard: React.FC<AdminCancellationCardProps> = ({
             {isManualRefund && isAwaitingUserConfirmation && !isRefundDisputed && (
                 <View style={styles.awaitingConfirmationBox}>
                     <View style={styles.awaitingConfirmationHeader}>
-                        <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_PENDING_TEXT} />
+                        <CustomIcon library="Feather" name="clock" size={16} color={Colors.STATUS_WARNING_TEXT} />
                         <CustomText style={styles.awaitingConfirmationTitle}>
                             Refund Proof Uploaded — Awaiting Hiker Confirmation
                         </CustomText>
