@@ -24,7 +24,7 @@ import { ITrail } from "@/src/core/models/Trail/Trail";
 import { TrailWeatherBadge } from "@/src/core/utility/weatherHelpers";
 import {
   formatRouteType,
-  getHeroImageSource,
+  getCardImageSource,
   isUsingMapFallback,
 } from "@/src/features/Trail/utils/TrailDetailsHelpers";
 import { IconLibrary } from "@/src/types/ui.types";
@@ -82,7 +82,7 @@ const getMountainData = (item?: ITrail | null, rating?: number | string) => {
     : item?.general?.rating
       ? Number(item.general.rating).toFixed(1)
       : "N/A";
-  const heroImage = getHeroImageSource(item);
+  const heroImage = getCardImageSource(item);
   const isMapFallback = isUsingMapFallback(item);
 
   return {
@@ -204,12 +204,30 @@ const MountainCard: React.FC<MountainCardProps> = ({
         onPress={onPress}
       >
         <View style={styles.imageContainerWeb}>
-          <CustomImage
-            source={heroImage}
-            style={styles.cardImage}
-            resizeMode="cover"
-          />
-          {isMapFallback && <View style={styles.mapDarkenOverlay} />}
+          {heroImage ? (
+            <>
+              <CustomImage
+                source={heroImage}
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
+              {isMapFallback && <View style={styles.mapDarkenOverlay} />}
+            </>
+          ) : (
+            <LinearGradient
+              colors={["#064e3b", "#065f46", "#047857"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.scenicPlaceholder}
+            >
+              <CustomIcon
+                library="FontAwesome6"
+                name="mountain"
+                size={44}
+                color="rgba(255, 255, 255, 0.18)"
+              />
+            </LinearGradient>
+          )}
           {/* Rating Badge */}
           <View style={[styles.glassPill, styles.topLeftPosition]}>
             <View style={styles.badgeSection}>
@@ -336,14 +354,31 @@ const MountainCard: React.FC<MountainCardProps> = ({
       onPress={onPress}
     >
       <View style={styles.imageContainer}>
-        <CustomImage
-          source={heroImage}
-          style={styles.cardImage}
-          resizeMode="cover"
-        />
-
-        {/* Automatically darkens map images so the white text stays readable */}
-        {isMapFallback && <View style={styles.mapDarkenOverlay} />}
+        {heroImage ? (
+          <>
+            <CustomImage
+              source={heroImage}
+              style={styles.cardImage}
+              resizeMode="cover"
+            />
+            {/* Automatically darkens map images so the white text stays readable */}
+            {isMapFallback && <View style={styles.mapDarkenOverlay} />}
+          </>
+        ) : (
+          <LinearGradient
+            colors={["#064e3b", "#065f46", "#047857"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.scenicPlaceholder}
+          >
+            <CustomIcon
+              library="FontAwesome6"
+              name="mountain"
+              size={44}
+              color="rgba(255, 255, 255, 0.18)"
+            />
+          </LinearGradient>
+        )}
 
         <View style={[styles.glassPill, styles.topLeftPosition]}>
           <View style={styles.badgeSection}>
@@ -472,6 +507,13 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     backgroundColor: Colors.GRAY_LIGHT,
+  },
+  scenicPlaceholder: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 24,
   },
   mapDarkenOverlay: {
     ...StyleSheet.absoluteFill,
