@@ -3,6 +3,7 @@ import {
   Camera,
   CameraRef,
   GeoJSONSource,
+  Images,
   Layer,
   Map,
   Marker,
@@ -10,7 +11,7 @@ import {
 } from "@maplibre/maplibre-react-native";
 import NetInfo from "@react-native-community/netinfo";
 import React, { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { Animated, Easing, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import LoadingScreen from "@/src/app/loading";
 import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
@@ -28,6 +29,8 @@ import {
 } from "./services/TrailOfflineManager";
 import { buildOfflineStyle } from "./styles/offlineStyle";
 import { onlineStyle } from "./styles/onlineStyle";
+
+const userHeadingIcon = require("@maplibre/maplibre-react-native/lib/commonjs/assets/heading.png");
 
 interface LegacyCameraRef {
   setCamera?: (options: {
@@ -194,133 +197,6 @@ const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, o
 
 AnimatedHikerMarker.displayName = "AnimatedHikerMarker";
 
-interface AnimatedUserLocationMarkerProps {
-  lngLat: [number, number];
-  heading: number | null;
-  mapBearing: number;
-  isFollowing?: boolean;
-}
-
-/**
- * Smoothly interpolates the user's Blue Dot coordinate over ~450ms and renders
- * a Google Maps-style directional heading beam & pointer synchronized with
- * the device magnetometer (`heading - mapBearing`).
- */
-const AnimatedUserLocationMarker: React.FC<AnimatedUserLocationMarkerProps> = memo(
-  ({ lngLat, heading, mapBearing, isFollowing = false }) => {
-    const targetLon = lngLat[0];
-    const targetLat = lngLat[1];
-    const [coords, setCoords] = useState<[number, number]>([targetLon, targetLat]);
-    const currentCoordsRef = useRef<[number, number]>([targetLon, targetLat]);
-    const animValue = useRef(new Animated.Value(1)).current;
-    const animRef = useRef<Animated.CompositeAnimation | null>(null);
-
-    useEffect(() => {
-      if (!isValidCoordinate(targetLat, targetLon)) return;
-
-      const [startLon, startLat] = currentCoordsRef.current;
-      const dLon = Math.abs(targetLon - startLon);
-      const dLat = Math.abs(targetLat - startLat);
-
-      if (dLon < 1e-7 && dLat < 1e-7) return;
-
-      if (animRef.current) {
-        animRef.current.stop();
-        animRef.current = null;
-      }
-
-      // When native camera follow is active, MapLibre's native C++ easeTo is already smoothly
-      // interpolating the viewport to targetLon/targetLat. Do not run a competing JS Animated.timing
-      // loop across the bridge; snap the marker directly to stay 100% in sync with the map canvas.
-      if (isFollowing) {
-        currentCoordsRef.current = [targetLon, targetLat];
-        setCoords([targetLon, targetLat]);
-        return;
-      }
-
-      // Snap immediately on initial jump > ~1km or micro-adjustments; otherwise glide smoothly
-      if (dLon > 0.01 || dLat > 0.01) {
-        currentCoordsRef.current = [targetLon, targetLat];
-        setCoords([targetLon, targetLat]);
-        return;
-      }
-
-      animValue.setValue(0);
-      let lastRenderTime = 0;
-
-      // Throttle React state updates to ~20 FPS (every 50ms) to avoid saturating the native bridge
-      const listenerId = animValue.addListener(({ value }) => {
-        const nowMs = Date.now();
-        if (nowMs - lastRenderTime >= 50 || value >= 0.99) {
-          lastRenderTime = nowMs;
-          const nextLon = startLon + (targetLon - startLon) * value;
-          const nextLat = startLat + (targetLat - startLat) * value;
-          if (isValidCoordinate(nextLat, nextLon)) {
-            currentCoordsRef.current = [nextLon, nextLat];
-            setCoords([nextLon, nextLat]);
-          }
-        }
-      });
-
-      const animation = Animated.timing(animValue, {
-        toValue: 1,
-        duration: 450,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      });
-
-      animRef.current = animation;
-      animation.start(({ finished }) => {
-        if (finished) {
-          currentCoordsRef.current = [targetLon, targetLat];
-          setCoords([targetLon, targetLat]);
-        }
-        animValue.removeListener(listenerId);
-        animRef.current = null;
-      });
-
-      return () => {
-        animValue.removeListener(listenerId);
-        if (animRef.current) {
-          animRef.current.stop();
-          animRef.current = null;
-        }
-      };
-    }, [targetLon, targetLat, isFollowing, animValue]);
-
-    const hasHeading = typeof heading === "number" && !isNaN(heading) && heading >= 0;
-    const relativeRotation = hasHeading
-      ? (((heading - mapBearing) % 360) + 360) % 360
-      : 0;
-
-    return (
-      <Marker id="user-location-marker" anchor="center" lngLat={coords}>
-        <View style={styles.userLocationMarkerContainer} pointerEvents="none">
-          <View style={styles.userLocationHalo} />
-
-          {hasHeading && (
-            <View
-              style={[
-                styles.userLocationHeadingWrapper,
-                { transform: [{ rotate: `${relativeRotation.toFixed(1)}deg` }] },
-              ]}
-            >
-              {/* Soft outer directional fan */}
-              <View style={styles.userLocationHeadingConeOuter} />
-              {/* Crisp inner directional pointer */}
-              <View style={styles.userLocationHeadingArrow} />
-            </View>
-          )}
-
-          <View style={styles.userLocationDot} />
-        </View>
-      </Marker>
-    );
-  }
-);
-
-AnimatedUserLocationMarker.displayName = "AnimatedUserLocationMarker";
-
 export interface TrailMapProps {
   initialLon?: number | string | (number | string)[];
   initialLat?: number | string | (number | string)[];
@@ -377,8 +253,6 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     startBackgroundTracking,
     stopBackgroundTracking,
   } = TrackHikerGPSFlow();
-
-  const [mapBearing, setMapBearing] = useState<number>(0);
 
   const lonStr = Array.isArray(initialLon) ? initialLon[0] : initialLon;
   const latStr = Array.isArray(initialLat) ? initialLat[0] : initialLat;
@@ -797,7 +671,6 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         pitch: 0,
         duration: 500,
       });
-      setMapBearing(0);
     }
     isFollowingRef.current = true;
     setIsFollowing(true);
@@ -811,14 +684,6 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   }, [flyCamera]);
 
   const handleRegionWillChange = (event: RegionChangeEvent) => {
-    const newBearing =
-      event.properties?.bearing ??
-      event.properties?.heading ??
-      event.nativeEvent?.bearing;
-    if (typeof newBearing === "number" && !isNaN(newBearing)) {
-      setMapBearing(newBearing);
-    }
-
     const isUser = event.properties?.isUserInteraction ?? event.nativeEvent?.userInteraction;
     if (!isUser) return;
 
@@ -842,19 +707,12 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const handleRegionDidChange = (event: RegionChangeEvent) => {
     const newZoom = event.properties?.zoomLevel ?? event.nativeEvent?.zoom;
     const coords = event.geometry?.coordinates ?? event.nativeEvent?.center;
-    const newBearing =
-      event.properties?.bearing ??
-      event.properties?.heading ??
-      event.nativeEvent?.bearing;
 
     if (typeof newZoom === "number" && !isNaN(newZoom)) {
       lastZoomRef.current = newZoom;
     }
     if (coords && isValidCoordinate(coords[1], coords[0])) {
       lastCenterRef.current = [coords[0], coords[1]];
-    }
-    if (typeof newBearing === "number" && !isNaN(newBearing)) {
-      setMapBearing(newBearing);
     }
   };
 
@@ -910,6 +768,32 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
       properties: {},
     };
   }, [validSegments]);
+
+  // Memoize GeoJSON FeatureCollection for native GPU hardware-accelerated rendering of the Blue Dot & Heading Beam
+  const userLocationGeoJson = useMemo(() => {
+    if (!permissionGranted || !userLocation || !isValidCoordinate(userLocation[1], userLocation[0])) {
+      return null;
+    }
+
+    const hasHeading = typeof userHeading === "number" && !isNaN(userHeading) && userHeading >= 0;
+
+    return {
+      type: "FeatureCollection" as const,
+      features: [
+        {
+          type: "Feature" as const,
+          geometry: {
+            type: "Point" as const,
+            coordinates: [userLocation[0], userLocation[1]],
+          },
+          properties: {
+            heading: hasHeading ? userHeading : 0,
+            hasHeading,
+          },
+        },
+      ],
+    };
+  }, [permissionGranted, userLocation, userHeading]);
 
   // If offline mode is active but offline assets failed or are incomplete, show error UI instead of falling back to onlineStyle
   if (loadState === "error" || (actuallyOffline && !isOnline && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
@@ -968,6 +852,12 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         onRegionWillChange={handleRegionWillChange}
         onRegionDidChange={handleRegionDidChange}
       >
+        <Images
+          images={{
+            "user-heading-pointer": userHeadingIcon,
+          }}
+        />
+
         <Camera
           ref={cameraRef}
           initialViewState={{
@@ -1083,14 +973,67 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
           </GeoJSONSource>
         )}
 
-        {/* Single-Source Kalman-Filtered Blue Dot + Live Compass Heading Cone */}
-        {permissionGranted && userLocation && isValidCoordinate(userLocation[1], userLocation[0]) && (
-          <AnimatedUserLocationMarker
-            lngLat={userLocation}
-            heading={userHeading}
-            mapBearing={mapBearing}
-            isFollowing={isFollowing}
-          />
+        {/* Single-Source Native GPU Hardware-Accelerated Google Maps-style Blue Dot + Live Heading Pointer */}
+        {isStyleReady && userLocationGeoJson && (
+          <GeoJSONSource
+            key={`userLocationSource-${currentStyleMode}`}
+            id={`userLocationSource-${currentStyleMode}`}
+            data={userLocationGeoJson}
+          >
+            {/* 1. Live Directional Heading Pointer (Google Maps style) */}
+            <Layer
+              key={`layer-user-location-heading-${currentStyleMode}`}
+              id={`layer-user-location-heading-${currentStyleMode}`}
+              type="symbol"
+              filter={["==", ["get", "hasHeading"], true]}
+              layout={{
+                "icon-image": "user-heading-pointer",
+                "icon-rotate": ["get", "heading"],
+                "icon-rotation-alignment": "map",
+                "icon-pitch-alignment": "map",
+                "icon-allow-overlap": true,
+                "icon-ignore-placement": true,
+                "icon-size": 0.85,
+              }}
+            />
+
+            {/* 2. Soft Ambient / Accuracy Halo */}
+            <Layer
+              key={`layer-user-location-halo-${currentStyleMode}`}
+              id={`layer-user-location-halo-${currentStyleMode}`}
+              type="circle"
+              paint={{
+                "circle-radius": 18,
+                "circle-color": "#2563EB",
+                "circle-opacity": 0.18,
+                "circle-pitch-alignment": "map",
+              }}
+            />
+
+            {/* 3. Crisp White Ring Border */}
+            <Layer
+              key={`layer-user-location-white-${currentStyleMode}`}
+              id={`layer-user-location-white-${currentStyleMode}`}
+              type="circle"
+              paint={{
+                "circle-radius": 8.5,
+                "circle-color": "#FFFFFF",
+                "circle-pitch-alignment": "map",
+              }}
+            />
+
+            {/* 4. Core Vibrant Blue Dot */}
+            <Layer
+              key={`layer-user-location-blue-${currentStyleMode}`}
+              id={`layer-user-location-blue-${currentStyleMode}`}
+              type="circle"
+              paint={{
+                "circle-radius": 6,
+                "circle-color": "#2563EB",
+                "circle-pitch-alignment": "map",
+              }}
+            />
+          </GeoJSONSource>
         )}
 
         {/* Render group hikers with smooth animated coordinate interpolation & LKL state */}
@@ -1229,68 +1172,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "bold",
-  },
-
-  userLocationMarkerContainer: {
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userLocationHalo: {
-    position: 'absolute',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(37, 99, 235, 0.20)',
-  },
-  userLocationHeadingWrapper: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  userLocationHeadingConeOuter: {
-    position: 'absolute',
-    top: 2,
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: 14,
-    borderRightWidth: 14,
-    borderTopWidth: 26,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: 'rgba(37, 99, 235, 0.32)',
-  },
-  userLocationHeadingArrow: {
-    position: 'absolute',
-    top: 12,
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: 5.5,
-    borderRightWidth: 5.5,
-    borderBottomWidth: 9,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: '#2563EB',
-  },
-  userLocationDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#2563EB',
-    borderWidth: 2.5,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 3,
-    elevation: 4,
   },
 
   hikerMarkerContainer: {
