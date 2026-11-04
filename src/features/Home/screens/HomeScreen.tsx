@@ -174,7 +174,7 @@ const ListSection: React.FC<ListSectionProps> = ({
       </View>
 
       {/* SKELETON LOADING STATE: Renders shimmering MountainCardSkeleton cards while data is fetching or refreshing */}
-      {(isSectionLoading && !hasData) || isRefreshing ? (
+      {(isSectionLoading && !hasData) ? (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -434,7 +434,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           error={recommendationsError}
           isNewAccount={isNewAccount}
           onPress={onTrailOfTheMonthPress}
-          onExplorePress={onSeeMoreDiscoverPress}
+          onExplorePress={onSeeMoreOffersPress}
           getItemRating={getItemRating}
           onDownloadPress={onDownloadPress}
           getTrailOffersCount={getTrailOffersCountForCard}
