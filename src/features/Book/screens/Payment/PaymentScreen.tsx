@@ -38,6 +38,7 @@ export interface PaymentScreenProps {
     bookingData: Booking;
     onBackPress: () => void;
     onContinue: (data: { paymentType: string; paymentMethod: string; amountPaid: number }) => void;
+    onViewDetails?: () => void;
     onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<PaymentResultResponse>;
 }
 
@@ -45,6 +46,7 @@ const PaymentScreen = ({
     bookingData,
     onBackPress,
     onContinue,
+    onViewDetails,
     onPayOffer,
 }: PaymentScreenProps) => {
     const { profile } = useAuthStore();
@@ -399,6 +401,22 @@ const PaymentScreen = ({
         expectedSignatureName,
     ]);
 
+    const handleReturnToBookings = useCallback(() => {
+        onContinue({
+            paymentType: effectivePaymentType,
+            paymentMethod: selectedMethod || '',
+            amountPaid: latestPayment?.amount || amountToPay,
+        });
+    }, [onContinue, effectivePaymentType, selectedMethod, latestPayment?.amount, amountToPay]);
+
+    const handleViewBookingDetails = useCallback(() => {
+        if (onViewDetails) {
+            onViewDetails();
+        } else {
+            handleReturnToBookings();
+        }
+    }, [onViewDetails, handleReturnToBookings]);
+
     const handleHeaderBackPress = useCallback(() => {
         if (isWaitingForVerification) {
             setIsWaitingForVerification(false);
@@ -425,11 +443,13 @@ const PaymentScreen = ({
     const footerConfig = useMemo(() => {
         if (isWaitingForVerification) {
             return {
-                title: "Cancel Verification",
-                onPress: handleCancelVerification,
-                variant: "outline" as const,
-                disabled: false,
-                isLoading: false,
+                primary: {
+                    title: "Cancel Verification",
+                    onPress: handleCancelVerification,
+                    variant: "outline" as const,
+                    disabled: false,
+                    isLoading: false,
+                },
             };
         }
         if (currentStep === 1) {
@@ -437,58 +457,73 @@ const PaymentScreen = ({
                 const isReady = Boolean(manualReceiptUrl && isSignatureValid);
                 const isRejected = bookingData?.paymentVerificationStatus === 'rejected';
                 return {
-                    title: isSubmitting
-                        ? "Submitting Payment..."
-                        : (isRejected ? "Resubmit Payment" : "Submit Payment"),
-                    onPress: handleNextStep,
-                    disabled: isSubmitting,
-                    isLoading: isSubmitting,
-                    validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                    primary: {
+                        title: isSubmitting
+                            ? "Submitting Payment..."
+                            : (isRejected ? "Resubmit Payment" : "Submit Payment"),
+                        onPress: handleNextStep,
+                        disabled: isSubmitting,
+                        isLoading: isSubmitting,
+                        validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                    },
                 };
             }
 
             const isReady = Boolean(selectedMethod && isSignatureValid);
             const isRejected = bookingData?.paymentVerificationStatus === 'rejected';
             return {
-                title: isSubmitting
-                    ? "Opening Gateway..."
-                    : (isRejected ? "Resubmit Payment" : "Continue to Payment"),
-                onPress: handleNextStep,
-                disabled: isSubmitting || isWaitingForVerification,
-                isLoading: isSubmitting,
-                validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
-                isIdleDisabled: false,
-                style: {
-                    backgroundColor: isReady
-                        ? Colors.PRIMARY
-                        : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_BG : Colors.GRAY_ULTRALIGHT),
-                    borderColor: isReady
-                        ? Colors.PRIMARY
-                        : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.GRAY_LIGHT),
-                    borderWidth: 1.5,
-                },
-                textStyle: {
-                    color: isReady
-                        ? Colors.WHITE
-                        : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.TEXT_SECONDARY),
+                primary: {
+                    title: isSubmitting
+                        ? "Opening Gateway..."
+                        : (isRejected ? "Resubmit Payment" : "Continue to Payment"),
+                    onPress: handleNextStep,
+                    disabled: isSubmitting || isWaitingForVerification,
+                    isLoading: isSubmitting,
+                    validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                    isIdleDisabled: false,
+                    style: {
+                        backgroundColor: isReady
+                            ? Colors.PRIMARY
+                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_BG : Colors.GRAY_ULTRALIGHT),
+                        borderColor: isReady
+                            ? Colors.PRIMARY
+                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.GRAY_LIGHT),
+                        borderWidth: 1.5,
+                    },
+                    textStyle: {
+                        color: isReady
+                            ? Colors.WHITE
+                            : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.TEXT_SECONDARY),
+                    },
                 },
             };
         }
         if (currentStep === 2) {
             return {
-                title: "Return to Bookings",
-                onPress: handleNextStep,
-                variant: "primary" as const,
-                disabled: isSubmitting,
-                isLoading: false,
+                primary: {
+                    title: "View Booking Details",
+                    onPress: handleViewBookingDetails,
+                    variant: "primary" as const,
+                    disabled: isSubmitting,
+                    isLoading: false,
+                },
+                secondary: {
+                    title: "Return to Bookings",
+                    onPress: handleReturnToBookings,
+                    variant: "outline" as const,
+                    disabled: isSubmitting,
+                    isLoading: false,
+                },
             };
         }
         return {
-            title: "Continue",
-            onPress: handleNextStep,
-            variant: "primary" as const,
-            disabled: false,
-            isLoading: false,
+            primary: {
+                title: "Continue",
+                onPress: handleNextStep,
+                variant: "primary" as const,
+                disabled: false,
+                isLoading: false,
+            },
         };
     }, [
         isWaitingForVerification,
@@ -499,6 +534,8 @@ const PaymentScreen = ({
         hasAttemptedSubmit,
         handleNextStep,
         handleCancelVerification,
+        handleViewBookingDetails,
+        handleReturnToBookings,
         manualReceiptUrl,
         bookingData?.paymentVerificationStatus,
     ]);
@@ -612,17 +649,8 @@ const PaymentScreen = ({
 
             <CustomStickyFooter
                 enableToastDock={true}
-                primaryButton={{
-                    title: footerConfig.title,
-                    onPress: footerConfig.onPress,
-                    disabled: footerConfig.disabled,
-                    isLoading: footerConfig.isLoading,
-                    variant: footerConfig.variant,
-                    validationState: footerConfig.validationState,
-                    isIdleDisabled: footerConfig.isIdleDisabled,
-                    style: footerConfig.style,
-                    textStyle: footerConfig.textStyle,
-                }}
+                primaryButton={footerConfig.primary}
+                secondaryButton={footerConfig.secondary}
             />
 
             <CustomTutorialModal
