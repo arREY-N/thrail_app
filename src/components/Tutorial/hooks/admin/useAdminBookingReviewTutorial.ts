@@ -180,7 +180,10 @@ export const useAdminBookingReviewTutorial = ({
                     animated: true,
                 });
             } else {
-                scrollViewRef.current?.scrollToEnd({ animated: true });
+                scrollViewRef.current?.scrollTo({
+                    y: Math.max(0, activityLogOffsetY.current - 16),
+                    animated: true,
+                });
             }
         } else if (step === 'admin_review_decision' || step === 'booking_footer') {
             scrollViewRef.current?.scrollToEnd({ animated: true });
