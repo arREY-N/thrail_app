@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, LayoutChangeEvent, Modal, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, LayoutChangeEvent, Modal, Platform, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
@@ -49,14 +49,14 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
 
     const mapRef = useRef<TrailMapRef | null>(null);
     const { isOnline } = useNetworkStatus();
-    const [isOfflineMode, setIsOfflineMode] = useState(true);
-    const isEffectiveOffline = !isOnline || isOfflineMode;
+    const [isOfflineMode, setIsOfflineMode] = useState(Platform.OS !== 'web');
+    const isEffectiveOffline = Platform.OS === 'web' ? false : (!isOnline || isOfflineMode);
 
     const [modeToast, setModeToast] = useState<string | null>(null);
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleToggleOffline = useCallback(() => {
-        if (!isOnline) return;
+        if (Platform.OS === 'web' || !isOnline) return;
         const nextMode = !isEffectiveOffline;
         setIsOfflineMode(nextMode);
         mapRef.current?.toggleOffline();
@@ -393,7 +393,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                                 <CustomIcon library="Feather" name={showRouteInfo ? "chevron-up" : "chevron-down"} size={13} color={Colors.WHITE} />
                             </TouchableOpacity>
 
-                            {isOnline && (
+                            {Platform.OS !== 'web' && isOnline && (
                                 <TouchableOpacity
                                     style={styles.mapRouteLabel}
                                     onPress={(e) => {
@@ -515,7 +515,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                     {/* Mode Toast Banner */}
                     <NetworkStatusBanner isOnline={isOnline} top={insets.top + 70} />
 
-                    {modeToast && (
+                    {Platform.OS !== 'web' && modeToast && (
                         <View style={styles.modeToastBanner} pointerEvents="none">
                             <View style={[styles.modeToastContent, isOfflineMode ? styles.toastOffline : styles.toastOnline]}>
                                 <CustomIcon
@@ -558,7 +558,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({ stats, trailStats, st
                         )}
 
                         {/* Floating offline toggle button in the modal, positioned at the same level as NavigationScreen (controlsHeight 250 + 36 + locate button offset 56 = 342) */}
-                        {isOnline && (
+                        {Platform.OS !== 'web' && isOnline && (
                             <View style={[styles.mapControlsColumn, { bottom: 342 }]}>
                                 <TouchableOpacity
                                     style={styles.floatingIconBtn}
