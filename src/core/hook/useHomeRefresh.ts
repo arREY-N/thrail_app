@@ -22,7 +22,7 @@ export function useHomeRefresh() {
             if (!uid) return;
 
             await Promise.all([
-                useOfferStore.getState().fetchAll(),
+                useOfferStore.getState().refresh(),
                 useTrailsStore.getState().fetchAll(),
                 useRecommendationsStore.getState().load(uid),
             ]);
