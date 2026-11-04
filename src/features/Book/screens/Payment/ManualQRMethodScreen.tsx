@@ -224,6 +224,7 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
             onScrollEndDrag={handleScrollEndDrag}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={[
                 styles.scrollContent,
                 { paddingBottom: bottomScrollPadding },
@@ -508,6 +509,11 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
                         minorName={minorName}
                         onValidChange={setIsSignatureValid}
                         onSignatureChange={onSignatureChange}
+                        onSignatureFocus={() => {
+                            setTimeout(() => {
+                                scrollViewRef.current?.scrollToEnd({ animated: true });
+                            }, 150);
+                        }}
                     />
                 </View>
             </View>
