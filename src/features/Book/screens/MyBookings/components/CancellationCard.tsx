@@ -781,7 +781,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                 ? (isRefundComplete ? 'peso-sign' : (isDisputed ? 'alert-triangle' : 'clock'))
                 : 'check-circle');
 
-        const headerIconLibrary: IconLibrary = isPaid && isRefundComplete ? 'FontAwesome6' : 'Feather';
+        const headerIconLibrary: IconLibrary = !isNoRefund && isPaid && isRefundComplete ? 'FontAwesome6' : 'Feather';
 
         const headerIconColor = isNoRefund
             ? Colors.PRIMARY
