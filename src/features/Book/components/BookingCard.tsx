@@ -8,6 +8,7 @@ import BookingCardBanner from '@/src/features/Book/components/BookingCardBanner'
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getStatusConfig } from '@/src/constants/statusConfig';
+import { IconLibrary } from '@/src/types/ui.types';
 import { DateInput, formatBookingDate, safeParseDateString } from '@/src/utils/dateFormatter';
 
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
@@ -306,18 +307,18 @@ const BookingCard: React.FC<BookingCardProps> = ({
         }
     }
 
+    const isWarningActionNeeded = isOverpaymentActionNeeded || isWalletNeeded || isConfirmReceiptNeeded || isDownpayment;
+
     const borderHighlightStyle = !isPast && !isDead
         ? isRejection || (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed'))
             ? styles.rejectionBorder
-            : isOverpaymentActionNeeded
+            : isWarningActionNeeded
                 ? styles.downpaymentBorder
-                : (isPaymentNeeded || isWalletNeeded || isConfirmReceiptNeeded)
+                : isPaymentNeeded
                     ? styles.paymentBorder
-                    : isDownpayment
-                        ? styles.downpaymentBorder
-                        : displayStatus === 'for-reschedule'
-                            ? styles.rescheduleBorder
-                            : null
+                    : displayStatus === 'for-reschedule'
+                        ? styles.rescheduleBorder
+                        : null
         : null;
 
     const bookingUpdateTime = booking?.updatedAt ? safeParseDateString(booking.updatedAt).getTime() : 0;
@@ -424,6 +425,10 @@ const BookingCard: React.FC<BookingCardProps> = ({
                         ? "REFUND DISPUTED"
                         : statusConfig.label))));
 
+    const pillIconLibrary: IconLibrary = isPaymentRejected || isPaymentVerifying || hasActiveOverpayment || (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted' || cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed'))
+        ? 'Feather'
+        : (statusConfig.iconLibrary || 'Feather');
+
     return (
         <TouchableOpacity
             style={[styles.cardContainer, borderHighlightStyle]}
@@ -449,7 +454,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
                     ]}
                 >
                     <CustomIcon
-                        library="Feather"
+                        library={pillIconLibrary}
                         name={pillIconName}
                         size={12}
                         color={pillTextColor}
@@ -653,6 +658,10 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
     },
     downpaymentBorder: {
+        borderColor: Colors.WARNING,
+        borderWidth: 1.5,
+    },
+    warningBorder: {
         borderColor: Colors.WARNING,
         borderWidth: 1.5,
     },
