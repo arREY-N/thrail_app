@@ -740,7 +740,6 @@ const StatusScreen: React.FC<StatusScreenProps> = ({
             <CustomStickyFooter 
                 primaryButton={primaryButtonConfig}
                 secondaryButton={secondaryButtonConfig}
-                layout="column"
             />
         </View>
     );
