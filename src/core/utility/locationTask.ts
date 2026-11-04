@@ -1,12 +1,11 @@
 import { Platform } from "react-native";
-import { emitFilteredUserLocation, isForegroundGpsActive } from "@/src/core/flows/TrackHikerGPSFlow";
+import { emitFilteredUserLocation, isForegroundGpsActive, LOCATION_TASK } from "@/src/core/flows/TrackHikerGPSFlow";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { newLocation } from "@/src/core/models/Location/Location";
 import { sharedGpsKalmanFilter } from "@/src/core/utility/gpsKalmanFilter";
 import * as TaskManager from "expo-task-manager";
 
-
-export const LOCATION_TASK = "background-location-task";
+export { LOCATION_TASK };
 
 interface LocationTaskPayload {
   locations?: {
