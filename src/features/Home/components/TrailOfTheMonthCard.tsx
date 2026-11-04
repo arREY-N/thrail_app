@@ -12,7 +12,7 @@ import { Colors, Palette } from "@/src/constants/colors";
 import { GlobalStyles } from "@/src/constants/globalStyles";
 import { Recommendation } from "@/src/core/models/Recommendation/Recommendation";
 import { ITrail, useTrailItem } from "@/src/core/models/Trail/Trail";
-import { getHeroImageSource } from "@/src/features/Trail/utils/TrailDetailsHelpers";
+import { getCardImageSource } from "@/src/features/Trail/utils/TrailDetailsHelpers";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMemo } from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
@@ -122,7 +122,7 @@ export default function TrailOfTheMonthCard({
     }, [effectiveTrail, topEasy, targetTrailId]);
 
     const hasRecommendations = Boolean(topEasy);
-    const imageSource = displayTrail ? getHeroImageSource(displayTrail) : undefined;
+    const imageSource = displayTrail ? getCardImageSource(displayTrail) : null;
     const trailName = displayTrail?.general?.name || topEasy?.trailName || "Mountain Trail";
 
     const trailLocation = useMemo(() => {
@@ -161,12 +161,21 @@ export default function TrailOfTheMonthCard({
                         onPress={() => onPress(displayTrail.id, recommendation?.id)}
                     >
                         <View style={styles.imageContainer}>
-                            {/* Background Trail Photo Cover */}
-                            <CustomImage
-                                source={imageSource}
-                                style={styles.cardImage}
-                                resizeMode="cover"
-                            />
+                            {/* Background Trail Photo Cover or Scenic Gradient Placeholder */}
+                            {imageSource ? (
+                                <CustomImage
+                                    source={imageSource}
+                                    style={styles.cardImage}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <LinearGradient
+                                    colors={["#064e3b", "#065f46", "#047857"]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.cardImage}
+                                />
+                            )}
 
                             {/* Gradient Overlay wrapping the texts */}
                             <LinearGradient
