@@ -1,311 +1,136 @@
 /**
  * @file adminBookingReviewTour.ts
- * @description Step configuration for the Admin ReviewScreen walkthrough.
- * Provides tab-accurate 5-step or 6-step walkthroughs for Documents, Payment, Cancellation, and Reschedule modes.
- * Dynamically adjusts step count based on whether actionable decision buttons exist.
+ * @description Unified step configuration for the Admin ReviewScreen walkthrough.
+ * Provides a crisp 5-step universal walkthrough covering Hiker Profile, Contact Verification,
+ * Workflow Tabs, Active Review Workspace, and Activity Log.
+ * Adapts step flow order responsively between Web (2-column) and Mobile (1-column stacked) layouts.
  */
 
 import { TutorialStep } from '@/src/components/Tutorial/interfaces/Tutorial.types';
 
 /**
- * 6-step walkthrough for reviewing submitted hiker documents and verification.
+ * 5-step universal walkthrough for mobile single-column layout:
+ * Follows natural vertical reading order from top to bottom:
+ * Profile -> Contacts -> Tabs -> Content -> Activity Log
  */
-export const adminBookingReviewDocSteps: TutorialStep[] = [
+export const adminBookingReviewMobileSteps: TutorialStep[] = [
     {
         id: 'review-step-1-hiker-card',
-        category: 'Booking Review • Step 1 of 6',
+        category: 'Booking Review • Step 1 of 5',
         targetSpotlight: 'admin_review_hiker_card',
         title: 'Step 1: Hiker Profile & Status',
         description:
-            'Inspect the hiker’s full name, member since date, booking status badge, age badge, and medical condition declaration flags.',
-        actionTip: 'Tap "View Full Profile" on this card to inspect detailed preferences.',
+            'Inspect the hiker’s profile details, member history, booking status badge, age badge, and medical flags.',
+        actionTip: 'Tap "View Full Profile" to inspect medical condition notes and preferences.',
     },
     {
         id: 'review-step-2-contacts-card',
-        category: 'Booking Review • Step 2 of 6',
+        category: 'Booking Review • Step 2 of 5',
         targetSpotlight: 'admin_review_contacts_card',
         title: 'Step 2: Verification Contacts',
         description:
-            'Review personal and emergency contact phone numbers. You can call contacts directly and toggle their 6-month validity verification status.',
-        actionTip: 'Verify both contact numbers before approving the reservation.',
+            'Review personal and emergency contact phone numbers. You can call contacts directly and toggle their 6-month validity status.',
+        actionTip: 'Verify contact numbers before taking action on the reservation.',
     },
     {
-        id: 'review-step-3-activity-log',
-        category: 'Booking Review • Step 3 of 6',
-        targetSpotlight: 'admin_review_activity_log',
-        title: 'Step 3: Activity Log & Audit Trail',
-        description:
-            'Inspect the chronological activity trail showing all booking lifecycle timestamps, reservation submissions, and payment updates.',
-        actionTip: 'Review past activity entries to understand booking history.',
-    },
-    {
-        id: 'review-step-4-tabs',
-        category: 'Booking Review • Step 4 of 6',
+        id: 'review-step-3-tabs',
+        category: 'Booking Review • Step 3 of 5',
         targetSpotlight: 'admin_review_tabs',
-        title: 'Step 4: Review Workflow Tabs',
+        title: 'Step 3: Review Workflow Tabs',
         description:
-            'Use the segmented tabs bar to navigate between Required Documents, Payment Ledger, and dynamic tabs (Cancellation & Reschedule when requested).',
-        actionTip: 'Switch between tabs to inspect specific aspects of the reservation.',
+            'Use the segmented tabs bar to switch between Required Documents, Payment Ledger, and dynamic tabs (Cancellation & Reschedule when requested).',
+        actionTip: 'Switch tabs to inspect different aspects of this booking.',
     },
     {
-        id: 'review-step-5-content',
-        category: 'Booking Review • Step 5 of 6',
+        id: 'review-step-4-content',
+        category: 'Booking Review • Step 4 of 5',
         targetSpotlight: 'admin_review_tab_content',
-        title: 'Step 5: Submitted Document Files',
+        title: 'Step 4: Review Workspace & Actions',
         description:
-            'Tap uploaded documents (Valid ID, Medical Certificate) to open full-screen previews, then mark each file as Approved or Rejected.',
-        actionTip: 'All required documents must be reviewed before final approval.',
+            'Review submitted files, inspect payment receipts and balances, or handle cancellation and reschedule requests.',
+        actionTip: 'Inspect uploaded files or transaction details before taking action.',
     },
     {
-        id: 'review-step-6-decision',
-        category: 'Booking Review • Step 6 of 6',
-        targetSpotlight: 'admin_review_decision',
-        title: 'Step 6: Booking Decision Actions',
+        id: 'review-step-5-activity-log',
+        category: 'Booking Review • Step 5 of 5',
+        targetSpotlight: 'admin_review_activity_log',
+        title: 'Step 5: Activity Log & Audit Trail',
         description:
-            'Use the action buttons below to Approve the booking (unlocking payment for the hiker) or Reject with required feedback.',
-        actionTip: 'Tap "Approve Booking" once contact and document requirements pass.',
+            'Inspect the chronological audit trail showing all booking lifecycle timestamps, submissions, and status transitions.',
+        actionTip: 'Check activity history to track previous changes and organizer actions.',
     },
 ];
 
 /**
- * 6-step walkthrough for inspecting the payment ledger and completing the booking.
+ * 5-step walkthrough for web split-column layout:
+ * Follows column-aware flow:
+ * Left Column (Profile -> Contacts -> Activity Log) -> Right Column (Tabs -> Content Workspace)
  */
-export const adminBookingReviewPaymentSteps: TutorialStep[] = [
+export const adminBookingReviewWebSteps: TutorialStep[] = [
     {
         id: 'review-step-1-hiker-card',
-        category: 'Payment Review • Step 1 of 6',
+        category: 'Booking Review • Step 1 of 5',
         targetSpotlight: 'admin_review_hiker_card',
         title: 'Step 1: Hiker Profile & Status',
         description:
-            'Inspect the hiker’s full name, member since date, booking status badge, age badge, and medical condition declaration flags.',
-        actionTip: 'Check the hiker information and current status badge.',
+            'Inspect the hiker’s profile details, member history, booking status badge, age badge, and medical flags.',
+        actionTip: 'Tap "View Full Profile" to inspect medical condition notes and preferences.',
     },
     {
         id: 'review-step-2-contacts-card',
-        category: 'Payment Review • Step 2 of 6',
+        category: 'Booking Review • Step 2 of 5',
         targetSpotlight: 'admin_review_contacts_card',
         title: 'Step 2: Verification Contacts',
         description:
-            'Review personal and emergency contact phone numbers. You can call contacts directly and toggle their 6-month validity verification status.',
-        actionTip: 'Verify both contact numbers before approving the reservation.',
+            'Review personal and emergency contact phone numbers. You can call contacts directly and toggle their 6-month validity status.',
+        actionTip: 'Verify contact numbers before taking action on the reservation.',
     },
     {
         id: 'review-step-3-activity-log',
-        category: 'Payment Review • Step 3 of 6',
+        category: 'Booking Review • Step 3 of 5',
         targetSpotlight: 'admin_review_activity_log',
         title: 'Step 3: Activity Log & Audit Trail',
         description:
-            'Inspect the chronological activity trail showing all booking lifecycle timestamps, reservation submissions, and payment updates.',
-        actionTip: 'Review past activity entries to understand booking history.',
+            'Inspect the chronological audit trail showing all booking lifecycle timestamps, submissions, and status transitions.',
+        actionTip: 'Check activity history to track previous changes and organizer actions.',
     },
     {
         id: 'review-step-4-tabs',
-        category: 'Payment Review • Step 4 of 6',
+        category: 'Booking Review • Step 4 of 5',
         targetSpotlight: 'admin_review_tabs',
         title: 'Step 4: Review Workflow Tabs',
         description:
-            'Use the segmented tabs bar to navigate between Required Documents, Payment Ledger, and dynamic tabs (Cancellation & Reschedule when requested).',
-        actionTip: 'Switch between tabs to inspect specific aspects of the reservation.',
+            'Use the segmented tabs bar to switch between Required Documents, Payment Ledger, and dynamic tabs (Cancellation & Reschedule when requested).',
+        actionTip: 'Switch tabs to inspect different aspects of this booking.',
     },
     {
         id: 'review-step-5-content',
-        category: 'Payment Review • Step 5 of 6',
+        category: 'Booking Review • Step 5 of 5',
         targetSpotlight: 'admin_review_tab_content',
-        title: 'Step 5: Manual QR Verification & Ledger',
+        title: 'Step 5: Review Workspace & Actions',
         description:
-            'Inspect uploaded payment receipts, verify reference codes, and approve as Downpayment or Full Payment (or Edit/Revert).',
-        actionTip: 'Inspect the receipt image carefully before confirming payment.',
-    },
-    {
-        id: 'review-step-6-decision',
-        category: 'Payment Review • Step 6 of 6',
-        targetSpotlight: 'admin_review_decision',
-        title: 'Step 6: Payment Actions & Settlement',
-        description:
-            'Use the Paid Cash button to mark onsite remaining balance settlements, or review the payment transaction records.',
-        actionTip: 'Settle remaining balances before completing the hike.',
-    },
-];
-
-/**
- * Walkthrough for inspecting cancellation requests, refund calculations, and dispute records.
- */
-export const adminBookingReviewCancellationSteps: TutorialStep[] = [
-    {
-        id: 'review-step-1-hiker-card',
-        category: 'Cancellation Review • Step 1 of 6',
-        targetSpotlight: 'admin_review_hiker_card',
-        title: 'Step 1: Hiker Profile & Status',
-        description:
-            'Inspect the hiker’s full name, member since date, booking status badge, age badge, and medical condition declaration flags.',
-        actionTip: 'Review hiker identity and verification state.',
-    },
-    {
-        id: 'review-step-2-contacts-card',
-        category: 'Cancellation Review • Step 2 of 6',
-        targetSpotlight: 'admin_review_contacts_card',
-        title: 'Step 2: Verification Contacts',
-        description:
-            'Review personal and emergency contact phone numbers. You can call contacts directly and toggle their 6-month validity verification status.',
-        actionTip: 'Contact the hiker directly if cancellation clarification is needed.',
-    },
-    {
-        id: 'review-step-3-activity-log',
-        category: 'Cancellation Review • Step 3 of 6',
-        targetSpotlight: 'admin_review_activity_log',
-        title: 'Step 3: Activity Log & Audit Trail',
-        description:
-            'Inspect the chronological activity trail showing cancellation request timestamps, dispute logs, and refund status updates.',
-        actionTip: 'Review audit history for prior cancellation actions.',
-    },
-    {
-        id: 'review-step-4-tabs',
-        category: 'Cancellation Review • Step 4 of 6',
-        targetSpotlight: 'admin_review_tabs',
-        title: 'Step 4: Review Workflow Tabs',
-        description:
-            'Use the segmented tabs bar to switch between Cancellation review, Payment ledger, and original Document records.',
-        actionTip: 'Navigate between workflow tabs anytime.',
-    },
-    {
-        id: 'review-step-5-content',
-        category: 'Cancellation Review • Step 5 of 6',
-        targetSpotlight: 'admin_review_tab_content',
-        title: 'Step 5: Cancellation Reason & Refund Ledger',
-        description:
-            'Inspect the hiker’s submitted cancellation reason, slot release status, and calculated refund ledger amount.',
-        actionTip: 'Review the reason and refund calculation before taking action.',
-    },
-    {
-        id: 'review-step-6-decision',
-        category: 'Cancellation Review • Step 6 of 6',
-        targetSpotlight: 'admin_review_decision',
-        title: 'Step 6: Cancellation Actions & Payout Proof',
-        description:
-            'Use the action buttons to Approve or Decline the cancellation request, and upload payout proof receipts when issuing refunds.',
-        actionTip: 'Ensure refund proof is attached if a monetary refund is issued.',
-    },
-];
-
-/**
- * Walkthrough for inspecting reschedule requests and date comparisons.
- */
-export const adminBookingReviewRescheduleSteps: TutorialStep[] = [
-    {
-        id: 'review-step-1-hiker-card',
-        category: 'Reschedule Review • Step 1 of 6',
-        targetSpotlight: 'admin_review_hiker_card',
-        title: 'Step 1: Hiker Profile & Status',
-        description:
-            'Inspect the hiker’s full name, member since date, booking status badge, age badge, and medical condition declaration flags.',
-        actionTip: 'Review hiker details and booking info.',
-    },
-    {
-        id: 'review-step-2-contacts-card',
-        category: 'Reschedule Review • Step 2 of 6',
-        targetSpotlight: 'admin_review_contacts_card',
-        title: 'Step 2: Verification Contacts',
-        description:
-            'Review personal and emergency contact phone numbers. You can call contacts directly and toggle their 6-month validity verification status.',
-        actionTip: 'Verify contact information before approving a date change.',
-    },
-    {
-        id: 'review-step-3-activity-log',
-        category: 'Reschedule Review • Step 3 of 6',
-        targetSpotlight: 'admin_review_activity_log',
-        title: 'Step 3: Activity Log & Audit Trail',
-        description:
-            'Inspect the chronological activity trail showing reschedule request submission and lifecycle timestamps.',
-        actionTip: 'Inspect prior changes and notes.',
-    },
-    {
-        id: 'review-step-4-tabs',
-        category: 'Reschedule Review • Step 4 of 6',
-        targetSpotlight: 'admin_review_tabs',
-        title: 'Step 4: Review Workflow Tabs',
-        description:
-            'Use the segmented tabs bar to switch between Reschedule request details, Payment records, and Documents.',
-        actionTip: 'Switch tabs to review full reservation history.',
-    },
-    {
-        id: 'review-step-5-content',
-        category: 'Reschedule Review • Step 5 of 6',
-        targetSpotlight: 'admin_review_tab_content',
-        title: 'Step 5: Hike Comparison & Schedule Details',
-        description:
-            'Compare the original hike reservation with the requested target hike date, slot availability, and price differences.',
-        actionTip: 'Confirm slot availability on the requested hike date before making a decision.',
-    },
-    {
-        id: 'review-step-6-decision',
-        category: 'Reschedule Review • Step 6 of 6',
-        targetSpotlight: 'admin_review_decision',
-        title: 'Step 6: Reschedule Actions',
-        description:
-            'Use the action buttons below to Approve the date change (transferring the reservation) or Decline with a custom note.',
-        actionTip: 'Approve to automatically update the booking date and notify the hiker.',
+            'Review submitted files, inspect payment receipts and balances, or handle cancellation and reschedule requests.',
+        actionTip: 'Inspect uploaded files or transaction details before taking action.',
     },
 ];
 
 /**
  * Dynamically resolves the tour steps for the Admin ReviewScreen.
- * Selects tab-accurate step definitions, adapts step flow order for Web vs. Mobile layouts,
- * and suppresses Step 6 if no action buttons exist.
+ * Selects responsive step flow order for Web (column-aware) vs. Mobile (vertical stack).
  *
- * @param activeTab - Current review tab id ('documents' | 'payment' | 'cancellation' | 'reschedule').
- * @param hasActiveActions - Whether actionable decision buttons currently exist on the screen.
+ * @param _activeTab - (Retained for signature compatibility) Current review tab id.
+ * @param _hasActiveActions - (Retained for signature compatibility) Whether actionable decision buttons exist.
  * @param isWide - Whether the screen is rendered in the wide (2-column) split layout.
- * @returns Array of 5 or 6 TutorialStep objects with dynamically numbered category strings.
+ * @returns Array of 5 TutorialStep objects.
  */
 export const getAdminBookingReviewSteps = (
-    activeTab: string,
-    hasActiveActions: boolean,
+    _activeTab?: string,
+    _hasActiveActions?: boolean,
     isWide: boolean = true
 ): TutorialStep[] => {
-    let baseSteps: TutorialStep[];
-    let tabName = 'Booking Review';
-
-    if (activeTab === 'payment') {
-        baseSteps = adminBookingReviewPaymentSteps;
-        tabName = 'Payment Review';
-    } else if (activeTab === 'cancellation') {
-        baseSteps = adminBookingReviewCancellationSteps;
-        tabName = 'Cancellation Review';
-    } else if (activeTab === 'reschedule') {
-        baseSteps = adminBookingReviewRescheduleSteps;
-        tabName = 'Reschedule Review';
-    } else {
-        baseSteps = adminBookingReviewDocSteps;
-        tabName = 'Booking Review';
-    }
-
-    // On mobile single-column layout, ActivityLog renders at the bottom below Tab Content.
-    // Reorder steps to follow natural vertical scroll flow: Profile -> Contacts -> Tabs -> Content -> ActivityLog -> Decisions.
-    let orderedSteps = baseSteps;
-    if (!isWide) {
-        const activityStep = baseSteps.find((s) => s.targetSpotlight === 'admin_review_activity_log');
-        const decisionStep = baseSteps.find((s) => s.targetSpotlight === 'admin_review_decision');
-        const otherSteps = baseSteps.filter(
-            (s) => s.targetSpotlight !== 'admin_review_activity_log' && s.targetSpotlight !== 'admin_review_decision'
-        );
-        orderedSteps = [
-            ...otherSteps,
-            ...(activityStep ? [activityStep] : []),
-            ...(decisionStep ? [decisionStep] : []),
-        ];
-    }
-
-    // Suppress decision action step if no decision buttons are present on this tab/status
-    const filteredSteps = hasActiveActions
-        ? orderedSteps
-        : orderedSteps.filter((s) => s.targetSpotlight !== 'admin_review_decision');
-    const total = filteredSteps.length;
-
-    return filteredSteps.map((step, idx) => ({
-        ...step,
-        category: `${tabName} • Step ${idx + 1} of ${total}`,
-        title: step.title.replace(/^Step \d+:/, `Step ${idx + 1}:`),
-    }));
+    return isWide ? adminBookingReviewWebSteps : adminBookingReviewMobileSteps;
 };
 
-export const adminBookingReviewSteps: TutorialStep[] = adminBookingReviewDocSteps;
+export const adminBookingReviewSteps: TutorialStep[] = adminBookingReviewMobileSteps;
+export const adminBookingReviewDocSteps: TutorialStep[] = adminBookingReviewMobileSteps;
+export const adminBookingReviewPaymentSteps: TutorialStep[] = adminBookingReviewMobileSteps;
