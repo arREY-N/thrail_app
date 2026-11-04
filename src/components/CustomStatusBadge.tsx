@@ -47,7 +47,7 @@ const CustomStatusBadge: React.FC<CustomStatusBadgeProps> = ({
     role = 'user',
     label,
     icon,
-    iconLibrary = 'Feather',
+    iconLibrary,
     bgColor,
     textColor,
     borderColor,
@@ -65,6 +65,7 @@ const CustomStatusBadge: React.FC<CustomStatusBadgeProps> = ({
     const resolvedTextColor = textColor ?? (resolvedConfig?.textColor || Colors.STATUS_PENDING_TEXT);
     const resolvedBorderColor = borderColor ?? resolvedConfig?.borderColor;
     const resolvedIcon = icon ?? resolvedConfig?.icon;
+    const resolvedIconLibrary = iconLibrary ?? resolvedConfig?.iconLibrary ?? 'Feather';
 
     const iconSize = size === 'sm' ? 10 : 12;
 
@@ -81,7 +82,7 @@ const CustomStatusBadge: React.FC<CustomStatusBadgeProps> = ({
         >
             {showIcon && resolvedIcon ? (
                 <CustomIcon
-                    library={iconLibrary}
+                    library={resolvedIconLibrary}
                     name={resolvedIcon}
                     size={iconSize}
                     color={resolvedTextColor}
