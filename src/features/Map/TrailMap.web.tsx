@@ -19,7 +19,7 @@ import {
   resolveMountainId,
   resolveMountainIdByCoords,
 } from "./services/TrailOfflineManager";
-import { FREE_OFFLINE_STYLE, onlineStyle } from "./styles/onlineStyle";
+import { onlineStyle } from "./styles/onlineStyle";
 
 /* -------------------------------------------------------------------------- */
 /*  Types (keep identical to TrailMap.native.tsx so callers don't change)      */
@@ -446,7 +446,7 @@ const TrailMap = memo(
         ensureMapLibreWorker();
 
         let map = sharedMap;
-        const initialStyle = (isOffline ? FREE_OFFLINE_STYLE : onlineStyle) as unknown as maplibregl.StyleSpecification | string;
+        const initialStyle = onlineStyle as unknown as maplibregl.StyleSpecification | string;
         if (!map || !sharedContainer) {
           sharedContainer = document.createElement("div");
           sharedContainer.style.cssText = "width:100%;height:100%;position:absolute;inset:0";
@@ -462,7 +462,7 @@ const TrailMap = memo(
           });
           // Style is set right after construction so transformStyle can filter it
           map.setStyle(initialStyle, { transformStyle: stripShieldLayers });
-          sharedAppliedStyle = isOffline ? FREE_OFFLINE_STYLE : onlineStyle;
+          sharedAppliedStyle = onlineStyle;
           map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
           map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
           map.once("load", () => {
@@ -537,7 +537,7 @@ const TrailMap = memo(
       useEffect(() => {
         const map = mapRef.current;
         if (!map || !mapReady) return;
-        const targetStyle = actuallyOffline ? FREE_OFFLINE_STYLE : onlineStyle;
+        const targetStyle = onlineStyle;
         if (sharedAppliedStyle === targetStyle) return;
         sharedAppliedStyle = targetStyle;
         map.setStyle(targetStyle as unknown as maplibregl.StyleSpecification | string, {
