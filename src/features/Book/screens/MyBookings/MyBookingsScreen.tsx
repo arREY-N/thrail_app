@@ -357,6 +357,7 @@ const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
             <PaymentScreen
                 bookingData={selectedBooking}
                 onContinue={() => setCurrentView('list')}
+                onViewDetails={() => setCurrentView('overview')}
                 onBackPress={handleHeaderBackPress}
                 onPayOffer={onPayOffer}
             />
