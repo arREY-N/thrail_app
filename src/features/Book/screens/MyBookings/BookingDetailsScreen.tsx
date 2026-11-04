@@ -53,6 +53,7 @@ import { useBookingContactVerification } from '@/src/features/Book/screens/MyBoo
 import { useBookingResubmit } from '@/src/features/Book/screens/MyBookings/hooks/useBookingResubmit';
 import { getResubmitModalContent, RESUBMIT_TOASTS } from '@/src/features/Book/screens/MyBookings/utils/bookingResubmitMessages';
 import { getBookingFooterConfig } from '@/src/features/Book/screens/MyBookings/utils/getBookingFooterConfig';
+import { isBookingActivelyBlocking } from '@/src/utils/offerHelpers';
 
 export interface BookingDetailsScreenProps {
     /** The booking data */
@@ -162,12 +163,15 @@ const BookingDetailsScreen = ({
         const currentOfferId = booking.offer?.id;
         const currentBusinessId = booking.business?.id;
 
-        // Collect all offer IDs for which the user currently has an active booking
+        // Collect all offer IDs for which the user currently has an active booking or pending reschedule target
         const activeBookedOfferIds = new Set<string>();
         for (const b of effectiveBookings) {
-            if (!['cancelled', 'refunded', 'expired', 'rescheduled'].includes(b.status)) {
+            if (isBookingActivelyBlocking(b)) {
                 const offId = b.offer?.id || (b as { offerId?: string }).offerId;
                 if (offId) activeBookedOfferIds.add(offId);
+                if (b.status === 'for-reschedule' && b.rescheduledToOfferId) {
+                    activeBookedOfferIds.add(b.rescheduledToOfferId);
+                }
             }
         }
         // Also ensure current booking's offer is unconditionally excluded
@@ -982,6 +986,8 @@ const BookingDetailsScreen = ({
                     setShowRescheduleModal(false);
                 }}
                 availableFutureOffers={reschedulableOffers}
+                allOffers={availableFutureOffers}
+                currentBookingId={booking.id}
                 onConfirm={(selectedOffer: IOffer | 'explore', reason?: string) => {
                     if (isReschedulingRef.current) return;
                     isReschedulingRef.current = true;
