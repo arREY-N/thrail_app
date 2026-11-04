@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        borderRadius: 24,
+        borderRadius: 16,
         padding: 16,
         gap: 12,
         backgroundColor: Colors.WHITE,
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
         }),
     },
     unreadCard: {
-        borderWidth: 1.5,
+        borderWidth: 1,
         borderColor: Colors.PRIMARY,
     },
     readCard: {
