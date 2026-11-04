@@ -580,6 +580,67 @@ const computeTargetGeometry = (
             };
         }
 
+        if (
+            spotlightType === 'admin_review_hiker_card' ||
+            spotlightType === 'admin_review_profile'
+        ) {
+            return {
+                x: contentX,
+                y: insets.top + (width < 600 ? 70 : 80),
+                width: width >= 768 ? Math.min(contentW * 0.42, 380) : contentW,
+                height: 180,
+                rx: 24,
+                placement: 'top',
+            };
+        }
+
+        if (spotlightType === 'admin_review_contacts_card') {
+            return {
+                x: contentX,
+                y: insets.top + (width < 600 ? 260 : 270),
+                width: width >= 768 ? Math.min(contentW * 0.42, 380) : contentW,
+                height: 160,
+                rx: 24,
+                placement: 'top',
+            };
+        }
+
+        if (spotlightType === 'admin_review_tabs') {
+            return {
+                x: width >= 768 ? contentX + Math.min(contentW * 0.42, 380) + 24 : contentX,
+                y: insets.top + 80,
+                width: width >= 768 ? contentW - Math.min(contentW * 0.42, 380) - 24 : contentW,
+                height: 48,
+                rx: 16,
+                placement: 'top',
+            };
+        }
+
+        if (
+            spotlightType === 'admin_review_tab_content' ||
+            spotlightType === 'admin_review_content'
+        ) {
+            return {
+                x: width >= 768 ? contentX + Math.min(contentW * 0.42, 380) + 24 : contentX,
+                y: insets.top + 144,
+                width: width >= 768 ? contentW - Math.min(contentW * 0.42, 380) - 24 : contentW,
+                height: 240,
+                rx: 20,
+                placement: 'top',
+            };
+        }
+
+        if (spotlightType === 'admin_review_activity_log') {
+            return {
+                x: contentX,
+                y: width >= 768 ? insets.top + 450 : height - insets.bottom - 240,
+                width: width >= 768 ? Math.min(contentW * 0.42, 380) : contentW,
+                height: 200,
+                rx: 20,
+                placement: width >= 768 ? 'top' : 'bottom',
+            };
+        }
+
         if (spotlightType === 'booking_status_primary') {
             const btnH = 52;
             return {
