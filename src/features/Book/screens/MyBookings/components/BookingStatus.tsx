@@ -6,6 +6,7 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { BookingStatus as BookingStatusType } from '@/src/core/models/Booking/Booking';
+import { IconLibrary } from '@/src/types/ui.types';
 
 export interface BookingStatusProps {
     /** The status of the booking */
@@ -152,7 +153,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
         case 'refunded':
             currentIndex = 2;
             overrideLabel = 'REFUNDED';
-            overrideIcon = 'check-circle';
+            overrideIcon = 'peso-sign';
             isRefundState = true;
             break;
         case 'cancelled':
@@ -188,6 +189,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                     let circleBg: string = Colors.GRAY_LIGHT;
                     let iconColor: string = Colors.TEXT_SECONDARY;
                     let iconName: string = step.defaultIcon;
+                    let iconLibrary: IconLibrary = 'Feather';
                     let labelText: string = step.defaultLabel;
                     let labelColor: string = Colors.TEXT_SECONDARY;
 
@@ -205,11 +207,12 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                             labelText = overrideLabel || step.defaultLabel;
                             labelColor = Colors.ERROR;
                         } else if (isRefundState) {
-                            circleBg = rawStatus === 'refunded' ? Colors.STATUS_APPROVED_BG : '#FEF3C7';
-                            iconColor = rawStatus === 'refunded' ? Colors.PRIMARY : '#D97706';
-                            iconName = overrideIcon || 'rotate-ccw';
+                            circleBg = rawStatus === 'refunded' ? Colors.STATUS_CANCELLED_BG : '#FEF3C7';
+                            iconColor = rawStatus === 'refunded' ? Colors.ERROR : '#D97706';
+                            iconName = rawStatus === 'refunded' ? 'peso-sign' : (overrideIcon || 'rotate-ccw');
+                            iconLibrary = rawStatus === 'refunded' ? 'FontAwesome6' : 'Feather';
                             labelText = overrideLabel || step.defaultLabel;
-                            labelColor = rawStatus === 'refunded' ? Colors.PRIMARY : '#92400E';
+                            labelColor = rawStatus === 'refunded' ? Colors.ERROR : '#92400E';
                         } else if (isPaymentVerifying && (step.id === 2 || overrideLabel === 'VERIFYING')) {
                             circleBg = Colors.STATUS_PENDING_BG;
                             iconColor = Colors.STATUS_PENDING_TEXT;
@@ -241,7 +244,7 @@ const BookingStatus: React.FC<BookingStatusProps> = ({
                                     ]}
                                 >
                                     <CustomIcon 
-                                        library="Feather" 
+                                        library={iconLibrary} 
                                         name={iconName} 
                                         size={16} 
                                         color={iconColor} 
