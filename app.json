@@ -53,7 +53,7 @@
       [
         "expo-asset",
         {
-          "assets": ["src/assets/tiles", "src/assets/fonts"]
+          "assets": ["src/assets/fonts"]
         }
       ],
       "expo-router",
