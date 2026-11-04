@@ -24,6 +24,11 @@ import { IOffer } from '@/src/core/models/Offer/Offer';
 import OfferCard, { OfferData } from '@/src/features/Book/components/OfferCard';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
+import {
+    getActiveBookingSpans,
+    getCalendarDayGap,
+    getOfferDateSpan,
+} from '@/src/utils/offerHelpers';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -36,6 +41,10 @@ export interface RescheduleModalProps {
     onConfirm: (selectedOffer: IOffer | 'explore', reason?: string) => void;
     /** Array of available future offers */
     availableFutureOffers?: IOffer[];
+    /** Global list of offers across all trails for multi-day cross-trail conflict resolution */
+    allOffers?: IOffer[];
+    /** ID of the booking currently being rescheduled */
+    currentBookingId?: string;
 }
 
 const RESCHEDULE_SUGGESTIONS = [
@@ -57,7 +66,9 @@ const RescheduleModal = ({
     visible, 
     onClose, 
     onConfirm, 
-    availableFutureOffers = [] 
+    availableFutureOffers = [],
+    allOffers = [],
+    currentBookingId,
 }: RescheduleModalProps) => {
     const insets = useSafeAreaInsets();
     const { isDesktop, isTablet } = useBreakpoints();
@@ -90,31 +101,31 @@ const RescheduleModal = ({
         }
     }, [visible, animValue]);
 
-    // Active booked offer IDs and dates
+    // Active booked offer IDs and multi-day spans across all trails
     const userBookings = useBookingsStore(s => s.userBookings);
 
-    const activeBookedOfferIds = useMemo(() => {
-        const ids = new Set<string>();
-        for (const b of userBookings || []) {
-            if (!['cancelled', 'refunded', 'expired', 'rescheduled'].includes(b.status)) {
-                if (b.offer?.id) ids.add(b.offer.id);
-            }
+    const mergedOffers = useMemo(() => {
+        const map = new Map<string, IOffer>();
+        if (Array.isArray(allOffers)) {
+            allOffers.forEach((o) => {
+                if (o?.id) map.set(o.id, o);
+            });
         }
-        return ids;
-    }, [userBookings]);
+        if (Array.isArray(availableFutureOffers)) {
+            availableFutureOffers.forEach((o) => {
+                if (o?.id) map.set(o.id, o);
+            });
+        }
+        return Array.from(map.values());
+    }, [allOffers, availableFutureOffers]);
 
-    const activeHikeDateStrings = useMemo(() => {
-        const dates = new Set<string>();
-        for (const b of userBookings || []) {
-            if (!['cancelled', 'refunded', 'expired', 'rescheduled'].includes(b.status)) {
-                if (b.offer?.date) {
-                    const d = safeParseDateString(b.offer.date);
-                    dates.add(d.toDateString());
-                }
-            }
-        }
-        return dates;
-    }, [userBookings]);
+    const activeBookingSpans = useMemo(() => {
+        return getActiveBookingSpans(userBookings || [], mergedOffers, [], currentBookingId);
+    }, [userBookings, mergedOffers, currentBookingId]);
+
+    const activeBookedOfferIds = useMemo(() => {
+        return new Set<string>(activeBookingSpans.map((s) => s.offerId));
+    }, [activeBookingSpans]);
 
     const [prevVisible, setPrevVisible] = useState(visible);
     if (visible !== prevVisible) {
@@ -247,7 +258,10 @@ const RescheduleModal = ({
                                 availableFutureOffers.map((offer, idx) => {
                                     const isBooked = Boolean(offer.id && activeBookedOfferIds.has(offer.id));
                                     const offerDate = safeParseDateString(offer.date);
-                                    const isDateConflict = !isBooked && activeHikeDateStrings.has(offerDate.toDateString());
+                                    const candidateSpan = getOfferDateSpan(offer);
+                                    const isDateConflict = !isBooked && activeBookingSpans.some(
+                                        (b) => b.offerId !== offer.id && getCalendarDayGap(candidateSpan, b.span).isOverlap
+                                    );
 
                                     const hasPaxLimit = Boolean(offer.maxPax && offer.maxPax > 0);
                                     const remainingSlots = hasPaxLimit ? Math.max(0, (offer.maxPax || 0) - (offer.reservedPax || 0)) : null;
@@ -258,7 +272,8 @@ const RescheduleModal = ({
                                     const cutoffDays = typeof offerWithCutoff.advanceBookingCutoffDays === 'number' ? offerWithCutoff.advanceBookingCutoffDays : 7;
                                     const cutoffMs = cutoffDays * 24 * 60 * 60 * 1000;
                                     const isWithinAdvanceCutoff = (offerDate.getTime() - now.getTime()) < cutoffMs;
-                                    const isClosed = (offer.status || '').toLowerCase() === 'closed';
+                                    const offerStatusLower = (offer.status || '').toLowerCase();
+                                    const isClosed = offerStatusLower === 'closed' || offerStatusLower === 'cancelled';
 
                                     const isDisabled = isBooked || isDateConflict || isFullyBooked || isWithinAdvanceCutoff || isClosed;
 
