@@ -56,7 +56,7 @@ export const AdminOverpaymentRefundCard: React.FC<AdminOverpaymentRefundCardProp
         if (!onUploadOverpaymentProof) return;
         try {
             const res = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images'],
                 allowsEditing: false,
                 quality: 0.8,
             });
