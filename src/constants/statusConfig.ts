@@ -1,4 +1,5 @@
 import { Colors } from '@/src/constants/colors';
+import { IconLibrary } from '@/src/types/ui.types';
 
 const SemanticColors = {
     ACTION:  { bg: Colors.STATUS_APPROVED_BG, text: Colors.PRIMARY, border: Colors.STATUS_APPROVED_BORDER },             
@@ -132,7 +133,8 @@ export const STATUS_UI_CONFIG = {
     'refunded': {
         userLabel: 'REFUNDED', userType: 'ERROR',         
         adminLabel: 'REFUNDED', adminType: 'ERROR',
-        icon: 'check-circle'
+        icon: 'peso-sign',
+        iconLibrary: 'FontAwesome6' as IconLibrary,
     },
     'finished': {
         userLabel: 'FINISHED', userType: 'SUCCESS',
@@ -155,6 +157,7 @@ export interface StatusConfigResult {
     textColor: string;
     borderColor?: string;
     icon: string;
+    iconLibrary?: IconLibrary;
 }
 
 /**
@@ -190,6 +193,7 @@ export const getStatusConfig = (
         bgColor: colors.bg,
         textColor: colors.text,
         borderColor: colors.border,
-        icon: config.icon
+        icon: config.icon,
+        iconLibrary: 'iconLibrary' in config ? (config.iconLibrary as IconLibrary) : undefined,
     };
 };
