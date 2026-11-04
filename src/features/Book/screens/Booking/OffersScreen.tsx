@@ -19,13 +19,22 @@ import OfferCard from '@/src/features/Book/components/OfferCard';
 
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
-import { Booking, BookingLogic } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
+import {
+    formatOfferDateSpan,
+    getActiveBookingSpans,
+    getCalendarDayGap,
+    getOfferDateSpan,
+    IBookedOfferSpan,
+    isBookingActivelyBlocking,
+} from '@/src/utils/offerHelpers';
 
 /**
  * Props for the OffersScreen component.
  * @param offers - Available offers for the trail
+ * @param allOffers - Global list of offers across all trails for multi-day cross-trail conflict resolution
  * @param selectedOfferId - Currently selected offer ID
  * @param bookedOfferIds - List of offer IDs the user already has an active reservation for
  * @param userBookings - Active bookings of the user across all trails
@@ -38,6 +47,7 @@ import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateForma
  */
 export interface OffersScreenProps {
     offers?: Offer[];
+    allOffers?: Offer[];
     selectedOfferId?: string | null;
     bookedOfferIds?: string[];
     userBookings?: Booking[];
@@ -51,59 +61,27 @@ export interface OffersScreenProps {
 }
 
 const ADVANCE_BOOKING_CUTOFF_DAYS = 7;
-
-interface OfferDateSpan {
-    startDate: Date;
-    endDate: Date;
-    durationDays: number;
-}
-
-/**
- * Calculates start, end, and duration date span for an offer (supporting multi-day expeditions dynamically).
- * @param offer - Target offer object
- * @returns {OfferDateSpan} Calculated start date, end date, and total duration in days
- */
-const getOfferDateSpan = (offer: Offer): OfferDateSpan => {
-    const startDate = safeParseDateString(offer.date);
-    startDate.setHours(0, 0, 0, 0);
-
-    let durationDays = 1;
-    if (offer.endDate) {
-        const parsedEndDate = safeParseDateString(offer.endDate);
-        parsedEndDate.setHours(0, 0, 0, 0);
-        const diffDays = Math.round((parsedEndDate.getTime() - startDate.getTime()) / 86400000) + 1;
-        if (diffDays > 0) {
-            durationDays = diffDays;
-        }
-    } else if (Array.isArray(offer.schedule) && offer.schedule.length > 0) {
-        durationDays = offer.schedule.length;
-    } else if (typeof offer.duration === 'string') {
-        const dStr = offer.duration.toLowerCase();
-        const matchDays = dStr.match(/(\d+)\s*(?:d|day)/);
-        if (matchDays && matchDays[1]) {
-            durationDays = parseInt(matchDays[1], 10) || 1;
-        } else if (dStr.includes('overnight')) {
-            durationDays = 2;
-        }
-    }
-
-    const endDate = new Date(startDate.getTime() + (durationDays - 1) * 86400000);
-    endDate.setHours(23, 59, 59, 999);
-
-    return { startDate, endDate, durationDays };
-};
+/** Option A: Strict back-to-back / adjacent calendar day (0 rest days between hikes) */
+const CONSECUTIVE_HIKE_MAX_GAP_DAYS = 1;
 
 /**
  * Resolves the optimal default date to display when opening the booking offers view:
  * 1. If an offer was explicitly pre-selected, use that offer's date.
- * 2. If the trail has upcoming offers, pick the one closest to today (preferring bookable offers >= 7 days ahead).
- * 3. Fallback: Today's date if no offers exist for this trail.
- * 
+ * 2. Prefer the earliest upcoming bookable offer (>= 7 days notice) that is open and not already booked/conflicted.
+ * 3. Prefer any upcoming bookable offer (>= 7 days notice), sorted closest to today.
+ * 4. Next prefer any upcoming offer (even within 7-day cutoff), sorted closest to today.
+ * 5. Fallback: Today's date if no offers exist for this trail.
+ *
  * @param offersList - List of available trail offers
  * @param preferredOfferId - Optional pre-selected offer ID
+ * @param activeSpans - Optional active user booking spans to prefer non-conflicted dates
  * @returns {string} Formatted standard date string
  */
-const resolveBestOfferDate = (offersList: Offer[], preferredOfferId?: string | null): string => {
+const resolveBestOfferDate = (
+    offersList: Offer[],
+    preferredOfferId?: string | null,
+    activeSpans: IBookedOfferSpan[] = []
+): string => {
     if (preferredOfferId) {
         const matched = offersList.find((o) => o.id === preferredOfferId);
         if (matched?.date) {
@@ -117,9 +95,13 @@ const resolveBestOfferDate = (offersList: Offer[], preferredOfferId?: string | n
     const minCutoffDate = new Date(nowMidnight.getTime());
     minCutoffDate.setDate(minCutoffDate.getDate() + ADVANCE_BOOKING_CUTOFF_DAYS);
 
-    // 1. Prefer first upcoming bookable offer (>= 7 days notice), sorted closest to today
-    const upcomingBookableOffers = offersList
-        .map((o) => ({ dateStr: formatDateToStandard(o.date), dateObj: safeParseDateString(o.date) }))
+    const sortedUpcomingBookable = offersList
+        .filter((o) => Boolean(o?.date))
+        .map((o) => ({
+            offer: o,
+            dateStr: formatDateToStandard(o.date),
+            dateObj: safeParseDateString(o.date),
+        }))
         .filter((item) => {
             const itemMidnight = new Date(item.dateObj);
             itemMidnight.setHours(0, 0, 0, 0);
@@ -127,11 +109,28 @@ const resolveBestOfferDate = (offersList: Offer[], preferredOfferId?: string | n
         })
         .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
 
-    if (upcomingBookableOffers.length > 0 && upcomingBookableOffers[0].dateStr) {
-        return upcomingBookableOffers[0].dateStr;
+    // 1. Prefer first upcoming bookable offer that is not closed/cancelled and does not conflict with existing bookings
+    if (activeSpans.length > 0) {
+        const unconflictedBookable = sortedUpcomingBookable.find((item) => {
+            const statusLower = (item.offer.status || '').toLowerCase();
+            if (statusLower === 'closed' || statusLower === 'cancelled') return false;
+            const candidateSpan = getOfferDateSpan(item.offer);
+            const hasConflict = activeSpans.some(
+                (b) => b.offerId === item.offer.id || getCalendarDayGap(candidateSpan, b.span).isOverlap
+            );
+            return !hasConflict;
+        });
+        if (unconflictedBookable?.dateStr) {
+            return unconflictedBookable.dateStr;
+        }
     }
 
-    // 2. Next prefer any upcoming offer (even within 7-day cutoff), sorted closest to today
+    // 2. Prefer first upcoming bookable offer (>= 7 days notice), sorted closest to today
+    if (sortedUpcomingBookable.length > 0 && sortedUpcomingBookable[0].dateStr) {
+        return sortedUpcomingBookable[0].dateStr;
+    }
+
+    // 3. Next prefer any upcoming offer (even within 7-day cutoff), sorted closest to today
     const upcomingAnyOffers = offersList
         .map((o) => ({ dateStr: formatDateToStandard(o.date), dateObj: safeParseDateString(o.date) }))
         .filter((item) => {
@@ -145,7 +144,7 @@ const resolveBestOfferDate = (offersList: Offer[], preferredOfferId?: string | n
         return upcomingAnyOffers[0].dateStr;
     }
 
-    // 3. Fallback to today's date if no offers exist
+    // 4. Fallback to today's date if no offers exist
     return formatDateToStandard(nowMidnight);
 };
 
@@ -156,9 +155,10 @@ const resolveBestOfferDate = (offersList: Offer[], preferredOfferId?: string | n
  * @param {OffersScreenProps} props - Component props
  * @returns {React.JSX.Element} The rendered component
  */
-const OffersScreen = ({ 
-    offers = [], 
-    selectedOfferId, 
+const OffersScreen = ({
+    offers = [],
+    allOffers = [],
+    selectedOfferId,
     bookedOfferIds = [],
     userBookings = [],
     conflictOfferIds = [],
@@ -181,13 +181,24 @@ const OffersScreen = ({
         onResetSelection: () => setLocalSelectedId(null),
     });
 
-
     const safeOffers = useMemo(() => (Array.isArray(offers) ? offers : []), [offers]);
-    const safeBookings = useMemo(() => (
-        Array.isArray(userBookings) 
-            ? userBookings.filter((b) => !BookingLogic.isInactiveStatus(b.status)) 
-            : []
-    ), [userBookings]);
+    const mergedAllOffers = useMemo(() => {
+        const map = new Map<string, Offer>();
+        if (Array.isArray(allOffers)) {
+            allOffers.forEach((o) => {
+                if (o?.id) map.set(o.id, o);
+            });
+        }
+        safeOffers.forEach((o) => {
+            if (o?.id) map.set(o.id, o);
+        });
+        return Array.from(map.values());
+    }, [allOffers, safeOffers]);
+
+    const safeBookings = useMemo(
+        () => (Array.isArray(userBookings) ? userBookings.filter((b) => isBookingActivelyBlocking(b)) : []),
+        [userBookings]
+    );
 
     const [currentDate] = useState(() => new Date());
 
@@ -212,55 +223,47 @@ const OffersScreen = ({
         return [...new Set(dates)];
     }, [safeOffers]);
 
-    // Live booked offer IDs from props or derived from active user bookings
-    const effectiveBookedOfferIds = useMemo(() => {
-        if (bookedOfferIds && bookedOfferIds.length > 0) {
-            return bookedOfferIds;
-        }
-        return safeBookings.map((b) => b.offer?.id).filter(Boolean) as string[];
-    }, [bookedOfferIds, safeBookings]);
-
-    // Compute booked offers with their respective date spans from live data
+    // Compute all active booked offer spans (including cross-trail multi-day spans & pending reschedule targets)
     const bookedOfferSpans = useMemo(() => {
-        const knownSpans = safeOffers
-            .filter((o) => effectiveBookedOfferIds.includes(o.id))
-            .map((o) => {
-                const span = getOfferDateSpan(o);
-                const startStr = formatDateToStandard(o.date);
-                const endStr = formatDateToStandard(span.endDate);
-                const formattedSpan = span.durationDays > 1 && startStr !== endStr
-                    ? `${startStr} – ${endStr}`
-                    : startStr;
-                return {
-                    id: o.id,
-                    span,
-                    formattedSpan,
-                };
+        const spans = getActiveBookingSpans(safeBookings, mergedAllOffers);
+        const existingOfferIds = new Set(spans.map((s) => s.offerId));
+
+        if (Array.isArray(bookedOfferIds) && bookedOfferIds.length > 0) {
+            bookedOfferIds.forEach((id) => {
+                if (!id || existingOfferIds.has(id)) return;
+                const matchedOffer = mergedAllOffers.find((o) => o.id === id);
+                if (matchedOffer?.date) {
+                    const span = getOfferDateSpan(matchedOffer);
+                    existingOfferIds.add(id);
+                    spans.push({
+                        offerId: id,
+                        bookingId: '',
+                        lockKind: 'primary',
+                        span,
+                        formattedSpan: formatOfferDateSpan(span),
+                    });
+                }
             });
+        }
 
-        const knownIds = new Set(knownSpans.map((s) => s.id));
-        safeBookings.forEach((b) => {
-            if (b.offer?.id && !knownIds.has(b.offer.id) && b.offer.date) {
-                const startDate = safeParseDateString(b.offer.date);
-                startDate.setHours(0, 0, 0, 0);
-                const endDate = new Date(startDate.getTime());
-                endDate.setHours(23, 59, 59, 999);
-                const startStr = formatDateToStandard(startDate);
-                knownSpans.push({
-                    id: b.offer.id,
-                    span: { startDate, endDate, durationDays: 1 },
-                    formattedSpan: startStr,
-                });
-            }
-        });
+        return spans;
+    }, [safeBookings, mergedAllOffers, bookedOfferIds]);
 
-        return knownSpans;
-    }, [safeOffers, effectiveBookedOfferIds, safeBookings]);
+    // Live booked offer IDs (both primary booked offers and pending reschedule target offers)
+    const effectiveBookedOfferIds = useMemo(() => {
+        const ids = new Set<string>(bookedOfferSpans.map((s) => s.offerId));
+        if (Array.isArray(bookedOfferIds)) {
+            bookedOfferIds.forEach((id) => {
+                if (id) ids.add(id);
+            });
+        }
+        return Array.from(ids);
+    }, [bookedOfferSpans, bookedOfferIds]);
 
     const [userHasManuallySelectedDate, setUserHasManuallySelectedDate] = useState(false);
 
-    const [selectedDate, setSelectedDate] = useState<string>(() => 
-        resolveBestOfferDate(safeOffers, selectedOfferId)
+    const [selectedDate, setSelectedDate] = useState<string>(() =>
+        resolveBestOfferDate(safeOffers, selectedOfferId, bookedOfferSpans)
     );
 
     // Adjust selectedDate during render if safeOffers array updates and current selection has 0 offers
@@ -272,7 +275,7 @@ const OffersScreen = ({
                 (o) => formatDateToStandard(o?.date) === selectedDate
             );
             if (!currentHasOffers) {
-                const bestDate = resolveBestOfferDate(safeOffers, selectedOfferId);
+                const bestDate = resolveBestOfferDate(safeOffers, selectedOfferId, bookedOfferSpans);
                 setSelectedDate(bestDate);
             }
         }
@@ -306,8 +309,6 @@ const OffersScreen = ({
         }
     }
 
-
-
     const filteredOffers = useMemo(() => {
         if (!selectedDate) return [];
         return safeOffers.filter((offer) => formatDateToStandard(offer?.date) === selectedDate);
@@ -315,7 +316,10 @@ const OffersScreen = ({
 
     // Detailed status evaluation for any offer
     const getOfferStatus = useCallback((candidate: Offer) => {
+        const exactLockedSpan = bookedOfferSpans.find((b) => b.offerId === candidate.id) || null;
         const isExactBooked = effectiveBookedOfferIds.includes(candidate.id);
+        const isPendingRescheduleTarget = exactLockedSpan?.lockKind === 'pending-reschedule';
+
         const candidateSpan = getOfferDateSpan(candidate);
         const isToday = formatDateToStandard(candidate.date) === todayFormatted;
         const isPastDate = candidateSpan.startDate < todayMidnight;
@@ -323,42 +327,44 @@ const OffersScreen = ({
         const candidateMaxPax = Number(candidate.maxPax) || 0;
         const candidateReservedPax = Number(candidate.reservedPax) || 0;
         const isFull = candidateMaxPax > 0 && candidateReservedPax >= candidateMaxPax;
-        const isClosed = isPastDate || isWithinAdvanceCutoff;
+        const offerStatusLower = (candidate.status || '').toLowerCase();
+        const isOfferStatusClosed = offerStatusLower === 'closed' || offerStatusLower === 'cancelled';
+        const isClosed = isPastDate || isWithinAdvanceCutoff || isOfferStatusClosed;
 
-        // Check for date-span overlap against any booked offer
-        const overlappingBooking = bookedOfferSpans.find((b) => 
-            b.id !== candidate.id &&
-            candidateSpan.startDate.getTime() <= b.span.endDate.getTime() &&
-            candidateSpan.endDate.getTime() >= b.span.startDate.getTime()
-        );
+        // Check for multi-day date-span overlap against any active booked or pending-reschedule offer
+        const overlappingBooking = bookedOfferSpans.find((b) => {
+            if (b.offerId === candidate.id) return false;
+            return getCalendarDayGap(candidateSpan, b.span).isOverlap;
+        });
 
         const isDateConflict = !isExactBooked && (
-            conflictOfferIds.includes(candidate.id) || 
-            !!overlappingBooking
+            conflictOfferIds.includes(candidate.id) ||
+            Boolean(overlappingBooking)
         );
 
-        // Check if consecutive (starts within 1–2 days of an active booked hike, with no overlap)
+        // Option A: Check if consecutive / back-to-back (gapDays === 1, i.e., 0 rest days between hikes)
         let isConsecutive = false;
-        let consecutiveSourceBooking: (typeof bookedOfferSpans)[number] | null = null;
+        let consecutiveSourceBooking: IBookedOfferSpan | null = null;
 
         if (!isExactBooked && !isDateConflict && !isClosed) {
-            if (consecutiveOfferIds.includes(candidate.id)) {
+            const closeBooking = bookedOfferSpans.find((b) => {
+                const { isOverlap, gapDays } = getCalendarDayGap(candidateSpan, b.span);
+                return !isOverlap && gapDays !== null && gapDays >= 1 && gapDays <= CONSECUTIVE_HIKE_MAX_GAP_DAYS;
+            });
+
+            if (closeBooking) {
                 isConsecutive = true;
-            } else {
-                const closeBooking = bookedOfferSpans.find((b) => {
-                    const diffAfter = (candidateSpan.startDate.getTime() - b.span.endDate.getTime()) / 86400000;
-                    const diffBefore = (b.span.startDate.getTime() - candidateSpan.endDate.getTime()) / 86400000;
-                    return (diffAfter > 0 && diffAfter <= 2.5) || (diffBefore > 0 && diffBefore <= 2.5);
-                });
-                if (closeBooking) {
-                    isConsecutive = true;
-                    consecutiveSourceBooking = closeBooking;
-                }
+                consecutiveSourceBooking = closeBooking;
+            } else if (consecutiveOfferIds.includes(candidate.id)) {
+                isConsecutive = true;
+                consecutiveSourceBooking = bookedOfferSpans[0] || null;
             }
         }
 
         return {
             isExactBooked,
+            isPendingRescheduleTarget,
+            exactLockedSpan,
             isDateConflict,
             isClosed,
             isFull,
@@ -367,14 +373,17 @@ const OffersScreen = ({
             isConsecutive,
             overlappingBooking,
             consecutiveSourceBooking,
-            candidateSpan
+            candidateSpan,
         };
     }, [
-            effectiveBookedOfferIds, 
-            todayFormatted, todayMidnight, 
-            minBookingDate, bookedOfferSpans, 
-            conflictOfferIds, consecutiveOfferIds
-        ]);
+        bookedOfferSpans,
+        effectiveBookedOfferIds,
+        todayFormatted,
+        todayMidnight,
+        minBookingDate,
+        conflictOfferIds,
+        consecutiveOfferIds,
+    ]);
 
     const [hasAttemptedBlockedSubmit, setHasAttemptedBlockedSubmit] = useState(false);
 
@@ -401,11 +410,20 @@ const OffersScreen = ({
         return getOfferStatus(selectedOffer);
     }, [selectedOffer, getOfferStatus]);
 
-    const isSelectedOfferBlocked = selectedOfferStatus?.isExactBooked || selectedOfferStatus?.isDateConflict || selectedOfferStatus?.isClosed;
+    const isSelectedOfferBlocked =
+        selectedOfferStatus?.isExactBooked ||
+        selectedOfferStatus?.isDateConflict ||
+        selectedOfferStatus?.isClosed;
 
     const existingBookedBooking = useMemo(() => {
         if (!selectedOfferStatus?.isExactBooked || !localSelectedId) return null;
-        return safeBookings.find((b) => b.offer?.id === localSelectedId) || null;
+        return (
+            safeBookings.find(
+                (b) =>
+                    b.offer?.id === localSelectedId ||
+                    (b.status === 'for-reschedule' && b.rescheduledToOfferId === localSelectedId)
+            ) || null
+        );
     }, [selectedOfferStatus?.isExactBooked, localSelectedId, safeBookings]);
 
     const handleContinue = () => {
@@ -421,11 +439,16 @@ const OffersScreen = ({
 
         if (selectedOfferStatus.isExactBooked) {
             if (onViewBookingDetails) {
-                onViewBookingDetails(existingBookedBooking?.id || undefined);
+                onViewBookingDetails(
+                    existingBookedBooking?.id || selectedOfferStatus.exactLockedSpan?.bookingId || undefined
+                );
                 return;
             }
             setHasAttemptedBlockedSubmit(true);
-            showToast.error("You already have an active reservation for this package.", {
+            const bookedMsg = selectedOfferStatus.isPendingRescheduleTarget
+                ? "You already have a pending reschedule request for this package."
+                : "You already have an active reservation for this package.";
+            showToast.error(bookedMsg, {
                 onHide: () => setHasAttemptedBlockedSubmit(false),
             });
             return;
@@ -434,7 +457,11 @@ const OffersScreen = ({
         if (selectedOfferStatus.isDateConflict) {
             setHasAttemptedBlockedSubmit(true);
             const overlapSpan = selectedOfferStatus.overlappingBooking?.formattedSpan || "this date";
-            showToast.error(`You already have an active reservation overlapping this date (${overlapSpan}).`, {
+            const conflictMsg =
+                selectedOfferStatus.overlappingBooking?.lockKind === 'pending-reschedule'
+                    ? `You have a pending reschedule request overlapping this date (${overlapSpan}).`
+                    : `You already have an active reservation overlapping this date (${overlapSpan}).`;
+            showToast.error(conflictMsg, {
                 onHide: () => setHasAttemptedBlockedSubmit(false),
             });
             return;
@@ -470,12 +497,13 @@ const OffersScreen = ({
 
         // Check if consecutive notice modal is required
         if (selectedOfferStatus.isConsecutive) {
-            const existingDate = selectedOfferStatus.consecutiveSourceBooking?.formattedSpan || "an existing reservation";
-            const newDate = formatDateToStandard(selectedOffer.date);
+            const existingDate =
+                selectedOfferStatus.consecutiveSourceBooking?.formattedSpan || "an existing reservation";
+            const newDate = formatOfferDateSpan(selectedOfferStatus.candidateSpan);
             setConsecutiveNoticeDetails({
                 existingDate,
                 newDate,
-                targetOfferId: localSelectedId
+                targetOfferId: localSelectedId,
             });
             setIsConsecutiveModalOpen(true);
             return;
@@ -497,8 +525,9 @@ const OffersScreen = ({
 
         // If back-to-back hike also applies, chain to consecutive modal next
         if (selectedOfferStatus.isConsecutive) {
-            const existingDate = selectedOfferStatus.consecutiveSourceBooking?.formattedSpan || "an existing reservation";
-            const newDate = formatDateToStandard(selectedOffer.date);
+            const existingDate =
+                selectedOfferStatus.consecutiveSourceBooking?.formattedSpan || "an existing reservation";
+            const newDate = formatOfferDateSpan(selectedOfferStatus.candidateSpan);
             setConsecutiveNoticeDetails({
                 existingDate,
                 newDate,
@@ -515,7 +544,14 @@ const OffersScreen = ({
     const getFooterButtonTitle = () => {
         if (!localSelectedId) return "Select an Offer";
         if (selectedOfferStatus?.isExactBooked) {
-            return onViewBookingDetails ? "View My Reservation" : "Already Booked";
+            if (onViewBookingDetails) {
+                return selectedOfferStatus.isPendingRescheduleTarget
+                    ? "View Pending Reschedule"
+                    : "View My Reservation";
+            }
+            return selectedOfferStatus.isPendingRescheduleTarget
+                ? "Reschedule Pending"
+                : "Already Booked";
         }
         if (selectedOfferStatus?.isDateConflict) return "Date Already Reserved";
         if (selectedOfferStatus?.isWithinAdvanceCutoff) {
@@ -611,11 +647,11 @@ const OffersScreen = ({
                                 onLayout={measureFirstOfferCard}
                                 style={styles.emptyState}
                             >
-                                <CustomIcon 
-                                    library="Feather" 
-                                    name="calendar" 
-                                    size={32} 
-                                    color={Colors.GRAY_LIGHT} 
+                                <CustomIcon
+                                    library="Feather"
+                                    name="calendar"
+                                    size={32}
+                                    color={Colors.GRAY_LIGHT}
                                     style={styles.emptyIcon}
                                 />
                                 <CustomText variant="caption" style={styles.emptyCaption}>
@@ -643,7 +679,7 @@ const OffersScreen = ({
                 onClose={() => setIsConsecutiveModalOpen(false)}
                 onConfirm={handleConfirmConsecutive}
                 title="Consecutive Hike Notice"
-                message={`You already have an active reservation on ${consecutiveNoticeDetails?.existingDate}. This hike starts on ${consecutiveNoticeDetails?.newDate}. Are you sure you want to schedule back-to-back mountain hikes?`}
+                message={`You already have an active reservation on ${consecutiveNoticeDetails?.existingDate}. This hike is scheduled for ${consecutiveNoticeDetails?.newDate}. Are you sure you want to schedule back-to-back mountain hikes?`}
                 confirmText="Yes, Continue"
                 cancelText="Review Dates"
                 iconName="calendar"
@@ -669,13 +705,13 @@ const OffersScreen = ({
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        flex: 1, 
-        backgroundColor: Colors.BACKGROUND, 
-        paddingTop: 16 
+    container: {
+        flex: 1,
+        backgroundColor: Colors.BACKGROUND,
+        paddingTop: 16,
     },
-    scrollContent: { 
-        paddingBottom: 100 
+    scrollContent: {
+        paddingBottom: 100,
     },
 
     constrainer: {
