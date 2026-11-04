@@ -2,32 +2,45 @@
 // ACTION: UPDATE
 // REASON: Delegate loading and error state directly to useWeatherStore to eliminate redundant local state and prevent cascading renders.
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useWeatherStore } from '../core/stores/weatherStore';
+import { generateWeatherCacheKey } from '../core/repositories/weatherRepository';
 
-export const useWeather = (lat: number | undefined | null, lon: number | undefined | null) => {
-    const { data, loadWeather, isLoading, error } = useWeatherStore();
+export const useWeather = (
+    lat: number | undefined | null,
+    lon: number | undefined | null,
+    elevation?: number
+) => {
+    const isValid = typeof lat === 'number' && typeof lon === 'number' && !isNaN(lat) && !isNaN(lon);
+    
+    // Stable cache key derived with 2 decimal places and optional elevation
+    const dataKey = useMemo(() => {
+        return isValid ? generateWeatherCacheKey(lat!, lon!, elevation) : null;
+    }, [isValid, lat, lon, elevation]);
 
-    const isValid = typeof lat === 'number' && typeof lon === 'number';
-    const dataKey = isValid ? `${lat.toFixed(4)}_${lon.toFixed(4)}` : null;
-    const weatherData = dataKey ? data[dataKey] : null;
+    // Isolated selector subscriptions to avoid whole-store re-renders
+    const weatherData = useWeatherStore((s) => (dataKey ? s.data[dataKey] : null));
+    const loading = useWeatherStore((s) => (dataKey ? Boolean(s.loadingStates[dataKey]) : false));
+    const error = useWeatherStore((s) => (dataKey ? s.errorStates[dataKey] : null));
+    const loadWeather = useWeatherStore((s) => s.loadWeather);
 
     useEffect(() => {
-        if (isValid) {
-            loadWeather(lat, lon);
+        if (isValid && lat != null && lon != null) {
+            loadWeather(lat, lon, elevation);
         }
-    }, [isValid, lat, lon, loadWeather]);
+    }, [isValid, dataKey, loadWeather, lat, lon, elevation]);
 
     const refetch = useCallback(() => {
-        if (!isValid) return Promise.resolve();
-        return loadWeather(lat, lon, true);
-    }, [isValid, lat, lon, loadWeather]);
+        if (!isValid || lat == null || lon == null) return Promise.resolve();
+        return loadWeather(lat, lon, elevation, true);
+    }, [isValid, lat, lon, elevation, loadWeather]);
 
     return {
         weatherData,
-        loading: isLoading,
+        loading,
         error,
         refetch,
     };
 };
+
 

@@ -28,7 +28,7 @@ import { IOffer } from '@/src/core/models/Offer/Offer';
 import { IReview } from '@/src/core/models/Review/Review';
 import { ITrail, useTrailStats } from '@/src/core/models/Trail/Trail';
 import { useWeatherStore } from '@/src/core/stores/weatherStore';
-import { resolveCoordsForTrail } from '@/src/core/utility/weatherHelpers';
+import { getTrailElevation, resolveCoordsForTrail } from '@/src/core/utility/weatherHelpers';
 import { ScrollToTopPill } from '@/src/features/Community/components/ScrollToTopPill';
 import { getTrailHeroPhoto } from '@/src/features/Trail/utils/TrailDetailsHelpers';
 
@@ -216,8 +216,9 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
             }
 
             if (coords) {
+                const elevation = getTrailElevation(trail);
                 await Promise.all([
-                    useWeatherStore.getState().loadWeather(coords.lat, coords.lon, true),
+                    useWeatherStore.getState().loadWeather(coords.lat, coords.lon, elevation, true),
                     onRefreshProp ? Promise.resolve(onRefreshProp()) : Promise.resolve(),
                 ]);
             }

@@ -68,6 +68,7 @@ export default function HikeView() {
         timerStartTime,
         totalDistance,
         totalElevationGain,
+        totalElevationLoss,
         isLoading,
         shareLocationEnabled,
         setShareLocationEnabled,
@@ -158,6 +159,7 @@ export default function HikeView() {
                 timerStartTime={timerStartTime}
                 totalDistance={totalDistance}
                 totalElevationGain={totalElevationGain}
+                totalElevationLoss={totalElevationLoss}
 
                 isLoading={isLoading}
                 lon={paramLon}

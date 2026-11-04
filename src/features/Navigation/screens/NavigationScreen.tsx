@@ -93,8 +93,8 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
 
     const mapRef = useRef<TrailMapRef | null>(null);
     const { isOnline } = useNetworkStatus();
-    const [isOfflineMode, setIsOfflineMode] = useState(true);
-    const isEffectiveOffline = !isOnline || isOfflineMode;
+    const [isOfflineMode, setIsOfflineMode] = useState(Platform.OS !== 'web');
+    const isEffectiveOffline = Platform.OS === 'web' ? false : (!isOnline || isOfflineMode);
     const [isDevBypassModalVisible, setDevBypassModalVisible] = useState(false);
     const [isUpcomingModalVisible, setUpcomingModalVisible] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -183,8 +183,16 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const [modeToast, setModeToast] = useState<string | null>(null);
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    useEffect(() => {
+        return () => {
+            if (toastTimeoutRef.current) {
+                clearTimeout(toastTimeoutRef.current);
+            }
+        };
+    }, []);
+
     const handleToggleOffline = () => {
-        if (!isOnline) return;
+        if (Platform.OS === 'web' || !isOnline) return;
         const nextMode = !isEffectiveOffline;
         setIsOfflineMode(nextMode);
         mapRef.current?.toggleOffline();
@@ -371,8 +379,8 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
 
             <NetworkStatusBanner isOnline={isOnline} top={Platform.OS === 'web' ? 70 : searchTopPadding + 56} />
 
-            {modeToast && (
-                <View style={[styles.modeToastBanner, { top: Platform.OS === 'web' ? 70 : searchTopPadding + 56 }]} pointerEvents="none">
+            {Platform.OS !== 'web' && modeToast && (
+                <View style={[styles.modeToastBanner, { top: searchTopPadding + 56 }]} pointerEvents="none">
                     <View style={[styles.modeToastContent, styles.toastOnline]}>
                         <CustomIcon
                             library="Feather"
@@ -432,7 +440,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    {isOnline && (
+                    {Platform.OS !== 'web' && isOnline && (
                         <View
                             ref={mapStyleBtnRef}
                             collapsable={false}

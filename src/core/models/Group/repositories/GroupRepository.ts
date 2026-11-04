@@ -185,7 +185,11 @@ export const GroupRepository = (db: Firestore) => ({
         }
     },
 
-    listenToLatestWeatherAlert(groupId: string, onUpdate: (alert: IWeatherAlert | null) => void): Unsubscribe {
+    listenToLatestWeatherAlert(
+        groupId: string,
+        onUpdate: (alert: IWeatherAlert | null) => void,
+        onError?: (error: unknown) => void
+    ): Unsubscribe {
         const q = query(
             collection(db, 'groups', groupId, 'alerts'),
             orderBy('createdAt', 'desc'),
@@ -219,7 +223,11 @@ export const GroupRepository = (db: Firestore) => ({
             onUpdate(alert);
         }, (error) => {
             console.warn('Weather alerts not available or permissions pending:', error.message);
-            onUpdate(null);
+            if (onError) {
+                onError(error);
+            } else {
+                onUpdate(null);
+            }
         });
     },
 });

@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import React, { memo, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Animated, Linking, Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ConfirmationModal from "@/src/components/ConfirmationModal";
@@ -101,6 +101,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     const currentLocation = useHikeStore((s) => s.currentLocation);
     const [showNoContactModal, setShowNoContactModal] = useState(false);
     const [copiedCoords, setCopiedCoords] = useState(false);
+    const copiedCoordsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const hasEmergencyContact = Boolean(
         emergencyContactNumber ||
@@ -146,13 +147,24 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     });
 
     const { isOnline } = useNetworkStatus();
-    const [isOfflineMode, setIsOfflineMode] = useState(true);
-    const isEffectiveOffline = !isOnline || isOfflineMode;
+    const [isOfflineMode, setIsOfflineMode] = useState(Platform.OS !== 'web');
+    const isEffectiveOffline = Platform.OS === 'web' ? false : (!isOnline || isOfflineMode);
     const [modeToast, setModeToast] = useState<string | null>(null);
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    useEffect(() => {
+        return () => {
+            if (toastTimeoutRef.current) {
+                clearTimeout(toastTimeoutRef.current);
+            }
+            if (copiedCoordsTimeoutRef.current) {
+                clearTimeout(copiedCoordsTimeoutRef.current);
+            }
+        };
+    }, []);
+
     const handleToggleOffline = () => {
-        if (!isOnline) return;
+        if (Platform.OS === 'web' || !isOnline) return;
         const nextMode = !isEffectiveOffline;
         setIsOfflineMode(nextMode);
         mapRef.current?.toggleOffline();
@@ -276,7 +288,10 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         const textToCopy = `THRAIL APP EMERGENCY SOS\nLocation: ${coordsText}${mapUrl ? `\nMap: ${mapUrl}` : ''}`;
         await Clipboard.setStringAsync(textToCopy);
         setCopiedCoords(true);
-        setTimeout(() => setCopiedCoords(false), 3000);
+        if (copiedCoordsTimeoutRef.current) {
+            clearTimeout(copiedCoordsTimeoutRef.current);
+        }
+        copiedCoordsTimeoutRef.current = setTimeout(() => setCopiedCoords(false), 3000);
     };
 
     const handleSendSMS = () => {
@@ -432,7 +447,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
 
             <NetworkStatusBanner isOnline={isOnline} top={insets.top + 68} />
 
-            {modeToast && (
+            {Platform.OS !== 'web' && modeToast && (
                 <View style={[styles.modeToastBanner, { top: insets.top + 68 }]} pointerEvents="none">
                     <View style={[styles.modeToastContent, styles.toastOnline]}>
                         <CustomIcon
@@ -519,7 +534,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                         </TouchableOpacity>
                     </View>
                 )}
-                {isOnline && (
+                {Platform.OS !== 'web' && isOnline && (
                     <View
                         ref={mapStyleBtnRef}
                         collapsable={false}

@@ -3967,10 +3967,12 @@ function resolveMountainCoords(trailName, customCoords) {
 }
 
 async function resolveGroupCoordinates(db, group, trailName) {
+    let elevation = group.trail?.geography?.masl || group.trail?.difficulty?.elevation || group.trail?.difficulty?.gain;
+
     // 1. Direct coordinates on group.trail
     const directCoords = group.trail?.coordinates || group.trail?.general?.coordinates;
     const resolvedDirect = resolveMountainCoords(trailName, directCoords);
-    if (resolvedDirect) return resolvedDirect;
+    if (resolvedDirect) return { ...resolvedDirect, elevation: elevation || resolvedDirect.elevation };
 
     // 2. Fetch from Firestore /trails/{trailId}
     const trailId = group.trail?.id;
@@ -3979,14 +3981,15 @@ async function resolveGroupCoordinates(db, group, trailName) {
             const trailDoc = await db.collection('trails').doc(trailId).get();
             if (trailDoc.exists) {
                 const trailData = trailDoc.data() || {};
+                const docElev = trailData.geography?.masl || trailData.difficulty?.elevation || trailData.difficulty?.gain || elevation;
                 // Check geography.start (GeoPoint or object with latitude/longitude)
                 const geoStart = trailData.geography?.start;
                 if (geoStart && typeof geoStart.latitude === 'number' && typeof geoStart.longitude === 'number') {
-                    return { lat: geoStart.latitude, lon: geoStart.longitude };
+                    return { lat: geoStart.latitude, lon: geoStart.longitude, elevation: docElev };
                 }
                 // Check geography startLat / startLong
                 if (typeof trailData.geography?.startLat === 'number' && typeof trailData.geography?.startLong === 'number') {
-                    return { lat: trailData.geography.startLat, lon: trailData.geography.startLong };
+                    return { lat: trailData.geography.startLat, lon: trailData.geography.startLong, elevation: docElev };
                 }
                 // Check direct coordinates or general.coordinates on trail doc
                 const trailCoords = trailData.coordinates || trailData.general?.coordinates;
@@ -3994,7 +3997,7 @@ async function resolveGroupCoordinates(db, group, trailName) {
                     const lat = typeof trailCoords.latitude === 'number' ? trailCoords.latitude : trailCoords.lat;
                     const lon = typeof trailCoords.longitude === 'number' ? trailCoords.longitude : trailCoords.lon;
                     if (typeof lat === 'number' && typeof lon === 'number') {
-                        return { lat, lon };
+                        return { lat, lon, elevation: docElev };
                     }
                 }
             }
@@ -4004,7 +4007,8 @@ async function resolveGroupCoordinates(db, group, trailName) {
     }
 
     // 3. Fallback to mountain name keyword matching in MOUNTAIN_COORDINATES
-    return resolveMountainCoords(trailName, null);
+    const fallbackCoords = resolveMountainCoords(trailName, null);
+    return fallbackCoords ? { ...fallbackCoords, elevation } : null;
 }
 
 function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0, hikeDate = null) {
@@ -4017,10 +4021,29 @@ function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0, hik
         }
     }
     // Fallback to bounded hours estimation if exact date was not matched
+    const maxDayIndex = (weatherData.daily?.time?.length || 8) - 1;
     if (targetDayIndex < 0) {
-        targetDayIndex = Math.min(Math.max(0, Math.floor(diffHours / 24)), 6);
+        targetDayIndex = Math.min(Math.max(0, Math.floor(diffHours / 24)), maxDayIndex);
     }
-    const targetHourIndex = Math.min(Math.max(0, Math.floor(diffHours)), 167);
+
+    // Determine the target hour index by exact ISO hour string matching: "YYYY-MM-DDTHH:00"
+    let targetHourIndex = -1;
+    if (hikeDate && Array.isArray(weatherData.hourly?.time)) {
+        let targetIsoHour = null;
+        if (typeof hikeDate.toFormat === 'function') {
+            targetIsoHour = hikeDate.toFormat("yyyy-MM-dd'T'HH:00");
+        } else if (typeof hikeDate.toISOString === 'function') {
+            targetIsoHour = hikeDate.toISOString().slice(0, 13) + ':00';
+        }
+        if (targetIsoHour) {
+            targetHourIndex = weatherData.hourly.time.indexOf(targetIsoHour);
+        }
+    }
+    // Fallback if not found by exact string
+    const maxHourIndex = (weatherData.hourly?.time?.length || 192) - 1;
+    if (targetHourIndex < 0) {
+        targetHourIndex = Math.min(Math.max(0, Math.floor(diffHours)), maxHourIndex);
+    }
 
     let weatherCode = 0;
     let precipProb = 0;
@@ -4055,7 +4078,7 @@ function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0, hik
     let status = 'SAFE';
     if (isSevereCode || isTorrential || windSpeed >= 60 || uvIndex >= 13) {
         status = 'DANGER';
-    } else if (isRain || isHighWind || isExtremeUv || uvIndex >= 8 || precipProb >= 40) {
+    } else if (isRain || isHighWind || isExtremeUv || precipProb >= 40) {
         status = 'CAUTION';
     }
 
@@ -4217,7 +4240,8 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
 
     const roundLat = coords.lat.toFixed(4);
     const roundLon = coords.lon.toFixed(4);
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${roundLat}&longitude=${roundLon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&daily=temperature_2m_max,precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode,precipitation_sum&timezone=Asia/Manila&forecast_days=7&models=best_match`;
+    const elevParam = typeof coords.elevation === 'number' && coords.elevation > 0 ? `&elevation=${Math.round(coords.elevation)}` : '';
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${roundLat}&longitude=${roundLon}${elevParam}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&daily=temperature_2m_max,precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode,precipitation_sum&timezone=Asia/Manila&forecast_days=8&models=best_match`;
 
     const res = await fetch(url);
     if (!res.ok) {

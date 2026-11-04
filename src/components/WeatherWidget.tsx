@@ -19,7 +19,8 @@ import {
     formatLastUpdatedLabel,
     formatSunTime,
     getBeaufortWindInfo,
-    getHikingSafetyStatus,
+    getCurrentHourIndex,
+    getDetailedWeatherSafety,
     getHourlyForecastForDay,
     getPAGASAHeatIndexInfo,
     getPAGASARainfallWarning,
@@ -32,6 +33,7 @@ import { useWeather } from '../hooks/useWeather';
 interface WeatherWidgetProps {
     latitude: number;
     longitude: number;
+    elevation?: number;
     trailName?: string;
     showSafetyCard?: boolean;
 }
@@ -89,11 +91,14 @@ const BentoBox: React.FC<BentoBoxProps> = ({
     const isMultiColumn = isDesktop || isTablet;
 
     return (
-        <View style={[
-            styles.bentoBox,
-            isTablet && styles.bentoBoxTablet,
-            isDesktop && styles.bentoBoxDesktop
-        ]}>
+        <View 
+            style={[
+                styles.bentoBox,
+                isTablet && styles.bentoBoxTablet,
+                isDesktop && styles.bentoBoxDesktop
+            ]}
+            {...(Platform.OS === 'web' ? { title: desc } : {})}
+        >
             <View style={styles.bentoHeader}>
                 <CustomIcon library={lib} name={icon} size={16} color={iconColor} />
                 <CustomText variant="caption" style={styles.bentoTitle} numberOfLines={1}>
@@ -129,7 +134,7 @@ const BentoBox: React.FC<BentoBoxProps> = ({
             </View>
 
             <View style={styles.bentoBottom}>
-                <CustomText variant="caption" style={styles.bentoDesc} numberOfLines={2}>
+                <CustomText variant="caption" style={styles.bentoDesc} numberOfLines={isDesktop ? 3 : 2}>
                     {desc}
                 </CustomText>
             </View>
@@ -140,12 +145,14 @@ const BentoBox: React.FC<BentoBoxProps> = ({
 const WeatherWidget: React.FC<WeatherWidgetProps> = ({
     latitude,
     longitude,
+    elevation,
     trailName,
     showSafetyCard = true,
 }) => {
-    const { weatherData: data, error } = useWeather(latitude, longitude);
+    const { weatherData: data, loading, error, refetch } = useWeather(latitude, longitude, elevation);
     const { isDesktop, isTablet } = useBreakpoints();
     const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
+    const [selectedHourIndex, setSelectedHourIndex] = useState<number>(0);
 
     const forecastScrollRef = useRef<ScrollView>(null);
     const hourlyScrollRef = useRef<ScrollView>(null);
@@ -170,31 +177,59 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
         [data?.lastUpdated]
     );
 
-    if (error && !data) {
-        return (
-            <View style={styles.centerContent}>
-                <CustomIcon library="Ionicons" name="warning-outline" size={32} color={Colors.ERROR} />
-                <CustomText style={styles.errorText}>Unable to load weather data</CustomText>
-            </View>
-        );
-    }
-
-    if (!data) {
-        return <WeatherWidgetSkeleton />;
-    }
-
     const weatherData = data as ProcessedWeatherData;
-    const { condition: currentCondition } = getWeatherInfoUI(weatherData.weatherCode);
-    const safetyLevel = getHikingSafetyStatus(weatherData);
-
-    const activeDay = weatherData.forecast?.at(selectedDayIndex) ?? weatherData.forecast?.at(0);
+    const activeDay = weatherData?.forecast?.at(selectedDayIndex) ?? weatherData?.forecast?.at(0);
     const isTodaySelected = selectedDayIndex === 0;
 
-    const activeHourlyList = getHourlyForecastForDay(weatherData, selectedDayIndex);
+    const activeHourlyList = useMemo(() => {
+        return weatherData ? getHourlyForecastForDay(weatherData, selectedDayIndex) : [];
+    }, [weatherData, selectedDayIndex]);
 
-    const activeWind = isTodaySelected ? (weatherData.windSpeed ?? 0) : (activeDay?.windSpeedMax ?? 0);
-    const activePrecip = isTodaySelected ? (weatherData.precipitationProbability ?? 0) : (activeDay?.precipitationProbabilityMax ?? 0);
-    const activeUv = isTodaySelected ? (weatherData.uvIndex ?? 0) : (activeDay?.uvIndexMax ?? 0);
+    const activeHour = activeHourlyList.at(selectedHourIndex);
+    const isLiveNowSelected = isTodaySelected && selectedHourIndex === 0;
+
+    const effectiveWeatherData: ProcessedWeatherData = useMemo(() => {
+        if (!weatherData) return weatherData;
+        if (isLiveNowSelected || !activeHour) {
+            const curIdx = getCurrentHourIndex(weatherData.hourlyForecast);
+            const liveCurrentHour = activeHour ?? weatherData.hourlyForecast?.[curIdx];
+            if (!liveCurrentHour) return weatherData;
+
+            let liveCode = weatherData.weatherCode;
+            if (liveCode <= 1 && (liveCurrentHour.weatherCode >= 51 || (liveCurrentHour.precipitationProbability ?? 0) >= 50)) {
+                liveCode = liveCurrentHour.weatherCode >= 51 ? liveCurrentHour.weatherCode : 61;
+            }
+
+            return {
+                ...weatherData,
+                weatherCode: liveCode,
+                precipitationProbability: liveCurrentHour.precipitationProbability ?? weatherData.precipitationProbability,
+                hourlyForecast: [liveCurrentHour],
+            };
+        }
+
+        return {
+            ...weatherData,
+            temperature: activeHour.temperature,
+            apparentTemperature: activeHour.apparentTemperature,
+            weatherCode: activeHour.weatherCode,
+            precipitationProbability: activeHour.precipitationProbability,
+            windSpeed: activeHour.windSpeed,
+            windGusts: activeHour.windGusts ?? activeHour.windSpeed,
+            windDirection: activeHour.windDirection ?? weatherData.windDirection,
+            uvIndex: activeHour.uvIndex,
+            visibility: activeHour.visibility ?? weatherData.visibility,
+            hourlyForecast: [activeHour],
+        };
+    }, [weatherData, isLiveNowSelected, activeHour]);
+
+    const effectiveSafetyReport = useMemo(() => {
+        if (!effectiveWeatherData) return undefined;
+        return getDetailedWeatherSafety(effectiveWeatherData, trailName);
+    }, [effectiveWeatherData, trailName]);
+
+    const safetyLevel = effectiveSafetyReport?.status ?? "SAFE";
+    const { condition: currentCondition } = getWeatherInfoUI(effectiveWeatherData?.weatherCode);
 
     const getSafetyTheme = (level: string): SafetyTheme => {
         switch (level) {
@@ -227,28 +262,44 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 
     const theme = getSafetyTheme(safetyLevel);
 
-    const pagasaRain = getPAGASARainfallWarning(
-        activePrecip,
-        isTodaySelected ? (weatherData.precipitationSum ?? 0) : 0,
-        isTodaySelected ? (weatherData.weatherCode ?? 0) : (activeDay?.weatherCode ?? 0),
-        isTodaySelected ? weatherData.precipitationRate : undefined
-    );
-
-    const heatVal = isTodaySelected
-        ? (weatherData.apparentTemperature != null ? weatherData.apparentTemperature : weatherData.temperature)
-        : activeDay?.temperatureMax;
+    const heatVal = effectiveWeatherData
+        ? (effectiveWeatherData.apparentTemperature != null ? effectiveWeatherData.apparentTemperature : effectiveWeatherData.temperature)
+        : 0;
     const pagasaHeat = getPAGASAHeatIndexInfo(heatVal);
 
+    // Always match the currently selected hour's exact precipitation probability (Option A)
+    const effectivePrecip = effectiveWeatherData?.precipitationProbability ?? 0;
+
+    const pagasaRain = getPAGASARainfallWarning(
+        effectivePrecip,
+        isLiveNowSelected ? (weatherData?.precipitationSum ?? 0) : 0,
+        effectiveWeatherData?.weatherCode ?? 0,
+        isLiveNowSelected ? weatherData?.precipitationRate : undefined
+    );
+
     const beaufortWind = getBeaufortWindInfo(
-        activeWind,
-        isTodaySelected ? (weatherData.windGusts ?? 0) : activeWind,
-        weatherData.windDirection ?? 0
+        effectiveWeatherData?.windSpeed ?? 0,
+        effectiveWeatherData?.windGusts ?? effectiveWeatherData?.windSpeed ?? 0,
+        effectiveWeatherData?.windDirection ?? 0
     );
 
     const visibilityInfo = getSummitVisibilityInfo(
-        weatherData.visibility ?? 10000,
-        weatherData.cloudCover ?? 0
+        effectiveWeatherData?.visibility ?? 10000,
+        effectiveWeatherData?.cloudCover ?? 0
     );
+
+    if (error && !data) {
+        return (
+            <View style={styles.centerContent}>
+                <CustomIcon library="Ionicons" name="warning-outline" size={32} color={Colors.ERROR} />
+                <CustomText style={styles.errorText}>Unable to load weather data</CustomText>
+            </View>
+        );
+    }
+
+    if (!data) {
+        return <WeatherWidgetSkeleton />;
+    }
 
     return (
         <View style={styles.container}>
@@ -256,22 +307,43 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                 <View style={styles.tempWrapper}>
                     <View style={styles.tempSpacer} />
                     <CustomText style={styles.currentTemp}>
-                        {weatherData.temperature != null && !isNaN(weatherData.temperature) ? Math.round(weatherData.temperature) : '--'}
+                        {effectiveWeatherData.temperature != null && !isNaN(effectiveWeatherData.temperature) ? Math.round(effectiveWeatherData.temperature) : '--'}
                     </CustomText>
                     <CustomText style={styles.degreeSymbol}>°C</CustomText>
                 </View>
                 <CustomText style={styles.currentCondition}>{currentCondition}</CustomText>
                 
-                {weatherData.apparentTemperature != null && (
+                {effectiveWeatherData.apparentTemperature != null && (
                     <CustomText variant="caption" style={styles.feelsLike}>
-                        Feels like {Math.round(weatherData.apparentTemperature)}°C ({pagasaHeat.category})
+                        Feels like {Math.round(effectiveWeatherData.apparentTemperature)}°C ({pagasaHeat.category})
                     </CustomText>
                 )}
 
-                {lastUpdatedLabel && (
-                    <CustomText variant="caption" style={styles.lastUpdatedText}>
-                        Updated {lastUpdatedLabel}
-                    </CustomText>
+                {(lastUpdatedLabel || Platform.OS === 'web') && (
+                    <View style={styles.lastUpdatedRow}>
+                        {lastUpdatedLabel && (
+                            <CustomText variant="caption" style={styles.lastUpdatedText}>
+                                Updated {lastUpdatedLabel}
+                            </CustomText>
+                        )}
+                        {Platform.OS === 'web' && (
+                            <TouchableOpacity
+                                style={styles.webRefreshBtn}
+                                onPress={refetch}
+                                disabled={loading}
+                                activeOpacity={0.7}
+                                accessibilityRole="button"
+                                accessibilityLabel="Refresh trail weather"
+                            >
+                                <CustomIcon
+                                    library="Feather"
+                                    name="refresh-cw"
+                                    size={12}
+                                    color={Colors.PRIMARY}
+                                />
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 )}
 
                 <View style={styles.pillWrapper}>
@@ -285,10 +357,11 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
             </View>
 
             {/* Prominent Actionable Safety Card */}
-            {showSafetyCard && (
+            {showSafetyCard && effectiveSafetyReport && (
                 <View style={styles.safetyCardWrapper}>
                     <WeatherSafetyCard
-                        weatherData={weatherData}
+                        report={effectiveSafetyReport}
+                        weatherData={effectiveWeatherData}
                         trailName={trailName}
                     />
                 </View>
@@ -322,7 +395,10 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                                             styles.forecastItem, 
                                             isSelected ? styles.forecastItemSelected : (isToday ? styles.forecastItemToday : undefined)
                                         ]}
-                                        onPress={() => setSelectedDayIndex(index)}
+                                        onPress={() => {
+                                            setSelectedDayIndex(index);
+                                            setSelectedHourIndex(0);
+                                        }}
                                         activeOpacity={0.7}
                                     >
                                         <CustomText variant="label" style={[styles.forecastDate, (isSelected || isToday) && styles.forecastDateActive]}>
@@ -385,14 +461,19 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                         >
                             {activeHourlyList.map((hour, hIdx) => {
                                 const { icon, library } = getWeatherInfoUI(hour.weatherCode);
-                                const isNow = hour.hourLabel === 'Now';
+                                const isSelected = selectedHourIndex === hIdx;
                                 return (
-                                    <View key={hIdx} style={[styles.hourlyPill, isNow && styles.hourlyPillNow]}>
-                                        <CustomText variant="label" style={[styles.hourlyTime, isNow && styles.hourlyTimeNow]}>
+                                    <TouchableOpacity 
+                                        key={hIdx} 
+                                        activeOpacity={0.7}
+                                        onPress={() => setSelectedHourIndex(hIdx)}
+                                        style={[styles.hourlyPill, isSelected && styles.hourlyPillNow]}
+                                    >
+                                        <CustomText variant="label" style={[styles.hourlyTime, isSelected && styles.hourlyTimeNow]}>
                                             {hour.hourLabel}
                                         </CustomText>
                                         <View style={styles.hourlyIconWrapper}>
-                                            <CustomIcon library={library as IconLibrary} name={icon} size={26} color={isNow ? Colors.PRIMARY : Colors.TEXT_PRIMARY} />
+                                            <CustomIcon library={library as IconLibrary} name={icon} size={26} color={isSelected ? Colors.PRIMARY : Colors.TEXT_PRIMARY} />
                                         </View>
                                         <View style={styles.hourlyBottomCol}>
                                             <CustomText variant="label" style={styles.hourlyTemp}>{hour.temperature}°</CustomText>
@@ -403,7 +484,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                                                 </CustomText>
                                             </View>
                                         </View>
-                                    </View>
+                                    </TouchableOpacity>
                                 );
                             })}
                         </ScrollView>
@@ -446,9 +527,9 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                 />
                 <BentoBox 
                     title="Precipitation" 
-                    value={activePrecip} 
+                    value={effectivePrecip} 
                     unit="%" 
-                    subValue={weatherData.precipitationSum ? `${weatherData.precipitationSum.toFixed(1)} mm • ${pagasaRain.badge}` : pagasaRain.badge}
+                    subValue={(isLiveNowSelected && weatherData.precipitationSum) ? `${weatherData.precipitationSum.toFixed(1)} mm • ${pagasaRain.badge}` : pagasaRain.badge}
                     desc={pagasaRain.description} 
                     icon="rainy-outline" 
                     lib="Ionicons" 
@@ -458,7 +539,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                 />
                 <BentoBox 
                     title="Wind & Gusts" 
-                    value={activeWind} 
+                    value={effectiveWeatherData.windSpeed} 
                     unit="km/h" 
                     subValue={beaufortWind.gustText}
                     desc={beaufortWind.description} 
@@ -470,19 +551,19 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                 />
                 <BentoBox 
                     title="UV Index" 
-                    value={Math.round(activeUv)} 
+                    value={Math.round(effectiveWeatherData.uvIndex)} 
                     unit="" 
                     subValue={weatherData.uvIndexMax ? `Peak: ${Math.round(weatherData.uvIndexMax)}` : 'Low Risk'}
-                    desc={getUVIndexReminder(activeUv, weatherData.cloudCover, isTodaySelected ? weatherData.weatherCode : activeDay?.weatherCode)} 
+                    desc={getUVIndexReminder(effectiveWeatherData.uvIndex, weatherData.cloudCover, effectiveWeatherData.weatherCode)} 
                     icon="sun"  
                     lib="Feather" 
-                    alertLevel={activeUv >= 11 ? 'danger' : activeUv >= 8 ? 'warning' : 'normal'} 
+                    alertLevel={effectiveWeatherData.uvIndex >= 11 ? 'danger' : effectiveWeatherData.uvIndex >= 8 ? 'warning' : 'normal'} 
                     isDesktop={isDesktop}
                     isTablet={isTablet}
                 />
                 <BentoBox 
                     title="Visibility" 
-                    value={weatherData.visibility != null ? (weatherData.visibility / 1000).toFixed(1) : '10'} 
+                    value={effectiveWeatherData.visibility != null ? (effectiveWeatherData.visibility / 1000).toFixed(1) : '10'} 
                     unit="km" 
                     subValue={visibilityInfo.badge}
                     desc={visibilityInfo.description} 
@@ -778,7 +859,7 @@ const styles = StyleSheet.create({
     bentoGrid: { 
         flexDirection: 'row', 
         flexWrap: 'wrap', 
-        justifyContent: 'space-between', 
+        justifyContent: 'flex-start', 
         gap: 12, 
         marginBottom: 24,
     },
@@ -787,7 +868,7 @@ const styles = StyleSheet.create({
         borderRadius: 18, 
         padding: 16, 
         width: '100%', 
-        minHeight: 120, 
+        minHeight: 125, 
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -796,12 +877,12 @@ const styles = StyleSheet.create({
         ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }), 
     },
     bentoBoxTablet: {
-        width: '48%',
-        minHeight: 150,
+        width: '48.5%',
+        minHeight: 155,
     },
     bentoBoxDesktop: {
-        width: '23.5%',
-        minHeight: 155,
+        width: '31.8%',
+        minHeight: 160,
     },
     bentoHeader: { 
         flexDirection: 'row', 
@@ -907,10 +988,26 @@ const styles = StyleSheet.create({
         height: 40,
         backgroundColor: Colors.GRAY_LIGHT,
     },
+    lastUpdatedRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        marginTop: 4,
+    },
     lastUpdatedText: {
         fontSize: 12,
         color: Colors.TEXT_SECONDARY,
-        marginTop: 4,
+    },
+    webRefreshBtn: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
     },
 });
 

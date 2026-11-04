@@ -1,15 +1,12 @@
 /**
  * @file onlineStyle.ts
- * @description MapTiler outdoor online vector tile style URL resolver with OpenFreeMap fallback.
+ * @description OpenFreeMap online vector tile style URL resolver.
+ * 100% open-source, unmetered, and requires no API key.
  */
 
-const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY?.trim();
+export const OPENFREEMAP_LIBERTY_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 
-export const FREE_OFFLINE_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+// Kept for backward compatibility across existing imports
+export const FREE_OFFLINE_STYLE = OPENFREEMAP_LIBERTY_STYLE;
 
-export const onlineStyle =
-  MAPTILER_KEY && MAPTILER_KEY !== "undefined"
-    ? `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${MAPTILER_KEY}`
-    : FREE_OFFLINE_STYLE;
-
-
+export const onlineStyle = OPENFREEMAP_LIBERTY_STYLE;

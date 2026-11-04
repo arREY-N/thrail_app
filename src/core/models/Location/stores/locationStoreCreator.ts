@@ -118,5 +118,8 @@ export const locationStoreCreator: StateCreator<
             activeListeners[groupId]();
             delete activeListeners[groupId];
         }
+        set((state) => {
+            delete state.groupLocations[groupId];
+        });
     },
 });

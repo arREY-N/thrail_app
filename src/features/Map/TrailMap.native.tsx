@@ -3,23 +3,26 @@ import {
   Camera,
   CameraRef,
   GeoJSONSource,
+  Images,
   Layer,
   Map,
   Marker,
   StyleSpecification,
 } from "@maplibre/maplibre-react-native";
-import { Asset } from "expo-asset";
-import * as FileSystem from "expo-file-system/legacy";
+import NetInfo from "@react-native-community/netinfo";
 import React, { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { Animated, Easing, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import LoadingScreen from "@/src/app/loading";
 import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
 import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
 import { resolveOfflineSprites } from "@/src/utils/resolveOfflineSprites";
 import {
+  downloadOfflineMap,
+  getOfflineMapLocalUri,
   getOrDownloadAllMountainsGeoJson,
   getOrDownloadTrailGeoJson,
+  isOfflineMapReady,
   MOUNTAIN_TRAIL_REGISTRY,
   resolveMountainId,
   resolveMountainIdByCoords,
@@ -27,45 +30,7 @@ import {
 import { buildOfflineStyle } from "./styles/offlineStyle";
 import { onlineStyle } from "./styles/onlineStyle";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const offlineMapTileAsset = require("../../assets/tiles/thrail-offline-map.pmtiles");
-
-// Expected archive size is ~35.4MB (35,443,673 bytes).
-// Require at least 34MB (~96%) to reject incomplete writes.
-const MIN_PMTILES_SIZE_BYTES = 34_000_000;
-
-/**
- * Validates PMTiles archive integrity by checking both file size
- * and the PMTiles v3 magic header ("PMTiles" ASCII string at byte offset 0).
- */
-async function isPmtilesValid(uri: string): Promise<boolean> {
-  try {
-    const info = await FileSystem.getInfoAsync(uri);
-    if (!info.exists || !info.size || info.size < MIN_PMTILES_SIZE_BYTES) {
-      return false;
-    }
-    // On Android expo-file-system, position & length are ONLY respected when encoding is Base64.
-    // UTF8 encoding ignores position/length and attempts to read the entire 35MB file into a string.
-    try {
-      const base64Header = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-        position: 0,
-        length: 7,
-      });
-      // Base64 of ASCII "PMTiles" (0x50, 0x4D, 0x54, 0x69, 0x6C, 0x65, 0x73) is "UE1UaWxlcw=="
-      if (base64Header === "UE1UaWxlcw==" || base64Header.startsWith("UE1UaWxl")) {
-        return true;
-      }
-    } catch (readErr) {
-      console.warn("⚠️ Failed reading PMTiles header via Base64, falling back to size verification:", readErr);
-    }
-    // Fallback: If header read failed or unsupported, file existence and verified size (>= 34MB) suffices
-    return info.size >= MIN_PMTILES_SIZE_BYTES;
-  } catch (error) {
-    console.warn("⚠️ Error verifying PMTiles:", error);
-    return false;
-  }
-}
+const userHeadingIcon = require("@maplibre/maplibre-react-native/lib/commonjs/assets/heading.png");
 
 interface LegacyCameraRef {
   setCamera?: (options: {
@@ -160,102 +125,42 @@ interface AnimatedHikerMarkerProps {
 }
 
 /**
- * Smoothly interpolates hiker marker coordinates on the map over ~1200ms
- * upon receiving remote location updates. Automatically transitions to
- * Last Known Location (LKL) state if no updates are received for >= 2 minutes.
+ * Optimized hiker marker on the map.
+ * Bypasses high-frequency JS bridge animation loops and directly positions
+ * markers via MapLibre's native Marker coordinate mapping.
+ * Automatically transitions to Last Known Location (LKL) state if no updates
+ * are received for >= 2 minutes.
  */
 const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, onPress, now = Date.now() }) => {
-  const [coords, setCoords] = useState<[number, number]>([hiker.longitude, hiker.latitude]);
-  const prevCoordsRef = useRef<[number, number]>([hiker.longitude, hiker.latitude]);
-  const animValue = useRef(new Animated.Value(1)).current;
-  const animRef = useRef<Animated.CompositeAnimation | null>(null);
-
-  // Smoothly interpolate coordinate movements across updates
-  useEffect(() => {
-    const prev = prevCoordsRef.current;
-    const targetLon = hiker.longitude;
-    const targetLat = hiker.latitude;
-
-    const dLon = targetLon - prev[0];
-    const dLat = targetLat - prev[1];
-    const distSq = dLon * dLon + dLat * dLat;
-
-    // If movement is negligible (< ~0.000001 deg, ~3m) or huge (> ~0.05 deg, initial load or warp), snap directly
-    if (distSq < 0.000000001 || distSq > 0.0025) {
-      prevCoordsRef.current = [targetLon, targetLat];
-      setCoords([targetLon, targetLat]);
-      return;
-    }
-
-    if (animRef.current) {
-      animRef.current.stop();
-    }
-
-    const startLon = prev[0];
-    const startLat = prev[1];
-
-    animValue.setValue(0);
-    let lastRenderTime = 0;
-
-    // Throttle React state re-renders to ~12 FPS (every 80ms) to prevent JS bridge congestion
-    const listenerId = animValue.addListener(({ value }) => {
-      const currentTime = Date.now();
-      if (currentTime - lastRenderTime >= 80 || value >= 0.99) {
-        lastRenderTime = currentTime;
-        const currentLon = startLon + (targetLon - startLon) * value;
-        const currentLat = startLat + (targetLat - startLat) * value;
-        setCoords([currentLon, currentLat]);
-      }
-    });
-
-    const animation = Animated.timing(animValue, {
-      toValue: 1,
-      duration: 1200,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: false,
-    });
-
-    animRef.current = animation;
-    animation.start(({ finished }) => {
-      if (finished) {
-        prevCoordsRef.current = [targetLon, targetLat];
-        setCoords([targetLon, targetLat]);
-      }
-      animValue.removeListener(listenerId);
-      animRef.current = null;
-    });
-
-    return () => {
-      animValue.removeListener(listenerId);
-      if (animRef.current) {
-        animRef.current.stop();
-      }
-    };
-  }, [hiker.longitude, hiker.latitude, animValue]);
-
-  const initials = hiker.hikerName
-    ? hiker.hikerName
-      .split(" ")
-      .map((n: string) => n[0])
-      .join("")
-      .substring(0, 2)
-      .toUpperCase()
-    : "?";
+  const initials = useMemo(() => {
+    return hiker.hikerName
+      ? hiker.hikerName
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .substring(0, 2)
+          .toUpperCase()
+      : "?";
+  }, [hiker.hikerName]);
 
   // LKL condition: 2 or more minutes since last recorded update
   const elapsedMinutes = getElapsedMinutes(hiker.timestamp, now);
   const isLkl = elapsedMinutes >= 2;
   const timeAgoText = formatTimeAgo(hiker.timestamp, now);
 
+  const handlePress = useCallback(() => {
+    onPress(hiker);
+  }, [onPress, hiker]);
+
   return (
     <Marker
       key={`hiker-${hiker.id}`}
       id={`hiker-${hiker.id}`}
-      lngLat={coords}
+      lngLat={[hiker.longitude, hiker.latitude]}
     >
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => onPress(hiker)}
+        onPress={handlePress}
         style={styles.hikerMarkerContainer}
       >
         <View style={[styles.hikerMarkerCircle, isLkl && styles.hikerMarkerCircleLkl]}>
@@ -278,136 +183,19 @@ const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, o
       </TouchableOpacity>
     </Marker>
   );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.hiker.id === nextProps.hiker.id &&
+    prevProps.hiker.latitude === nextProps.hiker.latitude &&
+    prevProps.hiker.longitude === nextProps.hiker.longitude &&
+    prevProps.hiker.timestamp === nextProps.hiker.timestamp &&
+    prevProps.hiker.hikerName === nextProps.hiker.hikerName &&
+    prevProps.now === nextProps.now &&
+    prevProps.onPress === nextProps.onPress
+  );
 });
 
 AnimatedHikerMarker.displayName = "AnimatedHikerMarker";
-
-interface AnimatedUserLocationMarkerProps {
-  lngLat: [number, number];
-  heading: number | null;
-  mapBearing: number;
-  isFollowing?: boolean;
-}
-
-/**
- * Smoothly interpolates the user's Blue Dot coordinate over ~450ms and renders
- * a Google Maps-style directional heading beam & pointer synchronized with
- * the device magnetometer (`heading - mapBearing`).
- */
-const AnimatedUserLocationMarker: React.FC<AnimatedUserLocationMarkerProps> = memo(
-  ({ lngLat, heading, mapBearing, isFollowing = false }) => {
-    const targetLon = lngLat[0];
-    const targetLat = lngLat[1];
-    const [coords, setCoords] = useState<[number, number]>([targetLon, targetLat]);
-    const currentCoordsRef = useRef<[number, number]>([targetLon, targetLat]);
-    const animValue = useRef(new Animated.Value(1)).current;
-    const animRef = useRef<Animated.CompositeAnimation | null>(null);
-
-    useEffect(() => {
-      if (!isValidCoordinate(targetLat, targetLon)) return;
-
-      const [startLon, startLat] = currentCoordsRef.current;
-      const dLon = Math.abs(targetLon - startLon);
-      const dLat = Math.abs(targetLat - startLat);
-
-      if (dLon < 1e-7 && dLat < 1e-7) return;
-
-      if (animRef.current) {
-        animRef.current.stop();
-        animRef.current = null;
-      }
-
-      // When native camera follow is active, MapLibre's native C++ easeTo is already smoothly
-      // interpolating the viewport to targetLon/targetLat. Do not run a competing JS Animated.timing
-      // loop across the bridge; snap the marker directly to stay 100% in sync with the map canvas.
-      if (isFollowing) {
-        currentCoordsRef.current = [targetLon, targetLat];
-        setCoords([targetLon, targetLat]);
-        return;
-      }
-
-      // Snap immediately on initial jump > ~1km or micro-adjustments; otherwise glide smoothly
-      if (dLon > 0.01 || dLat > 0.01) {
-        currentCoordsRef.current = [targetLon, targetLat];
-        setCoords([targetLon, targetLat]);
-        return;
-      }
-
-      animValue.setValue(0);
-      let lastRenderTime = 0;
-
-      // Throttle React state updates to ~20 FPS (every 50ms) to avoid saturating the native bridge
-      const listenerId = animValue.addListener(({ value }) => {
-        const nowMs = Date.now();
-        if (nowMs - lastRenderTime >= 50 || value >= 0.99) {
-          lastRenderTime = nowMs;
-          const nextLon = startLon + (targetLon - startLon) * value;
-          const nextLat = startLat + (targetLat - startLat) * value;
-          if (isValidCoordinate(nextLat, nextLon)) {
-            currentCoordsRef.current = [nextLon, nextLat];
-            setCoords([nextLon, nextLat]);
-          }
-        }
-      });
-
-      const animation = Animated.timing(animValue, {
-        toValue: 1,
-        duration: 450,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      });
-
-      animRef.current = animation;
-      animation.start(({ finished }) => {
-        if (finished) {
-          currentCoordsRef.current = [targetLon, targetLat];
-          setCoords([targetLon, targetLat]);
-        }
-        animValue.removeListener(listenerId);
-        animRef.current = null;
-      });
-
-      return () => {
-        animValue.removeListener(listenerId);
-        if (animRef.current) {
-          animRef.current.stop();
-          animRef.current = null;
-        }
-      };
-    }, [targetLon, targetLat, isFollowing, animValue]);
-
-    const hasHeading = typeof heading === "number" && !isNaN(heading) && heading >= 0;
-    const relativeRotation = hasHeading
-      ? (((heading - mapBearing) % 360) + 360) % 360
-      : 0;
-
-    return (
-      <Marker id="user-location-marker" anchor="center" lngLat={coords}>
-        <View style={styles.userLocationMarkerContainer} pointerEvents="none">
-          <View style={styles.userLocationHalo} />
-
-          {hasHeading && (
-            <View
-              style={[
-                styles.userLocationHeadingWrapper,
-                { transform: [{ rotate: `${relativeRotation.toFixed(1)}deg` }] },
-              ]}
-            >
-              {/* Soft outer directional fan */}
-              <View style={styles.userLocationHeadingConeOuter} />
-              {/* Crisp inner directional pointer */}
-              <View style={styles.userLocationHeadingArrow} />
-            </View>
-          )}
-
-          <View style={styles.userLocationDot} />
-        </View>
-      </Marker>
-    );
-  }
-);
-
-AnimatedUserLocationMarker.displayName = "AnimatedUserLocationMarker";
 
 export interface TrailMapProps {
   initialLon?: number | string | (number | string)[];
@@ -466,8 +254,6 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     stopBackgroundTracking,
   } = TrackHikerGPSFlow();
 
-  const [mapBearing, setMapBearing] = useState<number>(0);
-
   const lonStr = Array.isArray(initialLon) ? initialLon[0] : initialLon;
   const latStr = Array.isArray(initialLat) ? initialLat[0] : initialLat;
   const parsedLon = Number(lonStr);
@@ -517,15 +303,16 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedHiker, setSelectedHiker] = useState<HikerLocation | null>(null);
 
-  // Centralized LKL ticker: runs a single 10s interval only when hikers are present
+  // Centralized LKL ticker: runs a single stable 10s interval only when hikers are present
+  const hasHikers = Boolean(hikerLocations && hikerLocations.length > 0);
   const [tickerTime, setTickerTime] = useState(() => Date.now());
   useEffect(() => {
-    if (!hikerLocations || hikerLocations.length === 0) return;
+    if (!hasHikers) return;
     const interval = setInterval(() => {
       setTickerTime(Date.now());
     }, 10000);
     return () => clearInterval(interval);
-  }, [hikerLocations]);
+  }, [hasHikers]);
 
   // Dynamic live hiker derivation: ensures rescue card stays continuously fresh as hiker moves
   const liveSelectedHiker = useMemo(() => {
@@ -641,7 +428,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const actuallyOfflineRef = useRef(actuallyOffline);
   actuallyOfflineRef.current = actuallyOffline;
 
-  const currentStyleMode: "offline" | "online" = actuallyOffline ? "offline" : "online";
+  const currentStyleMode: "offline" | "online" = (actuallyOffline && !!offlineTileUrl) ? "offline" : "online";
   const currentStyleModeRef = useRef<"offline" | "online">(currentStyleMode);
   currentStyleModeRef.current = currentStyleMode;
 
@@ -739,8 +526,8 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     let timer: NodeJS.Timeout | null = null;
 
     async function resolveOfflineMap() {
-      const fileUri = `${FileSystem.documentDirectory ?? ""}thrail-offline-map.pmtiles`;
-      const isCachedValid = await isPmtilesValid(fileUri);
+      const fileUri = getOfflineMapLocalUri();
+      const isCachedValid = await isOfflineMapReady();
 
       if (isCachedValid) {
         console.log("✅ Offline map cache is healthy & verified.");
@@ -748,40 +535,33 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         return;
       }
 
-      // If corrupted or truncated file exists, clean it up before re-copying
-      const fileInfo = await FileSystem.getInfoAsync(fileUri);
-      if (fileInfo.exists) {
-        console.warn("⚠️ Existing PMTiles cache failed integrity check (corrupt or partial). Deleting...");
-        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      const netState = await NetInfo.fetch();
+      const isConnected = Boolean(netState.isConnected);
+
+      // 1. If device is completely offline with no cached map, show offline notice cleanly without throwing
+      if (!isConnected) {
+        console.warn("📴 Device is completely offline and no cached offline map exists.");
+        if (isMounted) setLoadState("error");
+        return;
       }
 
-      const [asset] = await Asset.loadAsync(offlineMapTileAsset);
-      if (!asset) {
-        throw new Error("Unable to load offline map asset from module.");
-      }
-
-      const sourceUri = asset.localUri || asset.uri;
-      if (!sourceUri) {
-        throw new Error("Offline map asset source URI could not be resolved.");
-      }
-
-      console.log(`📦 Copying offline map asset from: ${sourceUri}`);
-
-      if (sourceUri.startsWith("http://") || sourceUri.startsWith("https://")) {
-        // Dev environment (asset served over HTTP via Metro bundler)
-        await FileSystem.downloadAsync(sourceUri, fileUri);
-      } else {
-        // Production release APK/AAB or standalone bundle (asset:// or file://)
-        await FileSystem.copyAsync({ from: sourceUri, to: fileUri });
-      }
-
-      const isCopiedValid = await isPmtilesValid(fileUri);
-      if (!isCopiedValid) {
-        throw new Error("Offline map copy completed, but file failed integrity verification (PMTiles magic header or size check failed).");
-      }
-
-      console.log(`✅ Offline map installed and verified successfully.`);
-      if (isMounted) setOfflineTileUrl(`pmtiles://${fileUri}`);
+      // 2. If connected to internet (Wi-Fi, Ethernet, or Mobile Data):
+      // Automatically pre-fetch the offline map in background silently without blocking or prompting!
+      console.log(`☁️ Connected to internet (${netState.type || 'online'}): silently pre-fetching offline map in background...`);
+      downloadOfflineMap()
+        .then((downloadedUri) => {
+          if (isMounted) {
+            console.log("🎉 [TrailMap] Offline map download completed! Auto-switching to offline vector map...");
+            setLoadedStyleMode(null);
+            scheduleRaf(() => {
+              setOfflineTileUrl(`pmtiles://${downloadedUri}`);
+            });
+          }
+        })
+        .catch((err) => {
+          console.warn("⚠️ Background offline map download warning:", err);
+        });
+      return;
     }
 
     async function loadAssets() {
@@ -798,7 +578,6 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         const tasks: Promise<unknown>[] = [
           resolveOfflineMap().catch((err) => {
             console.warn("⚠️ Offline map preparation warning:", err);
-            if (actuallyOfflineRef.current) throw err;
           }),
           resolveOfflineFonts()
             .then((dir) => {
@@ -806,7 +585,6 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
             })
             .catch((err) => {
               console.warn("⚠️ Offline fonts preparation warning:", err);
-              if (actuallyOfflineRef.current) throw err;
             }),
           resolveOfflineSprites()
             .then((uri) => {
@@ -823,10 +601,10 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         ]);
 
         if (isMounted) {
-          setLoadState("ready");
+          setLoadState((prev) => (prev === "error" ? "error" : "ready"));
         }
       } catch (err) {
-        console.error("❌ Failed to load map assets:", err);
+        console.warn("⚠️ Map assets loading caught error:", err);
         if (isMounted) {
           setLoadState("error");
         }
@@ -841,7 +619,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
       isMounted = false;
       if (timer) clearTimeout(timer);
     };
-  }, [reloadKey]);
+  }, [reloadKey, scheduleRaf]);
 
   useEffect(() => {
     if (!mapReady || !hasInitialCoords) return;
@@ -893,7 +671,6 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         pitch: 0,
         duration: 500,
       });
-      setMapBearing(0);
     }
     isFollowingRef.current = true;
     setIsFollowing(true);
@@ -907,14 +684,6 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   }, [flyCamera]);
 
   const handleRegionWillChange = (event: RegionChangeEvent) => {
-    const newBearing =
-      event.properties?.bearing ??
-      event.properties?.heading ??
-      event.nativeEvent?.bearing;
-    if (typeof newBearing === "number" && !isNaN(newBearing)) {
-      setMapBearing(newBearing);
-    }
-
     const isUser = event.properties?.isUserInteraction ?? event.nativeEvent?.userInteraction;
     if (!isUser) return;
 
@@ -938,19 +707,12 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const handleRegionDidChange = (event: RegionChangeEvent) => {
     const newZoom = event.properties?.zoomLevel ?? event.nativeEvent?.zoom;
     const coords = event.geometry?.coordinates ?? event.nativeEvent?.center;
-    const newBearing =
-      event.properties?.bearing ??
-      event.properties?.heading ??
-      event.nativeEvent?.bearing;
 
     if (typeof newZoom === "number" && !isNaN(newZoom)) {
       lastZoomRef.current = newZoom;
     }
     if (coords && isValidCoordinate(coords[1], coords[0])) {
       lastCenterRef.current = [coords[0], coords[1]];
-    }
-    if (typeof newBearing === "number" && !isNaN(newBearing)) {
-      setMapBearing(newBearing);
     }
   };
 
@@ -991,9 +753,10 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
 
   // Memoize offline style generation to avoid allocating a new layer JSON tree on every render
   const activeStyle: StyleSpecification | string = useMemo(() => {
-    return actuallyOffline
-      ? (buildOfflineStyle(offlineTileUrl, fontBaseDir, spriteBaseUri) as unknown as StyleSpecification)
-      : onlineStyle;
+    if (actuallyOffline && offlineTileUrl) {
+      return buildOfflineStyle(offlineTileUrl, fontBaseDir, spriteBaseUri) as unknown as StyleSpecification;
+    }
+    return onlineStyle;
   }, [actuallyOffline, offlineTileUrl, fontBaseDir, spriteBaseUri]);
 
   // Memoize GeoJSON Feature for walked path MultiLineString to prevent re-serializing on unrelated renders
@@ -1006,17 +769,42 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     };
   }, [validSegments]);
 
+  // Memoize GeoJSON FeatureCollection for native GPU hardware-accelerated rendering of the Blue Dot & Heading Beam
+  const userLocationGeoJson = useMemo(() => {
+    if (!permissionGranted || !userLocation || !isValidCoordinate(userLocation[1], userLocation[0])) {
+      return null;
+    }
 
+    const hasHeading = typeof userHeading === "number" && !isNaN(userHeading) && userHeading >= 0;
+
+    return {
+      type: "FeatureCollection" as const,
+      features: [
+        {
+          type: "Feature" as const,
+          geometry: {
+            type: "Point" as const,
+            coordinates: [userLocation[0], userLocation[1]],
+          },
+          properties: {
+            heading: hasHeading ? userHeading : 0,
+            hasHeading,
+          },
+        },
+      ],
+    };
+  }, [permissionGranted, userLocation, userHeading]);
 
   // If offline mode is active but offline assets failed or are incomplete, show error UI instead of falling back to onlineStyle
-  if (loadState === "error" || (actuallyOffline && loadState === "ready" && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
+  if (loadState === "error" || (actuallyOffline && !isOnline && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
     return (
       <View style={styles.centered}>
         <MaterialIcons name="cloud-off" size={48} color="#d9534f" />
-        <Text style={styles.errorText}>Failed to load map assets.{"\n"}Check storage or try again.</Text>
+        <Text style={styles.errorText}>Regional offline map is not ready.{"\n"}Connect to Wi-Fi/Internet and tap Retry to download.</Text>
         <TouchableOpacity
           style={styles.retryButton}
           onPress={() => {
+            setForceOffline(false);
             setLoadState("loading");
             setReloadKey((k) => k + 1);
           }}
@@ -1027,7 +815,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     );
   }
 
-  if (loadState === "loading" || (actuallyOffline && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
+  if (loadState === "loading" || (actuallyOffline && !isOnline && (!offlineTileUrl || !fontBaseDir || !spriteBaseUri))) {
     return <LoadingScreen />;
   }
 
@@ -1047,14 +835,29 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
         onDidFailLoadingMap={() => {
           mapReadyRef.current = false;
           if (!actuallyOfflineRef.current) {
-            console.warn("⚠️ Online map style failed to load; falling back to offline map.");
-            setLoadedStyleMode(null);
-            setForceOffline(true);
+            console.warn("⚠️ Online map style failed to load.");
+            isOfflineMapReady()
+              .then((offlineReady) => {
+                if (offlineReady) {
+                  console.log("📂 Offline map verified. Switching to offline map mode.");
+                  setLoadedStyleMode(null);
+                  setForceOffline(true);
+                }
+              })
+              .catch((err) => {
+                console.warn("⚠️ Offline map check failed on error:", err);
+              });
           }
         }}
         onRegionWillChange={handleRegionWillChange}
         onRegionDidChange={handleRegionDidChange}
       >
+        <Images
+          images={{
+            "user-heading-pointer": userHeadingIcon,
+          }}
+        />
+
         <Camera
           ref={cameraRef}
           initialViewState={{
@@ -1170,14 +973,67 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
           </GeoJSONSource>
         )}
 
-        {/* Single-Source Kalman-Filtered Blue Dot + Live Compass Heading Cone */}
-        {permissionGranted && userLocation && isValidCoordinate(userLocation[1], userLocation[0]) && (
-          <AnimatedUserLocationMarker
-            lngLat={userLocation}
-            heading={userHeading}
-            mapBearing={mapBearing}
-            isFollowing={isFollowing}
-          />
+        {/* Single-Source Native GPU Hardware-Accelerated Google Maps-style Blue Dot + Live Heading Pointer */}
+        {isStyleReady && userLocationGeoJson && (
+          <GeoJSONSource
+            key={`userLocationSource-${currentStyleMode}`}
+            id={`userLocationSource-${currentStyleMode}`}
+            data={userLocationGeoJson}
+          >
+            {/* 1. Live Directional Heading Pointer (Google Maps style) */}
+            <Layer
+              key={`layer-user-location-heading-${currentStyleMode}`}
+              id={`layer-user-location-heading-${currentStyleMode}`}
+              type="symbol"
+              filter={["==", ["get", "hasHeading"], true]}
+              layout={{
+                "icon-image": "user-heading-pointer",
+                "icon-rotate": ["get", "heading"],
+                "icon-rotation-alignment": "map",
+                "icon-pitch-alignment": "map",
+                "icon-allow-overlap": true,
+                "icon-ignore-placement": true,
+                "icon-size": 0.85,
+              }}
+            />
+
+            {/* 2. Soft Ambient / Accuracy Halo */}
+            <Layer
+              key={`layer-user-location-halo-${currentStyleMode}`}
+              id={`layer-user-location-halo-${currentStyleMode}`}
+              type="circle"
+              paint={{
+                "circle-radius": 18,
+                "circle-color": "#2563EB",
+                "circle-opacity": 0.18,
+                "circle-pitch-alignment": "map",
+              }}
+            />
+
+            {/* 3. Crisp White Ring Border */}
+            <Layer
+              key={`layer-user-location-white-${currentStyleMode}`}
+              id={`layer-user-location-white-${currentStyleMode}`}
+              type="circle"
+              paint={{
+                "circle-radius": 8.5,
+                "circle-color": "#FFFFFF",
+                "circle-pitch-alignment": "map",
+              }}
+            />
+
+            {/* 4. Core Vibrant Blue Dot */}
+            <Layer
+              key={`layer-user-location-blue-${currentStyleMode}`}
+              id={`layer-user-location-blue-${currentStyleMode}`}
+              type="circle"
+              paint={{
+                "circle-radius": 6,
+                "circle-color": "#2563EB",
+                "circle-pitch-alignment": "map",
+              }}
+            />
+          </GeoJSONSource>
         )}
 
         {/* Render group hikers with smooth animated coordinate interpolation & LKL state */}
@@ -1246,7 +1102,9 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
               <View style={styles.rescueGridCol}>
                 <Text style={styles.rescueGridLabel}>ALTITUDE</Text>
                 <Text style={styles.rescueGridValue}>
-                  {liveSelectedHiker.altitude != null ? `${Math.round(liveSelectedHiker.altitude)} m` : "—"}
+                  {typeof liveSelectedHiker.altitude === "number" && !isNaN(liveSelectedHiker.altitude) && liveSelectedHiker.altitude !== 0
+                    ? `${Math.round(liveSelectedHiker.altitude)} m`
+                    : "—"}
                 </Text>
               </View>
               <View style={styles.rescueGridCol}>
@@ -1314,68 +1172,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "bold",
-  },
-
-  userLocationMarkerContainer: {
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userLocationHalo: {
-    position: 'absolute',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(37, 99, 235, 0.20)',
-  },
-  userLocationHeadingWrapper: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  userLocationHeadingConeOuter: {
-    position: 'absolute',
-    top: 2,
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: 14,
-    borderRightWidth: 14,
-    borderTopWidth: 26,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: 'rgba(37, 99, 235, 0.32)',
-  },
-  userLocationHeadingArrow: {
-    position: 'absolute',
-    top: 12,
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: 5.5,
-    borderRightWidth: 5.5,
-    borderBottomWidth: 9,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: '#2563EB',
-  },
-  userLocationDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#2563EB',
-    borderWidth: 2.5,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 3,
-    elevation: 4,
   },
 
   hikerMarkerContainer: {

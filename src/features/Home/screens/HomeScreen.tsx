@@ -320,7 +320,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   isRefreshing = false,
   onRefreshPress,
 }) => {
-  const { latitude, longitude, locationName, geocodedName, isLocating } =
+  const { latitude, longitude, locationName, geocodedName, isLocating, refreshLocation } =
     useLocation();
   const { weatherData, loading, error, refetch } = useWeather(
     latitude,
@@ -404,6 +404,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={async () => {
+                await refreshLocation(true);
                 await refetch();
                 if (onRefreshPress) {
                   await onRefreshPress();
@@ -420,8 +421,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           loading={loading || isLocating}
           isRefreshing={isRefreshing}
           error={error}
-          onPress={onWeatherPress}
-          onReload={refetch}
+          onPress={() => {
+            router.push("/home/weather");
+          }}
+          onReload={async () => {
+            await refreshLocation(true);
+            await refetch();
+          }}
           locationName={geocodedName || locationName}
           safetyReport={safetyReport}
         />
