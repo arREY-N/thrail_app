@@ -3,7 +3,6 @@
  * @description Expo Router page controller for the personnel list dashboard. Composes useAuthHook and useAdmin to present the UI.
  */
 
-import LoadingScreen from "@/src/app/loading";
 import UnauthorizedScreen from "@/src/app/unauthorized";
 
 
@@ -32,9 +31,12 @@ export default function PersonnelList() {
 
     const { onAddAdminPress } = useAdminNavigation();
 
-    if (isLoading) return <LoadingScreen />
-
     if (!profile || !businessId || !role) return <UnauthorizedScreen />
+
+    const isBusinessOwner = Boolean(
+        role === 'owner' ||
+        (businessAccount?.owner?.id && profile?.id && businessAccount.owner.id === profile.id)
+    );
 
     return (
         <>
@@ -45,6 +47,8 @@ export default function PersonnelList() {
                 businessAdmins={businessAdmins}
                 ownerId={businessAccount?.owner?.id}
                 currentUserId={profile?.id}
+                isOwner={isBusinessOwner}
+                isLoading={isLoading}
                 onReloadPress={onReloadPress}
                 onAddAdminPress={onAddAdminPress}
                 onBackPress={onBackPress}
