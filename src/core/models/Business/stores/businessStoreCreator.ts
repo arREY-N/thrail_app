@@ -227,14 +227,13 @@ export const businessStoreCreator: StateCreator<
     reset: () => set(init),
 
     loadBusinessAdmins: async (providedBusinessId: string | null = null) => {
-        if (get().current && get().businessAdmins.length > 0) return;
+        const targetID = providedBusinessId || get().current?.id;
+        if (!targetID) return;
+        if (get().current?.id === targetID && get().businessAdmins.length > 0) return;
 
         set({ isLoading: true, error: null });
 
         try {
-            const targetID = providedBusinessId || get().current?.id;
-            if (!targetID) throw new Error('Missing Business ID');
-
             const businessAdmins = await BusinessRepo.fetchBusinessAdmins(targetID);
 
             set({
