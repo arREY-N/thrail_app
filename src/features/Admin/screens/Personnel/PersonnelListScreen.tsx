@@ -12,6 +12,7 @@ import CustomStickyFooter from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import SkeletonEffect from '@/src/components/SkeletonEffect';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -26,6 +27,8 @@ import { getInitials } from '@/src/utils/dateFormatter';
  * @param businessAdmins - The array of current business admins.
  * @param ownerId - The ID of the business owner.
  * @param currentUserId - The ID of the currently logged-in administrator.
+ * @param isOwner - Whether the current user is verified as the business owner.
+ * @param isLoading - Whether the initial admins query is currently fetching.
  * @param onReloadPress - Callback handler to refresh/reload the admins list.
  * @param onBackPress - Callback handler to navigate back.
  * @param onAddAdminPress - Callback handler to navigate to the Add Admin screen.
@@ -35,10 +38,33 @@ export interface PersonnelListScreenProps {
     businessAdmins: IAdmin[];
     ownerId?: string;
     currentUserId?: string;
+    isOwner?: boolean;
+    isLoading?: boolean;
     onReloadPress: (businessId: string) => Promise<void>;
     onBackPress: () => void;
     onAddAdminPress: () => void;
 }
+
+/**
+ * AdminCardSkeleton — Shimmering placeholder card for personnel items.
+ */
+const AdminCardSkeleton: React.FC = () => {
+    return (
+        <View style={styles.card}>
+            <SkeletonEffect style={styles.skeletonAvatar} />
+
+            <View style={styles.adminInfo}>
+                <View style={styles.nameRow}>
+                    <SkeletonEffect style={styles.skeletonName} />
+                    <SkeletonEffect style={styles.skeletonBadge} />
+                </View>
+
+                <SkeletonEffect style={styles.skeletonSubtext} />
+                <SkeletonEffect style={styles.skeletonDate} />
+            </View>
+        </View>
+    );
+};
 
 /**
  * PersonnelListScreen — Displays the list of admins for the business.
@@ -48,6 +74,8 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
     businessAdmins,
     ownerId,
     currentUserId,
+    isOwner,
+    isLoading = false,
     onReloadPress,
     onBackPress,
     onAddAdminPress
@@ -56,6 +84,10 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [isReloading, setIsReloading] = useState<boolean>(false);
     const [spinAnim] = useState(() => new Animated.Value(0));
+
+    const resolvedIsOwner = isOwner !== undefined
+        ? isOwner
+        : Boolean(ownerId && currentUserId && ownerId === currentUserId);
 
     const sortedAdmins = useMemo(() => {
         return [...businessAdmins].sort((a, b) => {
@@ -184,7 +216,10 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
             />
 
             <ResponsiveScrollView
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    !resolvedIsOwner && styles.scrollContentNoFooter,
+                ]}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -194,7 +229,13 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
                 }
             >
                 <View style={styles.constrainer}>
-                    {businessAdmins.length === 0 ? (
+                    {isLoading && businessAdmins.length === 0 ? (
+                        <View style={styles.list}>
+                            <AdminCardSkeleton />
+                            <AdminCardSkeleton />
+                            <AdminCardSkeleton />
+                        </View>
+                    ) : businessAdmins.length === 0 ? (
                         <View style={styles.emptyState}>
                             <CustomIcon
                                 library="Feather"
@@ -217,7 +258,7 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
                     <TouchableOpacity
                         style={styles.reloadContainer}
                         onPress={handleReload}
-                        disabled={isReloading}
+                        disabled={isReloading || isLoading}
                     >
                         <Animated.View style={{ transform: [{ rotate: spin }] }}>
                             <CustomIcon
@@ -234,17 +275,19 @@ const PersonnelListScreen: React.FC<PersonnelListScreenProps> = ({
                 </View>
             </ResponsiveScrollView>
 
-            <CustomStickyFooter
-                enableToastDock={true}
-                primaryButton={{
-                    title: "Add Personnel",
-                    icon: 'plus',
-                    iconLibrary: 'Feather',
-                    iconSize: 18,
-                    onPress: onAddAdminPress,
-                    variant: 'primary',
-                }}
-            />
+            {resolvedIsOwner && (
+                <CustomStickyFooter
+                    enableToastDock={true}
+                    primaryButton={{
+                        title: "Add Personnel",
+                        icon: 'plus',
+                        iconLibrary: 'Feather',
+                        iconSize: 18,
+                        onPress: onAddAdminPress,
+                        variant: 'primary',
+                    }}
+                />
+            )}
         </ScreenWrapper>
     );
 };
@@ -253,6 +296,9 @@ const styles = StyleSheet.create({
     scrollContent: {
         padding: 16,
         paddingBottom: 110,
+    },
+    scrollContentNoFooter: {
+        paddingBottom: 40,
     },
 
     constrainer: {
@@ -377,7 +423,34 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
-    }
+    },
+    skeletonAvatar: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+    },
+    skeletonName: {
+        width: 130,
+        height: 16,
+        borderRadius: 4,
+    },
+    skeletonBadge: {
+        width: 48,
+        height: 16,
+        borderRadius: 8,
+    },
+    skeletonSubtext: {
+        width: 170,
+        height: 12,
+        borderRadius: 4,
+        marginTop: 4,
+    },
+    skeletonDate: {
+        width: 100,
+        height: 10,
+        borderRadius: 4,
+        marginTop: 4,
+    },
 });
 
 export default PersonnelListScreen;
