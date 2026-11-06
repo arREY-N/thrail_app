@@ -39,6 +39,8 @@ export interface HikeState {
 
     totalDistance: number;
     totalElevationGain: number;
+    totalElevationLoss: number;
+    elevationBaseline: number | null;
 
     active: boolean;
     coordinates: Location[];
@@ -97,6 +99,8 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     timerStartTime: 0,
     totalDistance: 0,
     totalElevationGain: 0,
+    totalElevationLoss: 0,
+    elevationBaseline: null,
     active: false,
     coordinates: [],
     walkedRoute: [],
@@ -111,7 +115,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     profile: null,
     events: [],
 
-    clearWalkedRoute: () => set({ walkedRoute: [], isSegmentFirstPoint: true }),
+    clearWalkedRoute: () => set({ walkedRoute: [], isSegmentFirstPoint: true, elevationBaseline: null }),
     startNewSegment: () => set((state) => {
         if (!state.walkedRoute) state.walkedRoute = [];
         const lastSeg = state.walkedRoute[state.walkedRoute.length - 1];
@@ -119,6 +123,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             state.walkedRoute.push([]);
         }
         state.isSegmentFirstPoint = true;
+        state.elevationBaseline = null;
     }),
     currentLocation: null,
     setCurrentLocation: (location: Location | null) => {
@@ -159,6 +164,8 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             timerStartTime: 0,
             totalDistance: 0,
             totalElevationGain: 0,
+            totalElevationLoss: 0,
+            elevationBaseline: null,
             active: false,
             coordinates: [],
             walkedRoute: [],
@@ -216,14 +223,27 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                             state.walkedRoute.push(currentSegment);
                         }
 
+                        const currAlt = coordinate.altitude;
+                        const hasValidAlt =
+                            typeof currAlt === 'number' &&
+                            !isNaN(currAlt) &&
+                            isFinite(currAlt) &&
+                            currAlt !== 0;
+
                         // If this coordinate is the first point of a new segment (after start or resume),
                         // skip displacement calculation so pause distance is not counted, and set as segment anchor
                         if (state.isSegmentFirstPoint || state.coordinates.length === 0) {
                             state.isSegmentFirstPoint = false;
+                            state.elevationBaseline = hasValidAlt ? currAlt : null;
                             state.coordinates.push(coordinate);
                             currentSegment.push([coordinate.longitude, coordinate.latitude]);
                             isCommitted = true;
                             return;
+                        }
+
+                        // If the initial segment fix lacked 3D altitude, seed elevationBaseline as soon as a valid 3D fix arrives
+                        if (hasValidAlt && (typeof state.elevationBaseline !== 'number' || isNaN(state.elevationBaseline))) {
+                            state.elevationBaseline = currAlt;
                         }
 
                         const lastCoord = state.coordinates[state.coordinates.length - 1];
@@ -282,10 +302,24 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                             // 4. Commit valid displacement
                             state.totalDistance += distMeters;
 
-                            // 5. Elevation gain filter (ignore minor vertical noise < 2.5m and sensor glitches > 35m)
-                            const altDiff = (coordinate.altitude || 0) - (lastCoord.altitude || 0);
-                            if (altDiff > 2.5 && altDiff < 35) {
-                                state.totalElevationGain += altDiff;
+                            // 5. Cumulative Elevation Gain & Loss with 3.0m Hysteresis Deadband
+                            // Prevents the point-to-point reset trap on steady climbs while rejecting vertical GPS jitter (< 3.0m) and sensor spikes (> 35m)
+                            if (hasValidAlt) {
+                                if (typeof state.elevationBaseline !== 'number' || isNaN(state.elevationBaseline)) {
+                                    state.elevationBaseline = currAlt;
+                                } else {
+                                    const altDiff = currAlt - state.elevationBaseline;
+                                    if (altDiff >= 3.0 && altDiff < 35) {
+                                        state.totalElevationGain += altDiff;
+                                        state.elevationBaseline = currAlt;
+                                    } else if (altDiff >= 35 || altDiff <= -35) {
+                                        // Sensor spike / 3D re-anchor (> 35m jump): reset baseline without adding phantom gain/loss
+                                        state.elevationBaseline = currAlt;
+                                    } else if (altDiff <= -3.0) {
+                                        state.totalElevationLoss += Math.abs(altDiff);
+                                        state.elevationBaseline = currAlt;
+                                    }
+                                }
                             }
 
                             // 6. Append to session telemetry & active segment
@@ -541,6 +575,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                     state.walkedRoute.push([]);
                 }
                 state.isSegmentFirstPoint = true;
+                state.elevationBaseline = null;
             }
         }
     }),
@@ -561,11 +596,13 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 coordinates: [],
                 walkedRoute: [],
                 isSegmentFirstPoint: true,
+                elevationBaseline: null,
                 active: true,
                 elapsedTime: 0,
                 timerStartTime: Date.now(),
                 totalDistance: 0,
                 totalElevationGain: 0,
+                totalElevationLoss: 0,
                 profile,
             });
         } catch (error) {

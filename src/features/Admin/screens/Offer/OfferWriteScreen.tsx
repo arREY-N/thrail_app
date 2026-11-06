@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
     Platform,
     ScrollView,
@@ -23,11 +23,8 @@ import ScreenWrapper from '@/src/components/ScreenWrapper';
 import { useToast } from '@/src/components/Toast/Toast';
 import {
     CustomTutorialModal,
-    registerMeasureCallback,
-    registerTutorialLayout,
-    requestTargetMeasurement,
     TutorialHelpButton,
-    useTutorialGuide,
+    useAdminOfferWriteTutorial,
 } from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
@@ -71,7 +68,18 @@ const OfferWriteScreen = ({
     const { showToast } = useToast();
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
-    const tutorial = useTutorialGuide('admin_offer_write', !isLoading);
+    const {
+        scrollViewRef,
+        trailRef,
+        pricingRef,
+        scheduleRef,
+        checklistsRef,
+        handleTrailLayout,
+        handlePricingLayout,
+        handleScheduleLayout,
+        handleChecklistsLayout,
+        tutorial,
+    } = useAdminOfferWriteTutorial({ isReady: !isLoading });
 
     const [docInput, setDocInput] = useState('');
     const [incInput, setIncInput] = useState('');
@@ -84,75 +92,6 @@ const OfferWriteScreen = ({
     const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
 
     const [focusedField, setFocusedField] = useState<string | null>(null);
-    const scrollViewRef = useRef<ScrollView>(null);
-    const trailRef = useRef<View>(null);
-    const pricingRef = useRef<View>(null);
-    const scheduleRef = useRef<View>(null);
-    const checklistsRef = useRef<View>(null);
-
-    const measureTrailNow = useCallback(() => {
-        trailRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('admin_write_trail_dates', { x, y, width: w, height: h });
-            }
-        });
-    }, []);
-
-    const measurePricingNow = useCallback(() => {
-        pricingRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('admin_write_pricing_pax', { x, y, width: w, height: h });
-            }
-        });
-    }, []);
-
-    const measureScheduleNow = useCallback(() => {
-        scheduleRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('admin_write_schedule', { x, y, width: w, height: h });
-            }
-        });
-    }, []);
-
-    const measureChecklistsNow = useCallback(() => {
-        checklistsRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('admin_write_checklists', { x, y, width: w, height: h });
-            }
-        });
-    }, []);
-
-    useEffect(() => {
-        const u1 = registerMeasureCallback('admin_write_trail_dates', measureTrailNow);
-        const u2 = registerMeasureCallback('admin_write_pricing_pax', measurePricingNow);
-        const u3 = registerMeasureCallback('admin_write_schedule', measureScheduleNow);
-        const u4 = registerMeasureCallback('admin_write_checklists', measureChecklistsNow);
-        return () => {
-            u1();
-            u2();
-            u3();
-            u4();
-        };
-    }, [measureTrailNow, measurePricingNow, measureScheduleNow, measureChecklistsNow]);
-
-    useEffect(() => {
-        if (!tutorial.isVisible) return;
-        const step = tutorial.currentStep?.targetSpotlight;
-        if (!step) return;
-        if (step === 'admin_write_trail_dates' || step === 'header_help') {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-        } else if (step === 'admin_write_pricing_pax') {
-            scrollViewRef.current?.scrollTo({ y: 180, animated: true });
-        } else if (step === 'admin_write_schedule') {
-            scrollViewRef.current?.scrollTo({ y: 380, animated: true });
-        } else if (step === 'admin_write_checklists') {
-            scrollViewRef.current?.scrollTo({ y: 680, animated: true });
-        } else if (step === 'booking_footer') {
-            scrollViewRef.current?.scrollToEnd({ animated: true });
-        }
-        requestTargetMeasurement(step);
-    }, [tutorial.isVisible, tutorial.currentStep?.targetSpotlight]);
-
     const handleUpdate = (params: TEdit<Offer>) => {
         setHasUnsavedChanges(true);
         onUpdateOffer(params);
@@ -461,7 +400,7 @@ const OfferWriteScreen = ({
 
                     <View style={styles.formCard}>
                         
-                        <View ref={trailRef} collapsable={false}>
+                        <View ref={trailRef} collapsable={false} onLayout={handleTrailLayout}>
                             <View style={styles.gap}>
                                 <View style={styles.fieldContainer}>
                                     <CustomText variant="label" style={styles.fieldLabel}>
@@ -497,7 +436,7 @@ const OfferWriteScreen = ({
                             </View>
                         </View>
 
-                        <View ref={pricingRef} collapsable={false}>
+                        <View ref={pricingRef} collapsable={false} onLayout={(e) => handlePricingLayout(e.nativeEvent.layout.y)}>
                             <View style={styles.gap}>
                                 <CustomTextInput 
                                     label="Price per Pax *" 
@@ -600,7 +539,7 @@ const OfferWriteScreen = ({
                             </View>
                         </View>
                             
-                        <View ref={scheduleRef} collapsable={false} style={styles.fieldContainer}>
+                        <View ref={scheduleRef} collapsable={false} onLayout={(e) => handleScheduleLayout(e.nativeEvent.layout.y)} style={styles.fieldContainer}>
                             <CustomText variant="label" style={styles.fieldLabel}>
                                 Itinerary & Schedule *
                             </CustomText>
@@ -667,7 +606,7 @@ const OfferWriteScreen = ({
                             </View>
                         </View>
 
-                        <View ref={checklistsRef} collapsable={false}>
+                        <View ref={checklistsRef} collapsable={false} onLayout={(e) => handleChecklistsLayout(e.nativeEvent.layout.y)}>
                             <View style={styles.gap}>
                                 <DynamicListBuilder 
                                     label="Required Documents *" 

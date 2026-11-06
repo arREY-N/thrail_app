@@ -44,6 +44,7 @@ export interface HikeRecordingScreenProps {
     timerStartTime: number;
     totalDistance: number;
     totalElevationGain: number;
+    totalElevationLoss?: number;
 
     isLoading: boolean;
     lon?: string | string[];

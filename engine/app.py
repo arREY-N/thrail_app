@@ -18,6 +18,20 @@ from pydantic import BaseModel, Field
 import numpy as np
 from tars import engine, compute_alpha, GD, ED, CS
 from batch_runner import run_batch_recommendations, run_single_user_recommendations
+from parameters import (
+    DEFAULT_CBF_ENGINE,
+    DEFAULT_CF_ENGINE,
+    CF_TOP_K,
+    CF_DISTANCE_CUTOFF_TAU,
+    ALPHA_COLD_START,
+    ALPHA_STEADY_STATE,
+    ALPHA_STEADY_STATE_USER_THRESHOLD,
+    BETA_LEARNING_RATE_DIVISOR,
+    ANCHOR_MONOTONICITY_MIN_GAP,
+    REVIEW_ACTIVE_FACTOR_WEIGHT,
+    REVIEW_BASELINE_UNSELECTED_WEIGHT,
+    TERRAIN_PRESENCE_THRESHOLD,
+)
 from profile_utils import (
     CANONICAL_FEATURES,
     extract_user_anchor_profiles,
@@ -75,26 +89,44 @@ def verify_admin_key(
 
 
 class AdminRunEngineRequest(BaseModel):
-    cbf_engine: str = Field(default="GD", description="Formula for CBF: 'GD', 'ED', 'CS'")
-    cf_engine: str = Field(default="GD", description="Formula for CF: 'GD', 'ED', 'CS'")
+    cbf_engine: str = Field(default=DEFAULT_CBF_ENGINE, description="Formula for CBF: 'GD', 'ED', 'CS'")
+    cf_engine: str = Field(default=DEFAULT_CF_ENGINE, description="Formula for CF: 'GD', 'ED', 'CS'")
     month_id: Optional[str] = Field(default=None, description="Month code in YYYY-MM format")
     candidate_trails: Optional[List[Dict[str, Any]]] = Field(default=None, description="Optional trail list override")
     users: Optional[List[Dict[str, Any]]] = Field(default=None, description="Optional user list override")
     commit_to_firestore: bool = Field(default=True, description="Save results directly into Firestore")
     feature_weights: Optional[Dict[str, float]] = Field(default=None, description="Custom feature weights map")
     generate_ai_reasoning: bool = Field(default=True, description="Pre-generate Gemini AI reasoning for top 1 recommendations")
+    cf_k: int = Field(default=CF_TOP_K, description="Top-k closest eligible peers for CF")
+    cf_tau: float = Field(default=CF_DISTANCE_CUTOFF_TAU, description="Maximum peer distance cutoff for CF")
+    alpha_override: Optional[float] = Field(default=None, description="Optional fixed alpha override in [0.0, 1.0] for simulation")
+    alpha_steady_state: float = Field(default=ALPHA_STEADY_STATE, description="Minimum alpha at steady state")
+    alpha_cold_start: float = Field(default=ALPHA_COLD_START, description="Cold start alpha when user count <= 1 or 0 peers pass tau")
+    alpha_threshold: int = Field(default=ALPHA_STEADY_STATE_USER_THRESHOLD, description="User count threshold for steady-state alpha")
+    beta_divisor: float = Field(default=BETA_LEARNING_RATE_DIVISOR, description="Learning rate divisor for beta")
+    monotonicity_min_gap: float = Field(default=ANCHOR_MONOTONICITY_MIN_GAP, description="Minimum gap between Easy and Difficult physical anchors")
+    review_active_weight: float = Field(default=REVIEW_ACTIVE_FACTOR_WEIGHT, description="Weight for selected review difficulty factors")
+    review_baseline_weight: float = Field(default=REVIEW_BASELINE_UNSELECTED_WEIGHT, description="Baseline weight for unselected features")
+    terrain_presence_threshold: float = Field(default=TERRAIN_PRESENCE_THRESHOLD, description="Minimum terrain presence score for gating")
+    target_user_ids: Optional[List[str]] = Field(default=None, description="Optional list of specific user IDs to generate recommendations for")
 
 
 class SingleRecommendRequest(BaseModel):
     user_id: Optional[str] = None
-    cbf_engine: str = "GD"
-    cf_engine: str = "GD"
+    cbf_engine: str = DEFAULT_CBF_ENGINE
+    cf_engine: str = DEFAULT_CF_ENGINE
     month_id: Optional[str] = None
     candidate_trails: Optional[List[Dict[str, Any]]] = None
     user_doc: Optional[Dict[str, Any]] = None
     commit_to_firestore: bool = True
     generate_ai_reasoning: bool = True
     feature_weights: Optional[Dict[str, float]] = None
+    cf_k: int = CF_TOP_K
+    cf_tau: float = CF_DISTANCE_CUTOFF_TAU
+    alpha_override: Optional[float] = None
+    alpha_steady_state: float = ALPHA_STEADY_STATE
+    alpha_cold_start: float = ALPHA_COLD_START
+    alpha_threshold: int = ALPHA_STEADY_STATE_USER_THRESHOLD
 
 
 @app.get("/")
@@ -119,6 +151,28 @@ def get_canonical_features():
     }
 
 
+@app.get("/api/admin/parameters")
+def get_default_hyperparameters():
+    """
+    Returns all default adjustable hyperparameters from engine/parameters.py
+    so the Superadmin Dashboard can inspect and reset simulation defaults.
+    """
+    return {
+        "cf_k": CF_TOP_K,
+        "cf_tau": CF_DISTANCE_CUTOFF_TAU,
+        "default_cbf_engine": DEFAULT_CBF_ENGINE,
+        "default_cf_engine": DEFAULT_CF_ENGINE,
+        "alpha_cold_start": ALPHA_COLD_START,
+        "alpha_steady_state": ALPHA_STEADY_STATE,
+        "alpha_threshold": ALPHA_STEADY_STATE_USER_THRESHOLD,
+        "beta_divisor": BETA_LEARNING_RATE_DIVISOR,
+        "monotonicity_min_gap": ANCHOR_MONOTONICITY_MIN_GAP,
+        "review_active_weight": REVIEW_ACTIVE_FACTOR_WEIGHT,
+        "review_baseline_weight": REVIEW_BASELINE_UNSELECTED_WEIGHT,
+        "terrain_presence_threshold": TERRAIN_PRESENCE_THRESHOLD,
+    }
+
+
 @app.post("/api/admin/run-engine")
 async def admin_run_engine(
     payload: AdminRunEngineRequest,
@@ -140,9 +194,27 @@ async def admin_run_engine(
             users=payload.users,
             commit_to_firestore=payload.commit_to_firestore,
             feature_weights=payload.feature_weights,
-            generate_ai_reasoning=payload.generate_ai_reasoning
+            generate_ai_reasoning=payload.generate_ai_reasoning,
+            cf_k=payload.cf_k,
+            cf_tau=payload.cf_tau,
+            alpha_override=payload.alpha_override,
+            alpha_steady_state=payload.alpha_steady_state,
+            alpha_cold_start=payload.alpha_cold_start,
+            alpha_threshold=payload.alpha_threshold,
+            beta_divisor=payload.beta_divisor,
+            monotonicity_min_gap=payload.monotonicity_min_gap,
+            review_active_weight=payload.review_active_weight,
+            review_baseline_weight=payload.review_baseline_weight,
+            terrain_presence_threshold=payload.terrain_presence_threshold,
+            target_user_ids=payload.target_user_ids,
         )
         return report
+    except ValueError as ve:
+        logger.warning(f"Validation failed during batch recommendation run: {ve}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve)
+        )
     except Exception as e:
         logger.error(f"Error during batch recommendation run: {e}", exc_info=True)
         raise HTTPException(
@@ -196,7 +268,13 @@ async def generate_user_initial_recommendation(
             user_doc=req.user_doc,
             commit_to_firestore=req.commit_to_firestore,
             feature_weights=req.feature_weights,
-            generate_ai_reasoning=req.generate_ai_reasoning
+            generate_ai_reasoning=req.generate_ai_reasoning,
+            cf_k=req.cf_k,
+            cf_tau=req.cf_tau,
+            alpha_override=req.alpha_override,
+            alpha_steady_state=req.alpha_steady_state,
+            alpha_cold_start=req.alpha_cold_start,
+            alpha_threshold=req.alpha_threshold,
         )
         return sanitize_json(result)
     except Exception as e:
@@ -257,6 +335,9 @@ class UpdateUserProfileRequest(BaseModel):
     hikes: List[HikeFeedbackInput]
     feature_weights: Optional[Dict[str, float]] = None
     commit_to_firestore: bool = Field(default=True, description="Save updated profile to /users/{userId}")
+    beta_divisor: float = Field(default=BETA_LEARNING_RATE_DIVISOR, description="Learning rate divisor for beta")
+    monotonicity_min_gap: float = Field(default=ANCHOR_MONOTONICITY_MIN_GAP, description="Minimum physical anchor gap")
+    review_baseline_weight: float = Field(default=REVIEW_BASELINE_UNSELECTED_WEIGHT, description="Baseline weight for unselected features")
 
 
 @app.post("/api/user/update-profile")
@@ -313,7 +394,10 @@ async def update_user_profile(
             current_easy_profile=easy_input,
             current_diff_profile=diff_input,
             hike_records=hike_dicts,
-            weights_map=payload.feature_weights
+            weights_map=payload.feature_weights,
+            beta_divisor=payload.beta_divisor,
+            min_gap=payload.monotonicity_min_gap,
+            default_unselected_weight=payload.review_baseline_weight,
         )
 
         formatted_profiles = {

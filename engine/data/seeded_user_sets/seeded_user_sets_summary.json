@@ -1,0 +1,72 @@
+{
+  "total_sets": 5,
+  "cohorts_per_set": 44,
+  "total_users": 220,
+  "sets": {
+    "set_1": {
+      "file": "set_1_users.json",
+      "user_count": 44,
+      "normal_count": 24,
+      "aberrant_count": 20,
+      "sample_user_ids": [
+        "s1_E1-N-P1",
+        "s1_E1-N-P2",
+        "s1_E1-N-P3",
+        "s1_E1-M-P1",
+        "s1_E1-M-P2"
+      ]
+    },
+    "set_2": {
+      "file": "set_2_users.json",
+      "user_count": 44,
+      "normal_count": 24,
+      "aberrant_count": 20,
+      "sample_user_ids": [
+        "s2_E1-N-P1",
+        "s2_E1-N-P2",
+        "s2_E1-N-P3",
+        "s2_E1-M-P1",
+        "s2_E1-M-P2"
+      ]
+    },
+    "set_3": {
+      "file": "set_3_users.json",
+      "user_count": 44,
+      "normal_count": 24,
+      "aberrant_count": 20,
+      "sample_user_ids": [
+        "s3_E1-N-P1",
+        "s3_E1-N-P2",
+        "s3_E1-N-P3",
+        "s3_E1-M-P1",
+        "s3_E1-M-P2"
+      ]
+    },
+    "set_4": {
+      "file": "set_4_users.json",
+      "user_count": 44,
+      "normal_count": 24,
+      "aberrant_count": 20,
+      "sample_user_ids": [
+        "s4_E1-N-P1",
+        "s4_E1-N-P2",
+        "s4_E1-N-P3",
+        "s4_E1-M-P1",
+        "s4_E1-M-P2"
+      ]
+    },
+    "set_5": {
+      "file": "set_5_users.json",
+      "user_count": 44,
+      "normal_count": 24,
+      "aberrant_count": 20,
+      "sample_user_ids": [
+        "s5_E1-N-P1",
+        "s5_E1-N-P2",
+        "s5_E1-N-P3",
+        "s5_E1-M-P1",
+        "s5_E1-M-P2"
+      ]
+    }
+  }
+}

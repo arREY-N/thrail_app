@@ -9,7 +9,7 @@ import { useToast } from '@/src/components/Toast/Toast';
 import {
     CustomTutorialModal,
     TutorialHelpButton,
-    useTutorialGuide,
+    usePaymentTutorial,
 } from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
@@ -38,6 +38,7 @@ export interface PaymentScreenProps {
     bookingData: Booking;
     onBackPress: () => void;
     onContinue: (data: { paymentType: string; paymentMethod: string; amountPaid: number }) => void;
+    onViewDetails?: () => void;
     onPayOffer: (amount: number, bookingId?: string, method?: string, returnUrl?: string) => Promise<PaymentResultResponse>;
 }
 
@@ -45,6 +46,7 @@ const PaymentScreen = ({
     bookingData,
     onBackPress,
     onContinue,
+    onViewDetails,
     onPayOffer,
 }: PaymentScreenProps) => {
     const { profile } = useAuthStore();
@@ -59,8 +61,17 @@ const PaymentScreen = ({
     const isSubmittingRef = useRef(false);
     const [isWaitingForVerification, setIsWaitingForVerification] = useState(false);
     const [paymentError, setPaymentError] = useState<string | null>(null);
-    const activeTourId = currentStep === 2 ? 'payment_status' : 'payment';
-    const tutorial = useTutorialGuide(activeTourId, !isSubmitting && !isWaitingForVerification);
+    const isPaymentRejected = bookingData?.paymentVerificationStatus === 'rejected';
+    const {
+        tutorial,
+        activeTutorialStep,
+        isTutorialVisible,
+    } = usePaymentTutorial({
+        currentStep,
+        isSubmitting,
+        isWaitingForVerification,
+        isRejected: isPaymentRejected,
+    });
 
     useEffect(() => {
         if (Platform.OS !== 'web') return;
@@ -98,6 +109,7 @@ const PaymentScreen = ({
     const [manualReceiptUrl, setManualReceiptUrl] = useState<string>('');
     const [manualReferenceCode, setManualReferenceCode] = useState<string>('');
     const [isSignatureValid, setIsSignatureValid] = useState(false);
+    const [currentSignature, setCurrentSignature] = useState('');
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
     const { showToast } = useToast();
 
@@ -168,14 +180,23 @@ const PaymentScreen = ({
 
                 if (!isSignatureValid) {
                     setHasAttemptedSubmit(true);
-                    showToast.error(
-                        isUserMinor
-                            ? "Parent / Guardian signature is required to authorize payment."
-                            : "Please type your full name in the signature field to authorize payment.",
-                        {
-                            onHide: () => setHasAttemptedSubmit(false),
-                        }
+                    const isCaseMismatch = Boolean(
+                        expectedSignatureName &&
+                        currentSignature.trim().toLowerCase() === expectedSignatureName.trim().toLowerCase() &&
+                        currentSignature.trim() !== expectedSignatureName.trim()
                     );
+
+                    let errorMsg = isUserMinor
+                        ? "Parent / Guardian signature is required to authorize payment."
+                        : "Please type your full name in the signature field to authorize payment.";
+
+                    if (isCaseMismatch) {
+                        errorMsg = `Please match the exact capitalization shown above: "${expectedSignatureName}"`;
+                    }
+
+                    showToast.error(errorMsg, {
+                        onHide: () => setHasAttemptedSubmit(false),
+                    });
                     return;
                 }
 
@@ -376,7 +397,25 @@ const PaymentScreen = ({
         showToast,
         manualReceiptUrl,
         manualReferenceCode,
+        currentSignature,
+        expectedSignatureName,
     ]);
+
+    const handleReturnToBookings = useCallback(() => {
+        onContinue({
+            paymentType: effectivePaymentType,
+            paymentMethod: selectedMethod || '',
+            amountPaid: latestPayment?.amount || amountToPay,
+        });
+    }, [onContinue, effectivePaymentType, selectedMethod, latestPayment?.amount, amountToPay]);
+
+    const handleViewBookingDetails = useCallback(() => {
+        if (onViewDetails) {
+            onViewDetails();
+        } else {
+            handleReturnToBookings();
+        }
+    }, [onViewDetails, handleReturnToBookings]);
 
     const handleHeaderBackPress = useCallback(() => {
         if (isWaitingForVerification) {
@@ -404,11 +443,13 @@ const PaymentScreen = ({
     const footerConfig = useMemo(() => {
         if (isWaitingForVerification) {
             return {
-                title: "Cancel Verification",
-                onPress: handleCancelVerification,
-                variant: "outline" as const,
-                disabled: false,
-                isLoading: false,
+                primary: {
+                    title: "Cancel Verification",
+                    onPress: handleCancelVerification,
+                    variant: "outline" as const,
+                    disabled: false,
+                    isLoading: false,
+                },
             };
         }
         if (currentStep === 1) {
@@ -416,11 +457,27 @@ const PaymentScreen = ({
                 const isReady = Boolean(manualReceiptUrl && isSignatureValid);
                 const isRejected = bookingData?.paymentVerificationStatus === 'rejected';
                 return {
+                    primary: {
+                        title: isSubmitting
+                            ? "Submitting Payment..."
+                            : (isRejected ? "Resubmit Payment" : "Submit Payment"),
+                        onPress: handleNextStep,
+                        disabled: isSubmitting,
+                        isLoading: isSubmitting,
+                        validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
+                    },
+                };
+            }
+
+            const isReady = Boolean(selectedMethod && isSignatureValid);
+            const isRejected = bookingData?.paymentVerificationStatus === 'rejected';
+            return {
+                primary: {
                     title: isSubmitting
-                        ? "Submitting Receipt..."
-                        : (isRejected ? "Resubmit Payment & Receipt" : "Submit Payment & Receipt"),
+                        ? "Opening Gateway..."
+                        : (isRejected ? "Resubmit Payment" : "Continue to Payment"),
                     onPress: handleNextStep,
-                    disabled: isSubmitting,
+                    disabled: isSubmitting || isWaitingForVerification,
                     isLoading: isSubmitting,
                     validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
                     isIdleDisabled: false,
@@ -438,51 +495,35 @@ const PaymentScreen = ({
                             ? Colors.WHITE
                             : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.TEXT_SECONDARY),
                     },
-                };
-            }
-
-            const isReady = Boolean(selectedMethod && isSignatureValid);
-            const isRejected = bookingData?.paymentVerificationStatus === 'rejected';
-            return {
-                title: isSubmitting
-                    ? "Opening Gateway..."
-                    : (isRejected ? "Resubmit Payment" : "Continue to Payment"),
-                onPress: handleNextStep,
-                disabled: isSubmitting || isWaitingForVerification,
-                isLoading: isSubmitting,
-                validationState: isReady ? ('valid' as const) : (hasAttemptedSubmit ? ('error' as const) : ('idle' as const)),
-                isIdleDisabled: false,
-                style: {
-                    backgroundColor: isReady
-                        ? Colors.PRIMARY
-                        : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_BG : Colors.GRAY_ULTRALIGHT),
-                    borderColor: isReady
-                        ? Colors.PRIMARY
-                        : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.GRAY_LIGHT),
-                    borderWidth: 1.5,
-                },
-                textStyle: {
-                    color: isReady
-                        ? Colors.WHITE
-                        : (hasAttemptedSubmit ? Colors.STATUS_CANCELLED_TEXT : Colors.TEXT_SECONDARY),
                 },
             };
         }
         if (currentStep === 2) {
             return {
-                title: "Return to Bookings",
-                onPress: handleNextStep,
-                variant: "primary" as const,
-                disabled: isSubmitting,
-                isLoading: false,
+                primary: {
+                    title: "View Booking Details",
+                    onPress: handleViewBookingDetails,
+                    variant: "primary" as const,
+                    disabled: isSubmitting,
+                    isLoading: false,
+                },
+                secondary: {
+                    title: "Return to Bookings",
+                    onPress: handleReturnToBookings,
+                    variant: "outline" as const,
+                    disabled: isSubmitting,
+                    isLoading: false,
+                },
             };
         }
         return {
-            title: "Continue",
-            onPress: handleNextStep,
-            variant: "primary" as const,
-            disabled: false,
-            isLoading: false,
+            primary: {
+                title: "Continue",
+                onPress: handleNextStep,
+                variant: "primary" as const,
+                disabled: false,
+                isLoading: false,
+            },
         };
     }, [
         isWaitingForVerification,
@@ -493,6 +534,8 @@ const PaymentScreen = ({
         hasAttemptedSubmit,
         handleNextStep,
         handleCancelVerification,
+        handleViewBookingDetails,
+        handleReturnToBookings,
         manualReceiptUrl,
         bookingData?.paymentVerificationStatus,
     ]);
@@ -565,10 +608,14 @@ const PaymentScreen = ({
                             setReferenceCode={setManualReferenceCode}
                             profileFullName={expectedSignatureName}
                             setIsSignatureValid={setIsSignatureValid}
+                            onSignatureChange={setCurrentSignature}
                             paymentError={paymentError}
                             isPayingBalance={isPayingBalance}
                             isMinor={isUserMinor}
                             minorName={hikerFullName}
+                            activeTutorialStep={activeTutorialStep}
+                            isTutorialVisible={isTutorialVisible}
+                            isRejected={isPaymentRejected}
                         />
                     ) : (
                         <MethodScreen
@@ -583,8 +630,8 @@ const PaymentScreen = ({
                             isPayingBalance={isPayingBalance}
                             isMinor={isUserMinor}
                             minorName={hikerFullName}
-                            activeTutorialStep={tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined}
-                            isTutorialVisible={tutorial.isVisible}
+                            activeTutorialStep={activeTutorialStep}
+                            isTutorialVisible={isTutorialVisible}
                         />
                     )
                 )}
@@ -593,26 +640,17 @@ const PaymentScreen = ({
                         selectedMethod={PAYMENT_CONFIG.PROVIDER === 'manual_qr' ? 'Manual QR' : (latestPayment?.gateway || selectedMethod)}
                         amountToPay={latestPayment?.amount || amountToPay}
                         bookingId={bookingData?.id}
-                        referenceCode={manualReferenceCode || latestPayment?.referenceCode || latestPayment?.sessionId}
-                        activeTutorialStep={tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined}
-                        isTutorialVisible={tutorial.isVisible}
+                        paymentDate={latestPayment?.paidAt || new Date()}
+                        activeTutorialStep={activeTutorialStep}
+                        isTutorialVisible={isTutorialVisible}
                     />
                 )}
             </View>
 
             <CustomStickyFooter
                 enableToastDock={true}
-                primaryButton={{
-                    title: footerConfig.title,
-                    onPress: footerConfig.onPress,
-                    disabled: footerConfig.disabled,
-                    isLoading: footerConfig.isLoading,
-                    variant: footerConfig.variant,
-                    validationState: footerConfig.validationState,
-                    isIdleDisabled: footerConfig.isIdleDisabled,
-                    style: footerConfig.style,
-                    textStyle: footerConfig.textStyle,
-                }}
+                primaryButton={footerConfig.primary}
+                secondaryButton={footerConfig.secondary}
             />
 
             <CustomTutorialModal

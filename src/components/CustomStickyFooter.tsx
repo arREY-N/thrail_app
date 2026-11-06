@@ -21,6 +21,7 @@ import {
 } from '@/src/components/Tutorial/Tutorial';
 import { Colors } from '@/src/constants/colors';
 import { Layout } from '@/src/constants/layout';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { IconLibrary } from '@/src/types/ui.types';
 
 export interface FooterButtonConfig {
@@ -103,6 +104,8 @@ interface CustomStickyFooterProps {
     tertiaryButton?: FooterButtonConfig;
     buttons?: FooterButtonConfig[];
     layout?: 'row' | 'column';
+    stackOnMobile?: boolean;
+    autoStackOnMobile?: boolean;
     style?: StyleProp<ViewStyle>;
     enableToastDock?: boolean;
 }
@@ -113,9 +116,16 @@ interface CustomStickyFooterProps {
  *
  * - Web Desktop: 96px (86px footer + 10px breathing room)
  * - Mobile: Math.max(bottomInset + 102, 120) (~136px with 34px gesture bar)
+ * - Mobile Stacked: Math.max(bottomInset + 160, 180) for stacked two-button layouts
  */
-export const getStickyFooterScrollPadding = (bottomInset: number = 0, isMobile: boolean = false): number => {
-    return isMobile ? Math.max(bottomInset + 102, 120) : 96;
+export const getStickyFooterScrollPadding = (
+    bottomInset: number = 0,
+    isMobile: boolean = false,
+    isStacked: boolean = false
+): number => {
+    if (!isMobile) return 96;
+    if (isStacked) return Math.max(bottomInset + 160, 180);
+    return Math.max(bottomInset + 102, 120);
 };
 
 const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
@@ -124,10 +134,13 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
     tertiaryButton,
     buttons,
     layout = 'row',
+    stackOnMobile = false,
+    autoStackOnMobile = true,
     style,
     enableToastDock = false,
 }) => {
     const insets = useSafeAreaInsets();
+    const { isMobile } = useBreakpoints();
     const toastContext = useContext(ToastContext);
     const safeBottomPadding = Math.max(insets.bottom + 16, 16);
 
@@ -167,10 +180,24 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
         }
     };
 
+    const candidateButtons = [primaryButton, secondaryButton, tertiaryButton].filter(
+        (btn): btn is FooterButtonConfig => Boolean(btn),
+    );
+    const buttonList = buttons && buttons.length > 0 ? buttons : candidateButtons;
+
+    const shouldAutoStack = isMobile && buttonList.length === 2 && (
+        Boolean(stackOnMobile) ||
+        (autoStackOnMobile && buttonList.some(btn => (
+            btn.title.length > 12 || (Boolean(btn.icon) && btn.title.length > 9)
+        )))
+    );
+
+    const effectiveLayout = layout === 'column' || shouldAutoStack ? 'column' : 'row';
+
     const resolvedButtons: FooterButtonConfig[] =
         buttons && buttons.length > 0
             ? buttons
-            : layout === 'column'
+            : effectiveLayout === 'column'
               ? [primaryButton, secondaryButton, tertiaryButton].filter(
                     (btn): btn is FooterButtonConfig => Boolean(btn),
                 )
@@ -180,7 +207,7 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
 
     if (resolvedButtons.length === 0) return null;
 
-    const isThreeColumnRow = layout === 'row' && resolvedButtons.length >= 3;
+    const isThreeColumnRow = effectiveLayout === 'row' && resolvedButtons.length >= 3;
 
     const renderIndicator = (btn: FooterButtonConfig) => {
         if (!btn.showIndicator) return null;
@@ -212,7 +239,7 @@ const CustomStickyFooter: React.FC<CustomStickyFooterProps> = ({
             style={[styles.footer, { paddingBottom: safeBottomPadding }, style]}
         >
             {resolvedButtons.length > 1 ? (
-                layout === 'column' ? (
+                effectiveLayout === 'column' ? (
                     <View style={styles.buttonColumn}>
                         {resolvedButtons.map((btn, index) => (
                             <FooterButtonWrapper

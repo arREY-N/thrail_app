@@ -1,27 +1,45 @@
 /**
  * @file MountainCardSkeleton.tsx
- * @description Skeleton loader component mirroring the exact layout, dimensions, and border radius of MountainCard.
+ * @description Skeleton loader component mirroring the exact layout, dimensions, and border radius of MountainCard across Mobile and Web.
  */
 
 import React from 'react';
-import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
 import SkeletonEffect from '@/src/components/SkeletonEffect';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 
+/**
+ * Props for the MountainCardSkeleton component.
+ *
+ * @param style - Custom style for the card container (e.g. dynamic responsive width).
+ */
 interface MountainCardSkeletonProps {
     style?: StyleProp<ViewStyle>;
 }
 
 /**
- * MountainCardSkeleton — Shimmering skeleton loader mirroring MountainCard.
+ * MountainCardSkeleton — Shimmering skeleton loader mirroring MountainCard on both Mobile and Web.
+ *
+ * @param props - MountainCardSkeletonProps
+ * @returns React.JSX.Element
  */
 const MountainCardSkeleton: React.FC<MountainCardSkeletonProps> = ({ style }) => {
+    const flattenedStyle = StyleSheet.flatten(style);
+    const cardWidth = flattenedStyle?.width;
+    const isNarrow = typeof cardWidth === 'number' && cardWidth < 300;
+    const isWeb = Platform.OS === 'web';
+
     return (
-        <View style={[styles.cardContainer, style]}>
+        <View
+            style={[
+                isWeb ? styles.cardContainerWeb : styles.cardContainer,
+                style,
+            ]}
+        >
             {/* Image Hero Section Skeleton */}
-            <View style={styles.imageContainer}>
+            <View style={isWeb ? styles.imageContainerWeb : styles.imageContainer}>
                 <SkeletonEffect style={styles.imageSkeleton} />
 
                 {/* Top Left Rating Badge Skeleton */}
@@ -37,18 +55,23 @@ const MountainCardSkeleton: React.FC<MountainCardSkeletonProps> = ({ style }) =>
             </View>
 
             {/* Bottom 3-Column Stats Container Skeleton */}
-            <View style={styles.statsContainer}>
-                <View style={styles.statBox}>
+            <View
+                style={[
+                    isWeb ? styles.statsContainerWeb : styles.statsContainer,
+                    isNarrow && styles.statsContainerNarrow,
+                ]}
+            >
+                <View style={[styles.statBox, isNarrow && styles.statBoxNarrow]}>
                     <SkeletonEffect style={styles.statValueSkeleton} />
                     <SkeletonEffect style={styles.statLabelSkeleton} />
                 </View>
-                <View style={styles.verticalDivider} />
-                <View style={styles.statBox}>
+                {!isNarrow && <View style={styles.verticalDivider} />}
+                <View style={[styles.statBox, isNarrow && styles.statBoxNarrow]}>
                     <SkeletonEffect style={styles.statValueSkeleton} />
                     <SkeletonEffect style={styles.statLabelSkeleton} />
                 </View>
-                <View style={styles.verticalDivider} />
-                <View style={styles.statBox}>
+                {!isNarrow && <View style={styles.verticalDivider} />}
+                <View style={[styles.statBox, isNarrow && styles.statBoxNarrow]}>
                     <SkeletonEffect style={styles.statValueSkeleton} />
                     <SkeletonEffect style={styles.statLabelSkeleton} />
                 </View>
@@ -67,6 +90,15 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_LIGHT,
         ...GlobalStyles.dropShadow(4, 0.1, Colors.SHADOW, { radius: 6 }),
     },
+    cardContainerWeb: {
+        width: 290,
+        backgroundColor: Colors.WHITE,
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        ...GlobalStyles.dropShadow(2),
+    },
     imageContainer: {
         height: 180,
         width: '100%',
@@ -74,6 +106,15 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.GRAY_LIGHT,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
+        overflow: 'hidden',
+    },
+    imageContainerWeb: {
+        width: '100%',
+        aspectRatio: 16 / 10,
+        position: 'relative',
+        backgroundColor: Colors.GRAY_LIGHT,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
         overflow: 'hidden',
     },
     imageSkeleton: {
@@ -116,10 +157,29 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         backgroundColor: Colors.WHITE,
     },
+    statsContainerWeb: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: Colors.WHITE,
+        height: 58,
+    },
+    statsContainerNarrow: {
+        flexWrap: 'wrap',
+        gap: 8,
+        justifyContent: 'space-around',
+    },
     statBox: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    statBoxNarrow: {
+        flex: 0,
+        minWidth: '40%',
+        marginVertical: 4,
     },
     statValueSkeleton: {
         width: 44,

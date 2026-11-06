@@ -6,11 +6,12 @@
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
     Animated,
     FlatList,
     NativeScrollEvent,
     NativeSyntheticEvent,
+    Platform,
+    RefreshControl,
     StyleSheet,
     View
 } from "react-native";
@@ -21,15 +22,16 @@ import CustomHeader from "@/src/components/CustomHeader";
 import CustomIcon from "@/src/components/CustomIcon";
 import CustomText from "@/src/components/CustomText";
 import MountainCard from "@/src/components/MountainCard";
+import MountainCardSkeleton from "@/src/components/MountainCardSkeleton";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 
 import { Colors } from "@/src/constants/colors";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { ITrail } from "@/src/core/models/Trail/Trail";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
-import { getTrailOffersCount } from "@/src/utils/offerHelpers";
+import { getTrailOffersCount, getTrailsWithAliveOffers } from "@/src/utils/offerHelpers";
 
-const CATEGORIES = ["All", "Recommended", "Offers", "Nearby", "Discover", "Challenge"];
+const CATEGORIES = ["All", "Offers"];
 const PROVINCES = ['Rizal', 'Batangas', 'Laguna', 'Cavite', 'Quezon'];
 const ELEVATIONS = ['< 500 masl', '500 - 1000 masl', '> 1000 masl'];
 
@@ -43,6 +45,8 @@ const ELEVATIONS = ['< 500 masl', '500 - 1000 masl', '> 1000 masl'];
  * @param isLoading - Whether the trails list is currently loading.
  * @param initialCategory - The initial category to select.
  * @param offers - List of active offers passed from the controller.
+ * @param isRefreshing - Whether pull-to-refresh is currently active.
+ * @param onRefresh - Callback triggered when user performs a pull-to-refresh gesture.
  */
 export interface ExploreScreenProps {
     trails: ITrail[];
@@ -52,6 +56,8 @@ export interface ExploreScreenProps {
     isLoading: boolean;
     initialCategory?: string;
     offers?: Offer[];
+    isRefreshing?: boolean;
+    onRefresh?: () => void;
 }
 
 /**
@@ -73,7 +79,9 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
     getItemRating,
     isLoading,
     initialCategory = "All",
-    offers = []
+    offers = [],
+    isRefreshing = false,
+    onRefresh,
 }) => {
     const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
     const [searchQuery, setSearchQuery] = useState<string>("");
@@ -207,6 +215,11 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
         }
     ];
 
+    const skeletonItems = useMemo(() => {
+        const count = Math.max(numColumns * 2, 4);
+        return Array.from({ length: count }, (_, idx) => idx);
+    }, [numColumns]);
+
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <View style={styles.container}>
@@ -247,11 +260,31 @@ const ExploreScreen: React.FC<ExploreScreenProps> = ({
                     showsVerticalScrollIndicator={false}
                     scrollEventThrottle={16}
                     onScroll={handleScroll}
+                    initialNumToRender={6}
+                    maxToRenderPerBatch={6}
+                    windowSize={5}
+                    removeClippedSubviews={Platform.OS !== 'web'}
+                    refreshControl={
+                        onRefresh ? (
+                            <RefreshControl
+                                refreshing={isRefreshing}
+                                onRefresh={onRefresh}
+                                colors={[Colors.PRIMARY]}
+                                tintColor={Colors.PRIMARY}
+                                progressViewOffset={215}
+                            />
+                        ) : undefined
+                    }
                     ListEmptyComponent={() => (
                         <View style={[styles.listContainer, { justifyContent: 'center' }]}>
-                            {isLoading ? (
-                                <View style={styles.loaderContainer}>
-                                    <ActivityIndicator size="large" color={Colors.PRIMARY} />
+                            {isLoading && (!trails || trails.length === 0) ? (
+                                <View style={[styles.skeletonGrid, { gap }]}>
+                                    {skeletonItems.map((idx) => (
+                                        <MountainCardSkeleton
+                                            key={`explore-skeleton-${idx}`}
+                                            style={{ width: cardWidth }}
+                                        />
+                                    ))}
                                 </View>
                             ) : (
                                 <View style={styles.emptyState}>
@@ -306,28 +339,8 @@ const filterTrailsByCategory = (trails: ITrail[], category: string, offers: Offe
     if (!trails) return [];
 
     switch (category) {
-        case "Recommended":
-            return trails.filter((t: ITrail) => (t.general?.rating || 0) >= 4.6);
-        case "Nearby":
-            return trails.filter((t: ITrail) => {
-                const address = t.general?.address || "";
-                const provinceData = t.general?.province || [];
-                const isRizal = provinceData.some((p: string) => p.includes("Rizal"));
-                return address.includes("Rizal") || isRizal;
-            });
-        case "Discover":
-            return trails.slice(0, 3);
-        case "Challenge":
-            return trails.filter((t: ITrail) => {
-                const elevRaw = t.geography?.masl || t.difficulty?.elevation || "0";
-                const elev = parseInt(String(elevRaw).replace(/[^0-9]/g, ''), 10) || 0;
-                const len = Number(t.difficulty?.length || 0);
-                return elev > 600 || len > 10;
-            });
-        case "Offers": {
-            const ids = offers.map(o => o.trail?.id).filter(Boolean);
-            return trails.filter((t: ITrail) => ids.includes(t.id));
-        }
+        case "Offers":
+            return getTrailsWithAliveOffers(trails, offers);
         case "All":
         default:
             return trails;
@@ -361,11 +374,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         flexWrap: "wrap",
     },
-    loaderContainer: {
+    skeletonGrid: {
         width: '100%',
-        paddingVertical: 60,
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
     },
     emptyState: {
         paddingVertical: 60,

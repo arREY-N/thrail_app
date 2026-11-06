@@ -23,7 +23,7 @@ import { GlobalStyles } from "@/src/constants/globalStyles";
 import { ITrail } from "@/src/core/models/Trail/Trail";
 import {
   formatRouteType,
-  getHeroImageSource,
+  getCardImageSource,
   isUsingMapFallback,
 } from "@/src/features/Trail/utils/TrailDetailsHelpers";
 import { IconLibrary } from "@/src/types/ui.types";
@@ -81,7 +81,7 @@ const getMountainData = (item?: ITrail | null, rating?: number | string) => {
     : item?.general?.rating
       ? Number(item.general.rating).toFixed(1)
       : "N/A";
-  const heroImage = getHeroImageSource(item);
+  const heroImage = getCardImageSource(item);
   const isMapFallback = isUsingMapFallback(item);
 
   return {
@@ -125,16 +125,14 @@ const StatItem = ({
   icon,
   lib,
   iconColor = Colors.PRIMARY,
-  isNarrow = false,
 }: {
   label: string;
   value: string;
   icon: string;
   lib: IconLibrary;
   iconColor?: string;
-  isNarrow?: boolean;
 }) => (
-  <View style={[styles.statBox, isNarrow && styles.statBoxNarrow]}>
+  <View style={styles.statBox}>
     <View style={styles.statTopRow}>
       <CustomIcon library={lib} name={icon} size={14} color={iconColor} />
       <CustomText
@@ -186,11 +184,6 @@ const MountainCard: React.FC<MountainCardProps> = ({
   // Resolve route icon dynamics
   const routeIconInfo = getRouteIconInfo(displayRoute);
 
-  // Responsive styling for limited widths (e.g. nested lists or narrow viewports)
-  const flattenedStyle = StyleSheet.flatten(style);
-  const cardWidth = flattenedStyle?.width;
-  const isNarrow = typeof cardWidth === "number" && cardWidth < 300;
-
   if (Platform.OS === "web") {
     return (
       <Pressable
@@ -202,12 +195,30 @@ const MountainCard: React.FC<MountainCardProps> = ({
         onPress={onPress}
       >
         <View style={styles.imageContainerWeb}>
-          <CustomImage
-            source={heroImage}
-            style={styles.cardImage}
-            resizeMode="cover"
-          />
-          {isMapFallback && <View style={styles.mapDarkenOverlay} />}
+          {heroImage ? (
+            <>
+              <CustomImage
+                source={heroImage}
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
+              {isMapFallback && <View style={styles.mapDarkenOverlay} />}
+            </>
+          ) : (
+            <LinearGradient
+              colors={["#064e3b", "#065f46", "#047857"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.scenicPlaceholder}
+            >
+              <CustomIcon
+                library="FontAwesome6"
+                name="mountain"
+                size={44}
+                color="rgba(255, 255, 255, 0.18)"
+              />
+            </LinearGradient>
+          )}
           {/* Rating Badge */}
           <View style={[styles.glassPill, styles.topLeftPosition]}>
             <View style={styles.badgeSection}>
@@ -284,34 +295,26 @@ const MountainCard: React.FC<MountainCardProps> = ({
           </LinearGradient>
         </View>
 
-        <View
-          style={[
-            styles.statsContainerWeb,
-            isNarrow && styles.statsContainerNarrow,
-          ]}
-        >
+        <View style={styles.statsContainerWeb}>
           <StatItem
             label="Distance"
             value={displayLength}
             icon="map-outline"
             lib="Ionicons"
-            isNarrow={isNarrow}
           />
-          {!isNarrow && <View style={styles.verticalDivider} />}
+          <View style={styles.verticalDivider} />
           <StatItem
             label="Elevation"
             value={displayElev}
             icon="trending-up"
             lib="Feather"
-            isNarrow={isNarrow}
           />
-          {!isNarrow && <View style={styles.verticalDivider} />}
+          <View style={styles.verticalDivider} />
           <StatItem
             label="Route"
             value={displayRoute}
             icon={routeIconInfo.icon}
             lib={routeIconInfo.lib}
-            isNarrow={isNarrow}
           />
         </View>
       </Pressable>
@@ -334,14 +337,31 @@ const MountainCard: React.FC<MountainCardProps> = ({
       onPress={onPress}
     >
       <View style={styles.imageContainer}>
-        <CustomImage
-          source={heroImage}
-          style={styles.cardImage}
-          resizeMode="cover"
-        />
-
-        {/* Automatically darkens map images so the white text stays readable */}
-        {isMapFallback && <View style={styles.mapDarkenOverlay} />}
+        {heroImage ? (
+          <>
+            <CustomImage
+              source={heroImage}
+              style={styles.cardImage}
+              resizeMode="cover"
+            />
+            {/* Automatically darkens map images so the white text stays readable */}
+            {isMapFallback && <View style={styles.mapDarkenOverlay} />}
+          </>
+        ) : (
+          <LinearGradient
+            colors={["#064e3b", "#065f46", "#047857"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.scenicPlaceholder}
+          >
+            <CustomIcon
+              library="FontAwesome6"
+              name="mountain"
+              size={44}
+              color="rgba(255, 255, 255, 0.18)"
+            />
+          </LinearGradient>
+        )}
 
         <View style={[styles.glassPill, styles.topLeftPosition]}>
           <View style={styles.badgeSection}>
@@ -416,31 +436,26 @@ const MountainCard: React.FC<MountainCardProps> = ({
         </LinearGradient>
       </View>
 
-      <View
-        style={[styles.statsContainer, isNarrow && styles.statsContainerNarrow]}
-      >
+      <View style={styles.statsContainer}>
         <StatItem
           label="Distance"
           value={displayLength}
           icon="map-outline"
           lib="Ionicons"
-          isNarrow={isNarrow}
         />
-        {!isNarrow && <View style={styles.verticalDivider} />}
+        <View style={styles.verticalDivider} />
         <StatItem
           label="Elevation"
           value={displayElev}
           icon="trending-up"
           lib="Feather"
-          isNarrow={isNarrow}
         />
-        {!isNarrow && <View style={styles.verticalDivider} />}
+        <View style={styles.verticalDivider} />
         <StatItem
           label="Route"
           value={displayRoute}
           icon={routeIconInfo.icon}
           lib={routeIconInfo.lib}
-          isNarrow={isNarrow}
         />
       </View>
     </TouchableOpacity>
@@ -470,6 +485,13 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     backgroundColor: Colors.GRAY_LIGHT,
+  },
+  scenicPlaceholder: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 24,
   },
   mapDarkenOverlay: {
     ...StyleSheet.absoluteFill,
@@ -563,20 +585,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     backgroundColor: Colors.WHITE,
   },
-  statsContainerNarrow: {
-    flexWrap: "wrap",
-    gap: 8,
-    justifyContent: "space-around",
-  },
   statBox: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  statBoxNarrow: {
-    flex: 0,
-    minWidth: "40%",
-    marginVertical: 4,
   },
   statTopRow: {
     flexDirection: "row",
@@ -648,9 +660,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     backgroundColor: Colors.WHITE,
-    height: 58,
   },
 });
 

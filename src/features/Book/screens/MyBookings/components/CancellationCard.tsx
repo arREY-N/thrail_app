@@ -23,6 +23,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { Cancellation, useCancellationUser } from '@/src/core/models/Cancellation/Cancellation';
+import { IconLibrary } from '@/src/types/ui.types';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
 
 export interface CancellationCardProps {
@@ -238,7 +239,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                 ) : isHandshakeCompleted ? (
                     <View style={styles.payoutCompletedBox}>
                         <View style={styles.payoutCompletedHeader}>
-                            <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
+                            <CustomIcon library="FontAwesome6" name="peso-sign" size={14} color={Colors.SUCCESS} />
                             <CustomText style={styles.payoutCompletedTitle}>
                                 Refund Completed & Received
                             </CustomText>
@@ -777,25 +778,27 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
         const headerIcon = isNoRefund
             ? 'check-circle'
             : (isPaid
-                ? (isRefundComplete ? 'check-circle' : (isDisputed ? 'alert-triangle' : 'clock'))
+                ? (isRefundComplete ? 'peso-sign' : (isDisputed ? 'alert-triangle' : 'clock'))
                 : 'check-circle');
+
+        const headerIconLibrary: IconLibrary = !isNoRefund && isPaid && isRefundComplete ? 'FontAwesome6' : 'Feather';
 
         const headerIconColor = isNoRefund
             ? Colors.PRIMARY
             : (isPaid
-                ? (isRefundComplete ? Colors.PRIMARY : (isDisputed ? Colors.ERROR : '#D97706'))
+                ? (isRefundComplete ? Colors.ERROR : (isDisputed ? Colors.ERROR : '#D97706'))
                 : Colors.PRIMARY);
 
         const iconBgStyle = isNoRefund
             ? styles.iconCircleSuccess
             : (isPaid
-                ? (isRefundComplete ? styles.iconCircleSuccess : (isDisputed ? styles.iconCircleError : styles.iconCircleWarning))
+                ? (isRefundComplete ? styles.iconCircleError : (isDisputed ? styles.iconCircleError : styles.iconCircleWarning))
                 : styles.iconCircleSuccess);
 
         const headerTitleStyle = isNoRefund
             ? styles.titleSuccess
             : (isPaid
-                ? (isRefundComplete ? styles.titleSuccess : (isDisputed ? styles.titleError : styles.titleWarning))
+                ? (isRefundComplete ? styles.titleError : (isDisputed ? styles.titleError : styles.titleWarning))
                 : styles.titleSuccess);
 
         return (
@@ -809,7 +812,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                     <View style={styles.headerLeftGroup}>
                         <View style={iconBgStyle}>
                             <CustomIcon
-                                library="Feather"
+                                library={headerIconLibrary}
                                 name={headerIcon}
                                 size={18}
                                 color={headerIconColor}

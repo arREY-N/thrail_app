@@ -51,6 +51,19 @@
 - **Solution:**
   - Added a clickable `refresh-cw` icon button next to the `"Updated ..."` timestamp on Web across the Home Weather Banner (`WeatherSection.tsx`), Local Weather Screen (`WeatherScreen.tsx`), and Per-Mountain Weather Tab (`WeatherWidget.tsx`) to trigger `refreshLocation(true)` + `refetch()`.
 
+#### - [x] Task 1.4: Unify Group Weather Alert Thresholds with In-App Weather Engine
+- **Status:** ✅ Completed
+- **Files:**
+  - `functions/index.js` (`evaluateWeatherSafety`, `processGroupWeatherAlert`, `testGroupWeatherAlert`)
+- **Problem:**
+  - `evaluateWeatherSafety` in `functions/index.js` triggered `CAUTION` at `>= 40%` rain (instead of `>= 50%`), triggered `DANGER` unconditionally on WMO codes `65, 82` without checking `precipProb`, ignored PAGASA Heat Index (`apparent_temperature`), and escalated `UV >= 13` to `DANGER`.
+- **Solution:**
+  - Aligned `evaluateWeatherSafety()` in `functions/index.js` with `src/core/utility/weatherHelpers.ts`:
+    - Rain `CAUTION` requires `precipProb >= 50%` (`30%–49%` stays `SAFE` with an isolated showers note).
+    - Heavy rain codes (`65, 82`) are guarded by `precipProb >= 50` (`>= 85%` or `dailyRainMm >= 100` for `DANGER`).
+    - Added `apparent_temperature` / `apparent_temperature_max` to Open-Meteo queries and PAGASA Heat Index thresholds (`>= 33°C` `CAUTION`, `>= 42°C` `DANGER`).
+    - Aligned UV threshold (`>= 8` when clear → `CAUTION`, capped at `CAUTION`).
+
 ---
 
 ### Phase 2: Location System (`src/hooks/useLocation.ts` & `locationStoreCreator.ts`)

@@ -27,7 +27,10 @@ export interface TermsSignatureProps {
     /** Callback to display toast message on parent screen */
     onShowToast?: (message: string) => void;
     /** Optional callback when signature input receives focus */
+    /** Optional callback when signature input receives focus */
     onSignatureFocus?: () => void;
+    /** Optional callback exposing current signature text */
+    onSignatureChange?: (text: string) => void;
 }
 
 /**
@@ -46,6 +49,7 @@ const TermsSignature = ({
     onBookingTermsPress,
     onShowToast,
     onSignatureFocus,
+    onSignatureChange,
 }: TermsSignatureProps): React.JSX.Element => {
     const { showToast } = useToast();
     const [signature, setSignature] = useState('');
@@ -56,9 +60,15 @@ const TermsSignature = ({
     const isPoliciesAcknowledged = !requireReadToAgree || hasReadPolicies;
 
     const cleanExpected = (expectedName || '').trim();
+    const cleanSignature = signature.trim();
     const isSignatureMatched = Boolean(
         cleanExpected.length > 0 && 
-        signature.trim().toLowerCase() === cleanExpected.toLowerCase()
+        cleanSignature === cleanExpected
+    );
+    const isCaseMismatch = Boolean(
+        cleanExpected.length > 0 &&
+        !isSignatureMatched &&
+        cleanSignature.toLowerCase() === cleanExpected.toLowerCase()
     );
 
     const isFullyValid = isPoliciesAcknowledged && isSignatureMatched;
@@ -151,14 +161,13 @@ const TermsSignature = ({
                     accessibilityRole="button"
                     accessibilityLabel="Please read and agree to all 3 legal policies above to unlock digital signature"
                 >
-                    <View style={styles.iconContainer}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="file-text"
-                            size={20} 
-                            color={Colors.PRIMARY} 
-                        />
-                    </View>
+                    <CustomIcon
+                        library="Feather"
+                        name="file-text"
+                        size={20}
+                        color={Colors.PRIMARY}
+                        style={styles.bannerIcon}
+                    />
                     <View style={styles.instructionTextWrapper}>
                         <CustomText style={styles.instructionGuidanceText}>
                             Please read and agree to all 3 legal policies above to unlock digital signature.
@@ -170,18 +179,17 @@ const TermsSignature = ({
             {/* If acknowledged, render verified name instruction card above input */}
             {isPoliciesAcknowledged && (
                 <View style={[styles.instructionBox, styles.instructionBoxVerified, !hasExpectedName && isMinor && styles.instructionBoxWarning]}>
-                    <View style={[styles.iconContainer, styles.iconContainerVerified, !hasExpectedName && isMinor && styles.iconContainerWarning]}>
-                        <CustomIcon 
-                            library="Feather" 
-                            name="check-circle"
-                            size={22} 
-                            color={Colors.STATUS_APPROVED_TEXT} 
-                        />
-                    </View>
+                    <CustomIcon
+                        library="Feather"
+                        name={!hasExpectedName && isMinor ? "alert-circle" : "check-circle"}
+                        size={20}
+                        color={!hasExpectedName && isMinor ? Colors.STATUS_CANCELLED_TEXT : Colors.STATUS_APPROVED_TEXT}
+                        style={styles.bannerIcon}
+                    />
                     <View style={styles.instructionTextWrapper}>
                         <CustomText variant="caption" style={[styles.instructionLabel, !hasExpectedName && isMinor && styles.instructionLabelWarning]}>
-                            {isMinor 
-                                ? (hasExpectedName ? "Parent/Guardian Signature (Type name exactly):" : "Guardian Signature Required:") 
+                            {isMinor
+                                ? (hasExpectedName ? "Parent/Guardian Signature (Type name exactly):" : "Guardian Signature Required:")
                                 : "Type your name exactly as registered:"
                             }
                         </CustomText>
@@ -205,12 +213,15 @@ const TermsSignature = ({
                             : (isMinor ? "Parent/Guardian Full Name" : "Digital Signature (Full Name)")
                     }
                     value={signature}
-                    onChangeText={setSignature}
+                    onChangeText={(val: string) => {
+                    setSignature(val);
+                    onSignatureChange?.(val);
+                }}
                     autoCapitalize="words"
                     editable={isInputEditable}
-                    icon={!isInputEditable ? "lock" : (isSignatureMatched ? "check-circle" : "edit-2")}
+                    icon={!isInputEditable ? "lock" : (isSignatureMatched ? "check-circle" : (isCaseMismatch ? "alert-circle" : "edit-2"))}
                     iconLibrary="Feather"
-                    iconColor={!isInputEditable ? Colors.TEXT_SECONDARY : (isSignatureMatched ? Colors.SUCCESS : undefined)}
+                    iconColor={!isInputEditable ? Colors.TEXT_SECONDARY : (isSignatureMatched ? Colors.SUCCESS : (isCaseMismatch ? Colors.ERROR : undefined))}
                     style={styles.inputSpacing}
                     pointerEvents={isInputEditable ? "auto" : "none"}
                     onFocus={onSignatureFocus}
@@ -258,9 +269,6 @@ const styles = StyleSheet.create({
         borderColor: Colors.STATUS_APPROVED_BORDER,
         backgroundColor: Colors.BACKGROUND,
     },
-    iconContainerVerified: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-    },
     instructionBox: {
         backgroundColor: Colors.BACKGROUND,
         padding: 14,
@@ -275,17 +283,9 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.STATUS_CANCELLED_BG,
         borderColor: Colors.STATUS_CANCELLED_BORDER,
     },
-    iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: Colors.WHITE,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    iconContainerWarning: {
-        backgroundColor: Colors.STATUS_CANCELLED_BG,
+    bannerIcon: {
+        marginRight: 10,
+        alignSelf: 'center',
     },
     instructionTextWrapper: {
         flex: 1,

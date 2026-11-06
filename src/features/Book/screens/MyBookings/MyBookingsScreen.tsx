@@ -322,6 +322,7 @@ const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
                 getBookOffer={getBookOffer}
                 availableFutureOffers={availableFutureOffers}
                 userBookings={userBookings}
+                onSelectBooking={handleBookingSelectPress}
                 onBackPress={handleHeaderBackPress}
                 onProceedToPayment={handleProceedToPaymentPress}
                 onViewReceipt={handleViewReceiptPress}
@@ -356,6 +357,7 @@ const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
             <PaymentScreen
                 bookingData={selectedBooking}
                 onContinue={() => setCurrentView('list')}
+                onViewDetails={() => setCurrentView('overview')}
                 onBackPress={handleHeaderBackPress}
                 onPayOffer={onPayOffer}
             />
@@ -378,6 +380,12 @@ const MyBookingsScreen: React.FC<MyBookingsScreenProps> = ({
                 bookingData={selectedBooking}
                 cancellation={selectedBookingCancellation}
                 onFinish={() => setCurrentView('overview')}
+                onNavigateToBooking={(targetBookingId) => {
+                    const target = userBookings?.find(b => b.id === targetBookingId);
+                    if (target) {
+                        handleBookingSelectPress(target);
+                    }
+                }}
             />
         );
     }

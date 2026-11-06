@@ -9,7 +9,7 @@ export function useBusinessAdminList() {
 
     useEffect(() => {
         const fetch = async () => {
-            if (!businessId || !role || role !== 'admin') return;
+            if (!businessId || !role || (role !== 'admin' && role !== 'owner')) return;
             await useBusinessesStore.getState().loadBusinessAdmins(businessId)
         }
 
@@ -17,7 +17,7 @@ export function useBusinessAdminList() {
     }, [businessId, role]);
 
     const onRefreshBusinessAdmins = useCallback(async () => {
-        if (!businessId || !role || role !== 'admin') return;
+        if (!businessId || !role || (role !== 'admin' && role !== 'owner')) return;
         await useBusinessesStore.getState().reloadBusinessAdmins(businessId)
     }, [businessId, role])
 

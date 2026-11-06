@@ -1,8 +1,19 @@
 import { Colors } from '@/src/constants/colors';
 import { ITrail } from '@/src/core/models/Trail/Trail';
+import { trailMapAssets } from '@/src/features/Map/Map';
 import { ImageSourcePropType } from 'react-native';
 
 const DEFAULT_HERO_IMAGE: ImageSourcePropType = require('@/src/assets/images/Mt.Tagapo.jpg');
+
+export const LOCAL_TRAIL_COVER_PHOTOS: Record<string, ImageSourcePropType> = {
+    batulaoNew: require('@/src/assets/images/Batulao-New-Trail.jpeg'),
+    mariangMakiling: require('@/src/assets/images/Mariang-Makiling-Trail.jpg'),
+    makilingTraverse: require('@/src/assets/images/Mt-Makiling-Traverse.jpg'),
+    batulao: require('@/src/assets/images/Mt-Batulao.jpg'),
+    daraitan: require('@/src/assets/images/Mt-Daraitan.jpg'),
+    sembrano: require('@/src/assets/images/Mt-Sembrano.jpg'),
+    tagapo: DEFAULT_HERO_IMAGE,
+};
 
 export interface GlossaryData {
     title: string;
@@ -129,14 +140,93 @@ export const getFeatureIcon = (label: string): { library: string; name: string }
     return { library: 'Feather', name: 'check-circle' };
 };
 
+const getTrailSearchTokens = (item?: Partial<ITrail> | null): string => {
+    if (!item) return '';
+    const idStr = item.id || '';
+    const nameStr = item.general?.name || '';
+    const mountainArr = Array.isArray(item.general?.mountain)
+        ? item.general?.mountain.join(' ')
+        : (item.general?.mountain || '');
+    return `${idStr} ${nameStr} ${mountainArr}`.toLowerCase();
+};
+
+export const isTagapoTrail = (item?: Partial<ITrail> | null): boolean => {
+    return getTrailSearchTokens(item).includes('tagapo');
+};
+
+export const getMatchedLocalCoverPhoto = (item?: Partial<ITrail> | null): ImageSourcePropType | null => {
+    if (!item) return null;
+    const tokens = getTrailSearchTokens(item);
+
+    // 1. Specific trail-level matches first
+    if (tokens.includes('batulao new') || tokens.includes('batulao-new') || tokens.includes('batulao_new')) {
+        return LOCAL_TRAIL_COVER_PHOTOS.batulaoNew;
+    }
+    if (tokens.includes('mariang makiling') || tokens.includes('mariang-makiling') || tokens.includes('mmt')) {
+        return LOCAL_TRAIL_COVER_PHOTOS.mariangMakiling;
+    }
+    if (tokens.includes('makiling traverse') || tokens.includes('makiling-traverse') || tokens.includes('maktrav')) {
+        return LOCAL_TRAIL_COVER_PHOTOS.makilingTraverse;
+    }
+
+    // 2. Mountain-level matches
+    if (tokens.includes('batulao')) return LOCAL_TRAIL_COVER_PHOTOS.batulao;
+    if (tokens.includes('daraitan')) return LOCAL_TRAIL_COVER_PHOTOS.daraitan;
+    if (tokens.includes('sembrano')) return LOCAL_TRAIL_COVER_PHOTOS.sembrano;
+    if (tokens.includes('tagapo')) return LOCAL_TRAIL_COVER_PHOTOS.tagapo;
+    if (tokens.includes('makiling')) return LOCAL_TRAIL_COVER_PHOTOS.mariangMakiling;
+
+    return null;
+};
+
+export const getMatchedLocalMapAsset = (item?: Partial<ITrail> | null): ImageSourcePropType | null => {
+    if (!item) return null;
+    if (item.id && Object.prototype.hasOwnProperty.call(trailMapAssets, item.id)) {
+        return trailMapAssets[item.id];
+    }
+    const tokens = getTrailSearchTokens(item);
+    if (tokens.includes('tagapo')) return trailMapAssets['mock_tagapo'];
+    if (tokens.includes('marami')) return trailMapAssets['mock_marami'];
+    if (tokens.includes('batulao')) return trailMapAssets['mock_batulao'];
+    if (tokens.includes('makiling')) return trailMapAssets['mock_makiling'];
+    if (tokens.includes('maculot')) return trailMapAssets['mock_maculot'];
+    if (tokens.includes('daraitan')) return trailMapAssets['mock_daraitan'];
+    if (tokens.includes('kulis')) return trailMapAssets['mock_kulis'];
+    return null;
+};
+
+export const getCardImageSource = (item?: Partial<ITrail> | null): ImageSourcePropType | null => {
+    if (item?.coverImage && item.coverImage.trim().length > 0) {
+        return { uri: item.coverImage };
+    }
+    const localCoverPhoto = getMatchedLocalCoverPhoto(item);
+    if (localCoverPhoto) {
+        return localCoverPhoto;
+    }
+    if (item?.routeMapImage && item.routeMapImage.trim().length > 0) {
+        return { uri: item.routeMapImage };
+    }
+    return getMatchedLocalMapAsset(item);
+};
+
+export const getTrailHeroPhoto = (item?: Partial<ITrail> | null): ImageSourcePropType | null => {
+    if (item?.coverImage && item.coverImage.trim().length > 0) {
+        return { uri: item.coverImage };
+    }
+    return getMatchedLocalCoverPhoto(item);
+};
+
 export const getHeroImageSource = (item?: Partial<ITrail> | null): ImageSourcePropType => {
-    if (item?.coverImage) return { uri: item.coverImage };
-    if (item?.routeMapImage) return { uri: item.routeMapImage };
-    return DEFAULT_HERO_IMAGE;
+    return getCardImageSource(item) ?? DEFAULT_HERO_IMAGE;
 };
 
 export const isUsingMapFallback = (item?: Partial<ITrail> | null): boolean => {
-    return !item?.coverImage && !!item?.routeMapImage;
+    if (item?.coverImage && item.coverImage.trim().length > 0) return false;
+    if (getMatchedLocalCoverPhoto(item)) return false;
+    return Boolean(
+        (item?.routeMapImage && item.routeMapImage.trim().length > 0) ||
+        getMatchedLocalMapAsset(item)
+    );
 };
 
 export const formatRouteType = (routeType?: string | null): string => {
@@ -144,4 +234,103 @@ export const formatRouteType = (routeType?: string | null): string => {
     if (display === "Out and Back" || display === "Out-and-Back") return "Out & Back";
     if (display === "Point-to-Point") return "Pt to Pt";
     return display;
+};
+
+const normalizeListTokens = (value?: string[] | string | null): string[] => {
+    if (!value) return [];
+    const raw = Array.isArray(value) ? value : [value];
+    return raw
+        .map((s) => String(s).toLowerCase().trim())
+        .filter((s) => s.length > 0);
+};
+
+/**
+ * Computes a weighted similarity score (0-100) for other trails compared to `currentTrail`
+ * and returns up to `maxCount` most similar active trails:
+ * - Same Mountain: +35 pts
+ * - Same Province: +25 pts
+ * - Same Classification (Minor/Major): +20 pts
+ * - Similar Difficulty (lascoRating within ±0/1/2): +15 / +10 / +5 pts
+ * - Same Route Type (circularity): +5 pts
+ */
+export const getSimilarTrails = (
+    currentTrail?: ITrail | null,
+    allTrails?: ITrail[] | null,
+    maxCount = 4
+): ITrail[] => {
+    if (!currentTrail || !allTrails || allTrails.length === 0) return [];
+
+    const currentMountains = normalizeListTokens(currentTrail.general?.mountain);
+    const currentNameLower = (currentTrail.general?.name || '').toLowerCase();
+    const currentProvinces = normalizeListTokens(currentTrail.general?.province);
+    const currentClass = (currentTrail.difficulty?.classification || '').toLowerCase().trim();
+    const currentRatingDiff = Number(currentTrail.difficulty?.lascoRating) || 0;
+    const currentRoute = formatRouteType(currentTrail.difficulty?.circularity);
+
+    const scoredCandidates = allTrails
+        .filter((candidate) => candidate.id !== currentTrail.id && candidate.general?.active !== false)
+        .map((candidate) => {
+            let score = 0;
+
+            // 1. Same Mountain (+35 pts)
+            const candidateMountains = normalizeListTokens(candidate.general?.mountain);
+            const candidateNameLower = (candidate.general?.name || '').toLowerCase();
+            const sharesMountain =
+                (currentMountains.length > 0 &&
+                    candidateMountains.some((m) =>
+                        currentMountains.some((cm) => cm === m || cm.includes(m) || m.includes(cm))
+                    )) ||
+                (currentNameLower.includes('batulao') && candidateNameLower.includes('batulao')) ||
+                (currentNameLower.includes('makiling') && candidateNameLower.includes('makiling'));
+
+            if (sharesMountain) {
+                score += 35;
+            }
+
+            // 2. Same Province (+25 pts)
+            const candidateProvinces = normalizeListTokens(candidate.general?.province);
+            const sharesProvince =
+                currentProvinces.length > 0 &&
+                candidateProvinces.some((p) =>
+                    currentProvinces.some((cp) => cp === p || cp.includes(p) || p.includes(cp))
+                );
+
+            if (sharesProvince) {
+                score += 25;
+            }
+
+            // 3. Same Classification (+20 pts)
+            const candidateClass = (candidate.difficulty?.classification || '').toLowerCase().trim();
+            if (currentClass && candidateClass && currentClass === candidateClass) {
+                score += 20;
+            }
+
+            // 4. Similar Difficulty Rating (+15 / +10 / +5 pts)
+            const candidateRatingDiff = Number(candidate.difficulty?.lascoRating) || 0;
+            if (currentRatingDiff > 0 && candidateRatingDiff > 0) {
+                const diffDelta = Math.abs(currentRatingDiff - candidateRatingDiff);
+                if (diffDelta === 0) score += 15;
+                else if (diffDelta === 1) score += 10;
+                else if (diffDelta === 2) score += 5;
+            }
+
+            // 5. Same Route Type (+5 pts)
+            const candidateRoute = formatRouteType(candidate.difficulty?.circularity);
+            if (currentRoute !== '--' && currentRoute === candidateRoute) {
+                score += 5;
+            }
+
+            return {
+                trail: candidate,
+                score,
+                reviewRating: Number(candidate.general?.rating) || 0,
+            };
+        });
+
+    scoredCandidates.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return b.reviewRating - a.reviewRating;
+    });
+
+    return scoredCandidates.slice(0, maxCount).map((entry) => entry.trail);
 };

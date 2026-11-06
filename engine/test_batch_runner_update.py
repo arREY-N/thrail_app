@@ -300,5 +300,82 @@ class TestMonthlyBatchProfileUpdate(unittest.TestCase):
         self.assertGreater(len(reco["easy"]) + len(reco["difficult"]), 0)
 
 
+    def test_batch_recommendations_with_target_user_ids(self):
+        """
+        Verifies that passing target_user_ids restricts recommendation generation
+        strictly to the specified users, while retaining all profiled users in the CF peer pool.
+        """
+        user_2 = {
+            "id": "user_monthly_test_2",
+            "name": "Sam Trekker",
+            "profile": self.user["profile"]
+        }
+        all_users = [self.user, user_2]
+
+        report = run_batch_recommendations(
+            cbf_engine="GD",
+            cf_engine="GD",
+            month_id="2026-11",
+            candidate_trails=self.trails,
+            users=all_users,
+            target_user_ids=["user_monthly_test_1"],
+            commit_to_firestore=False,
+            generate_ai_reasoning=False
+        )
+
+        self.assertEqual(report["status"], "success")
+        self.assertEqual(report["total_users_processed"], 1)
+        sample_user_ids = [s["userId"] for s in report["samples"]]
+        self.assertIn("user_monthly_test_1", sample_user_ids)
+        self.assertNotIn("user_monthly_test_2", sample_user_ids)
+
+    def test_batch_recommendations_target_user_without_profile_raises_error(self):
+        """
+        Verifies the strict rule: "No profile, no recommendation".
+        Selecting a user without an active profile must raise a ValueError.
+        """
+        unprofiled_user = {
+            "id": "unprofiled_user_999",
+            "name": "No Profile User"
+        }
+        all_users = [self.user, unprofiled_user]
+
+        with self.assertRaises(ValueError) as ctx:
+            run_batch_recommendations(
+                cbf_engine="GD",
+                cf_engine="GD",
+                month_id="2026-11",
+                candidate_trails=self.trails,
+                users=all_users,
+                target_user_ids=["unprofiled_user_999"],
+                commit_to_firestore=False,
+                generate_ai_reasoning=False
+            )
+        self.assertIn("Active Profile Required", str(ctx.exception))
+
+
+    def test_batch_recommendations_generate_ai_reasoning_toggle(self):
+        """
+        Verifies that setting generate_ai_reasoning=False skips Gemini AI explanation synthesis,
+        leaving aiReasonings empty to maximize simulation speed.
+        """
+        report = run_batch_recommendations(
+            cbf_engine="GD",
+            cf_engine="GD",
+            month_id="2026-11",
+            candidate_trails=self.trails,
+            users=[self.user],
+            commit_to_firestore=False,
+            generate_ai_reasoning=False
+        )
+
+        self.assertEqual(report["status"], "success")
+        self.assertIn("user_monthly_test_1", report["recommendations"])
+        user_reco = report["recommendations"]["user_monthly_test_1"]
+        self.assertEqual(user_reco["aiReasonings"], {})
+
+
 if __name__ == "__main__":
     unittest.main()
+
+

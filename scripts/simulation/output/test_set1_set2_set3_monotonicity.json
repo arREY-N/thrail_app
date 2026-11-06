@@ -1,0 +1,262 @@
+{
+  "Test (Original)": {
+    "Set 1: Pure Gower": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 2: Pure Euclidean": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 3: Pure Cosine": {
+      "gain": 43,
+      "len": 41,
+      "slope": 44,
+      "all3": 40,
+      "total": 44
+    },
+    "Set 4: GD / ED": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 5: GD / CS": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 6: ED / GD": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 7: ED / CS": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 8: CS / GD": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 9: CS / ED": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    }
+  },
+  "Set 1 (Mirrored)": {
+    "Set 1: Pure Gower": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 2: Pure Euclidean": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 3: Pure Cosine": {
+      "gain": 43,
+      "len": 41,
+      "slope": 44,
+      "all3": 40,
+      "total": 44
+    },
+    "Set 4: GD / ED": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 5: GD / CS": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 6: ED / GD": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 7: ED / CS": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 8: CS / GD": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 9: CS / ED": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    }
+  },
+  "Set 2 (Mirrored)": {
+    "Set 1: Pure Gower": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 2: Pure Euclidean": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 3: Pure Cosine": {
+      "gain": 44,
+      "len": 41,
+      "slope": 44,
+      "all3": 41,
+      "total": 44
+    },
+    "Set 4: GD / ED": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 5: GD / CS": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 6: ED / GD": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 7: ED / CS": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 8: CS / GD": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 9: CS / ED": {
+      "gain": 44,
+      "len": 43,
+      "slope": 44,
+      "all3": 43,
+      "total": 44
+    }
+  },
+  "Set 3 (Mirrored)": {
+    "Set 1: Pure Gower": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 2: Pure Euclidean": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 3: Pure Cosine": {
+      "gain": 44,
+      "len": 40,
+      "slope": 44,
+      "all3": 40,
+      "total": 44
+    },
+    "Set 4: GD / ED": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 5: GD / CS": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 6: ED / GD": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 7: ED / CS": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 8: CS / GD": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    },
+    "Set 9: CS / ED": {
+      "gain": 44,
+      "len": 44,
+      "slope": 44,
+      "all3": 44,
+      "total": 44
+    }
+  }
+}

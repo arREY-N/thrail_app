@@ -3,7 +3,7 @@
  * @description Admin screen displaying detailed information for an offer and its filtered, sortable recent bookings list.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
     Platform,
     ScrollView,
@@ -19,12 +19,8 @@ import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import {
     CustomTutorialModal,
-    isTutorialMeasurementActive,
-    registerMeasureCallback,
-    registerTutorialLayout,
-    requestTargetMeasurement,
     TutorialHelpButton,
-    useTutorialGuide,
+    useAdminOfferViewTutorial,
 } from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
@@ -79,66 +75,24 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
         filteredBookings 
     } = useBookingFilters(bookings, cancellations);
 
-    const tutorial = useTutorialGuide('admin_offer_view', Boolean(offer));
-    const scrollViewRef = useRef<ScrollView>(null);
-    const summaryRef = useRef<View>(null);
-    const filtersRef = useRef<View>(null);
-    const firstBookingRef = useRef<View>(null);
-    const emptyStateRef = useRef<View>(null);
-    const bookingsOffsetY = useRef<number>(240);
+    const handleResetFilterToAll = useCallback(() => {
+        setActiveFilter('All');
+    }, [setActiveFilter]);
 
-    const measureSummaryNow = useCallback(() => {
-        summaryRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('admin_view_summary', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureFiltersNow = useCallback(() => {
-        filtersRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('admin_view_filters', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureBookingCardNow = useCallback(() => {
-        const target = firstBookingRef.current || emptyStateRef.current;
-        target?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('admin_view_booking_card', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    useEffect(() => {
-        const u1 = registerMeasureCallback('admin_view_summary', measureSummaryNow);
-        const u2 = registerMeasureCallback('admin_view_filters', measureFiltersNow);
-        const u3 = registerMeasureCallback('admin_view_booking_card', measureBookingCardNow);
-        return () => {
-            u1();
-            u2();
-            u3();
-        };
-    }, [measureSummaryNow, measureFiltersNow, measureBookingCardNow]);
-
-    useEffect(() => {
-        if (!tutorial.isVisible) return;
-        const step = tutorial.currentStep?.targetSpotlight;
-        if (!step) return;
-        if (step === 'admin_view_summary' || step === 'header_help') {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-        } else if (step === 'admin_view_filters') {
-            scrollViewRef.current?.scrollTo({ y: Math.max(0, bookingsOffsetY.current - 80), animated: true });
-        } else if (step === 'admin_view_booking_card') {
-            scrollViewRef.current?.scrollTo({ y: Math.max(0, bookingsOffsetY.current - 16), animated: true });
-            setTimeout(() => {
-                requestTargetMeasurement('admin_view_booking_card');
-            }, 250);
-        }
-        requestTargetMeasurement(step);
-    }, [tutorial.isVisible, tutorial.currentStep?.targetSpotlight]);
+    const {
+        scrollViewRef,
+        summaryRef,
+        filtersRef,
+        firstBookingRef,
+        emptyStateRef,
+        handleSummaryLayout,
+        handleFiltersLayout,
+        handleBookingCardLayout,
+        tutorial,
+    } = useAdminOfferViewTutorial({
+        isReady: Boolean(offer),
+        onResetFilterToAll: handleResetFilterToAll,
+    });
 
     const cancellationsByBookingId = useMemo(() => {
         const map = new Map<string, Cancellation>();
@@ -183,9 +137,7 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                         ref={summaryRef}
                         collapsable={false}
                         style={styles.summaryCardWrapper}
-                        onLayout={() => {
-                            if (isTutorialMeasurementActive()) measureSummaryNow();
-                        }}
+                        onLayout={handleSummaryLayout}
                     >
                         <OfferSummaryCard 
                         offer={offer} 
@@ -199,10 +151,7 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                     <View
                         ref={filtersRef}
                         collapsable={false}
-                        onLayout={(e) => {
-                            bookingsOffsetY.current = e.nativeEvent.layout.y;
-                            if (isTutorialMeasurementActive()) measureFiltersNow();
-                        }}
+                        onLayout={(e) => handleFiltersLayout(e.nativeEvent.layout.y)}
                     >
                         <View style={styles.sectionHeaderRow}>
                         <CustomText variant="h3" style={styles.sectionTitle}>
@@ -253,9 +202,7 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                                     ref={index === 0 ? firstBookingRef : undefined}
                                     collapsable={false}
                                     style={styles.bookingCardWrapper}
-                                    onLayout={index === 0 ? () => {
-                                        if (isTutorialMeasurementActive()) measureBookingCardNow();
-                                    } : undefined}
+                                    onLayout={index === 0 ? handleBookingCardLayout : undefined}
                                 >
                                     <AdminBookingCard 
                                         key={b.id} 
@@ -272,9 +219,7 @@ const OfferViewScreen: React.FC<OfferViewScreenProps> = ({
                         <View
                             ref={emptyStateRef}
                             collapsable={false}
-                            onLayout={() => {
-                                if (isTutorialMeasurementActive()) measureBookingCardNow();
-                            }}
+                            onLayout={handleBookingCardLayout}
                             style={styles.emptyState}
                         >
                             <CustomIcon 

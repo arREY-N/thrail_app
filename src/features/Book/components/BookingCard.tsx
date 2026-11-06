@@ -3,26 +3,38 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import BookingCardBanner from '@/src/features/Book/components/BookingCardBanner';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { getStatusConfig } from '@/src/constants/statusConfig';
+import { IconLibrary } from '@/src/types/ui.types';
 import { DateInput, formatBookingDate, safeParseDateString } from '@/src/utils/dateFormatter';
 
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
-import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
+import { Booking, IPayment, useBookingsStore } from '@/src/core/models/Booking/Booking';
 import { Cancellation } from '@/src/core/models/Cancellation/Cancellation';
+import { useOfferStore } from '@/src/core/models/Offer/Offer';
+
+type RescheduledBooking = Booking & {
+    rescheduledToBookingId?: string;
+    rescheduledFromBookingId?: string;
+};
 
 const getFormattedUpdateStatus = (
     updatedAt: DateInput,
     createdAt: DateInput,
     status?: string,
-    offerDate?: DateInput
+    offerDate?: DateInput,
+    isPaymentVerifying?: boolean
 ): string => {
     let prefix = 'Updated';
     let targetDateInput: DateInput = updatedAt || createdAt;
 
-    if (status === 'expired') {
+    if (isPaymentVerifying) {
+        prefix = 'Submitted';
+        targetDateInput = updatedAt || createdAt;
+    } else if (status === 'expired') {
         prefix = 'Expired';
         targetDateInput = offerDate || updatedAt || createdAt;
     } else if (status === 'finished' || status === 'completed') {
@@ -74,6 +86,9 @@ const BookingCard: React.FC<BookingCardProps> = ({
     role = 'user',
     cancellation,
 }) => {
+    const offers = useOfferStore(s => s.data);
+    const userBookings = useBookingsStore(s => s.userBookings);
+
     if (!booking) return null;
 
     const today = new Date();
@@ -172,11 +187,12 @@ const BookingCard: React.FC<BookingCardProps> = ({
         'cancellation-rejected',
         'reschedule-rejected',
         'finished',
-        'expired'
+        'expired',
+        'rescheduled',
     ].includes(displayStatus || '');
 
     if (isPast && !isDead) {
-        if (['completed', 'paid', 'rescheduled'].includes(displayStatus || '')) {
+        if (['completed', 'paid'].includes(displayStatus || '')) {
             displayStatus = 'finished';
         } else {
             displayStatus = 'expired';
@@ -213,7 +229,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
     );
 
     let actionLabel = "View Details";
-    let actionColor: string = Colors.PRIMARY;
+    let actionColor: string = isPaymentVerifying ? Colors.STATUS_PENDING_TEXT : Colors.PRIMARY;
     let actionIcon = "chevron-right";
 
     if (!isPast && !isDead) {
@@ -244,7 +260,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
                 actionColor = Colors.ERROR;
             } else if (isPaymentVerifying) {
                 actionLabel = "View Details";
-                actionColor = Colors.PRIMARY;
+                actionColor = Colors.STATUS_PENDING_TEXT;
             } else {
                 actionLabel = "Pay Now";
                 actionColor = Colors.SUCCESS;
@@ -253,11 +269,19 @@ const BookingCard: React.FC<BookingCardProps> = ({
             actionLabel = "Update Docs";
             actionColor = Colors.ERROR;
         } else if (displayStatus === 'downpayment') {
-            actionLabel = "Pay Balance";
-            actionColor = Colors.WARNING;
+            if (isPaymentVerifying) {
+                actionLabel = "View Details";
+                actionColor = Colors.STATUS_PENDING_TEXT;
+            } else if (isPaymentRejected) {
+                actionLabel = "Resubmit Payment";
+                actionColor = Colors.ERROR;
+            } else {
+                actionLabel = "Pay Balance";
+                actionColor = Colors.WARNING;
+            }
         } else if (displayStatus === 'for-reschedule') {
             actionLabel = "View Details";
-            actionColor = '#0369A1';
+            actionColor = Colors.STATUS_PENDING_TEXT;
         } else if (displayStatus === 'rescheduled') {
             actionLabel = "View Details";
             actionColor = Colors.SUCCESS;
@@ -269,15 +293,29 @@ const BookingCard: React.FC<BookingCardProps> = ({
     const isWalletNeeded = displayStatus === 'refund' && !isPayMongo && !cancellation?.userWallet?.accountNumber;
     const isConfirmReceiptNeeded = displayStatus === 'refund' && !isPayMongo && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted');
     const isOverpaymentActionNeeded = booking?.overpayment?.status === 'awaiting_hiker_wallet' || booking?.overpayment?.status === 'awaiting_user_confirmation';
-    const isDownpayment = displayStatus === 'downpayment';
+    const isOverpaymentWaiting = booking?.overpayment?.status === 'awaiting_admin_payout' || booking?.overpayment?.status === 'refund_disputed';
+    const hasActiveOverpayment = isOverpaymentActionNeeded || isOverpaymentWaiting;
+    const isDownpayment = displayStatus === 'downpayment' && !isPaymentVerifying && !isPaymentRejected;
+
+    if (isOverpaymentActionNeeded) {
+        if (booking?.overpayment?.status === 'awaiting_hiker_wallet') {
+            actionLabel = "Submit Wallet";
+            actionColor = Colors.WARNING;
+        } else if (booking?.overpayment?.status === 'awaiting_user_confirmation') {
+            actionLabel = "Confirm Receipt";
+            actionColor = Colors.WARNING;
+        }
+    }
+
+    const isWarningActionNeeded = isOverpaymentActionNeeded || isWalletNeeded || isConfirmReceiptNeeded || isDownpayment;
 
     const borderHighlightStyle = !isPast && !isDead
         ? isRejection || (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed'))
             ? styles.rejectionBorder
-            : (isPaymentNeeded || isWalletNeeded || isConfirmReceiptNeeded || isOverpaymentActionNeeded)
-                ? styles.paymentBorder
-                : isDownpayment
-                    ? styles.downpaymentBorder
+            : isWarningActionNeeded
+                ? styles.downpaymentBorder
+                : isPaymentNeeded
+                    ? styles.paymentBorder
                     : displayStatus === 'for-reschedule'
                         ? styles.rescheduleBorder
                         : null
@@ -296,16 +334,100 @@ const BookingCard: React.FC<BookingCardProps> = ({
         effectiveUpdatedAt,
         booking?.createdAt,
         displayStatus,
-        booking?.offer?.date
+        booking?.offer?.date,
+        isPaymentVerifying
     );
     const trailName = booking?.trail?.name || 'Hiking Package';
     const businessName = booking?.business?.name || 'Independent Guide';
     const formattedDate = formatBookingDate(booking?.offer?.date, undefined, true);
+
+    const extBooking = booking as RescheduledBooking | undefined;
+    const targetOffer = offers?.find(o => o.id === booking?.rescheduledToOfferId);
+    const targetBooking = userBookings?.find(b => {
+        const ext = b as RescheduledBooking;
+        return ext.id === extBooking?.rescheduledToBookingId || ext.rescheduledFromBookingId === booking?.id;
+    });
+    const newOfferDate = targetOffer?.date || targetBooking?.offer?.date;
+    const newDateFormatted = newOfferDate ? formatBookingDate(newOfferDate, undefined, true) : null;
+    const isNewRescheduledBooking = Boolean(
+        extBooking?.rescheduledFromBookingId ||
+        (booking?.id && userBookings?.some(b => (b as RescheduledBooking).rescheduledToBookingId === booking.id))
+    );
+
     const price = booking?.offer?.price || 0;
     const capturedAmount = booking?.payment?.reduce((sum: number, p: IPayment<Date>) => p.status === 'captured' ? sum + (p.amount || 0) : sum, 0) || 0;
     const remainingBalance = booking?.remainingBalance !== undefined
         ? booking.remainingBalance
         : Math.max(0, price - capturedAmount);
+
+    // Pill color and border resolution
+    const pillBgColor = isPaymentRejected
+        ? Colors.ERROR_BG
+        : (isPaymentVerifying
+            ? Colors.STATUS_PENDING_BG
+            : (hasActiveOverpayment
+                ? (isOverpaymentActionNeeded ? Colors.STATUS_WARNING_BG : Colors.STATUS_PENDING_BG)
+                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                    ? Colors.STATUS_WARNING_BG
+                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                        ? Colors.ERROR_BG
+                        : statusConfig.bgColor))));
+
+    const pillBorderColor = isPaymentRejected
+        ? Colors.ERROR_BORDER
+        : (isPaymentVerifying
+            ? Colors.STATUS_PENDING_BORDER
+            : (hasActiveOverpayment
+                ? (isOverpaymentActionNeeded ? Colors.STATUS_WARNING_BORDER : Colors.STATUS_PENDING_BORDER)
+                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                    ? Colors.STATUS_WARNING_BORDER
+                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                        ? Colors.ERROR_BORDER
+                        : (statusConfig.borderColor || Colors.STATUS_PENDING_BORDER)))));
+
+    const pillTextColor = isPaymentRejected
+        ? Colors.ERROR
+        : (isPaymentVerifying
+            ? Colors.STATUS_PENDING_TEXT
+            : (hasActiveOverpayment
+                ? (isOverpaymentActionNeeded ? Colors.STATUS_WARNING_TEXT : Colors.STATUS_PENDING_TEXT)
+                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                    ? Colors.STATUS_WARNING_TEXT
+                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                        ? Colors.ERROR
+                        : statusConfig.textColor))));
+
+    const pillIconName = isPaymentRejected
+        ? "alert-triangle"
+        : (isPaymentVerifying
+            ? "clock"
+            : (hasActiveOverpayment
+                ? (isOverpaymentActionNeeded ? "alert-circle" : "clock")
+                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                    ? "alert-circle"
+                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                        ? "alert-triangle"
+                        : statusConfig.icon))));
+
+    const pillLabel = isPaymentRejected
+        ? "PAYMENT REJECTED"
+        : (isPaymentVerifying
+            ? "VERIFYING PAYMENT"
+            : (hasActiveOverpayment
+                ? (booking?.overpayment?.status === 'awaiting_user_confirmation'
+                    ? "CONFIRM REFUND"
+                    : (booking?.overpayment?.status === 'awaiting_hiker_wallet'
+                        ? "SUBMIT WALLET"
+                        : "REFUND PENDING"))
+                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
+                    ? "CONFIRM REFUND"
+                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
+                        ? "REFUND DISPUTED"
+                        : statusConfig.label))));
+
+    const pillIconLibrary: IconLibrary = isPaymentRejected || isPaymentVerifying || hasActiveOverpayment || (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted' || cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed'))
+        ? 'Feather'
+        : (statusConfig.iconLibrary || 'Feather');
 
     return (
         <TouchableOpacity
@@ -326,65 +448,24 @@ const BookingCard: React.FC<BookingCardProps> = ({
                     style={[
                         styles.statusPill,
                         {
-                            backgroundColor: isPaymentRejected
-                                ? Colors.ERROR_BG
-                                : (isPaymentVerifying
-                                    ? Colors.STATUS_PENDING_BG
-                                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
-                                        ? '#FEF3C7'
-                                        : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
-                                            ? Colors.ERROR_BG
-                                            : statusConfig.bgColor)))
+                            backgroundColor: pillBgColor,
+                            borderColor: pillBorderColor,
                         }
                     ]}
                 >
                     <CustomIcon
-                        library="Feather"
-                        name={isPaymentRejected
-                            ? "alert-triangle"
-                            : (isPaymentVerifying
-                                ? "clock"
-                                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
-                                    ? "alert-circle"
-                                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
-                                        ? "alert-triangle"
-                                        : statusConfig.icon)))}
+                        library={pillIconLibrary}
+                        name={pillIconName}
                         size={12}
-                        color={isPaymentRejected
-                            ? Colors.ERROR
-                            : (isPaymentVerifying
-                                ? Colors.PRIMARY
-                                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
-                                    ? '#B45309'
-                                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
-                                        ? Colors.ERROR
-                                        : statusConfig.textColor)))}
+                        color={pillTextColor}
                     />
                     <CustomText
                         style={[
                             styles.statusPillText,
-                            {
-                                color: isPaymentRejected
-                                    ? Colors.ERROR
-                                    : (isPaymentVerifying
-                                        ? Colors.PRIMARY
-                                        : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
-                                            ? '#B45309'
-                                            : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
-                                                ? Colors.ERROR
-                                                : statusConfig.textColor)))
-                            }
+                            { color: pillTextColor }
                         ]}
                     >
-                        {isPaymentRejected
-                            ? "PAYMENT REJECTED"
-                            : (isPaymentVerifying
-                                ? "VERIFYING PAYMENT"
-                                : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'awaiting_user_confirmation' || cancellation?.status === 'refund_submitted')
-                                    ? "ACTION REQUIRED: CONFIRM RECEIPT"
-                                    : (displayStatus === 'refund' && (cancellation?.handshakeStep === 'refund_disputed' || cancellation?.status === 'refund_disputed')
-                                        ? "REFUND DISPUTED"
-                                        : statusConfig.label)))}
+                        {pillLabel}
                     </CustomText>
                 </View>
             </View>
@@ -412,50 +493,93 @@ const BookingCard: React.FC<BookingCardProps> = ({
                         name="calendar"
                         size={14}
                         color={Colors.TEXT_PLACEHOLDER}
+                        style={styles.dateIcon}
                     />
-                    <CustomText variant="caption" style={styles.infoText}>
-                        {formattedDate}
-                    </CustomText>
+                    {((displayStatus === 'rescheduled' || displayStatus === 'for-reschedule') && newDateFormatted) ? (
+                        <View style={styles.dateTransitionRow}>
+                            <CustomText variant="caption" style={styles.dateOldText}>
+                                {formattedDate}
+                            </CustomText>
+                            <CustomIcon
+                                library="Feather"
+                                name="arrow-right"
+                                size={11}
+                                color={displayStatus === 'for-reschedule' ? Colors.STATUS_PENDING_TEXT : Colors.PRIMARY}
+                            />
+                            <CustomText
+                                variant="caption"
+                                style={[
+                                    styles.dateNewText,
+                                    displayStatus === 'for-reschedule' && styles.datePendingNewText,
+                                ]}
+                            >
+                                {newDateFormatted}
+                            </CustomText>
+                        </View>
+                    ) : (
+                        <View style={styles.dateRowWithChip}>
+                            <CustomText variant="caption" style={styles.infoText}>
+                                {formattedDate}
+                                {isNewRescheduledBooking && (
+                                    <CustomText style={styles.rescheduledInlineText}>
+                                        {' '}•{' '}Rescheduled
+                                    </CustomText>
+                                )}
+                            </CustomText>
+                        </View>
+                    )}
                 </View>
             </View>
 
             {isPaymentRejected && (
-                <View style={styles.rejectionReasonBanner}>
-                    <CustomIcon library="Feather" name="alert-circle" size={13} color={Colors.ERROR} />
-                    <CustomText style={styles.rejectionReasonText} numberOfLines={2}>
-                        {booking?.paymentRejectionReason
-                            ? `Payment Rejected: "${booking.paymentRejectionReason}"`
-                            : "Payment receipt rejected. Please tap to resubmit."}
-                    </CustomText>
-                </View>
+                <BookingCardBanner
+                    status="payment-rejected"
+                    reason={booking?.paymentRejectionReason}
+                />
             )}
 
-            {isPaymentVerifying && (
-                <View style={styles.verifyingBanner}>
-                    <CustomIcon library="Feather" name="clock" size={13} color={Colors.PRIMARY} />
-                    <CustomText style={styles.verifyingText} numberOfLines={1}>
-                        Payment receipt submitted. Organizer verification in progress.
-                    </CustomText>
-                </View>
+            {displayStatus === 'reservation-rejected' && (
+                <BookingCardBanner
+                    status="reservation-rejected"
+                    reason={booking?.cancellationReason}
+                />
             )}
 
-            {displayStatus === 'for-reschedule' && (
-                <View style={styles.rescheduleBanner}>
-                    <CustomIcon library="Feather" name="calendar" size={13} color="#0369A1" />
-                    <CustomText style={styles.rescheduleText} numberOfLines={1}>
-                        Reschedule request submitted. Organizer approval in progress.
-                    </CustomText>
-                </View>
+            {(displayStatus === 'cancellation-rejected' || cancellation?.status === 'rejected') && displayStatus !== 'cancelled' && booking?.status !== 'cancelled' && (
+                <BookingCardBanner
+                    status="cancellation-rejected"
+                    reason={cancellation?.adminNote}
+                />
             )}
 
-            {displayStatus === 'rescheduled' && (
-                <View style={[styles.rescheduleBanner, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
-                    <CustomIcon library="Feather" name="check-circle" size={13} color="#059669" />
-                    <CustomText style={[styles.rescheduleText, { color: '#065F46' }]} numberOfLines={1}>
-                        Booking rescheduled to a new date.
-                    </CustomText>
-                </View>
+            {Boolean(booking?.rescheduleDeclineReason) && displayStatus !== 'for-reschedule' && (
+                <BookingCardBanner
+                    status="reschedule-rejected"
+                    reason={booking?.rescheduleDeclineReason}
+                />
             )}
+
+            {booking?.overpayment?.status === 'awaiting_hiker_wallet' && (
+                <BookingCardBanner
+                    status="overpayment-wallet-needed"
+                    reason={`₱${(booking.overpayment.excessAmount || 0).toFixed(2)} overpayment to be refunded to your e-wallet.`}
+                />
+            )}
+
+            {booking?.overpayment?.status === 'awaiting_user_confirmation' && (
+                <BookingCardBanner
+                    status="overpayment-verify-needed"
+                    reason={`₱${(booking.overpayment.excessAmount || 0).toFixed(2)} payout proof uploaded. Tap to verify receipt.`}
+                />
+            )}
+
+            {booking?.overpayment?.status === 'refund_disputed' && (
+                <BookingCardBanner
+                    status="overpayment-disputed"
+                    reason={booking.overpayment.disputeReason}
+                />
+            )}
+
 
             <View style={styles.dottedDivider} />
 
@@ -469,7 +593,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
                             variant="h2"
                             style={[
                                 styles.dataValue,
-                                { color: Colors.WARNING }
+                                { color: isPaymentVerifying ? Colors.TEXT_PRIMARY : Colors.WARNING }
                             ]}
                             numberOfLines={1}
                             adjustsFontSizeToFit={true}
@@ -510,7 +634,6 @@ const BookingCard: React.FC<BookingCardProps> = ({
                         />
                     </View>
                 </View>
-
             </View>
         </TouchableOpacity>
     );
@@ -538,60 +661,91 @@ const styles = StyleSheet.create({
         borderColor: Colors.WARNING,
         borderWidth: 1.5,
     },
+    warningBorder: {
+        borderColor: Colors.WARNING,
+        borderWidth: 1.5,
+    },
     topRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 12
+        alignItems: 'center',
+        marginBottom: 12,
     },
     trailName: {
         flex: 1,
         color: Colors.TEXT_PRIMARY,
         fontSize: 18,
         fontWeight: 'bold',
-        paddingRight: 12
+        paddingRight: 12,
     },
     statusPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 20,
-        gap: 4
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 16,
+        borderWidth: 1,
+        gap: 4,
     },
     statusPillText: {
         fontSize: 10,
         fontWeight: 'bold',
-        letterSpacing: 0.5
+        letterSpacing: 0.5,
     },
     middleRow: {
         gap: 8,
-        marginBottom: 4
+        marginBottom: 4,
     },
     infoWrapper: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8
+        alignItems: 'flex-start',
+        gap: 8,
+        flex: 1,
+    },
+    dateIcon: {
+        marginTop: 2,
     },
     infoText: {
         color: Colors.TEXT_SECONDARY,
-        fontSize: 13
+        fontSize: 13,
+        flexShrink: 1,
+    },
+    dateTransitionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        flex: 1,
+        rowGap: 2,
+        columnGap: 6,
+    },
+    dateOldText: {
+        color: Colors.TEXT_SECONDARY,
+        fontSize: 13,
+    },
+    dateNewText: {
+        color: Colors.PRIMARY,
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    datePendingNewText: {
+        color: Colors.STATUS_PENDING_TEXT,
+        fontWeight: 'bold',
     },
     dottedDivider: {
         height: 1,
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
         borderStyle: 'dashed',
-        marginVertical: 16
+        marginVertical: 16,
     },
     bottomRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'stretch'
+        alignItems: 'stretch',
     },
     priceColumnContainer: {
         flexDirection: 'row',
-        gap: 16
+        gap: 16,
     },
     flexCol: {
         justifyContent: 'space-between',
@@ -606,88 +760,44 @@ const styles = StyleSheet.create({
     dataLabel: {
         color: Colors.TEXT_PLACEHOLDER,
         fontSize: 11,
-        marginBottom: 4
+        marginBottom: 4,
     },
     updateLabel: {
         color: Colors.TEXT_PLACEHOLDER,
         fontSize: 11,
         fontStyle: 'italic',
-        marginBottom: 4
+        marginBottom: 4,
     },
     dataValue: {
         color: Colors.TEXT_PRIMARY,
         fontWeight: 'bold',
-        marginBottom: 0
+        marginBottom: 0,
     },
     viewDetailsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 2,
-        marginBottom: 0
+        marginBottom: 0,
     },
     viewDetailsText: {
         fontWeight: 'bold',
-        fontSize: 14
-    },
-    rejectionReasonBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: Colors.ERROR_BG,
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        marginTop: 10,
-        borderWidth: 1,
-        borderColor: Colors.ERROR_BORDER,
-    },
-    rejectionReasonText: {
-        flex: 1,
-        fontSize: 12,
-        color: Colors.ERROR,
-        lineHeight: 16,
-    },
-    verifyingBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: Colors.STATUS_PENDING_BG,
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        marginTop: 10,
-        borderWidth: 1,
-        borderColor: Colors.PRIMARY,
-    },
-    verifyingText: {
-        flex: 1,
-        fontSize: 12,
-        color: Colors.PRIMARY,
-        fontWeight: '600',
-        lineHeight: 16,
+        fontSize: 14,
     },
     rescheduleBorder: {
-        borderColor: '#BAE6FD',
+        borderColor: Colors.STATUS_PENDING_BORDER,
         borderWidth: 1.5,
     },
-    rescheduleBanner: {
+    dateRowWithChip: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        backgroundColor: '#F0F9FF',
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        marginTop: 10,
-        borderWidth: 1,
-        borderColor: '#BAE6FD',
-    },
-    rescheduleText: {
+        gap: 8,
+        flexWrap: 'wrap',
         flex: 1,
+    },
+    rescheduledInlineText: {
         fontSize: 12,
-        color: '#0369A1',
-        fontWeight: '600',
-        lineHeight: 16,
+        fontWeight: '700',
+        color: Colors.PRIMARY,
     },
 });
 

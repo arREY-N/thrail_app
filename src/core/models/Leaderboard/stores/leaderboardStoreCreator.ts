@@ -70,6 +70,12 @@ export const leaderboardStoreCreator: StateCreator<
         try {
             set({ isLoading: true, error: null });
 
+            if (get().current) {
+                set({ isLoading: false, error: null });
+                return get().current
+            }
+
+            console.log('fetching from repo');
             const board = await LeaderboardRepo.fetchLeaderboard(date);
 
             set(state => {

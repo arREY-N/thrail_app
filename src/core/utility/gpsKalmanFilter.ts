@@ -194,7 +194,7 @@ export class GpsKalmanFilter {
         : undefined;
 
     const cleanAlt =
-      typeof rawAlt === "number" && !isNaN(rawAlt) && isFinite(rawAlt)
+      typeof rawAlt === "number" && !isNaN(rawAlt) && isFinite(rawAlt) && rawAlt !== 0
         ? rawAlt
         : undefined;
 
@@ -335,6 +335,7 @@ export class GpsKalmanFilter {
         this.estAlt !== undefined
           ? this.estAlt + 0.25 * (cleanAlt - this.estAlt)
           : cleanAlt;
+      this.anchorAlt = this.estAlt;
     }
 
     // 6. Stationary Anchor Lock with Hysteresis (ZUPT)

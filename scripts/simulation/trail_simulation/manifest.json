@@ -1,0 +1,71 @@
+{
+  "created_at": "2026-11-03T23:54:05.291224+00:00",
+  "default_ui_stage": "idealistic_40trails_10cycles",
+  "description": "Frozen 40-trail scaling benchmark snapshots (idealistic, realistic, robustness)",
+  "files": {
+    "README.md": "f0199d83035b84ca16608d55f19f1edc42d9fee0cc371d9debeddb7e7d357fe3",
+    "inputs/catalog_seed42.json": "ad19b91bb0a371232d45dcda2ef8dce8af8bfda555e25bf24340aefed529ae11",
+    "inputs/catalog_seed7.json": "3264a5f63ede64e00d535d8620d8c0eb76f6ffdb3c2c8e18c96f370252d13ecb",
+    "inputs/gt_ranges.json": "7e6dd5d093b6916d26f9d44b275977717f72435ee6649694ceeb7fb290d6603b",
+    "inputs/norm_bounds_40trails.json": "b3c560172d1b6c8ed6b722ecd661eacaedb4566c43828bbcf43df68881fa1b34",
+    "inputs/real_trails_renormalized.json": "767b0146cfcf9c0da647778510bd3afde182f29c3d25345fab652ce63bad016d",
+    "inputs/start_distances_40trails.csv": "eacae103dfcc2126076cc6115d9157749c400a4c69d2feed0342293ee36ea2cf",
+    "inputs/users_40trails.json": "a60fdd4788ebdf707e5d5bbe7fdb3f005c40c69ca61588c893a0b79340c346f8",
+    "inputs/users_spec.json": "6282323d8520c3eba4567c8a62c7ec175d53d2675641fe09434ee7a2725c35c7",
+    "manage_trail_simulation.py": "b29578d727a4684a1d40dbb2e71be80569fc9a97b51aa5a26cf15c58107143b6",
+    "reports/GENERATION_REPORT.md": "0aefe990ea6dc93bd2e779b614c210a06c9b3bb56202fed54407975ea9d52ac8",
+    "reports/simulation_40trails_summary.md": "e6f73e35d596b86f980632eb5eee31e935fe5a0dfc20bb3195a3e0fa607fcd98",
+    "scripts/run_trail_simulation_harness.py": "7f6ee89e17123ac4f6090f3fc61ff7eca82ea9933b903735d9bf4afed2ed9f74",
+    "setup_trail_simulation_inputs.py": "89cac97f675668fac7697efa1fe674ef87bef0d9b41a1a8a5bc5678ea0d6f2ee",
+    "snapshots/idealistic_40trails_10cycles/convergence_summary.csv": "5fb557d4ac521034fae19c2c52f1501754825c7a13951ad66e105043be161625",
+    "snapshots/idealistic_40trails_10cycles/harness_results.json": "50ab5b207d9165087a82c673b45695b643aed5c37be396e88746c699b830de60",
+    "snapshots/idealistic_40trails_10cycles/simulatedUsers.json": "2b1d087743ae3761cf4ba66904f150e10c103423b068aa6c95d2d01c4f17794e",
+    "snapshots/idealistic_40trails_5cycles/convergence_summary.csv": "6093823951caebd46f102eb7a638a6e071d7ed4d834dc1a773632b2eaefc94ab",
+    "snapshots/idealistic_40trails_5cycles/harness_results.json": "7e1dc4275d79336c3888cf92b9b0d575a2e09c860dd298fa6c14fb41bf9f4d47",
+    "snapshots/idealistic_40trails_5cycles/simulatedUsers.json": "f979b70b7e4a0a31095a2e26b96bb7505e7269bafc04a6d5a7f72e4f97afcfab",
+    "snapshots/realistic_8trails_10cycles/convergence_summary.csv": "a97e9036c31e74b58a301065de5249da82fbc4f5932a9fcce9d1d13ad2799be2",
+    "snapshots/realistic_8trails_10cycles/harness_results.json": "d7d2af204b987e0f5bf62ea111bea3955b62e4a3ad7e53cbed822fec384034d6",
+    "snapshots/realistic_8trails_10cycles/simulatedUsers.json": "11f23a79464b2c91ad0afd795279618afda6add9008b67eb1768e9654bdad596",
+    "snapshots/robustness_seed7_10cycles/convergence_summary.csv": "2d0e1da7738bb8f3b00f7660afcbf4f688fd6115c15c1b898939053b721034bc",
+    "snapshots/robustness_seed7_10cycles/harness_results.json": "9ce1a53f3da928cdf1909b483b026a57732df721349cc4ef5e6d15571e43981b",
+    "snapshots/robustness_seed7_10cycles/simulatedUsers.json": "a802ffc30a618eeb8767ead78510bf9b09382276a8115326f061f109e10535f8",
+    "trail_generator/__init__.py": "1fc02874c4f3bcb7c73a6c9a7fd2e0730ec4b09645a3d62673e78b63462bbcf5",
+    "trail_generator/config.py": "fd41190af57ea10258708d7b88f2af627d62613e318d4098eda77f9f47d60d8b",
+    "trail_generator/generate.py": "4d3301559115f1a2f68b29af57169ea2c0d032807bd5f08d74642361c573b51d",
+    "trail_generator/output/GENERATION_REPORT.md": "0aefe990ea6dc93bd2e779b614c210a06c9b3bb56202fed54407975ea9d52ac8",
+    "trail_generator/output/catalog_seed42.json": "ad19b91bb0a371232d45dcda2ef8dce8af8bfda555e25bf24340aefed529ae11",
+    "trail_generator/output/catalog_seed7.json": "3264a5f63ede64e00d535d8620d8c0eb76f6ffdb3c2c8e18c96f370252d13ecb",
+    "trail_generator/output/norm_bounds_40trails.json": "b3c560172d1b6c8ed6b722ecd661eacaedb4566c43828bbcf43df68881fa1b34",
+    "trail_generator/output/real_trails.json": "8787ba4452b23df19e97c464f009e699c0071da3d6954cb29ef0257cf895859a",
+    "trail_generator/output/real_trails_renormalized.json": "767b0146cfcf9c0da647778510bd3afde182f29c3d25345fab652ce63bad016d",
+    "trail_generator/tests/test_generator.py": "3878692c7d24861b9f356a4ea309270a82767febf1c8c17bd49637777d28171a",
+    "trail_generator/validate.py": "401c78f14507d61426468168aa827020c80c18e7349fca818941518c48930136"
+  },
+  "module": "trail_simulation",
+  "stages": {
+    "idealistic_40trails_10cycles": {
+      "catalog_file": "catalog_seed42.json",
+      "cycles": 10,
+      "description": "Idealistic 40-trail catalog (Seed 42) across 10 monthly cycles",
+      "folder": "idealistic_40trails_10cycles"
+    },
+    "idealistic_40trails_5cycles": {
+      "catalog_file": "catalog_seed42.json",
+      "cycles": 5,
+      "description": "Idealistic 40-trail catalog (Seed 42) across 5 monthly cycles",
+      "folder": "idealistic_40trails_5cycles"
+    },
+    "realistic_8trails_10cycles": {
+      "catalog_file": "real_trails_renormalized.json",
+      "cycles": 10,
+      "description": "Realistic 8 real trails under 40-trail re-normalized coordinate space (10 cycles)",
+      "folder": "realistic_8trails_10cycles"
+    },
+    "robustness_seed7_10cycles": {
+      "catalog_file": "catalog_seed7.json",
+      "cycles": 10,
+      "description": "Robustness 40-trail catalog (Seed 7) across 10 monthly cycles",
+      "folder": "robustness_seed7_10cycles"
+    }
+  }
+}

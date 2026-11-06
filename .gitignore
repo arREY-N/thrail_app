@@ -99,5 +99,5 @@ __pycache__/
 .securecoder/
 .ignore
 
-scripts/simulation/aberrant_simulation/snapshots/
 scripts/simulation/cycle_simulation/snapshots/
+scripts/simulation/aberrant_simulation/snapshots/

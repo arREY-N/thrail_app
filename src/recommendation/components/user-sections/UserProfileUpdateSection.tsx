@@ -334,12 +334,12 @@ export default function UserProfileUpdateSection({
             easy: {
                 ...(userProfiles.easy || {}),
                 metadata: { type: "user", id: user.id, profile: "easy" },
-                features: simulatedUpdateResult.easyFeatures,
+                features: simulatedUpdateResult.easyFeatures as any,
             },
             difficult: {
                 ...(userProfiles.difficult || {}),
                 metadata: { type: "user", id: user.id, profile: "difficult" },
-                features: simulatedUpdateResult.diffFeatures,
+                features: simulatedUpdateResult.diffFeatures as any,
             },
         };
         await onSaveProfile(computedProfiles);

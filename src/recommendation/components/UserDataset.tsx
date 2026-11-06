@@ -21,7 +21,7 @@ import {
     HasMedicalCondition,
 } from "@/src/recommendation/utilities/CreateProfile";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -50,6 +50,10 @@ export interface UserDatasetProps {
     isLoading?: boolean;
     error?: Error | null;
     refresh?: () => Promise<void> | void;
+    selectedUserIds?: string[];
+    onToggleSelectUser?: (userId: string) => void;
+    onSelectAllUsers?: (userIds: string[]) => void;
+    onClearSelectedUsers?: () => void;
 }
 
 export default function UserDataset({
@@ -66,6 +70,10 @@ export default function UserDataset({
     isLoading = false,
     error = null,
     refresh,
+    selectedUserIds = [],
+    onToggleSelectUser,
+    onSelectAllUsers,
+    onClearSelectedUsers,
 }: UserDatasetProps) {
     const router = useRouter();
 
@@ -190,6 +198,36 @@ export default function UserDataset({
         return map;
     }, [paginatedUsers, trails, startElevations, trailProfilesMap]);
 
+    // Checkbox selection state calculations
+    const isAllFilteredSelected =
+        filteredUsers.length > 0 && filteredUsers.every((u) => selectedUserIds.includes(u.id));
+    const isSomeFilteredSelected =
+        filteredUsers.some((u) => selectedUserIds.includes(u.id));
+
+    const toggleSelectAllFiltered = useCallback(() => {
+        if (!onSelectAllUsers) return;
+        if (isAllFilteredSelected) {
+            const filteredIds = new Set(filteredUsers.map((u) => u.id));
+            onSelectAllUsers(selectedUserIds.filter((id) => !filteredIds.has(id)));
+        } else {
+            const combined = Array.from(new Set([...selectedUserIds, ...filteredUsers.map((u) => u.id)]));
+            onSelectAllUsers(combined);
+        }
+    }, [isAllFilteredSelected, filteredUsers, selectedUserIds, onSelectAllUsers]);
+
+    const missingProfileCountInSelection = useMemo(() => {
+        if (!selectedUserIds.length) return 0;
+        const selectedSet = new Set(selectedUserIds);
+        let missing = 0;
+        for (const u of users) {
+            if (selectedSet.has(u.id)) {
+                const hasProfile = !!u.profile || !!savedProfilesMap[u.id];
+                if (!hasProfile) missing++;
+            }
+        }
+        return missing;
+    }, [selectedUserIds, users, savedProfilesMap]);
+
     // Fast profile resolver for a user (O(1))
     const resolveProfiles = useCallback(
         (user: User): UserProfiles => {
@@ -273,6 +311,25 @@ export default function UserDataset({
 
                 {/* Filter Tabs */}
                 <View style={styles.filterTabs}>
+                    <TouchableOpacity
+                        key={'reset'}
+                        style={[styles.filterTab]}
+                        onPress={async () => {
+                            for (const user of users) {
+                                const initialProfiles = GenerateUserProfile(user, trails, startElevations, trailProfilesMap);
+                                if (!saveUserProfile) {
+                                    console.log('Cannot save user profile')
+                                    return
+                                }
+                                const success = await saveUserProfile(user.id, initialProfiles);
+                                if (!success) { console.log('Failed to save user profile', user) }
+                            }
+                        }}
+                    >
+                        <Text style={[styles.filterTabText]}>
+                            Reset All
+                        </Text>
+                    </TouchableOpacity>
                     {[
                         { key: "all", label: `All Users (${users.length})` },
                         { key: "with_profile", label: "Saved in DB" },
@@ -299,6 +356,54 @@ export default function UserDataset({
                     ))}
                 </View>
             </View>
+
+            {/* Targeted Run Selection Banner */}
+            {selectedUserIds.length > 0 && (
+                <View style={styles.selectionBanner}>
+                    <View style={styles.selectionInfo}>
+                        <View style={styles.selectionBadge}>
+                            <CustomIcon library="Feather" name="check-square" size={14} color={Colors.WHITE} />
+                            <Text style={styles.selectionBadgeText}>{selectedUserIds.length}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.selectionTitle}>
+                                {selectedUserIds.length} user{selectedUserIds.length > 1 ? "s" : ""} selected for targeted recommendations
+                            </Text>
+                            {missingProfileCountInSelection > 0 ? (
+                                <Text style={styles.selectionWarningText}>
+                                    ⚠️ {missingProfileCountInSelection} selected user{missingProfileCountInSelection > 1 ? "s do" : " does"} not have an active profile saved in DB. Please save their profile or deselect them before running.
+                                </Text>
+                            ) : (
+                                <Text style={styles.selectionSubtitle}>
+                                    Ready to run recommendations for these selected profiles.
+                                </Text>
+                            )}
+                        </View>
+                    </View>
+                    <View style={styles.selectionActions}>
+                        {onClearSelectedUsers && (
+                            <TouchableOpacity style={styles.clearSelectionBtn} onPress={onClearSelectedUsers}>
+                                <CustomIcon library="Feather" name="x" size={13} color={Colors.TEXT_SECONDARY} />
+                                <Text style={styles.clearSelectionBtnText}>Clear</Text>
+                            </TouchableOpacity>
+                        )}
+                        {onRunEnginePress && (
+                            <TouchableOpacity
+                                style={[
+                                    styles.runSelectedBtn,
+                                    missingProfileCountInSelection > 0 && styles.runSelectedBtnWarning,
+                                ]}
+                                onPress={onRunEnginePress}
+                            >
+                                <CustomIcon library="Feather" name="play" size={13} color={Colors.WHITE} />
+                                <Text style={styles.runSelectedBtnText}>
+                                    Run Engine for Selected ({selectedUserIds.length})
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+            )}
 
             {/* Error Banner */}
             {error && (
@@ -329,6 +434,28 @@ export default function UserDataset({
                         <View style={styles.table}>
                             {/* Sticky Table Header */}
                             <View style={styles.tableHeaderRow}>
+                                <TouchableOpacity
+                                    style={[styles.colCheckbox, styles.centerCell]}
+                                    onPress={toggleSelectAllFiltered}
+                                    accessibilityLabel="Toggle select all filtered users"
+                                >
+                                    <CustomIcon
+                                        library="Feather"
+                                        name={
+                                            isAllFilteredSelected
+                                                ? "check-square"
+                                                : isSomeFilteredSelected
+                                                    ? "minus-square"
+                                                    : "square"
+                                        }
+                                        size={16}
+                                        color={
+                                            isAllFilteredSelected || isSomeFilteredSelected
+                                                ? Colors.PRIMARY
+                                                : Colors.TEXT_SECONDARY
+                                        }
+                                    />
+                                </TouchableOpacity>
                                 <Text style={[styles.th, styles.colIndex, styles.centerText]}>#</Text>
                                 <Text style={[styles.th, styles.colUser]}>User</Text>
                                 <Text style={[styles.th, styles.colAnchor, styles.centerText]}>Anchor</Text>
@@ -390,9 +517,29 @@ export default function UserDataset({
 
                                     const easy = profiles.easy.features;
                                     const diff = profiles.difficult.features;
+                                    const isSelected = selectedUserIds.includes(user.id);
 
                                     return (
                                         <View key={user.id || index} style={[styles.userBlock, isEven ? styles.rowEven : styles.rowOdd]}>
+                                            {/* Spanned Checkbox Column */}
+                                            <TouchableOpacity
+                                                style={[styles.colCheckbox, styles.centerCell, { justifyContent: "center" }]}
+                                                onPress={() => onToggleSelectUser?.(user.id)}
+                                                accessibilityLabel={`Select user ${fullName}`}
+                                            >
+                                                <CustomIcon
+                                                    library="Feather"
+                                                    name={isSelected ? "check-square" : "square"}
+                                                    size={16}
+                                                    color={isSelected ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
+                                                />
+                                                {isSelected && !isSavedInDb && (
+                                                    <View style={styles.noProfileWarningDot}>
+                                                        <CustomIcon library="Feather" name="alert-circle" size={11} color={Palette.Amber700} />
+                                                    </View>
+                                                )}
+                                            </TouchableOpacity>
+
                                             {/* Spanned Index Column */}
                                             <View style={[styles.colIndex, styles.centerCell, { justifyContent: "center" }]}>
                                                 <Text style={[styles.td, styles.textMuted]}>
@@ -1008,6 +1155,96 @@ const styles = StyleSheet.create({
     },
 
     // Column Widths
+    colCheckbox: { width: 44, alignItems: "center", justifyContent: "center" },
+    noProfileWarningDot: { marginTop: 2 },
+    selectionBanner: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 12,
+        backgroundColor: Palette.Green50,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: Palette.Green200,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+    },
+    selectionInfo: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        flex: 1,
+        minWidth: 240,
+    },
+    selectionBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        backgroundColor: Colors.PRIMARY,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    selectionBadgeText: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: Colors.WHITE,
+    },
+    selectionTitle: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: Palette.Green900,
+    },
+    selectionSubtitle: {
+        fontSize: 12,
+        color: Palette.Green800,
+        marginTop: 1,
+    },
+    selectionWarningText: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: Palette.Red700,
+        marginTop: 2,
+    },
+    selectionActions: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    clearSelectionBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 6,
+        backgroundColor: Colors.WHITE,
+        borderWidth: 1,
+        borderColor: Palette.Slate200,
+    },
+    clearSelectionBtnText: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: Colors.TEXT_SECONDARY,
+    },
+    runSelectedBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
+        backgroundColor: Colors.PRIMARY,
+    },
+    runSelectedBtnWarning: {
+        backgroundColor: Palette.Amber700,
+    },
+    runSelectedBtnText: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: Colors.WHITE,
+    },
     colIndex: { width: 45, textAlign: "center" },
     colName: { width: 195, paddingHorizontal: 8 },
     colUser: { width: 175, paddingHorizontal: 8 },
