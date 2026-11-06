@@ -10,7 +10,7 @@
 
 import CustomIcon from "@/src/components/CustomIcon";
 import { Colors, Palette } from "@/src/constants/colors";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
     ScrollView,
     StyleSheet,
@@ -19,12 +19,11 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import cycleTrailsData from "../data/cycleSimulationTrails.json";
 import simulatedUsersData from "../data/simulatedUsers.json";
-import SimulationConvergenceChart from "./SimulationConvergenceChart";
+import catalogTrailsData from "../data/trailSimulationCatalog.json";
 import SimulatedUserModal, { ISimulatedUser } from "./SimulatedUserModal";
 import SimulationTrailDataset from "./SimulationTrailDataset";
-import cycleTrailsData from "../data/cycleSimulationTrails.json";
-import catalogTrailsData from "../data/trailSimulationCatalog.json";
 
 const PROVINCES = ["Cavite", "Laguna", "Batangas", "Rizal", "Quezon"] as const;
 
@@ -214,495 +213,389 @@ export default function SimulationDataset() {
                             )}
                         </View>
 
-                        {/* Simulation Cycle Progression Selector Strip */}
-                        <View style={styles.cycleSelectorRow}>
-                                <Text style={styles.cycleSelectorLabel}>CYCLE:</Text>
-                                <ScrollView
-                                    horizontal={true}
-                                    showsHorizontalScrollIndicator={true}
-                                    style={styles.cycleScrollView}
-                                    contentContainerStyle={styles.cyclePillsContainer}
+                        {/* Filter Pills */}
+                        <View style={styles.filterPillsRow}>
+                            <Text style={styles.filterRowLabel}>Experience:</Text>
+                            {["ALL", "E1", "E2", "E3", "E4"].map((tier) => (
+                                <TouchableOpacity
+                                    key={tier}
+                                    style={[styles.filterPill, selectedExp === tier && styles.filterPillActive]}
+                                    onPress={() => setSelectedExp(tier)}
                                 >
-                                    {cycles.map((c) => (
-                                        <TouchableOpacity
-                                            key={`cycle-btn-${c.idx}`}
-                                            style={[
-                                                styles.cycleSelectPill,
-                                                safeSelectedCycle === c.idx && styles.cycleSelectPillActive,
-                                            ]}
-                                            onPress={() => setSelectedCycle(c.idx)}
-                                        >
-                                            <CustomIcon
-                                                library="Feather"
-                                                name={
-                                                    c.idx === 0
-                                                        ? "play-circle"
-                                                        : c.idx === cycles.length - 1
-                                                            ? "check-circle"
-                                                            : "arrow-right-circle"
-                                                }
-                                                size={12}
-                                                color={safeSelectedCycle === c.idx ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
-                                            />
-                                            <Text
-                                                style={[
-                                                    styles.cycleSelectPillText,
-                                                    safeSelectedCycle === c.idx && styles.cycleSelectPillTextActive,
-                                                ]}
-                                            >
-                                                C{c.idx}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                        </ScrollView>
-                    </View>
-
-                    {/* Filter Pills */}
-                    <View style={styles.filterPillsRow}>
-                        <Text style={styles.filterRowLabel}>Experience:</Text>
-                        {["ALL", "E1", "E2", "E3", "E4"].map((tier) => (
-                            <TouchableOpacity
-                                key={tier}
-                                style={[styles.filterPill, selectedExp === tier && styles.filterPillActive]}
-                                onPress={() => setSelectedExp(tier)}
-                            >
-                                <Text
-                                    style={[
-                                        styles.filterPillText,
-                                        selectedExp === tier && styles.filterPillTextActive,
-                                    ]}
-                                >
-                                    {tier}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-
-                        <View style={styles.filterPillDivider} />
-                        <Text style={styles.filterRowLabel}>Medical:</Text>
-                        {["ALL", "M", "N"].map((med) => (
-                            <TouchableOpacity
-                                key={med}
-                                style={[styles.filterPill, selectedMed === med && styles.filterPillActive]}
-                                onPress={() => setSelectedMed(med)}
-                            >
-                                <Text
-                                    style={[
-                                        styles.filterPillText,
-                                        selectedMed === med && styles.filterPillTextActive,
-                                    ]}
-                                >
-                                    {med === "ALL" ? "ALL" : med === "M" ? "Condition (M)" : "Healthy (N)"}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-
-                        <View style={styles.filterPillDivider} />
-                        <Text style={styles.filterRowLabel}>Province:</Text>
-                        {["ALL", "P1", "P2", "P3"].map((prov) => (
-                            <TouchableOpacity
-                                key={prov}
-                                style={[styles.filterPill, selectedProv === prov && styles.filterPillActive]}
-                                onPress={() => setSelectedProv(prov)}
-                            >
-                                <Text
-                                    style={[
-                                        styles.filterPillText,
-                                        selectedProv === prov && styles.filterPillTextActive,
-                                    ]}
-                                >
-                                    {prov}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-
-            {/* Cycle Status Banner */}
-            <View style={styles.cycleBanner}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <CustomIcon library="Feather" name="activity" size={16} color={Colors.PRIMARY} />
-                    <Text style={styles.cycleBannerTitle}>
-                        Viewing Profile States at {activeCycleInfo.label} — {activeCycleInfo.desc} ({activeCycleInfo.month})
-                    </Text>
-                </View>
-                <Text style={styles.cycleBannerSub}>
-                    Showing vectors as updated by the monthly profile update engine. Tapping any cohort inspects the full cycle-by-cycle trajectory.
-                </Text>
-            </View>
-
-            {/* Global Convergence Chart Across All 24 Profiles */}
-            <SimulationConvergenceChart
-                users={allUsers}
-                cycles={cycles}
-                selectedCycle={safeSelectedCycle}
-                onSelectCycle={(cIdx) => setSelectedCycle(cIdx)}
-            />
-
-            {/* Table Card strictly matching UserDataset.tsx architecture */}
-            {filteredUsers.length === 0 ? (
-                <View style={styles.centerContainer}>
-                    <CustomIcon library="Feather" name="users" size={36} color={Colors.TEXT_SECONDARY} />
-                    <Text style={styles.emptyTitle}>No Simulated Users Found</Text>
-                    <Text style={styles.emptySubtitle}>
-                        {searchQuery ? `No cohorts matching "${searchQuery}"` : "No cohorts match this filter"}
-                    </Text>
-                </View>
-            ) : (
-                <View style={styles.tableCard}>
-                    {/* Synchronized Bidirectional Scrollable Container */}
-                    <ScrollView horizontal={true} style={styles.tableScroll} showsHorizontalScrollIndicator={true}>
-                        <View style={styles.table}>
-                            {/* Sticky Table Header */}
-                            <View style={styles.tableHeaderRow}>
-                                <Text style={[styles.th, styles.colIndex, styles.centerText]}>#</Text>
-                                <Text style={[styles.th, styles.colUser]}>Simulated User</Text>
-                                <Text style={[styles.th, styles.colAnchor, styles.centerText]}>Anchor</Text>
-                                <Text style={[styles.th, styles.colClass, styles.centerText]}>Class</Text>
-                                <Text style={[styles.th, styles.colLasco, styles.centerText]}>Lasco / Easy</Text>
-                                <Text style={[styles.th, styles.colNumber, styles.centerText]}>Length (km)</Text>
-                                <Text style={[styles.th, styles.colNumber, styles.centerText]}>Peak (MASL)</Text>
-                                <Text style={[styles.th, styles.colGain, styles.centerText]}>Gain (m)</Text>
-                                <Text style={[styles.th, styles.colNumber, styles.centerText]}>Slope (%)</Text>
-
-                                {PROVINCES.map((prov) => (
-                                    <Text key={prov} style={[styles.th, styles.colProvince, styles.centerText]}>
-                                        {prov}
+                                    <Text
+                                        style={[
+                                            styles.filterPillText,
+                                            selectedExp === tier && styles.filterPillTextActive,
+                                        ]}
+                                    >
+                                        {tier}
                                     </Text>
-                                ))}
+                                </TouchableOpacity>
+                            ))}
 
-                                <Text style={[styles.th, styles.colTerrain, styles.centerText]}>Muddy</Text>
-                                <Text style={[styles.th, styles.colTerrain, styles.centerText]}>Rocky</Text>
-                                <Text style={[styles.th, styles.colTerrain, styles.centerText]}>Grass</Text>
-                                <Text style={[styles.th, styles.colTerrain, styles.centerText]}>Ridge</Text>
+                            <View style={styles.filterPillDivider} />
+                            <Text style={styles.filterRowLabel}>Medical:</Text>
+                            {["ALL", "M", "N"].map((med) => (
+                                <TouchableOpacity
+                                    key={med}
+                                    style={[styles.filterPill, selectedMed === med && styles.filterPillActive]}
+                                    onPress={() => setSelectedMed(med)}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.filterPillText,
+                                            selectedMed === med && styles.filterPillTextActive,
+                                        ]}
+                                    >
+                                        {med === "ALL" ? "ALL" : med === "M" ? "Condition (M)" : "Healthy (N)"}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
 
-                                <Text style={[styles.th, styles.colCirc, styles.centerText]}>Out-Back</Text>
-                                <Text style={[styles.th, styles.colCirc, styles.centerText]}>Traverse</Text>
-                                <Text style={[styles.th, styles.colCirc, styles.centerText]}>Circular</Text>
+                    {/* Table Card strictly matching UserDataset.tsx architecture */}
+                    {filteredUsers.length === 0 ? (
+                        <View style={styles.centerContainer}>
+                            <CustomIcon library="Feather" name="users" size={36} color={Colors.TEXT_SECONDARY} />
+                            <Text style={styles.emptyTitle}>No Simulated Users Found</Text>
+                            <Text style={styles.emptySubtitle}>
+                                {searchQuery ? `No cohorts matching "${searchQuery}"` : "No cohorts match this filter"}
+                            </Text>
+                        </View>
+                    ) : (
+                        <View style={styles.tableCard}>
+                            {/* Synchronized Bidirectional Scrollable Container */}
+                            <ScrollView horizontal={true} style={styles.tableScroll} showsHorizontalScrollIndicator={true}>
+                                <View style={styles.table}>
+                                    {/* Sticky Table Header */}
+                                    <View style={styles.tableHeaderRow}>
+                                        <Text style={[styles.th, styles.colIndex, styles.centerText]}>#</Text>
+                                        <Text style={[styles.th, styles.colUser]}>Simulated User</Text>
+                                        <Text style={[styles.th, styles.colAnchor, styles.centerText]}>Anchor</Text>
+                                        <Text style={[styles.th, styles.colClass, styles.centerText]}>Class</Text>
+                                        <Text style={[styles.th, styles.colLasco, styles.centerText]}>Lasco / Easy</Text>
+                                        <Text style={[styles.th, styles.colNumber, styles.centerText]}>Length (km)</Text>
+                                        <Text style={[styles.th, styles.colNumber, styles.centerText]}>Peak (MASL)</Text>
+                                        <Text style={[styles.th, styles.colGain, styles.centerText]}>Gain (m)</Text>
+                                        <Text style={[styles.th, styles.colNumber, styles.centerText]}>Slope (%)</Text>
 
-                                <Text style={[styles.th, styles.colWater, styles.centerText]}>Fall</Text>
-                                <Text style={[styles.th, styles.colWater, styles.centerText]}>River</Text>
-                                <Text style={[styles.th, styles.colWater, styles.centerText]}>Lake</Text>
+                                        {PROVINCES.map((prov) => (
+                                            <Text key={prov} style={[styles.th, styles.colProvince, styles.centerText]}>
+                                                {prov}
+                                            </Text>
+                                        ))}
 
-                                <Text style={[styles.th, styles.colTourism, styles.centerText]}>Shelter</Text>
-                                <Text style={[styles.th, styles.colTourism, styles.centerText]}>Rest</Text>
-                                <Text style={[styles.th, styles.colTourism, styles.centerText]}>Info</Text>
-                                <Text style={[styles.th, styles.colTourism, styles.centerText]}>Clean Water</Text>
+                                        <Text style={[styles.th, styles.colTerrain, styles.centerText]}>Muddy</Text>
+                                        <Text style={[styles.th, styles.colTerrain, styles.centerText]}>Rocky</Text>
+                                        <Text style={[styles.th, styles.colTerrain, styles.centerText]}>Grass</Text>
+                                        <Text style={[styles.th, styles.colTerrain, styles.centerText]}>Ridge</Text>
 
-                                <Text style={[styles.th, styles.colAction, styles.centerText]}>Action</Text>
-                            </View>
+                                        <Text style={[styles.th, styles.colCirc, styles.centerText]}>Out-Back</Text>
+                                        <Text style={[styles.th, styles.colCirc, styles.centerText]}>Traverse</Text>
+                                        <Text style={[styles.th, styles.colCirc, styles.centerText]}>Circular</Text>
 
-                            {/* Table Rows Body Container */}
-                            <View style={styles.tableRowsContainer}>
-                                {/* User Blocks matching UserDataset.tsx structure */}
-                                {filteredUsers.map((user, uIdx) => {
-                                    const cycleData = user.cycleHistory?.[safeSelectedCycle];
-                                    const activeProfile = cycleData?.profile || user.profile;
+                                        <Text style={[styles.th, styles.colWater, styles.centerText]}>Fall</Text>
+                                        <Text style={[styles.th, styles.colWater, styles.centerText]}>River</Text>
+                                        <Text style={[styles.th, styles.colWater, styles.centerText]}>Lake</Text>
 
-                                    const easyFeat = activeProfile.easy?.features || {};
-                                    const diffFeat = activeProfile.difficult?.features || {};
+                                        <Text style={[styles.th, styles.colTourism, styles.centerText]}>Shelter</Text>
+                                        <Text style={[styles.th, styles.colTourism, styles.centerText]}>Rest</Text>
+                                        <Text style={[styles.th, styles.colTourism, styles.centerText]}>Info</Text>
+                                        <Text style={[styles.th, styles.colTourism, styles.centerText]}>Clean Water</Text>
 
-                                    const isEven = uIdx % 2 === 0;
+                                        <Text style={[styles.th, styles.colAction, styles.centerText]}>Action</Text>
+                                    </View>
 
-                                    return (
-                                        <View key={user.id} style={[styles.userBlock, isEven ? styles.rowEven : styles.rowOdd]}>
-                                            {/* 1. Spanned Index Column */}
-                                            <View style={[styles.colIndex, styles.centerCell, { justifyContent: "center" }]}>
-                                                <Text style={styles.tdText}>{uIdx + 1}</Text>
-                                            </View>
+                                    {/* Table Rows Body Container */}
+                                    <View style={styles.tableRowsContainer}>
+                                        {/* User Blocks matching UserDataset.tsx structure */}
+                                        {filteredUsers.map((user, uIdx) => {
+                                            const cycleData = user.cycleHistory?.[safeSelectedCycle];
+                                            const activeProfile = cycleData?.profile || user.profile;
 
-                                            {/* 2. Spanned User Column */}
-                                            <TouchableOpacity
-                                                style={[styles.colUser, { justifyContent: "center" }]}
-                                                activeOpacity={0.7}
-                                                onPress={() => setInspectingUser(user)}
-                                            >
-                                                <View style={styles.userInfoRow}>
-                                                    <View style={styles.userAvatar}>
-                                                        <CustomIcon library="Feather" name="user" size={13} color={Colors.PRIMARY} />
+                                            const easyFeat = activeProfile.easy?.features || {};
+                                            const diffFeat = activeProfile.difficult?.features || {};
+
+                                            const isEven = uIdx % 2 === 0;
+
+                                            return (
+                                                <View key={user.id} style={[styles.userBlock, isEven ? styles.rowEven : styles.rowOdd]}>
+                                                    {/* 1. Spanned Index Column */}
+                                                    <View style={[styles.colIndex, styles.centerCell, { justifyContent: "center" }]}>
+                                                        <Text style={styles.tdText}>{uIdx + 1}</Text>
                                                     </View>
-                                                    <View style={{ flex: 1 }}>
-                                                        <Text style={styles.nameCell} numberOfLines={1}>
-                                                            {user.id}
-                                                        </Text>
-                                                        <View style={styles.badgeRow}>
-                                                            <View style={styles.expPill}>
-                                                                <Text style={styles.expPillText}>{user.experience}</Text>
+
+                                                    {/* 2. Spanned User Column */}
+                                                    <TouchableOpacity
+                                                        style={[styles.colUser, { justifyContent: "center" }]}
+                                                        activeOpacity={0.7}
+                                                        onPress={() => setInspectingUser(user)}
+                                                    >
+                                                        <View style={styles.userInfoRow}>
+                                                            <View style={styles.userAvatar}>
+                                                                <CustomIcon library="Feather" name="user" size={13} color={Colors.PRIMARY} />
                                                             </View>
-                                                            <View
-                                                                style={[
-                                                                    styles.medPill,
-                                                                    user.medicalProfile.hasCondition ? styles.medPillHas : styles.medPillNone,
-                                                                ]}
-                                                            >
-                                                                <Text
-                                                                    style={[
-                                                                        styles.medPillText,
-                                                                        user.medicalProfile.hasCondition
-                                                                            ? styles.medPillTextHas
-                                                                            : styles.medPillTextNone,
-                                                                    ]}
-                                                                >
-                                                                    {user.medicalProfile.hasCondition ? "MED" : "HLT"}
+                                                            <View style={{ flex: 1 }}>
+                                                                <Text style={styles.nameCell} numberOfLines={1}>
+                                                                    {user.id}
                                                                 </Text>
-                                                            </View>
-                                                            {user.convergence && (
-                                                                <View
-                                                                    style={[
-                                                                        styles.convergencePill,
-                                                                        user.convergence.has_converged
-                                                                            ? styles.convergencePillConv
-                                                                            : styles.convergencePillStable,
-                                                                    ]}
-                                                                >
-                                                                    <Text
+                                                                <View style={styles.badgeRow}>
+                                                                    <View style={styles.expPill}>
+                                                                        <Text style={styles.expPillText}>{user.experience}</Text>
+                                                                    </View>
+                                                                    <View
                                                                         style={[
-                                                                            styles.convergencePillText,
-                                                                            user.convergence.has_converged
-                                                                                ? styles.convergencePillTextConv
-                                                                                : styles.convergencePillTextStable,
+                                                                            styles.medPill,
+                                                                            user.medicalProfile.hasCondition ? styles.medPillHas : styles.medPillNone,
                                                                         ]}
                                                                     >
-                                                                        {user.convergence.has_converged
-                                                                            ? `ΔGD: ${user.convergence.delta_gd.toFixed(3)}`
-                                                                            : `ΔGD: +${user.convergence.delta_gd.toFixed(3)}`}
-                                                                    </Text>
+                                                                        <Text
+                                                                            style={[
+                                                                                styles.medPillText,
+                                                                                user.medicalProfile.hasCondition
+                                                                                    ? styles.medPillTextHas
+                                                                                    : styles.medPillTextNone,
+                                                                            ]}
+                                                                        >
+                                                                            {user.medicalProfile.hasCondition ? "MED" : "HLT"}
+                                                                        </Text>
+                                                                    </View>
                                                                 </View>
-                                                            )}
+                                                            </View>
                                                         </View>
+                                                    </TouchableOpacity>
+
+                                                    {/* 3. Stacked Sub-Rows Column (Easy Anchor & Difficult Anchor) */}
+                                                    <View style={{ flexDirection: "column" }}>
+                                                        {/* SUB-ROW 1: EASY ANCHOR */}
+                                                        <View style={styles.subTableRow}>
+                                                            {/* Anchor Column */}
+                                                            <View style={[styles.colAnchor, styles.centerCell, { justifyContent: "center" }]}>
+                                                                <View style={styles.easyBadge}>
+                                                                    <Text style={styles.easyBadgeText}>Easy</Text>
+                                                                </View>
+                                                            </View>
+
+                                                            {/* Classification */}
+                                                            <View style={[styles.tdCell, styles.colClass, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.classification)}</Text>
+                                                            </View>
+
+                                                            {/* Lasco / Easy */}
+                                                            <View style={[styles.tdCell, styles.colLasco, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.easy)}</Text>
+                                                            </View>
+
+                                                            {/* Length */}
+                                                            <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.length)}</Text>
+                                                            </View>
+
+                                                            {/* Peak MASL */}
+                                                            <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.elevation)}</Text>
+                                                            </View>
+
+                                                            {/* Gain */}
+                                                            <View style={[styles.tdCell, styles.colGain, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.gain)}</Text>
+                                                            </View>
+
+                                                            {/* Slope */}
+                                                            <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.slope)}</Text>
+                                                            </View>
+
+                                                            {/* Provinces */}
+                                                            {PROVINCES.map((p) => (
+                                                                <View key={`easy-p-${p}`} style={[styles.tdCell, styles.colProvince, styles.centerCell]}>
+                                                                    <Text style={styles.tdValueText}>{formatVal(easyFeat.province?.[p.toLowerCase()])}</Text>
+                                                                </View>
+                                                            ))}
+
+                                                            {/* Terrains */}
+                                                            <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.terrain?.muddy)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.terrain?.rocky)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.terrain?.grassland)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.terrain?.ridges)}</Text>
+                                                            </View>
+
+                                                            {/* Circularity */}
+                                                            <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.circularity?.out_and_back)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.circularity?.traverse)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.circularity?.circular)}</Text>
+                                                            </View>
+
+                                                            {/* Waterforms */}
+                                                            <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.waterforms?.fall)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.waterforms?.river)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.waterforms?.lake)}</Text>
+                                                            </View>
+
+                                                            {/* Tourism */}
+                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.tourism?.shelter)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.tourism?.resting)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.tourism?.information_board)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(easyFeat.tourism?.clean_water)}</Text>
+                                                            </View>
+                                                        </View>
+
+                                                        {/* SUB-ROW 2: DIFFICULT ANCHOR */}
+                                                        <View style={[styles.subTableRow, styles.subTableRowDivider]}>
+                                                            {/* Anchor Column */}
+                                                            <View style={[styles.colAnchor, styles.centerCell, { justifyContent: "center" }]}>
+                                                                <View style={styles.difficultBadge}>
+                                                                    <Text style={styles.difficultBadgeText}>Difficult</Text>
+                                                                </View>
+                                                            </View>
+
+                                                            {/* Classification */}
+                                                            <View style={[styles.tdCell, styles.colClass, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.classification)}</Text>
+                                                            </View>
+
+                                                            {/* Lasco / Easy */}
+                                                            <View style={[styles.tdCell, styles.colLasco, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.easy)}</Text>
+                                                            </View>
+
+                                                            {/* Length */}
+                                                            <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.length)}</Text>
+                                                            </View>
+
+                                                            {/* Peak MASL */}
+                                                            <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.elevation)}</Text>
+                                                            </View>
+
+                                                            {/* Gain */}
+                                                            <View style={[styles.tdCell, styles.colGain, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.gain)}</Text>
+                                                            </View>
+
+                                                            {/* Slope */}
+                                                            <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.slope)}</Text>
+                                                            </View>
+
+                                                            {/* Provinces */}
+                                                            {PROVINCES.map((p) => (
+                                                                <View key={`diff-p-${p}`} style={[styles.tdCell, styles.colProvince, styles.centerCell]}>
+                                                                    <Text style={styles.tdValueText}>{formatVal(diffFeat.province?.[p.toLowerCase()])}</Text>
+                                                                </View>
+                                                            ))}
+
+                                                            {/* Terrains */}
+                                                            <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.terrain?.muddy)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.terrain?.rocky)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.terrain?.grassland)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.terrain?.ridges)}</Text>
+                                                            </View>
+
+                                                            {/* Circularity */}
+                                                            <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.circularity?.out_and_back)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.circularity?.traverse)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.circularity?.circular)}</Text>
+                                                            </View>
+
+                                                            {/* Waterforms */}
+                                                            <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.waterforms?.fall)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.waterforms?.river)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.waterforms?.lake)}</Text>
+                                                            </View>
+
+                                                            {/* Tourism */}
+                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.tourism?.shelter)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.tourism?.resting)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.tourism?.information_board)}</Text>
+                                                            </View>
+                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                                <Text style={styles.tdValueText}>{formatVal(diffFeat.tourism?.clean_water)}</Text>
+                                                            </View>
+                                                        </View>
+                                                    </View>
+
+                                                    {/* 4. Spanned Action Column */}
+                                                    <View style={[styles.colAction, styles.centerCell, { justifyContent: "center" }]}>
+                                                        <TouchableOpacity
+                                                            style={styles.inspectBtn}
+                                                            onPress={() => setInspectingUser(user)}
+                                                        >
+                                                            <CustomIcon library="Feather" name="eye" size={13} color={Colors.WHITE} />
+                                                            <Text style={styles.inspectBtnText}>Inspect</Text>
+                                                        </TouchableOpacity>
                                                     </View>
                                                 </View>
-                                            </TouchableOpacity>
-
-                                            {/* 3. Stacked Sub-Rows Column (Easy Anchor & Difficult Anchor) */}
-                                            <View style={{ flexDirection: "column" }}>
-                                                {/* SUB-ROW 1: EASY ANCHOR */}
-                                                <View style={styles.subTableRow}>
-                                                    {/* Anchor Column */}
-                                                    <View style={[styles.colAnchor, styles.centerCell, { justifyContent: "center" }]}>
-                                                        <View style={styles.easyBadge}>
-                                                            <Text style={styles.easyBadgeText}>Easy</Text>
-                                                        </View>
-                                                    </View>
-
-                                                    {/* Classification */}
-                                                    <View style={[styles.tdCell, styles.colClass, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.classification)}</Text>
-                                                    </View>
-
-                                                    {/* Lasco / Easy */}
-                                                    <View style={[styles.tdCell, styles.colLasco, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.easy)}</Text>
-                                                    </View>
-
-                                                    {/* Length */}
-                                                    <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.length)}</Text>
-                                                    </View>
-
-                                                    {/* Peak MASL */}
-                                                    <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.elevation)}</Text>
-                                                    </View>
-
-                                                    {/* Gain */}
-                                                    <View style={[styles.tdCell, styles.colGain, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.gain)}</Text>
-                                                    </View>
-
-                                                    {/* Slope */}
-                                                    <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.slope)}</Text>
-                                                    </View>
-
-                                                    {/* Provinces */}
-                                                    {PROVINCES.map((p) => (
-                                                        <View key={`easy-p-${p}`} style={[styles.tdCell, styles.colProvince, styles.centerCell]}>
-                                                            <Text style={styles.tdValueText}>{formatVal(easyFeat.province?.[p.toLowerCase()])}</Text>
-                                                        </View>
-                                                    ))}
-
-                                                    {/* Terrains */}
-                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.terrain?.muddy)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.terrain?.rocky)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.terrain?.grassland)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.terrain?.ridges)}</Text>
-                                                    </View>
-
-                                                    {/* Circularity */}
-                                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.circularity?.out_and_back)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.circularity?.traverse)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.circularity?.circular)}</Text>
-                                                    </View>
-
-                                                    {/* Waterforms */}
-                                                    <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.waterforms?.fall)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.waterforms?.river)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.waterforms?.lake)}</Text>
-                                                    </View>
-
-                                                    {/* Tourism */}
-                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.tourism?.shelter)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.tourism?.resting)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.tourism?.information_board)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(easyFeat.tourism?.clean_water)}</Text>
-                                                    </View>
-                                                </View>
-
-                                                {/* SUB-ROW 2: DIFFICULT ANCHOR */}
-                                                <View style={[styles.subTableRow, styles.subTableRowDivider]}>
-                                                    {/* Anchor Column */}
-                                                    <View style={[styles.colAnchor, styles.centerCell, { justifyContent: "center" }]}>
-                                                        <View style={styles.difficultBadge}>
-                                                            <Text style={styles.difficultBadgeText}>Difficult</Text>
-                                                        </View>
-                                                    </View>
-
-                                                    {/* Classification */}
-                                                    <View style={[styles.tdCell, styles.colClass, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.classification)}</Text>
-                                                    </View>
-
-                                                    {/* Lasco / Easy */}
-                                                    <View style={[styles.tdCell, styles.colLasco, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.easy)}</Text>
-                                                    </View>
-
-                                                    {/* Length */}
-                                                    <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.length)}</Text>
-                                                    </View>
-
-                                                    {/* Peak MASL */}
-                                                    <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.elevation)}</Text>
-                                                    </View>
-
-                                                    {/* Gain */}
-                                                    <View style={[styles.tdCell, styles.colGain, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.gain)}</Text>
-                                                    </View>
-
-                                                    {/* Slope */}
-                                                    <View style={[styles.tdCell, styles.colNumber, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.slope)}</Text>
-                                                    </View>
-
-                                                    {/* Provinces */}
-                                                    {PROVINCES.map((p) => (
-                                                        <View key={`diff-p-${p}`} style={[styles.tdCell, styles.colProvince, styles.centerCell]}>
-                                                            <Text style={styles.tdValueText}>{formatVal(diffFeat.province?.[p.toLowerCase()])}</Text>
-                                                        </View>
-                                                    ))}
-
-                                                    {/* Terrains */}
-                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.terrain?.muddy)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.terrain?.rocky)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.terrain?.grassland)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.terrain?.ridges)}</Text>
-                                                    </View>
-
-                                                    {/* Circularity */}
-                                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.circularity?.out_and_back)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.circularity?.traverse)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.circularity?.circular)}</Text>
-                                                    </View>
-
-                                                    {/* Waterforms */}
-                                                    <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.waterforms?.fall)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.waterforms?.river)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.waterforms?.lake)}</Text>
-                                                    </View>
-
-                                                    {/* Tourism */}
-                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.tourism?.shelter)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.tourism?.resting)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.tourism?.information_board)}</Text>
-                                                    </View>
-                                                    <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                        <Text style={styles.tdValueText}>{formatVal(diffFeat.tourism?.clean_water)}</Text>
-                                                    </View>
-                                                </View>
-                                            </View>
-
-                                            {/* 4. Spanned Action Column */}
-                                            <View style={[styles.colAction, styles.centerCell, { justifyContent: "center" }]}>
-                                                <TouchableOpacity
-                                                    style={styles.inspectBtn}
-                                                    onPress={() => setInspectingUser(user)}
-                                                >
-                                                    <CustomIcon library="Feather" name="eye" size={13} color={Colors.WHITE} />
-                                                    <Text style={styles.inspectBtnText}>Inspect</Text>
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-                                    );
-                                })}
-                            </View>
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                            </ScrollView>
                         </View>
-                    </ScrollView>
-                </View>
-            )}
-        </ScrollView>
-    )
-}
+                    )}
+                </ScrollView>
+            )
+            }
 
-{/* Modal for Simulated User Deep-Dive */ }
-{
-    inspectingUser && (
-        <SimulatedUserModal
-            visible={!!inspectingUser}
-            user={inspectingUser}
-            initialCycle={safeSelectedCycle}
-            onClose={() => setInspectingUser(null)}
-        />
-    )
-}
+            {/* Modal for Simulated User Deep-Dive */}
+            {
+                inspectingUser && (
+                    <SimulatedUserModal
+                        visible={!!inspectingUser}
+                        user={inspectingUser}
+                        initialCycle={safeSelectedCycle}
+                        onClose={() => setInspectingUser(null)}
+                    />
+                )
+            }
         </View >
     );
 }

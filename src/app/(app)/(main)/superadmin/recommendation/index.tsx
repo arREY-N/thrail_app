@@ -7,14 +7,14 @@
 
 import CustomIcon from "@/src/components/CustomIcon";
 import { Colors, Palette } from "@/src/constants/colors";
+import { RecommendationRepo } from "@/src/core/models/Recommendation/Recommendation";
 import { useSuperadminDomain, useSuperadminNavigation } from "@/src/core/models/Superadmin/Superadmin";
+import getRecoID from "@/src/core/utility/recommendation";
 import SuperadminShell from "@/src/features/SuperAdmin/components/SuperadminShell";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import core from "@/src/recommendation/core";
-import { useState, useMemo, useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { RecommendationRepo } from "@/src/core/models/Recommendation/Recommendation";
-import getRecoID from "@/src/core/utility/recommendation";
 import {
     ConfigureEngineModal,
     RecommendationMatrix,
@@ -324,21 +324,6 @@ export default function RecommendationDatasetScreen() {
                         >
                             Simulation
                         </Text>
-                        <View
-                            style={[
-                                styles.badgeCount,
-                                activeDataset === "simulation" && styles.badgeCountActive,
-                            ]}
-                        >
-                            <Text
-                                style={[
-                                    styles.badgeCountText,
-                                    activeDataset === "simulation" && styles.badgeCountTextActive,
-                                ]}
-                            >
-                                24
-                            </Text>
-                        </View>
                     </TouchableOpacity>
                 </View>
 

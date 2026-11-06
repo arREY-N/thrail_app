@@ -1,6 +1,6 @@
 import CustomIcon from "@/src/components/CustomIcon";
 import { Colors, Palette } from "@/src/constants/colors";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
     Modal,
     ScrollView,
@@ -9,7 +9,6 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import Svg, { Circle, Line, Polyline, Text as SvgText } from "react-native-svg";
 
 export interface ICycleTelemetry {
     cycle: number;
@@ -140,7 +139,6 @@ export default function SimulatedUserModal({
     initialCycle,
 }: SimulatedUserModalProps) {
     const [activeTab, setActiveTab] = useState<ModalTab>("cycle_table");
-    const [chartContainerWidth, setChartContainerWidth] = useState<number>(0);
 
     if (!user) return null;
 
@@ -175,35 +173,6 @@ export default function SimulatedUserModal({
                             <View style={{ flex: 1, marginLeft: 10 }}>
                                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                                     <Text style={styles.modalTitle}>Cohort {user.id} — Profile Evolution</Text>
-                                    {user.convergence && (
-                                        <View
-                                            style={[
-                                                styles.convPill,
-                                                user.convergence.has_converged
-                                                    ? styles.convPillConverged
-                                                    : styles.convPillStable,
-                                            ]}
-                                        >
-                                            <CustomIcon
-                                                library="Feather"
-                                                name={user.convergence.has_converged ? "trending-down" : "minus"}
-                                                size={12}
-                                                color={user.convergence.has_converged ? Palette.Green700 : Palette.Slate700}
-                                            />
-                                            <Text
-                                                style={[
-                                                    styles.convPillText,
-                                                    user.convergence.has_converged
-                                                        ? styles.convPillTextConverged
-                                                        : styles.convPillTextStable,
-                                                ]}
-                                            >
-                                                {user.convergence.has_converged
-                                                    ? `Converged (ΔGD: ${user.convergence.delta_gd.toFixed(4)})`
-                                                    : `ΔGD: +${user.convergence.delta_gd.toFixed(4)}`}
-                                            </Text>
-                                        </View>
-                                    )}
                                 </View>
                                 <Text style={styles.modalSubtitle}>
                                     Province {user.province_pattern} • {getMedicalConditionName(user)}
@@ -211,69 +180,6 @@ export default function SimulatedUserModal({
                             </View>
                             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
                                 <CustomIcon library="Feather" name="x" size={20} color={Colors.TEXT_PRIMARY} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Navigation Tabs */}
-                        <View style={styles.tabBar}>
-                            <TouchableOpacity
-                                style={[styles.tabItem, activeTab === "cycle_table" && styles.tabItemActive]}
-                                onPress={() => setActiveTab("cycle_table")}
-                            >
-                                <CustomIcon
-                                    library="Feather"
-                                    name="activity"
-                                    size={15}
-                                    color={activeTab === "cycle_table" ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
-                                />
-                                <Text
-                                    style={[
-                                        styles.tabText,
-                                        activeTab === "cycle_table" && styles.tabTextActive,
-                                    ]}
-                                >
-                                    Cycle Progression & Ground Truth Table
-                                </Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.tabItem, activeTab === "formulation" && styles.tabItemActive]}
-                                onPress={() => setActiveTab("formulation")}
-                            >
-                                <CustomIcon
-                                    library="Feather"
-                                    name="book-open"
-                                    size={15}
-                                    color={activeTab === "formulation" ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
-                                />
-                                <Text
-                                    style={[
-                                        styles.tabText,
-                                        activeTab === "formulation" && styles.tabTextActive,
-                                    ]}
-                                >
-                                    Formulation & Story
-                                </Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.tabItem, activeTab === "telemetry" && styles.tabItemActive]}
-                                onPress={() => setActiveTab("telemetry")}
-                            >
-                                <CustomIcon
-                                    library="Feather"
-                                    name="cpu"
-                                    size={15}
-                                    color={activeTab === "telemetry" ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
-                                />
-                                <Text
-                                    style={[
-                                        styles.tabText,
-                                        activeTab === "telemetry" && styles.tabTextActive,
-                                    ]}
-                                >
-                                    Ground Truth Telemetry & Seed
-                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -288,18 +194,26 @@ export default function SimulatedUserModal({
                                 showsVerticalScrollIndicator={true}
                             >
                                 <View style={styles.tableCard}>
-                                    <View style={styles.tableLegendBar}>
-                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                                            <CustomIcon library="Feather" name="trending-down" size={14} color={Colors.PRIMARY} />
-                                            <Text style={styles.legendTitle}>
-                                                Cycle-by-Cycle Evolution Table (Initial Profile → Cycles → Ground Truth Target)
-                                            </Text>
+                                    <View style={styles.narrativeCard}>
+                                        <View style={styles.narrativeHeader}>
+                                            <CustomIcon library="Feather" name="compass" size={18} color={Colors.PRIMARY} />
+                                            <Text style={styles.cardBoxTitle}>Algorithmic Formulation Narrative</Text>
                                         </View>
-                                        <Text style={styles.legendSub}>
-                                            Each row presents a simulation cycle with both Easy & Difficult anchors. The final pinned row shows the user&apos;s hidden Ground Truth.
+                                        <Text style={styles.narrativeBody}>
+                                            Cohort {user.id} belongs to experience tier {user.experience} ({user.experience === "E1" ? "Beginner Novice" : user.experience === "E2" ? "Experienced Gentle" : user.experience === "E3" ? "Intermediate Mixed" : "Advanced High-Altitude"}).
+                                        </Text>
+                                        <Text style={styles.narrativeBody}>
+                                            {user.medicalProfile.hasCondition
+                                                ? `• Medical Constraint Applied: User reports ${getMedicalConditionName(user)}. Under Decision D1, physical features (length, peak, gain, slope, Lasco) and terrains are scaled down by 0.80 to protect physiological safety. Route types, water forms, and tourism amenities remain unscaled.`
+                                                : "• Healthy Baseline: No physiological conditions reported. Features use full unscaled calibrated anchors based purely on survey trail experience."}
+                                        </Text>
+                                        <Text style={styles.narrativeBody}>
+                                            • Ticked Trails in Survey: {user.preferences.location.length > 0 ? user.preferences.location.join(", ") : "None (pure cold-start priors applied)."}.
+                                        </Text>
+                                        <Text style={styles.narrativeBody}>
+                                            • Geographic Prior: Preferred province is {user.preferences.province.join(", ")}, which initializes preferred province dimensions to 0.85 and other provinces to 0.15.
                                         </Text>
                                     </View>
-
                                     {/* Horizontally Scrollable Unified Table */}
                                     <ScrollView horizontal={true} style={styles.tableScroll} showsHorizontalScrollIndicator={true}>
                                         <View style={styles.tableContainer}>
@@ -307,7 +221,6 @@ export default function SimulatedUserModal({
                                             <View style={styles.tableHeaderRow}>
                                                 <Text style={[styles.th, styles.colCycle]}>Simulation Cycle</Text>
                                                 <Text style={[styles.th, styles.colAnchor, styles.centerText]}>Anchor</Text>
-                                                <Text style={[styles.th, styles.colDist, styles.centerText]}>Dist to GT (GD)</Text>
                                                 <Text style={[styles.th, styles.colHiked]}>Hiked Trail & Review Feedback</Text>
                                                 <Text style={[styles.th, styles.colPredicted, styles.centerText]}>Predicted</Text>
                                                 <Text style={[styles.th, styles.colActual, styles.centerText]}>Actual</Text>
@@ -412,12 +325,6 @@ export default function SimulatedUserModal({
                                                                         </View>
                                                                     </View>
 
-                                                                    {/* Dist to GT */}
-                                                                    <View style={[styles.tdCell, styles.colDist, styles.centerCell]}>
-                                                                        <Text style={styles.distValueText}>
-                                                                            {(cData.distances?.easy?.gd ?? (cData.distances as any)?.easy_gd ?? 0).toFixed(4)}
-                                                                        </Text>
-                                                                    </View>
 
                                                                     {/* Hiked Trail & Review (Rendered on Easy row for this cycle) */}
                                                                     <View style={[styles.tdCell, styles.colHiked]}>
@@ -479,9 +386,7 @@ export default function SimulatedUserModal({
                                                                                     styles.difficultyTag,
                                                                                     actualExperience.toLowerCase() === "easy"
                                                                                         ? styles.difficultyTagEasy
-                                                                                        : actualExperience.toLowerCase() === "exhausting"
-                                                                                            ? styles.difficultyTagExhausting
-                                                                                            : styles.difficultyTagDiff,
+                                                                                        : styles.difficultyTagDiff,
                                                                                 ]}
                                                                             >
                                                                                 <Text
@@ -489,16 +394,12 @@ export default function SimulatedUserModal({
                                                                                         styles.difficultyTagText,
                                                                                         actualExperience.toLowerCase() === "easy"
                                                                                             ? styles.difficultyTagTextEasy
-                                                                                            : actualExperience.toLowerCase() === "exhausting"
-                                                                                                ? styles.difficultyTagTextExhausting
-                                                                                                : styles.difficultyTagTextDiff,
+                                                                                            : styles.difficultyTagTextDiff,
                                                                                     ]}
                                                                                 >
-                                                                                    {actualExperience.toLowerCase() === "exhausting"
-                                                                                        ? "Exhausting"
-                                                                                        : actualExperience.toLowerCase() === "easy"
-                                                                                            ? "Easy"
-                                                                                            : "Difficult"}
+                                                                                    {actualExperience.toLowerCase() === "easy"
+                                                                                        ? "Easy"
+                                                                                        : "Difficult"}
                                                                                 </Text>
                                                                             </View>
                                                                         ) : (
@@ -579,12 +480,6 @@ export default function SimulatedUserModal({
                                                                         </View>
                                                                     </View>
 
-                                                                    {/* Dist to GT */}
-                                                                    <View style={[styles.tdCell, styles.colDist, styles.centerCell]}>
-                                                                        <Text style={styles.distValueText}>
-                                                                            {(cData.distances?.difficult?.gd ?? cData.distances?.diff?.gd ?? (cData.distances as any)?.diff_gd ?? 0).toFixed(4)}
-                                                                        </Text>
-                                                                    </View>
 
                                                                     {/* Spacer for Hiked Column */}
                                                                     <View style={[styles.tdCell, styles.colHiked]}>
@@ -671,374 +566,11 @@ export default function SimulatedUserModal({
                                                     );
                                                 })}
 
-                                                {/* 2. GROUND TRUTH PROFILE (PINNED AT THE BOTTOM) */}
-                                                <View style={[styles.cycleBlock, styles.gtCycleBlock]}>
-                                                    {/* Ground Truth Spanned Identifier */}
-                                                    <View style={[styles.colCycle, styles.centerCell, { justifyContent: "center" }]}>
-                                                        <View style={styles.gtBadge}>
-                                                            <CustomIcon library="Feather" name="target" size={13} color={Palette.Green700} />
-                                                            <Text style={styles.gtBadgeText}>Ground Truth</Text>
-                                                        </View>
-                                                        <Text style={styles.gtTargetSub}>Latent Target Profile</Text>
-                                                    </View>
 
-                                                    {/* Stacked Sub-rows in Column for Ground Truth */}
-                                                    <View style={{ flexDirection: "column" }}>
-                                                        {/* GROUND TRUTH EASY */}
-                                                        <View style={styles.subTableRow}>
-                                                            <View style={[styles.colAnchor, styles.centerCell, { justifyContent: "center" }]}>
-                                                                <View style={styles.easyGtBadge}>
-                                                                    <Text style={styles.easyGtBadgeText}>Easy GT</Text>
-                                                                </View>
-                                                            </View>
-
-                                                            <View style={[styles.tdCell, styles.colDist, styles.centerCell]}>
-                                                                <Text style={styles.gtZeroDistText}>0.0000</Text>
-                                                            </View>
-
-                                                            <View style={[styles.tdCell, styles.colHiked]}>
-                                                                <Text style={styles.gtTargetDescription}>
-                                                                    Latent capability target ({gt?.seed ? `RNG Seed [${gt.seed[0]}, ${gt.seed[1]}]` : "Deterministic Standard"})
-                                                                </Text>
-                                                            </View>
-
-                                                            <View style={[styles.tdCell, styles.colPredicted, styles.centerCell]}>
-                                                                <Text style={styles.gtUncoveredText}>—</Text>
-                                                            </View>
-
-                                                            <View style={[styles.tdCell, styles.colActual, styles.centerCell]}>
-                                                                <Text style={styles.gtUncoveredText}>—</Text>
-                                                            </View>
-
-                                                            {/* Physical GT values */}
-                                                            {PHYSICAL_COLS.map((col) => (
-                                                                <View key={`gt-easy-${col.key}`} style={[styles.tdCell, styles.colNum, styles.centerCell]}>
-                                                                    <Text style={styles.gtFeatText}>
-                                                                        {formatVal(gt.easy[col.key])}
-                                                                    </Text>
-                                                                </View>
-                                                            ))}
-
-                                                            {/* Provinces (uncovered by GT, dash) */}
-                                                            {PROVINCES.map((p) => (
-                                                                <View key={`gt-easy-p-${p}`} style={[styles.tdCell, styles.colProv, styles.centerCell]}>
-                                                                    <Text style={styles.gtUncoveredText}>—</Text>
-                                                                </View>
-                                                            ))}
-
-                                                            {/* Terrain GT values */}
-                                                            {TERRAIN_COLS.map((col) => (
-                                                                <View key={`gt-easy-terr-${col.key}`} style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                                    <Text style={styles.gtFeatText}>
-                                                                        {formatVal(gt.easy[col.key])}
-                                                                    </Text>
-                                                                </View>
-                                                            ))}
-
-                                                            {/* Routes (uncovered) */}
-                                                            <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-
-                                                            {/* Water (uncovered) */}
-                                                            <View style={[styles.tdCell, styles.colWater, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colWater, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colWater, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-
-                                                            {/* Tourism (uncovered) */}
-                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                        </View>
-
-                                                        {/* GROUND TRUTH DIFFICULT */}
-                                                        <View style={[styles.subTableRow, styles.subTableRowDivider]}>
-                                                            <View style={[styles.colAnchor, styles.centerCell, { justifyContent: "center" }]}>
-                                                                <View style={styles.diffGtBadge}>
-                                                                    <Text style={styles.diffGtBadgeText}>Diff GT</Text>
-                                                                </View>
-                                                            </View>
-
-                                                            <View style={[styles.tdCell, styles.colDist, styles.centerCell]}>
-                                                                <Text style={styles.gtZeroDistText}>0.0000</Text>
-                                                            </View>
-
-                                                            <View style={[styles.tdCell, styles.colHiked]}>
-                                                                <Text style={styles.gtTargetDescription}>
-                                                                    Aspirational challenge target ({gt.medical_scale_factor ? `m = ${gt.medical_scale_factor.toFixed(2)}` : "unscaled"})
-                                                                </Text>
-                                                            </View>
-
-                                                            <View style={[styles.tdCell, styles.colPredicted, styles.centerCell]}>
-                                                                <Text style={styles.gtUncoveredText}>—</Text>
-                                                            </View>
-
-                                                            <View style={[styles.tdCell, styles.colActual, styles.centerCell]}>
-                                                                <Text style={styles.gtUncoveredText}>—</Text>
-                                                            </View>
-
-                                                            {/* Physical GT values */}
-                                                            {PHYSICAL_COLS.map((col) => (
-                                                                <View key={`gt-diff-${col.key}`} style={[styles.tdCell, styles.colNum, styles.centerCell]}>
-                                                                    <Text style={styles.gtFeatText}>
-                                                                        {formatVal(gt.difficult[col.key])}
-                                                                    </Text>
-                                                                </View>
-                                                            ))}
-
-                                                            {/* Provinces (uncovered) */}
-                                                            {PROVINCES.map((p) => (
-                                                                <View key={`gt-diff-p-${p}`} style={[styles.tdCell, styles.colProv, styles.centerCell]}>
-                                                                    <Text style={styles.gtUncoveredText}>—</Text>
-                                                                </View>
-                                                            ))}
-
-                                                            {/* Terrain GT values */}
-                                                            {TERRAIN_COLS.map((col) => (
-                                                                <View key={`gt-diff-terr-${col.key}`} style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                                    <Text style={styles.gtFeatText}>
-                                                                        {formatVal(gt.difficult[col.key])}
-                                                                    </Text>
-                                                                </View>
-                                                            ))}
-
-                                                            {/* Routes (uncovered) */}
-                                                            <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-
-                                                            {/* Water (uncovered) */}
-                                                            <View style={[styles.tdCell, styles.colWater, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colWater, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colWater, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-
-                                                            {/* Tourism (uncovered) */}
-                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                            <View style={[styles.tdCell, styles.colTourism, styles.centerCell]}><Text style={styles.gtUncoveredText}>—</Text></View>
-                                                        </View>
-                                                    </View>
-                                                </View>
                                             </View>
                                         </View>
                                     </ScrollView>
 
-                                    {/* Graphical Representation of Distance to Ground Truth across Cycles */}
-                                    <View
-                                        style={styles.chartSection}
-                                        onLayout={(e) => {
-                                            const w = e.nativeEvent.layout.width;
-                                            if (w > 0 && Math.abs(w - chartContainerWidth) > 1) {
-                                                setChartContainerWidth(w);
-                                            }
-                                        }}
-                                    >
-                                        <View style={styles.chartHeader}>
-                                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                                                <CustomIcon library="Feather" name="trending-down" size={14} color={Colors.PRIMARY} />
-                                                <Text style={styles.chartTitle}>Gower Distance to Ground Truth Trajectory (Cycle 0 → Cycle {history.length - 1})</Text>
-                                            </View>
-                                            <View style={styles.chartLegend}>
-                                                <View style={styles.legendItem}>
-                                                    <View style={[styles.legendDot, { backgroundColor: Palette.Green700 }]} />
-                                                    <Text style={styles.legendLabel}>Easy Anchor GD</Text>
-                                                </View>
-                                                <View style={styles.legendItem}>
-                                                    <View style={[styles.legendDot, { backgroundColor: "#B45309" }]} />
-                                                    <Text style={styles.legendLabel}>Difficult Anchor GD</Text>
-                                                </View>
-                                                <View style={styles.legendItem}>
-                                                    <View style={[styles.legendDot, { backgroundColor: "#6366F1" }]} />
-                                                    <Text style={styles.legendLabel}>Mean Cycle GD</Text>
-                                                </View>
-                                            </View>
-                                        </View>
-
-                                        {(() => {
-                                            const cyclesCount = history.length;
-                                            if (cyclesCount === 0) return null;
-
-                                            // Match parent width without side scrolling; default to 800 before layout measurement
-                                            const availableWidth = Math.max(300, (chartContainerWidth > 0 ? chartContainerWidth - 32 : 800));
-                                            const svgWidth = availableWidth;
-                                            // Same height as the main screen chart (360px)
-                                            const svgHeight = 360;
-                                            const padLeft = 60;
-                                            const padRight = 60;
-                                            const padTop = 40;
-                                            const padBottom = 50;
-                                            const plotWidth = svgWidth - padLeft - padRight;
-                                            const plotHeight = svgHeight - padTop - padBottom;
-
-                                            // Collect all values to determine Y-axis scale (full Y-axis from origin to 0.250)
-                                            const easyVals = history.map((c) => c.distances?.easy?.gd ?? (c.distances as any)?.easy_gd ?? 0);
-                                            const diffVals = history.map((c) => c.distances?.difficult?.gd ?? (c.distances as any)?.diff_gd ?? 0);
-                                            const meanVals = history.map((c) => c.distances?.mean_gd ?? 0);
-                                            const allVals = [...easyVals, ...diffVals, ...meanVals];
-
-                                            const rawMax = Math.max(...allVals, 0.250);
-                                            const minVal = 0.0;
-                                            const maxVal = Math.max(0.250, Math.ceil(rawMax * 20) / 20);
-                                            const valRange = maxVal - minVal || 0.25;
-
-                                            const getX = (idx: number) => {
-                                                if (cyclesCount === 1) return padLeft + plotWidth / 2;
-                                                return padLeft + (idx / (cyclesCount - 1)) * plotWidth;
-                                            };
-
-                                            const getY = (val: number) => {
-                                                return padTop + plotHeight - ((val - minVal) / valRange) * plotHeight;
-                                            };
-
-                                            const easyPoints = history.map((_, i) => `${getX(i)},${getY(easyVals[i])}`).join(" ");
-                                            const diffPoints = history.map((_, i) => `${getX(i)},${getY(diffVals[i])}`).join(" ");
-                                            const meanPoints = history.map((_, i) => `${getX(i)},${getY(meanVals[i])}`).join(" ");
-
-                                            // Y-axis grid ticks (steps of 0.050 from 0.000 to 0.250)
-                                            const yTicks = [0.000, 0.050, 0.100, 0.150, 0.200, 0.250];
-                                            if (maxVal > 0.250 && !yTicks.includes(maxVal)) {
-                                                yTicks.push(maxVal);
-                                            }
-
-                                            return (
-                                                <View style={{ width: "100%", alignItems: "center" }}>
-                                                    <Svg width={svgWidth} height={svgHeight}>
-                                                        {/* Background Grid Lines & Y-Axis Labels */}
-                                                        {yTicks.map((tick, tIdx) => {
-                                                            const yPos = getY(tick);
-                                                            return (
-                                                                <React.Fragment key={`ytick-${tIdx}`}>
-                                                                    <Line
-                                                                        x1={padLeft}
-                                                                        y1={yPos}
-                                                                        x2={svgWidth - padRight}
-                                                                        y2={yPos}
-                                                                        stroke={Palette.Neutral100}
-                                                                        strokeWidth={1}
-                                                                        strokeDasharray={tIdx === 0 ? undefined : "4,4"}
-                                                                    />
-                                                                    <SvgText
-                                                                        x={padLeft - 8}
-                                                                        y={yPos + 4}
-                                                                        fontSize={10}
-                                                                        fill={Colors.TEXT_MUTED}
-                                                                        textAnchor="end"
-                                                                    >
-                                                                        {tick.toFixed(3)}
-                                                                    </SvgText>
-                                                                </React.Fragment>
-                                                            );
-                                                        })}
-
-                                                        {/* X-Axis Vertical Reference Lines & Cycle Labels */}
-                                                        {history.map((c, i) => {
-                                                            const xPos = getX(i);
-                                                            return (
-                                                                <React.Fragment key={`xtick-${i}`}>
-                                                                    <Line
-                                                                        x1={xPos}
-                                                                        y1={padTop}
-                                                                        x2={xPos}
-                                                                        y2={padTop + plotHeight}
-                                                                        stroke={Palette.Neutral100}
-                                                                        strokeWidth={1}
-                                                                    />
-                                                                    <SvgText
-                                                                        x={xPos}
-                                                                        y={padTop + plotHeight + 18}
-                                                                        fontSize={10}
-                                                                        fontWeight="bold"
-                                                                        fill={Colors.TEXT_PRIMARY}
-                                                                        textAnchor="middle"
-                                                                    >
-                                                                        {i === 0 ? "C0" : i === cyclesCount - 1 ? `C${i} (Final)` : `C${i}`}
-                                                                    </SvgText>
-                                                                    <SvgText
-                                                                        x={xPos}
-                                                                        y={padTop + plotHeight + 32}
-                                                                        fontSize={9}
-                                                                        fill={Colors.TEXT_MUTED}
-                                                                        textAnchor="middle"
-                                                                    >
-                                                                        {c.month}
-                                                                    </SvgText>
-                                                                </React.Fragment>
-                                                            );
-                                                        })}
-
-                                                        {/* Difficult Line */}
-                                                        <Polyline
-                                                            points={diffPoints}
-                                                            fill="none"
-                                                            stroke="#D97706"
-                                                            strokeWidth={2.5}
-                                                            strokeDasharray="5,4"
-                                                        />
-
-                                                        {/* Mean Line */}
-                                                        <Polyline
-                                                            points={meanPoints}
-                                                            fill="none"
-                                                            stroke="#6366F1"
-                                                            strokeWidth={2}
-                                                            strokeDasharray="2,2"
-                                                        />
-
-                                                        {/* Easy Line */}
-                                                        <Polyline
-                                                            points={easyPoints}
-                                                            fill="none"
-                                                            stroke={Palette.Green700}
-                                                            strokeWidth={3}
-                                                        />
-
-                                                        {/* Plot Nodes & Value Callouts */}
-                                                        {history.map((_, i) => {
-                                                            const x = getX(i);
-                                                            const yEasy = getY(easyVals[i]);
-                                                            const yDiff = getY(diffVals[i]);
-                                                            const yMean = getY(meanVals[i]);
-
-                                                            return (
-                                                                <React.Fragment key={`nodes-${i}`}>
-                                                                    {/* Difficult Node */}
-                                                                    <Circle cx={x} cy={yDiff} r={4} fill="#B45309" stroke={Colors.WHITE} strokeWidth={1.5} />
-                                                                    <SvgText
-                                                                        x={x}
-                                                                        y={yDiff - 8}
-                                                                        fontSize={10}
-                                                                        fontWeight="bold"
-                                                                        fill="#B45309"
-                                                                        textAnchor="middle"
-                                                                    >
-                                                                        {diffVals[i].toFixed(4)}
-                                                                    </SvgText>
-
-                                                                    {/* Mean Node */}
-                                                                    <Circle cx={x} cy={yMean} r={3.5} fill="#6366F1" stroke={Colors.WHITE} strokeWidth={1} />
-
-                                                                    {/* Easy Node */}
-                                                                    <Circle cx={x} cy={yEasy} r={5} fill={Palette.Green700} stroke={Colors.WHITE} strokeWidth={2} />
-                                                                    <SvgText
-                                                                        x={x}
-                                                                        y={yEasy + 14}
-                                                                        fontSize={11}
-                                                                        fontWeight="bold"
-                                                                        fill={Palette.Green700}
-                                                                        textAnchor="middle"
-                                                                    >
-                                                                        {easyVals[i].toFixed(4)}
-                                                                    </SvgText>
-                                                                </React.Fragment>
-                                                            );
-                                                        })}
-                                                    </Svg>
-                                                </View>
-                                            );
-                                        })()}
-                                    </View>
                                 </View>
                             </ScrollView>
                         )}
@@ -1046,26 +578,7 @@ export default function SimulatedUserModal({
                         {/* TAB 2: Formulation & Methodology Narrative */}
                         {activeTab === "formulation" && (
                             <ScrollView style={{ flex: 1, padding: 16 }}>
-                                <View style={styles.narrativeCard}>
-                                    <View style={styles.narrativeHeader}>
-                                        <CustomIcon library="Feather" name="compass" size={18} color={Colors.PRIMARY} />
-                                        <Text style={styles.cardBoxTitle}>Algorithmic Formulation Narrative</Text>
-                                    </View>
-                                    <Text style={styles.narrativeBody}>
-                                        Cohort {user.id} belongs to experience tier {user.experience} ({user.experience === "E1" ? "Beginner Novice" : user.experience === "E2" ? "Experienced Gentle" : user.experience === "E3" ? "Intermediate Mixed" : "Advanced High-Altitude"}).
-                                    </Text>
-                                    <Text style={styles.narrativeBody}>
-                                        {user.medicalProfile.hasCondition
-                                            ? `• Medical Constraint Applied: User reports ${getMedicalConditionName(user)}. Under Decision D1, physical features (length, peak, gain, slope, Lasco) and terrains are scaled down by 0.80 to protect physiological safety. Route types, water forms, and tourism amenities remain unscaled.`
-                                            : "• Healthy Baseline: No physiological conditions reported. Features use full unscaled calibrated anchors based purely on survey trail experience."}
-                                    </Text>
-                                    <Text style={styles.narrativeBody}>
-                                        • Ticked Trails in Survey: {user.preferences.location.length > 0 ? user.preferences.location.join(", ") : "None (pure cold-start priors applied)."}.
-                                    </Text>
-                                    <Text style={styles.narrativeBody}>
-                                        • Geographic Prior: Preferred province is {user.preferences.province.join(", ")}, which initializes preferred province dimensions to 0.85 and other provinces to 0.15.
-                                    </Text>
-                                </View>
+
                             </ScrollView>
                         )}
 
@@ -1421,21 +934,10 @@ const styles = StyleSheet.create({
         fontWeight: "800",
         color: Palette.Green900,
     },
-    distValueText: {
-        fontSize: 12,
-        fontWeight: "700",
-        color: Colors.PRIMARY,
-        fontVariant: ["tabular-nums"],
-    },
     meanSummaryText: {
         fontSize: 12,
         color: Colors.TEXT_MUTED,
         fontStyle: "italic",
-    },
-    gtZeroDistText: {
-        fontSize: 12,
-        fontWeight: "800",
-        color: Palette.Green800,
     },
     hikedNameText: {
         fontSize: 12,
@@ -1556,49 +1058,6 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         fontSize: 13,
     },
-    // Chart Styles
-    chartSection: {
-        backgroundColor: Colors.WHITE,
-        borderTopWidth: 1,
-        borderTopColor: Palette.Neutral100,
-        paddingHorizontal: 16,
-        paddingTop: 16,
-        paddingBottom: 24,
-        marginTop: 12,
-    },
-    chartHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 8,
-        flexWrap: "wrap",
-        gap: 8,
-    },
-    chartTitle: {
-        fontSize: 13,
-        fontWeight: "700",
-        color: Colors.TEXT_PRIMARY,
-    },
-    chartLegend: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 16,
-    },
-    legendItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-    },
-    legendDot: {
-        width: 9,
-        height: 9,
-        borderRadius: 5,
-    },
-    legendLabel: {
-        fontSize: 11,
-        color: Colors.TEXT_SECONDARY,
-        fontWeight: "500",
-    },
     // Difficulty Tag Styles (Predicted & Actual)
     difficultyTag: {
         paddingHorizontal: 7,
@@ -1613,9 +1072,6 @@ const styles = StyleSheet.create({
     difficultyTagDiff: {
         backgroundColor: Palette.Amber100,
     },
-    difficultyTagExhausting: {
-        backgroundColor: Palette.Red100,
-    },
     difficultyTagText: {
         fontSize: 10,
         fontWeight: "700",
@@ -1625,9 +1081,6 @@ const styles = StyleSheet.create({
     },
     difficultyTagTextDiff: {
         color: Palette.Amber900,
-    },
-    difficultyTagTextExhausting: {
-        color: Palette.Red800,
     },
     // Match / Mismatch Inline Badges
     matchBadge: {
@@ -1662,7 +1115,6 @@ const styles = StyleSheet.create({
     // Column Widths
     colCycle: { width: 175, paddingHorizontal: 6 },
     colAnchor: { width: 90, paddingHorizontal: 4, alignItems: "center", justifyContent: "center" },
-    colDist: { width: 105, textAlign: "center" },
     colHiked: { width: 240, paddingHorizontal: 6 },
     colPredicted: { width: 85, textAlign: "center" },
     colActual: { width: 85, textAlign: "center" },
