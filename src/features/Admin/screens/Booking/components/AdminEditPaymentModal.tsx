@@ -27,8 +27,7 @@ import { useToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Booking, IPayment } from '@/src/core/models/Booking/Booking';
-import { sanitizeCurrencyInput } from '@/src/features/Admin/screens/Booking/components/ManualQRVerificationCard';
-import { getDisplayReferenceCode } from '@/src/features/Admin/utils/paymentUtils';
+import { getDisplayReferenceCode, sanitizeCurrencyInput } from '@/src/features/Admin/utils/paymentUtils';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');

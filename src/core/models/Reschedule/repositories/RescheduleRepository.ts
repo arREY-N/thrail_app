@@ -1,5 +1,5 @@
 import { db } from "@/src/core/config/Firebase";
-import { BookingStatus } from "@/src/core/models/Booking/interfaces/Booking.types";
+import type { BookingStatus } from "@/src/core/models/Booking/interfaces/Booking.types";
 import { Reschedule } from "@/src/core/models/Reschedule/interfaces/Reschedule.types";
 import { rescheduleConverter } from "@/src/core/models/Reschedule/utils/RescheduleFactory";
 import {
@@ -276,7 +276,7 @@ export const RescheduleRepository = (db: Firestore) => ({
         onUpdate: (reschedule: Reschedule | null) => void,
         onError?: (error: Error) => void
     ): Unsubscribe {
-        if (!businessId || !rescheduleId) return () => {};
+        if (!businessId || !rescheduleId) return () => { };
 
         const rescheduleRef = doc(createRescheduleCollection(db, businessId), rescheduleId);
         return onSnapshot(
