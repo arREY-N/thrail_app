@@ -1,5 +1,9 @@
 import { Palette, Colors } from "@/src/constants/colors";
-import { useEnrichedHikerLocations } from "@/src/features/Navigation/hooks/useEnrichedHikerLocations";
+import {
+    formatTimeAgo,
+    LKL_TICKER_INTERVAL_MS,
+    useEnrichedHikerLocations,
+} from "@/src/features/Navigation/hooks/useEnrichedHikerLocations";
 import {
     HikeRecordingScreenProps,
     IEnrichedGroupMember,
@@ -33,18 +37,6 @@ const getInitials = (firstName?: string, lastName?: string) => {
     if (firstName && lastName) return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
     if (firstName) return firstName.charAt(0).toUpperCase();
     return '?';
-};
-
-const formatTimeAgo = (timestamp?: Date | string | number, currentTimeMs = Date.now()): string => {
-    if (!timestamp) return "";
-    const timeMs = timestamp instanceof Date ? timestamp.getTime() : new Date(timestamp).getTime();
-    if (isNaN(timeMs)) return "";
-    const mins = Math.max(0, Math.floor((currentTimeMs - timeMs) / (1000 * 60)));
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    const remainingMins = mins % 60;
-    return `${hours}h ${remainingMins}m ago`;
 };
 
 const formatRecordedTime = (timestamp?: Date | string | number): string => {
@@ -107,12 +99,28 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
 
     const [copiedSar, setCopiedSar] = useState(false);
 
-    // Stable 10-second ticker for live timestamp calculations
+    // Stable 2-second ticker for live timestamp calculations + instant sync on tab focus
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentTime(Date.now());
-        }, 10000);
-        return () => clearInterval(interval);
+        }, LKL_TICKER_INTERVAL_MS);
+
+        const handleFocus = () => {
+            setCurrentTime(Date.now());
+        };
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('focus', handleFocus);
+            window.addEventListener('visibilitychange', handleFocus);
+        }
+
+        return () => {
+            clearInterval(interval);
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('focus', handleFocus);
+                window.removeEventListener('visibilitychange', handleFocus);
+            }
+        };
     }, []);
 
     // Telemetry enrichment hook

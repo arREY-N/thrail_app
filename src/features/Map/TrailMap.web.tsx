@@ -62,10 +62,11 @@ export interface TrailMapRef {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Helpers (TODO: move to a shared file used by both native and web)          */
+/*  Helpers (shared LKL thresholds & sub-minute formatting)                    */
 /* -------------------------------------------------------------------------- */
 
-const LKL_MINUTES = 2;
+const SIGNAL_LOST_THRESHOLD_MS = 40000; // 40 seconds
+const LKL_TICKER_INTERVAL_MS = 2000; // 2 seconds
 const GHOST_TTL_MS = 24 * 60 * 60 * 1000;
 
 function isValidCoordinate(lat?: number | null, lon?: number | null): boolean {
@@ -80,15 +81,20 @@ function toMs(timestamp?: Date | string | number): number {
   return isNaN(ms) ? 0 : ms;
 }
 
-function getElapsedMinutes(timestamp?: Date | string | number, now = Date.now()): number {
+function isHikerSignalLost(timestamp?: Date | string | number, status?: string, now = Date.now()): boolean {
+  if (status === "GPS_SIGNAL_LOST") return true;
   const ms = toMs(timestamp);
-  if (!ms) return 0;
-  return Math.floor(Math.max(0, now - ms) / 60000);
+  if (!ms) return true;
+  return Math.max(0, now - ms) >= SIGNAL_LOST_THRESHOLD_MS;
 }
 
 function formatTimeAgo(timestamp?: Date | string | number, now = Date.now()): string {
-  const mins = getElapsedMinutes(timestamp, now);
-  if (mins < 1) return "Just now";
+  const ms = toMs(timestamp);
+  if (!ms) return "";
+  const elapsedSec = Math.max(0, Math.floor((now - ms) / 1000));
+  if (elapsedSec < 15) return "Just now";
+  if (elapsedSec < 60) return `${elapsedSec}s ago`;
+  const mins = Math.floor(elapsedSec / 60);
   if (mins < 60) return `${mins}m ago`;
   return `${Math.floor(mins / 60)}h ${mins % 60}m ago`;
 }
@@ -298,7 +304,7 @@ function buildHikerEntry(hiker: HikerLocation, onClick: (h: HikerLocation) => vo
 
 function refreshHikerEntry(entry: HikerEntry, now: number) {
   const { hiker } = entry;
-  const isLkl = getElapsedMinutes(hiker.timestamp, now) >= LKL_MINUTES;
+  const isLkl = isHikerSignalLost(hiker.timestamp, hiker.status, now);
   entry.initials.textContent = getInitials(hiker.hikerName); // textContent: safe against XSS
   entry.circle.style.background = isLkl ? "#D97706" : "#E65100";
   entry.circle.style.borderColor = isLkl ? "#FEF3C7" : "#FFFFFF";
@@ -974,19 +980,33 @@ const TrailMap = memo(
         });
       }, [hikerLocations, currentUserId, mapReady, handleHikerPress]);
 
-      // Stable 10s ticker via ref so LKL state flips even if no new pings arrive (only active when hikers exist)
+      // Stable 2s ticker via ref so LKL state flips even if no new pings arrive (only active when hikers exist)
       const hasHikers = Boolean(hikerLocations && hikerLocations.length > 0);
       useEffect(() => {
         if (!hasHikers) return;
-        const id = setInterval(() => {
+        const tick = () => {
           if (!isMountedRef.current) return;
           const locs = hikerLocationsRef.current;
           if (!locs || locs.length === 0) return;
           const now = Date.now();
           hikerEntriesRef.current.forEach((e) => refreshHikerEntry(e, now));
           forceTick((n) => n + 1);
-        }, 10000);
-        return () => clearInterval(id);
+        };
+
+        const id = setInterval(tick, LKL_TICKER_INTERVAL_MS);
+
+        if (typeof window !== "undefined") {
+          window.addEventListener("focus", tick);
+          window.addEventListener("visibilitychange", tick);
+        }
+
+        return () => {
+          clearInterval(id);
+          if (typeof window !== "undefined") {
+            window.removeEventListener("focus", tick);
+            window.removeEventListener("visibilitychange", tick);
+          }
+        };
       }, [hasHikers]);
 
       const liveSelectedHiker = useMemo(() => {
@@ -995,7 +1015,7 @@ const TrailMap = memo(
       }, [selectedHiker, hikerLocations]);
 
       const isSelectedLkl = liveSelectedHiker
-        ? getElapsedMinutes(liveSelectedHiker.timestamp) >= LKL_MINUTES
+        ? isHikerSignalLost(liveSelectedHiker.timestamp, liveSelectedHiker.status)
         : false;
 
       /* ---------------------------- Imperative API -------------------------- */
