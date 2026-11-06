@@ -330,20 +330,18 @@ def run_batch_recommendations(
                 else:
                     raw_choice = r.get("perceivedDifficulty")
                     if isinstance(raw_choice, (int, float)):
-                        # 1: Easy, 2: Just Right, 3: Moderate, 4: Difficult/Hard, 5: Extreme
+                        # 1: Easy, 2: Just Right, 3: Moderate, 4: Difficult/Hard
                         is_user_easy = (raw_choice <= 2)
-                        is_user_exhausting = (raw_choice >= 5)
                     else:
                         choice_str = str(raw_choice or "easy").strip().lower()
                         is_user_easy = choice_str in ("easy", "just right", "1", "2")
-                        is_user_exhausting = choice_str in ("exhausting", "extreme", "too hard")
 
                     if predicted_cat == "easy":
                         is_match = is_user_easy
                     else:
                         # On difficult recommendation:
-                        # "Easy" = Underwhelming Mismatch; "Exhausting" = Overexertion Mismatch; "Difficult" = Match
-                        is_match = (not is_user_easy) and (not is_user_exhausting)
+                        # "Easy" = Underwhelming Mismatch; "Difficult" = Match
+                        is_match = not is_user_easy
 
                 hike_factors = r.get("difficultyFactors") or []
                 hike_weights = resolve_review_factor_weights(

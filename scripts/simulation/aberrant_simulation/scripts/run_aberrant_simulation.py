@@ -142,15 +142,7 @@ def determine_simulated_review(
         mean_diff = float(np.mean([trail_feats[k] - diff_gt_feats[k] for k in ["length", "gain", "slope", "elevation"]]))
         count_over = sum(1 for k in ["gain", "slope", "elevation", "length"] if trail_feats[k] - diff_gt_feats[k] > 0.15)
 
-        if mean_diff > 0.08 or count_over >= 2:
-            # Severe overexertion mismatch: trail far exceeded even aspirational GT limit!
-            perceived_difficulty = "Exhausting"
-            severe_overpowers = [(k, trail_feats[k] - diff_gt_feats[k]) for k in ["length", "gain", "slope", "elevation"] if trail_feats[k] - diff_gt_feats[k] > 0.0]
-            severe_overpowers.sort(key=lambda x: x[1], reverse=True)
-            primary_key = severe_overpowers[0][0] if severe_overpowers else "slope"
-            for k, _ in severe_overpowers:
-                selected_phrases.append(phrase_map[k])
-        elif phys_dist_easy + 0.12 < phys_dist_diff or mean_diff < -0.20:
+        if phys_dist_easy + 0.12 < phys_dist_diff or mean_diff < -0.20:
             # Underwhelming mismatch: trail lacked desired challenge
             perceived_difficulty = "Easy"
             diffs = [(k, diff_gt_feats[k] - trail_feats[k]) for k in ["length", "gain", "slope", "elevation"]]
@@ -158,7 +150,7 @@ def determine_simulated_review(
             primary_key = diffs[0][0]
             selected_phrases.append(phrase_map[primary_key])
         else:
-            # Appropriate challenge (Match)
+            # Appropriate or strenuous challenge: Difficult
             perceived_difficulty = "Difficult"
             chal = [(k, trail_feats[k]) for k in ["length", "gain", "slope", "elevation"]]
             chal.sort(key=lambda x: x[1], reverse=True)
@@ -169,9 +161,7 @@ def determine_simulated_review(
     created_at = f"{active_month}-15T10:00:00Z"
     tname = trail_doc.get("general", {}).get("name") or trail_doc.get("name", "Trail")
 
-    # When perceivedDifficulty is "Exhausting", the engine's match parser treats it as a mismatch
-    # (perceivedDifficulty != target_anchor)
-    is_match = (perceived_difficulty == target_anchor.capitalize())
+    is_match = (perceived_difficulty.lower() == target_anchor.lower())
 
     return {
         "id": f"rev_{trail_doc['id']}_{active_month}",

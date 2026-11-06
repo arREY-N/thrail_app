@@ -2,7 +2,9 @@
 THARESYS User Set Simulation Runner & UI Activator
 
 Runs multi-cycle evaluation across any of the 5 seeded user sets, logs cycle-by-cycle
-convergence metrics, and optionally activates the results directly into the UI.
+convergence metrics, evaluates recommendation match/accuracy rates against ground truth,
+tracks the 2x2 Hike Difficulty Experience Matrix (predicted vs actual difficulty),
+and optionally activates the results directly into the UI.
 
 Usage:
     # 1. Run with 8 Real Benchmark Trails (Default):
@@ -23,6 +25,9 @@ Usage:
     # 6. Dynamically tune engine hyperparameters via CLI flags:
     .venv\\Scripts\\python.exe engine\\run_user_set_simulation.py --set 1 --trails 8 --cycles 6 --beta-divisor 3.0 --beta-decay 0.05 --freeze-on-exhaustion
     .venv\\Scripts\\python.exe engine\\run_user_set_simulation.py --set 1 --trails 88 --cycles 20 --cf-k 8 --alpha-override 0.50 --activate-ui
+
+    # 7. Evaluate recommendation match rate with specific match mode and export CSV telemetry:
+    .venv\\Scripts\\python.exe engine\\run_user_set_simulation.py --set 1 --trails 88 --cycles 10 --match-mode strict --export-csv
 """
 
 import os
@@ -226,6 +231,78 @@ def build_gt_covered_vector(gt_dict: Dict[str, Any]) -> np.ndarray:
     return np.array([float(gt_dict.get(k, 0.0) or 0.0) for k in keys], dtype=np.float32)
 
 
+def evaluate_trail_recommendation(
+    trail_id: str,
+    target_slot: str,
+    gt_easy_10: np.ndarray,
+    gt_diff_10: np.ndarray,
+    trail_10d_map: Dict[str, np.ndarray],
+    trail_by_id: Dict[str, Any],
+    score: float = 0.0,
+    match_mode: str = "strict",
+) -> Dict[str, Any]:
+    """
+    Evaluates whether an individual recommended trail is a correct / match recommendation
+    relative to the user's ground truth physical capability and slot classification.
+
+    Match Modes:
+        - 'strict' (default): Requires BOTH physiological compatibility AND anchor slot alignment.
+        - 'physical': Physiological capability & fatigue safety match only.
+        - 'slot': Relative anchor slot alignment only (closer to intended GT anchor).
+    """
+    tid = str(trail_id)
+    tdoc = trail_by_id.get(tid, {})
+    tname = tdoc.get("general", {}).get("name") or tdoc.get("name") or f"Trail {tid[:6]}"
+
+    t_10 = trail_10d_map.get(tid)
+    if t_10 is None:
+        return {
+            "trailId": tid,
+            "trailName": str(tname),
+            "recommendedSlot": target_slot,
+            "score": round(float(score), 4),
+            "dist_gt_easy": 0.0,
+            "dist_gt_diff": 0.0,
+            "strain": 0.0,
+            "is_phys_match": True,
+            "is_gt_aligned": True,
+            "is_match": True,
+        }
+
+    dist_easy = float(gower_distance(t_10, gt_easy_10))
+    dist_diff = float(gower_distance(t_10, gt_diff_10))
+
+    if target_slot == "easy":
+        strain = float(np.mean(t_10[1:6] - gt_easy_10[1:6]))
+        is_phys_match = bool(strain <= 0.12)
+        is_gt_aligned = bool(dist_easy <= dist_diff)
+    else:
+        strain = float(np.mean(t_10[1:6] - gt_diff_10[1:6]))
+        underwhelming = float(np.mean(gt_diff_10[1:6] - t_10[1:6]))
+        is_phys_match = bool(strain <= 0.15 and underwhelming <= 0.18)
+        is_gt_aligned = bool(dist_diff <= dist_easy)
+
+    if match_mode == "physical":
+        is_match = is_phys_match
+    elif match_mode == "slot":
+        is_match = is_gt_aligned
+    else:  # 'strict' default
+        is_match = bool(is_phys_match and is_gt_aligned)
+
+    return {
+        "trailId": tid,
+        "trailName": str(tname),
+        "recommendedSlot": target_slot,
+        "score": round(float(score), 4),
+        "dist_gt_easy": round(dist_easy, 4),
+        "dist_gt_diff": round(dist_diff, 4),
+        "strain": round(strain, 4),
+        "is_phys_match": is_phys_match,
+        "is_gt_aligned": is_gt_aligned,
+        "is_match": is_match,
+    }
+
+
 def run_simulation(
     users_filepath: str,
     trails_filepath: str = DEFAULT_TRAILS_PATH,
@@ -246,6 +323,8 @@ def run_simulation(
     review_baseline_weight: float = REVIEW_BASELINE_UNSELECTED_WEIGHT,
     terrain_presence_threshold: float = TERRAIN_PRESENCE_THRESHOLD,
     freeze_on_exhaustion: bool = False,
+    match_mode: str = "strict",
+    export_csv: bool = False,
     activate_ui: bool = False,
     output_dir: str = None
 ) -> Dict[str, Any]:
@@ -271,16 +350,17 @@ def run_simulation(
         cur_m_norm = ((cur_m - 1) % 12) + 1
         months.append(f"{cur_y:04d}-{cur_m_norm:02d}")
 
-    print("=" * 70)
-    print("THARESYS USER SET MULTI-CYCLE SIMULATION")
-    print("=" * 70)
+    print("=" * 80)
+    print("THARESYS USER SET MULTI-CYCLE SIMULATION & RECOMMENDATION MATCH EVALUATION")
+    print("=" * 80)
     print(f"Users Source:  {users_filepath} ({len(users)} cohorts)")
     print(f"Trails Source: {resolved_trails_path} ({len(trails)} candidate trails)")
     print(f"Cycles:        {cycles} monthly hikes ({len(months)} batches: {months[0]} -> {months[-1]})")
     print(f"Engines:       CBF={cbf_engine}, CF={cf_engine}")
+    print(f"Match Mode:    {match_mode.upper()} ('strict': phys compatibility + slot alignment)")
     print(f"Parameters:    beta_divisor={beta_divisor} (decay={beta_decay}), alpha_override={alpha_override}, cf_k={cf_k}, cf_tau={cf_tau}")
     print(f"Weights/Gaps:  active_w={review_active_weight}, baseline_w={review_baseline_weight}, min_gap={monotonicity_min_gap}, freeze_exhaust={freeze_on_exhaustion}")
-    print("=" * 70)
+    print("=" * 80)
 
     # Pre-extract trail vectors
     trail_by_id = {str(t["id"]): t for t in trails}
@@ -292,6 +372,8 @@ def run_simulation(
     user_reviews_map: Dict[str, List[Dict[str, Any]]] = {u["id"]: [] for u in users}
     prev_recommendations_map: Dict[str, Dict[str, Any]] = {}
     user_cycle_telemetry: Dict[str, List[Dict[str, Any]]] = {u["id"]: [] for u in users}
+
+    cycle_progression_metrics = []
 
     # Execute simulation cycle by cycle
     for cycle_idx, active_month in enumerate(months):
@@ -325,6 +407,11 @@ def run_simulation(
         current_recos = batch_report["recommendations"]
         prev_recommendations_map = current_recos
 
+        cycle_user_gds = []
+        cycle_rec_match_rates = []
+        cycle_phys_match_rates = []
+        cycle_slot_match_rates = []
+
         # Process each user's telemetry & simulate hike for this cycle
         for u in users:
             uid = u["id"]
@@ -351,6 +438,8 @@ def run_simulation(
             mean_ed = round((easy_ed + diff_ed) / 2.0, 4)
             mean_cs = round((easy_cs + diff_cs) / 2.0, 4)
 
+            cycle_user_gds.append(mean_gd)
+
             easy_recs = reco_doc.get("easy", [])
             diff_recs = reco_doc.get("difficult", [])
 
@@ -366,6 +455,52 @@ def run_simulation(
 
             formatted_easy = [fmt_reco(r) for r in easy_recs[:10]]
             formatted_diff = [fmt_reco(r) for r in diff_recs[:10]]
+
+            # Rigorous evaluation of all recommendations presented to user in this cycle
+            easy_checks = [
+                evaluate_trail_recommendation(
+                    trail_id=r["id"],
+                    target_slot="easy",
+                    gt_easy_10=gt_easy_10,
+                    gt_diff_10=gt_diff_10,
+                    trail_10d_map=trail_10d_map,
+                    trail_by_id=trail_by_id,
+                    score=r["score"],
+                    match_mode=match_mode,
+                )
+                for r in formatted_easy
+            ]
+
+            diff_checks = [
+                evaluate_trail_recommendation(
+                    trail_id=r["id"],
+                    target_slot="difficult",
+                    gt_easy_10=gt_easy_10,
+                    gt_diff_10=gt_diff_10,
+                    trail_10d_map=trail_10d_map,
+                    trail_by_id=trail_by_id,
+                    score=r["score"],
+                    match_mode=match_mode,
+                )
+                for r in formatted_diff
+            ]
+
+            alignment_checks = easy_checks + diff_checks
+            total_checks = len(alignment_checks)
+            matched_count = sum(1 for c in alignment_checks if c["is_match"])
+            phys_matched_count = sum(1 for c in alignment_checks if c["is_phys_match"])
+            slot_matched_count = sum(1 for c in alignment_checks if c["is_gt_aligned"])
+
+            rec_match_rate = round(matched_count / max(1, total_checks), 4)
+            rec_phys_match_rate = round(phys_matched_count / max(1, total_checks), 4)
+            rec_slot_alignment_rate = round(slot_matched_count / max(1, total_checks), 4)
+
+            easy_match_rate = round(sum(1 for c in easy_checks if c["is_match"]) / max(1, len(easy_checks)), 4)
+            diff_match_rate = round(sum(1 for c in diff_checks if c["is_match"]) / max(1, len(diff_checks)), 4)
+
+            cycle_rec_match_rates.append(rec_match_rate)
+            cycle_phys_match_rates.append(rec_phys_match_rate)
+            cycle_slot_match_rates.append(rec_slot_alignment_rate)
 
             # If not terminal cycle, pick a trail and simulate review for next cycle
             hiked_obj = None
@@ -427,25 +562,32 @@ def run_simulation(
                         if strain > 0.12:
                             is_match = False
                             perceived = "Difficult"
-                            factors = ["The trail slope is noticeable", "The length is exhausting"]
+                            factors = ["The trail slope is noticeable", "The trail is too long"]
                         else:
                             is_match = True
                             perceived = "Easy"
                             factors = ["The trail slope is manageable", "The length is just right"]
                     else:
                         underwhelming_check = float(np.mean(target_gt[1:6] - t_10[1:6]))
-                        if strain > 0.15:
-                            is_match = False
-                            perceived = "Exhausting"
-                            factors = ["The trail slope is exhausting", "The elevation climb is difficult"]
-                        elif underwhelming_check > 0.18:
+                        if underwhelming_check > 0.18:
                             is_match = False
                             perceived = "Easy"
                             factors = ["The trail slope is gentle", "The length is short"]
                         else:
                             is_match = True
                             perceived = "Difficult"
-                            factors = ["The trail slope is challenging", "The length is just right"]
+                            factors = ["The trail slope is challenging", "The elevation climb is difficult"]
+
+                    # 2x2 Hike Difficulty Experience Matrix Classification
+                    # Normalizes perceived experience into binary easy vs difficult
+                    actual_diff = "easy" if perceived.lower() == "easy" else "difficult"
+                    if target_slot == "easy":
+                        hike_outcome = "easy-easy" if actual_diff == "easy" else "easy-difficult"
+                    else:
+                        hike_outcome = "difficult-difficult" if actual_diff == "difficult" else "difficult-easy"
+
+                    is_easier_than_predicted = bool(target_slot == "difficult" and actual_diff == "easy")
+                    is_harder_than_predicted = bool(target_slot == "easy" and actual_diff == "difficult")
 
                     hiked_obj = {
                         "id": picked_tid,
@@ -454,7 +596,12 @@ def run_simulation(
                         "targetAnchor": target_slot,
                         "targetSlot": target_slot,
                         "score": picked_score,
+                        "predictedDifficulty": target_slot,
+                        "actualDifficulty": actual_diff,
+                        "hikeOutcome": hike_outcome,
                         "isMatch": is_match,
+                        "isEasierThanPredicted": is_easier_than_predicted,
+                        "isHarderThanPredicted": is_harder_than_predicted,
                     }
 
                     review_obj = {
@@ -508,7 +655,13 @@ def run_simulation(
                     "mean_ed": mean_ed,
                     "mean_cs": mean_cs,
                 },
-                "rec_alignment_rate": 1.0 if (hiked_obj and hiked_obj.get("isMatch")) else (0.5 if not hiked_obj else 0.0),
+                "rec_alignment_rate": rec_match_rate,
+                "rec_match_rate": rec_match_rate,
+                "rec_phys_match_rate": rec_phys_match_rate,
+                "rec_slot_alignment_rate": rec_slot_alignment_rate,
+                "easy_match_rate": easy_match_rate,
+                "diff_match_rate": diff_match_rate,
+                "alignment_checks": alignment_checks,
                 "recommendations": {
                     "easy": formatted_easy,
                     "difficult": formatted_diff,
@@ -516,6 +669,55 @@ def run_simulation(
                 "hiked": hiked_obj,
                 "review": review_obj,
             })
+
+        # Cycle Progression Telemetry Summary
+        c_mean_gd = round(float(np.mean(cycle_user_gds)), 4)
+        c_rec_match = round(float(np.mean(cycle_rec_match_rates)), 4)
+        c_phys_match = round(float(np.mean(cycle_phys_match_rates)), 4)
+        c_slot_match = round(float(np.mean(cycle_slot_match_rates)), 4)
+
+        # 2x2 Hike Matrix for this cycle
+        cycle_hikes = [user_cycle_telemetry[u["id"]][cycle_idx]["hiked"] for u in users if user_cycle_telemetry[u["id"]][cycle_idx].get("hiked")]
+        if cycle_hikes:
+            total_cycle_hikes = len(cycle_hikes)
+            c_ee = sum(1 for h in cycle_hikes if h.get("hikeOutcome") == "easy-easy")
+            c_dd = sum(1 for h in cycle_hikes if h.get("hikeOutcome") == "difficult-difficult")
+            c_ed = sum(1 for h in cycle_hikes if h.get("hikeOutcome") == "easy-difficult")
+            c_de = sum(1 for h in cycle_hikes if h.get("hikeOutcome") == "difficult-easy")
+            c_matches = c_ee + c_dd
+            c_safe_or_easier = c_ee + c_dd + c_de
+
+            hike_matrix_cycle = {
+                "predicted_easy_actual_easy": c_ee,
+                "predicted_difficult_actual_difficult": c_dd,
+                "predicted_easy_actual_difficult": c_ed,
+                "predicted_difficult_actual_easy": c_de,
+                "total_hikes": total_cycle_hikes,
+                "matches": c_matches,
+                "safe_or_easier_than_predicted": c_safe_or_easier,
+                "match_rate": round(c_matches / total_cycle_hikes, 4),
+                "safe_or_easier_rate": round(c_safe_or_easier / total_cycle_hikes, 4),
+            }
+
+            print(f"\nCycle {cycle_idx:2d} ({active_month}): Mean GD={c_mean_gd:.4f} | Rec Match={c_rec_match*100:5.1f}%")
+            print(f"  - predicted easy-actual easy:           {c_ee:2d}/{total_cycle_hikes} ({c_ee/total_cycle_hikes*100:5.1f}%)")
+            print(f"  - predicted difficult-actual difficult: {c_dd:2d}/{total_cycle_hikes} ({c_dd/total_cycle_hikes*100:5.1f}%)")
+            print(f"  - predicted easy-actual difficult:      {c_ed:2d}/{total_cycle_hikes} ({c_ed/total_cycle_hikes*100:5.1f}%)")
+            print(f"  - predicted difficult-actual easy:      {c_de:2d}/{total_cycle_hikes} ({c_de/total_cycle_hikes*100:5.1f}%)")
+            print(f"  Hike Matches: {c_matches}/{total_cycle_hikes} ({c_matches/total_cycle_hikes*100:5.1f}%) | Safe / At least easier than predicted: {c_safe_or_easier}/{total_cycle_hikes} ({c_safe_or_easier/total_cycle_hikes*100:5.1f}%)")
+        else:
+            hike_matrix_cycle = None
+            print(f"\nCycle {cycle_idx:2d} ({active_month}) [Terminal]: Mean GD={c_mean_gd:.4f} | Rec Match={c_rec_match*100:5.1f}% [Evaluation State - No Hike]")
+
+        cycle_progression_metrics.append({
+            "cycle": cycle_idx,
+            "month": active_month,
+            "mean_gd": c_mean_gd,
+            "rec_match_rate": c_rec_match,
+            "rec_phys_match_rate": c_phys_match,
+            "rec_slot_alignment_rate": c_slot_match,
+            "hike_difficulty_breakdown": hike_matrix_cycle,
+        })
 
     # Package simulatedUsers.json for UI
     simulated_users_bundle = []
@@ -526,33 +728,83 @@ def run_simulation(
         start_gd = entry["cycleHistory"][0]["distances"]["mean_gd"]
         end_gd = entry["cycleHistory"][-1]["distances"]["mean_gd"]
         delta_gd = round(end_gd - start_gd, 4)
+
+        start_match = entry["cycleHistory"][0]["rec_match_rate"]
+        end_match = entry["cycleHistory"][-1]["rec_match_rate"]
+        delta_match = round(end_match - start_match, 4)
+        mean_match = round(float(np.mean([c["rec_match_rate"] for c in entry["cycleHistory"]])), 4)
+
+        user_hikes = [c["hiked"] for c in entry["cycleHistory"] if c.get("hiked")]
+        u_ee = sum(1 for h in user_hikes if h.get("hikeOutcome") == "easy-easy")
+        u_dd = sum(1 for h in user_hikes if h.get("hikeOutcome") == "difficult-difficult")
+        u_ed = sum(1 for h in user_hikes if h.get("hikeOutcome") == "easy-difficult")
+        u_de = sum(1 for h in user_hikes if h.get("hikeOutcome") == "difficult-easy")
+        total_hikes = len(user_hikes)
+        hiked_matches = u_ee + u_dd
+        hiked_rate = round(hiked_matches / max(1, total_hikes), 4)
+        safe_or_easier = u_ee + u_dd + u_de
+        safe_rate = round(safe_or_easier / max(1, total_hikes), 4)
+
         entry["convergence"] = {
             "start_gd": start_gd,
             "end_gd": end_gd,
             "ctrl_end_gd": start_gd,
             "delta_gd": delta_gd,
             "has_converged": bool(end_gd < start_gd),
+            "start_match_rate": start_match,
+            "end_match_rate": end_match,
+            "delta_match_rate": delta_match,
+            "mean_rec_match_rate": mean_match,
+            "hiked_matches": hiked_matches,
+            "total_hikes": total_hikes,
+            "hiked_match_rate": hiked_rate,
+            "safe_or_easier_rate": safe_rate,
+            "hike_matrix": {
+                "easy_easy": u_ee,
+                "diff_diff": u_dd,
+                "easy_diff": u_ed,
+                "diff_easy": u_de,
+                "total_hikes": total_hikes,
+            }
         }
         simulated_users_bundle.append(entry)
 
-    # Print terminal convergence summary table
-    print("\n" + "=" * 78)
-    print(f"{'User ID':<18} | {'Group':<10} | {'Start GD':<9} | {'End GD':<9} | {'Delta GD':<9} | {'Status'}")
-    print("-" * 78)
-    for u in simulated_users_bundle[:10]:
-        c = u["convergence"]
-        status = "CONVERGED" if c["has_converged"] else "DIVERGED"
-        print(f"{u['id']:<18} | {u.get('cohort_group', 'normal'):<10} | {c['start_gd']:<9.4f} | {c['end_gd']:<9.4f} | {c['delta_gd']:<+9.4f} | {status}")
-    if len(simulated_users_bundle) > 10:
-        print(f"... and {len(simulated_users_bundle) - 10} more cohorts.")
     mean_start = float(np.mean([u["convergence"]["start_gd"] for u in simulated_users_bundle]))
     mean_end = float(np.mean([u["convergence"]["end_gd"] for u in simulated_users_bundle]))
     mean_delta = float(np.mean([u["convergence"]["delta_gd"] for u in simulated_users_bundle]))
     converged_count = sum(1 for u in simulated_users_bundle if u["convergence"]["has_converged"])
-    print("-" * 78)
-    print(f"Overall Cohort Mean: Start GD={mean_start:.4f} -> End GD={mean_end:.4f} (Delta={mean_delta:+.4f})")
-    print(f"Convergence Success: {converged_count}/{len(simulated_users_bundle)} cohorts ({converged_count/len(simulated_users_bundle)*100:.1f}%)")
-    print("=" * 78)
+
+    mean_start_rec = float(np.mean([u["convergence"]["start_match_rate"] for u in simulated_users_bundle]))
+    mean_end_rec = float(np.mean([u["convergence"]["end_match_rate"] for u in simulated_users_bundle]))
+    mean_delta_rec = float(np.mean([u["convergence"]["delta_match_rate"] for u in simulated_users_bundle]))
+    overall_rec_match = float(np.mean([u["convergence"]["mean_rec_match_rate"] for u in simulated_users_bundle]))
+
+    # Cumulative Hike 2x2 Matrix Totals
+    total_hikes_cohort = sum(u["convergence"]["total_hikes"] for u in simulated_users_bundle)
+    tot_ee = sum(u["convergence"]["hike_matrix"]["easy_easy"] for u in simulated_users_bundle)
+    tot_dd = sum(u["convergence"]["hike_matrix"]["diff_diff"] for u in simulated_users_bundle)
+    tot_ed = sum(u["convergence"]["hike_matrix"]["easy_diff"] for u in simulated_users_bundle)
+    tot_de = sum(u["convergence"]["hike_matrix"]["diff_easy"] for u in simulated_users_bundle)
+    tot_matches = tot_ee + tot_dd
+    tot_safe_or_easier = tot_matches + tot_de
+
+    ee_rate = tot_ee / max(1, total_hikes_cohort)
+    dd_rate = tot_dd / max(1, total_hikes_cohort)
+    ed_rate = tot_ed / max(1, total_hikes_cohort)
+    de_rate = tot_de / max(1, total_hikes_cohort)
+    match_rate = tot_matches / max(1, total_hikes_cohort)
+    safe_rate = tot_safe_or_easier / max(1, total_hikes_cohort)
+
+    # Print Summary of Hike Difficulty Experience Matrix
+    print(f"\nSummary ({cycles} cycles, {total_hikes_cohort} total hikes):")
+    print(f"  - predicted easy-actual easy:             {tot_ee:3d}/{total_hikes_cohort} ({ee_rate*100:5.1f}%)")
+    print(f"  - predicted difficult-actual difficult:   {tot_dd:3d}/{total_hikes_cohort} ({dd_rate*100:5.1f}%)")
+    print(f"  - predicted easy-actual difficult:        {tot_ed:3d}/{total_hikes_cohort} ({ed_rate*100:5.1f}%)")
+    print(f"  - predicted difficult-actual easy:        {tot_de:3d}/{total_hikes_cohort} ({de_rate*100:5.1f}%)")
+    print("-" * 65)
+    print(f"  Matches (easy-easy + difficult-difficult):       {tot_matches:3d}/{total_hikes_cohort} ({match_rate*100:5.1f}%)")
+    print(f"  Safe / At least easier than predicted:           {tot_safe_or_easier:3d}/{total_hikes_cohort} ({safe_rate*100:5.1f}%)")
+    print("=" * 65)
 
     # Save output artifacts
     users_out_path = os.path.join(out_dir, "simulatedUsers.json")
@@ -570,6 +822,7 @@ def run_simulation(
             "months": months,
             "cbf": cbf_engine,
             "cf": cf_engine,
+            "match_mode": match_mode,
             "beta_divisor": beta_divisor,
             "beta_decay": beta_decay,
             "alpha_override": alpha_override,
@@ -584,13 +837,86 @@ def run_simulation(
             "terrain_presence_threshold": terrain_presence_threshold,
             "freeze_on_exhaustion": freeze_on_exhaustion,
         },
+        "summary": {
+            "total_users": len(users),
+            "total_trails": len(trails),
+            "cycles": cycles,
+            "converged_count": converged_count,
+            "convergence_rate": round(converged_count / len(users), 4),
+            "mean_start_gd": round(mean_start, 4),
+            "mean_end_gd": round(mean_end, 4),
+            "mean_delta_gd": round(mean_delta, 4),
+            "mean_start_rec_match_rate": round(mean_start_rec, 4),
+            "mean_end_rec_match_rate": round(mean_end_rec, 4),
+            "mean_delta_rec_match_rate": round(mean_delta_rec, 4),
+            "overall_rec_match_rate": round(overall_rec_match, 4),
+            "total_hikes": total_hikes_cohort,
+            "hike_difficulty_matrix": {
+                "predicted_easy_actual_easy": {"count": tot_ee, "rate": round(ee_rate, 4), "percentage": f"{ee_rate*100:.1f}%"},
+                "predicted_difficult_actual_difficult": {"count": tot_dd, "rate": round(dd_rate, 4), "percentage": f"{dd_rate*100:.1f}%"},
+                "predicted_easy_actual_difficult": {"count": tot_ed, "rate": round(ed_rate, 4), "percentage": f"{ed_rate*100:.1f}%"},
+                "predicted_difficult_actual_easy": {"count": tot_de, "rate": round(de_rate, 4), "percentage": f"{de_rate*100:.1f}%"},
+                "total_hikes": total_hikes_cohort,
+                "matches": tot_matches,
+                "match_rate": round(match_rate, 4),
+                "safe_or_easier_than_predicted": tot_safe_or_easier,
+                "safe_or_easier_rate": round(safe_rate, 4),
+            },
+            "cycle_progression": cycle_progression_metrics,
+        },
         "users": simulated_users_bundle
     }
     with open(harness_out_path, "w", encoding="utf-8") as f:
         json.dump(harness_payload, f, indent=2)
 
+    # Optional CSV Export of all telemetry rows
+    if export_csv:
+        csv_out_path = os.path.join(out_dir, "simulation_telemetry.csv")
+        fieldnames = [
+            "user_id", "cohort_group", "experience", "medical", "cycle", "month",
+            "mean_gd", "mean_ed", "mean_cs",
+            "rec_match_rate", "rec_phys_match_rate", "rec_slot_alignment_rate",
+            "easy_match_rate", "diff_match_rate",
+            "hiked_trail_id", "hiked_trail_name", "hiked_predicted_difficulty",
+            "hiked_actual_difficulty", "hiked_outcome", "hiked_is_match", "hiked_is_easier"
+        ]
+        with open(csv_out_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for u in simulated_users_bundle:
+                uid = u["id"]
+                group = u.get("cohort_group", "normal")
+                exp = u.get("experience", "")
+                med = u.get("medical", "")
+                for entry in u["cycleHistory"]:
+                    hiked = entry.get("hiked") or {}
+                    writer.writerow({
+                        "user_id": uid,
+                        "cohort_group": group,
+                        "experience": exp,
+                        "medical": med,
+                        "cycle": entry["cycle"],
+                        "month": entry["month"],
+                        "mean_gd": entry["distances"]["mean_gd"],
+                        "mean_ed": entry["distances"]["mean_ed"],
+                        "mean_cs": entry["distances"]["mean_cs"],
+                        "rec_match_rate": entry["rec_match_rate"],
+                        "rec_phys_match_rate": entry["rec_phys_match_rate"],
+                        "rec_slot_alignment_rate": entry["rec_slot_alignment_rate"],
+                        "easy_match_rate": entry.get("easy_match_rate", 0.0),
+                        "diff_match_rate": entry.get("diff_match_rate", 0.0),
+                        "hiked_trail_id": hiked.get("trailId", ""),
+                        "hiked_trail_name": hiked.get("trailName", ""),
+                        "hiked_predicted_difficulty": hiked.get("predictedDifficulty", ""),
+                        "hiked_actual_difficulty": hiked.get("actualDifficulty", ""),
+                        "hiked_outcome": hiked.get("hikeOutcome", ""),
+                        "hiked_is_match": hiked.get("isMatch", ""),
+                        "hiked_is_easier": hiked.get("isEasierThanPredicted", ""),
+                    })
+        print(f"  - simulation_telemetry.csv ({len(simulated_users_bundle) * len(months)} rows)")
+
     print(f"\n[OK] Simulation artifacts generated in: {out_dir}")
-    print(f"  - simulatedUsers.json ({len(simulated_users_bundle)} cohorts with full cycleHistory)")
+    print(f"  - simulatedUsers.json ({len(simulated_users_bundle)} cohorts with full cycleHistory and alignment_checks)")
     print(f"  - simulationHarnessResults.json")
 
     # If activate_ui flag is passed, copy directly to src/recommendation/data/
@@ -609,7 +935,7 @@ def run_simulation(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="THARESYS Seeded User Set Simulation & UI Runner")
+    parser = argparse.ArgumentParser(description="THARESYS Seeded User Set Simulation & Recommendation Match Evaluator")
     # Dataset Selection
     parser.add_argument("--set", type=int, choices=[1, 2, 3, 4, 5], default=None, help="Index of seeded user set (1..5)")
     parser.add_argument("--users", type=str, default=None, help="Explicit path to a users JSON file")
@@ -617,6 +943,16 @@ if __name__ == "__main__":
     parser.add_argument("--cycles", type=int, default=10, help="Number of monthly cycles (default: 10)")
     parser.add_argument("--cbf", type=str, default="GD", help="CBF formula ('GD', 'ED', 'CS')")
     parser.add_argument("--cf", type=str, default="GD", help="CF formula ('GD', 'ED', 'CS')")
+
+    # Match Evaluation Mode
+    parser.add_argument(
+        "--match-mode",
+        type=str,
+        choices=["strict", "physical", "slot"],
+        default="strict",
+        help="Recommendation match criterion: 'strict' (phys tolerance + slot alignment, default), 'physical' (strain tolerance only), 'slot' (slot relative distance only)"
+    )
+    parser.add_argument("--export-csv", action="store_true", help="Export detailed cycle-by-cycle telemetry rows to CSV")
 
     # Parameter Preset Selection
     parser.add_argument(
@@ -705,5 +1041,7 @@ if __name__ == "__main__":
         review_baseline_weight=resolved_review_base,
         terrain_presence_threshold=resolved_terr_thresh,
         freeze_on_exhaustion=resolved_freeze,
+        match_mode=args.match_mode,
+        export_csv=args.export_csv,
         activate_ui=args.activate_ui
     )

@@ -24,7 +24,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { toDateOrNull } from '@/src/core/utility/date';
-import { sanitizeCurrencyInput } from './ManualQRVerificationCard';
+import { sanitizeCurrencyInput } from '@/src/features/Admin/utils/paymentUtils';
 
 export type RefundType = 'full' | 'partial' | 'custom' | 'none';
 

@@ -9,7 +9,7 @@
 
 import CustomIcon from "@/src/components/CustomIcon";
 import { Colors, Palette } from "@/src/constants/colors";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
     Modal,
     ScrollView,
@@ -252,36 +252,6 @@ export default function SimulationTrailDataset() {
                     </View>
                 </View>
 
-                {/* Province Filter */}
-                <View style={styles.filterRow}>
-                    <Text style={styles.filterLabel}>PROVINCE:</Text>
-                    <View style={styles.pillsContainer}>
-                        <TouchableOpacity
-                            style={[styles.filterPill, selectedProvince === "ALL" && styles.filterPillActive]}
-                            onPress={() => setSelectedProvince("ALL")}
-                        >
-                            <Text style={[styles.filterPillText, selectedProvince === "ALL" && styles.filterPillTextActive]}>
-                                ALL
-                            </Text>
-                        </TouchableOpacity>
-                        {PROVINCES.map((prov) => (
-                            <TouchableOpacity
-                                key={`prov-filter-${prov}`}
-                                style={[styles.filterPill, selectedProvince.toLowerCase() === prov.toLowerCase() && styles.filterPillActive]}
-                                onPress={() => setSelectedProvince(prov)}
-                            >
-                                <Text
-                                    style={[
-                                        styles.filterPillText,
-                                        selectedProvince.toLowerCase() === prov.toLowerCase() && styles.filterPillTextActive,
-                                    ]}
-                                >
-                                    {prov}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
             </View>
 
             {/* Catalog Info & Overview Strip */}
@@ -295,8 +265,8 @@ export default function SimulationTrailDataset() {
                         {sourceFilter === "real"
                             ? "Calabarzon Real Trails (Cycle Simulation Reference Set)"
                             : sourceFilter === "synthetic"
-                            ? "Synthetic Scaling Catalog ({synthCount} Trails Balanced Coordinate Space)"
-                            : "Combined Simulation Trail Catalog ({realCount} Real Reference + {synthCount} Synthetic Scaled)"}
+                                ? "Synthetic Scaling Catalog ({synthCount} Trails Balanced Coordinate Space)"
+                                : "Combined Simulation Trail Catalog ({realCount} Real Reference + {synthCount} Synthetic Scaled)"}
                     </Text>
                 </View>
                 <View style={styles.kpiPills}>
@@ -313,244 +283,248 @@ export default function SimulationTrailDataset() {
 
             {/* Scrollable Trail Dataset Table */}
             <View style={styles.tableCard}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.tableHorizontalScroll}>
-                    <View>
+                <ScrollView horizontal={true} showsHorizontalScrollIndicator={true} style={styles.tableScroll}>
+                    <View style={styles.table}>
                         {/* Table Header Row 1: Section Categories */}
-                        <View style={styles.superHeaderRow}>
-                            <View style={[styles.thSuper, styles.colIndex]}>
-                                <Text style={styles.thSuperText}>#</Text>
-                            </View>
-                            <View style={[styles.thSuper, styles.colTrail]}>
-                                <Text style={styles.thSuperText}>TRAIL IDENTIFIER</Text>
-                            </View>
-                            <View style={[styles.thSuper, styles.colProv]}>
-                                <Text style={styles.thSuperText}>LOCATION</Text>
-                            </View>
-                            <View style={[styles.thSuper, styles.colTier]}>
-                                <Text style={styles.thSuperText}>TIER / CLASS</Text>
-                            </View>
-                            <View style={[styles.thSuper, styles.superGroupPhysical]}>
-                                <Text style={styles.thSuperText}>PHYSICAL EXERTION METRICS (NORM / RAW)</Text>
-                            </View>
-                            <View style={[styles.thSuper, styles.superGroupProvinces]}>
-                                <Text style={styles.thSuperText}>PROVINCE AFFINITY</Text>
-                            </View>
-                            <View style={[styles.thSuper, styles.superGroupTerrains]}>
-                                <Text style={styles.thSuperText}>TERRAINS</Text>
-                            </View>
-                            <View style={[styles.thSuper, styles.superGroupCirc]}>
-                                <Text style={styles.thSuperText}>CIRCULARITY</Text>
-                            </View>
-                            <View style={[styles.thSuper, styles.superGroupWater]}>
-                                <Text style={styles.thSuperText}>WATERFORMS</Text>
-                            </View>
-                            <View style={[styles.thSuper, styles.superGroupTourism]}>
-                                <Text style={styles.thSuperText}>AMENITIES / TOURISM</Text>
-                            </View>
-                            <View style={[styles.thSuper, styles.colAction]}>
-                                <Text style={styles.thSuperText}>ACTION</Text>
-                            </View>
+                <View style={styles.superHeaderRow}>
+                    <View style={[styles.thSuper, styles.colIndex]}>
+                        <Text style={styles.thSuperText}>#</Text>
+                    </View>
+                    <View style={[styles.thSuper, styles.colTrail]}>
+                        <Text style={styles.thSuperText}>TRAIL IDENTIFIER</Text>
+                    </View>
+                    <View style={[styles.thSuper, styles.colProv]}>
+                        <Text style={styles.thSuperText}>LOCATION</Text>
+                    </View>
+                    <View style={[styles.thSuper, styles.colTier]}>
+                        <Text style={styles.thSuperText}>TIER / CLASS</Text>
+                    </View>
+                    <View style={[styles.thSuper, styles.superGroupPhysical]}>
+                        <Text style={styles.thSuperText}>PHYSICAL EXERTION METRICS (NORM / RAW)</Text>
+                    </View>
+                    <View style={[styles.thSuper, styles.superGroupProvinces]}>
+                        <Text style={styles.thSuperText}>PROVINCE AFFINITY</Text>
+                    </View>
+                    <View style={[styles.thSuper, styles.superGroupTerrains]}>
+                        <Text style={styles.thSuperText}>TERRAINS</Text>
+                    </View>
+                    <View style={[styles.thSuper, styles.superGroupCirc]}>
+                        <Text style={styles.thSuperText}>CIRCULARITY</Text>
+                    </View>
+                    <View style={[styles.thSuper, styles.superGroupWater]}>
+                        <Text style={styles.thSuperText}>WATERFORMS</Text>
+                    </View>
+                    <View style={[styles.thSuper, styles.superGroupTourism]}>
+                        <Text style={styles.thSuperText}>AMENITIES / TOURISM</Text>
+                    </View>
+                    <View style={[styles.thSuper, styles.colAction]}>
+                        <Text style={styles.thSuperText}>ACTION</Text>
+                    </View>
+                </View>
+
+                {/* Table Header Row 2: Sub-feature Columns */}
+                <View style={styles.tableHeaderRow}>
+                    <View style={[styles.thCell, styles.colIndex]}>
+                        <Text style={styles.thText}>No.</Text>
+                    </View>
+                    <View style={[styles.thCell, styles.colTrail]}>
+                        <Text style={styles.thText}>Name & Source</Text>
+                    </View>
+                    <View style={[styles.thCell, styles.colProv]}>
+                        <Text style={styles.thText}>Province</Text>
+                    </View>
+                    <View style={[styles.thCell, styles.colTier]}>
+                        <Text style={styles.thText}>Difficulty</Text>
+                    </View>
+
+                    {/* Physical Sub-columns */}
+                    <View style={[styles.thCell, styles.colNum]}><Text style={styles.thText}>Class</Text></View>
+                    <View style={[styles.thCell, styles.colNum]}><Text style={styles.thText}>Lasco</Text></View>
+                    <View style={[styles.thCell, styles.colNum]}><Text style={styles.thText}>Length</Text></View>
+                    <View style={[styles.thCell, styles.colNum]}><Text style={styles.thText}>Peak</Text></View>
+                    <View style={[styles.thCell, styles.colNum]}><Text style={styles.thText}>Gain</Text></View>
+                    <View style={[styles.thCell, styles.colNum]}><Text style={styles.thText}>Slope</Text></View>
+
+                    {/* Province Sub-columns */}
+                    {PROVINCES.map((p) => (
+                        <View key={`th-p-${p}`} style={[styles.thCell, styles.colProvItem]}>
+                            <Text style={styles.thText}>{p.slice(0, 3)}</Text>
                         </View>
+                    ))}
 
-                        {/* Table Header Row 2: Sub-feature Columns */}
-                        <View style={styles.tableHeaderRow}>
-                            <View style={[styles.thCell, styles.colIndex]}>
-                                <Text style={styles.thText}>No.</Text>
-                            </View>
-                            <View style={[styles.thCell, styles.colTrail]}>
-                                <Text style={styles.thText}>Name & Source</Text>
-                            </View>
-                            <View style={[styles.thCell, styles.colProv]}>
-                                <Text style={styles.thText}>Province</Text>
-                            </View>
-                            <View style={[styles.thCell, styles.colTier]}>
-                                <Text style={styles.thText}>Difficulty</Text>
-                            </View>
-
-                            {/* Physical Sub-columns */}
-                            <View style={[styles.thCell, styles.colNum]}><Text style={styles.thText}>Class</Text></View>
-                            <View style={[styles.thCell, styles.colNum]}><Text style={styles.thText}>Lasco</Text></View>
-                            <View style={[styles.thCell, styles.colNum]}><Text style={styles.thText}>Length</Text></View>
-                            <View style={[styles.thCell, styles.colNum]}><Text style={styles.thText}>Peak</Text></View>
-                            <View style={[styles.thCell, styles.colNum]}><Text style={styles.thText}>Gain</Text></View>
-                            <View style={[styles.thCell, styles.colNum]}><Text style={styles.thText}>Slope</Text></View>
-
-                            {/* Province Sub-columns */}
-                            {PROVINCES.map((p) => (
-                                <View key={`th-p-${p}`} style={[styles.thCell, styles.colProvItem]}>
-                                    <Text style={styles.thText}>{p.slice(0, 3)}</Text>
-                                </View>
-                            ))}
-
-                            {/* Terrains */}
-                            {TERRAIN_KEYS.map((k) => (
-                                <View key={`th-t-${k}`} style={[styles.thCell, styles.colTerrain]}>
-                                    <Text style={styles.thText}>{k.charAt(0).toUpperCase() + k.slice(1, 4)}</Text>
-                                </View>
-                            ))}
-
-                            {/* Circularity */}
-                            <View style={[styles.thCell, styles.colCirc]}><Text style={styles.thText}>Out-Back</Text></View>
-                            <View style={[styles.thCell, styles.colCirc]}><Text style={styles.thText}>Traverse</Text></View>
-                            <View style={[styles.thCell, styles.colCirc]}><Text style={styles.thText}>Circular</Text></View>
-
-                            {/* Water */}
-                            {WATER_KEYS.map((w) => (
-                                <View key={`th-w-${w}`} style={[styles.thCell, styles.colWater]}>
-                                    <Text style={styles.thText}>{w.charAt(0).toUpperCase() + w.slice(1)}</Text>
-                                </View>
-                            ))}
-
-                            {/* Tourism */}
-                            {TOURISM_KEYS.map((tm) => (
-                                <View key={`th-tm-${tm.key}`} style={[styles.thCell, styles.colTourism]}>
-                                    <Text style={styles.thText}>{tm.label}</Text>
-                                </View>
-                            ))}
-
-                            <View style={[styles.thCell, styles.colAction]}>
-                                <Text style={styles.thText}>Inspect</Text>
-                            </View>
+                    {/* Terrains */}
+                    {TERRAIN_KEYS.map((k) => (
+                        <View key={`th-t-${k}`} style={[styles.thCell, styles.colTerrain]}>
+                            <Text style={styles.thText}>{k.charAt(0).toUpperCase() + k.slice(1, 4)}</Text>
                         </View>
+                    ))}
 
-                        {/* Table Body Rows */}
-                        <View style={styles.tableRowsContainer}>
-                            {filteredTrails.map((trail, idx) => {
-                                const f = trail.profile.features;
-                                const isReal = trail.source === "real";
-                                const isEven = idx % 2 === 0;
+                    {/* Circularity */}
+                    <View style={[styles.thCell, styles.colCirc]}><Text style={styles.thText}>Out-Back</Text></View>
+                    <View style={[styles.thCell, styles.colCirc]}><Text style={styles.thText}>Traverse</Text></View>
+                    <View style={[styles.thCell, styles.colCirc]}><Text style={styles.thText}>Circular</Text></View>
 
-                                return (
-                                    <View
-                                        key={`trail-row-${trail.id}-${idx}`}
-                                        style={[styles.tableRow, isEven ? styles.rowEven : styles.rowOdd]}
-                                    >
-                                        {/* Index */}
-                                        <View style={[styles.tdCell, styles.colIndex, styles.centerCell]}>
-                                            <Text style={styles.indexText}>{idx + 1}</Text>
-                                        </View>
+                    {/* Water */}
+                    {WATER_KEYS.map((w) => (
+                        <View key={`th-w-${w}`} style={[styles.thCell, styles.colWater]}>
+                            <Text style={styles.thText}>{w.charAt(0).toUpperCase() + w.slice(1)}</Text>
+                        </View>
+                    ))}
 
-                                        {/* Trail Name & Source */}
-                                        <View style={[styles.tdCell, styles.colTrail]}>
-                                            <View style={styles.nameBadgeRow}>
-                                                <View style={[styles.sourceBadge, isReal ? styles.sourceBadgeReal : styles.sourceBadgeSynth]}>
-                                                    <Text style={[styles.sourceBadgeText, isReal ? styles.sourceTextReal : styles.sourceTextSynth]}>
-                                                        {isReal ? "Real (Cycle Sim)" : "Synthetic"}
-                                                    </Text>
-                                                </View>
-                                            </View>
-                                            <Text style={styles.trailNameText} numberOfLines={1}>
-                                                {trail.name}
-                                            </Text>
-                                            <Text style={styles.trailIdSub}>{trail.id}</Text>
-                                        </View>
+                    {/* Tourism */}
+                    {TOURISM_KEYS.map((tm) => (
+                        <View key={`th-tm-${tm.key}`} style={[styles.thCell, styles.colTourism]}>
+                            <Text style={styles.thText}>{tm.label}</Text>
+                        </View>
+                    ))}
 
-                                        {/* Province */}
-                                        <View style={[styles.tdCell, styles.colProv, styles.centerCell]}>
-                                            <Text style={styles.provText}>{trail.province}</Text>
-                                        </View>
+                    <View style={[styles.thCell, styles.colAction]}>
+                        <Text style={styles.thText}>Inspect</Text>
+                    </View>
+                </View>
 
-                                        {/* Tier / Difficulty */}
-                                        <View style={[styles.tdCell, styles.colTier, styles.centerCell]}>
-                                            <View style={[styles.tierBadge, isReal ? styles.tierBadgeReal : styles.tierBadgeSynth]}>
-                                                <Text style={styles.tierBadgeText}>{trail.classification}</Text>
-                                            </View>
-                                            <Text style={styles.lascoText}>Lasco {trail.lascoRating}/9</Text>
-                                        </View>
+                {/* Table Body Rows */}
+                <ScrollView
+                    style={styles.tableRowsContainer}
+                    contentContainerStyle={styles.tableRowsScrollContent}
+                    showsVerticalScrollIndicator={true}
+                >
+                        {filteredTrails.map((trail, idx) => {
+                            const f = trail.profile.features;
+                            const isReal = trail.source === "real";
+                            const isEven = idx % 2 === 0;
 
-                                        {/* Physical Features */}
-                                        <View style={[styles.tdCell, styles.colNum, styles.centerCell]}>
-                                            <Text style={styles.featVal}>{formatVal(f.classification)}</Text>
-                                        </View>
-                                        <View style={[styles.tdCell, styles.colNum, styles.centerCell]}>
-                                            <Text style={styles.featVal}>{formatVal(f.easy)}</Text>
-                                        </View>
-                                        <View style={[styles.tdCell, styles.colNum, styles.centerCell]}>
-                                            <Text style={styles.featVal}>{formatVal(f.length)}</Text>
-                                            <Text style={styles.rawSub}>{trail.raw.length.toFixed(1)}km</Text>
-                                        </View>
-                                        <View style={[styles.tdCell, styles.colNum, styles.centerCell]}>
-                                            <Text style={styles.featVal}>{formatVal(f.elevation)}</Text>
-                                            <Text style={styles.rawSub}>{Math.round(trail.raw.elevation)}m</Text>
-                                        </View>
-                                        <View style={[styles.tdCell, styles.colNum, styles.centerCell]}>
-                                            <Text style={styles.featVal}>{formatVal(f.gain)}</Text>
-                                            <Text style={styles.rawSub}>{Math.round(trail.raw.gain)}m</Text>
-                                        </View>
-                                        <View style={[styles.tdCell, styles.colNum, styles.centerCell]}>
-                                            <Text style={styles.featVal}>{formatVal(f.slope)}</Text>
-                                            <Text style={styles.rawSub}>{trail.raw.slope.toFixed(1)}%</Text>
-                                        </View>
-
-                                        {/* Province Affinity */}
-                                        {PROVINCES.map((p) => {
-                                            const val = f.province?.[p.toLowerCase()] ?? 0;
-                                            return (
-                                                <View key={`prov-${trail.id}-${p}`} style={[styles.tdCell, styles.colProvItem, styles.centerCell]}>
-                                                    <Text style={[styles.featVal, val > 0.5 && styles.featValActive]}>
-                                                        {formatVal(val)}
-                                                    </Text>
-                                                </View>
-                                            );
-                                        })}
-
-                                        {/* Terrains */}
-                                        {TERRAIN_KEYS.map((k) => {
-                                            const val = f.terrain?.[k] ?? 0;
-                                            return (
-                                                <View key={`terr-${trail.id}-${k}`} style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
-                                                    <Text style={[styles.featVal, val > 0.4 && styles.featValActive]}>
-                                                        {formatVal(val)}
-                                                    </Text>
-                                                </View>
-                                            );
-                                        })}
-
-                                        {/* Circularity */}
-                                        <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                            <Text style={styles.featVal}>{formatVal(f.circularity?.out_and_back)}</Text>
-                                        </View>
-                                        <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                            <Text style={styles.featVal}>{formatVal(f.circularity?.traverse)}</Text>
-                                        </View>
-                                        <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
-                                            <Text style={styles.featVal}>{formatVal(f.circularity?.circular)}</Text>
-                                        </View>
-
-                                        {/* Waterforms */}
-                                        {WATER_KEYS.map((w) => {
-                                            const val = f.waterforms?.[w] ?? 0;
-                                            return (
-                                                <View key={`water-${trail.id}-${w}`} style={[styles.tdCell, styles.colWater, styles.centerCell]}>
-                                                    <Text style={styles.featVal}>{formatVal(val)}</Text>
-                                                </View>
-                                            );
-                                        })}
-
-                                        {/* Tourism */}
-                                        {TOURISM_KEYS.map((tm) => {
-                                            const val = f.tourism?.[tm.key] ?? 0;
-                                            return (
-                                                <View key={`tourism-${trail.id}-${tm.key}`} style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
-                                                    <Text style={styles.featVal}>{formatVal(val)}</Text>
-                                                </View>
-                                            );
-                                        })}
-
-                                        {/* Action: Inspect */}
-                                        <View style={[styles.tdCell, styles.colAction, styles.centerCell]}>
-                                            <TouchableOpacity
-                                                style={styles.inspectBtn}
-                                                onPress={() => setInspectingTrail(trail)}
-                                            >
-                                                <CustomIcon library="Feather" name="eye" size={13} color={Colors.PRIMARY} />
-                                                <Text style={styles.inspectBtnText}>Inspect</Text>
-                                            </TouchableOpacity>
-                                        </View>
+                            return (
+                                <View
+                                    key={`trail-row-${trail.id}-${idx}`}
+                                    style={[styles.tableRow, isEven ? styles.rowEven : styles.rowOdd]}
+                                >
+                                    {/* Index */}
+                                    <View style={[styles.tdCell, styles.colIndex, styles.centerCell]}>
+                                        <Text style={styles.indexText}>{idx + 1}</Text>
                                     </View>
-                                );
-                            })}
-                        </View>
+
+                                    {/* Trail Name & Source */}
+                                    <View style={[styles.tdCell, styles.colTrail]}>
+                                        <View style={styles.nameBadgeRow}>
+                                            <View style={[styles.sourceBadge, isReal ? styles.sourceBadgeReal : styles.sourceBadgeSynth]}>
+                                                <Text style={[styles.sourceBadgeText, isReal ? styles.sourceTextReal : styles.sourceTextSynth]}>
+                                                    {isReal ? "Real (Cycle Sim)" : "Synthetic"}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        <Text style={styles.trailNameText} numberOfLines={1}>
+                                            {trail.name}
+                                        </Text>
+                                        <Text style={styles.trailIdSub}>{trail.id}</Text>
+                                    </View>
+
+                                    {/* Province */}
+                                    <View style={[styles.tdCell, styles.colProv, styles.centerCell]}>
+                                        <Text style={styles.provText}>{trail.province}</Text>
+                                    </View>
+
+                                    {/* Tier / Difficulty */}
+                                    <View style={[styles.tdCell, styles.colTier, styles.centerCell]}>
+                                        <View style={[styles.tierBadge, isReal ? styles.tierBadgeReal : styles.tierBadgeSynth]}>
+                                            <Text style={styles.tierBadgeText}>{trail.classification}</Text>
+                                        </View>
+                                        <Text style={styles.lascoText}>Lasco {trail.lascoRating}/9</Text>
+                                    </View>
+
+                                    {/* Physical Features */}
+                                    <View style={[styles.tdCell, styles.colNum, styles.centerCell]}>
+                                        <Text style={styles.featVal}>{formatVal(f.classification)}</Text>
+                                    </View>
+                                    <View style={[styles.tdCell, styles.colNum, styles.centerCell]}>
+                                        <Text style={styles.featVal}>{formatVal(f.easy)}</Text>
+                                    </View>
+                                    <View style={[styles.tdCell, styles.colNum, styles.centerCell]}>
+                                        <Text style={styles.featVal}>{formatVal(f.length)}</Text>
+                                        <Text style={styles.rawSub}>{trail.raw.length.toFixed(1)}km</Text>
+                                    </View>
+                                    <View style={[styles.tdCell, styles.colNum, styles.centerCell]}>
+                                        <Text style={styles.featVal}>{formatVal(f.elevation)}</Text>
+                                        <Text style={styles.rawSub}>{Math.round(trail.raw.elevation)}m</Text>
+                                    </View>
+                                    <View style={[styles.tdCell, styles.colNum, styles.centerCell]}>
+                                        <Text style={styles.featVal}>{formatVal(f.gain)}</Text>
+                                        <Text style={styles.rawSub}>{Math.round(trail.raw.gain)}m</Text>
+                                    </View>
+                                    <View style={[styles.tdCell, styles.colNum, styles.centerCell]}>
+                                        <Text style={styles.featVal}>{formatVal(f.slope)}</Text>
+                                        <Text style={styles.rawSub}>{trail.raw.slope.toFixed(1)}%</Text>
+                                    </View>
+
+                                    {/* Province Affinity */}
+                                    {PROVINCES.map((p) => {
+                                        const val = f.province?.[p.toLowerCase()] ?? 0;
+                                        return (
+                                            <View key={`prov-${trail.id}-${p}`} style={[styles.tdCell, styles.colProvItem, styles.centerCell]}>
+                                                <Text style={[styles.featVal, val > 0.5 && styles.featValActive]}>
+                                                    {formatVal(val)}
+                                                </Text>
+                                            </View>
+                                        );
+                                    })}
+
+                                    {/* Terrains */}
+                                    {TERRAIN_KEYS.map((k) => {
+                                        const val = f.terrain?.[k] ?? 0;
+                                        return (
+                                            <View key={`terr-${trail.id}-${k}`} style={[styles.tdCell, styles.colTerrain, styles.centerCell]}>
+                                                <Text style={[styles.featVal, val > 0.4 && styles.featValActive]}>
+                                                    {formatVal(val)}
+                                                </Text>
+                                            </View>
+                                        );
+                                    })}
+
+                                    {/* Circularity */}
+                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                        <Text style={styles.featVal}>{formatVal(f.circularity?.out_and_back)}</Text>
+                                    </View>
+                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                        <Text style={styles.featVal}>{formatVal(f.circularity?.traverse)}</Text>
+                                    </View>
+                                    <View style={[styles.tdCell, styles.colCirc, styles.centerCell]}>
+                                        <Text style={styles.featVal}>{formatVal(f.circularity?.circular)}</Text>
+                                    </View>
+
+                                    {/* Waterforms */}
+                                    {WATER_KEYS.map((w) => {
+                                        const val = f.waterforms?.[w] ?? 0;
+                                        return (
+                                            <View key={`water-${trail.id}-${w}`} style={[styles.tdCell, styles.colWater, styles.centerCell]}>
+                                                <Text style={styles.featVal}>{formatVal(val)}</Text>
+                                            </View>
+                                        );
+                                    })}
+
+                                    {/* Tourism */}
+                                    {TOURISM_KEYS.map((tm) => {
+                                        const val = f.tourism?.[tm.key] ?? 0;
+                                        return (
+                                            <View key={`tourism-${trail.id}-${tm.key}`} style={[styles.tdCell, styles.colTourism, styles.centerCell]}>
+                                                <Text style={styles.featVal}>{formatVal(val)}</Text>
+                                            </View>
+                                        );
+                                    })}
+
+                                    {/* Action: Inspect */}
+                                    <View style={[styles.tdCell, styles.colAction, styles.centerCell]}>
+                                        <TouchableOpacity
+                                            style={styles.inspectBtn}
+                                            onPress={() => setInspectingTrail(trail)}
+                                        >
+                                            <CustomIcon library="Feather" name="eye" size={13} color={Colors.PRIMARY} />
+                                            <Text style={styles.inspectBtnText}>Inspect</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            );
+                        })}
+                        </ScrollView>
                     </View>
                 </ScrollView>
             </View>
@@ -827,9 +801,15 @@ const styles = StyleSheet.create({
     tableCard: {
         backgroundColor: Colors.WHITE,
         flex: 1,
+        overflow: "hidden",
     },
-    tableHorizontalScroll: {
+    tableScroll: {
         flex: 1,
+        width: "100%",
+    },
+    table: {
+        flex: 1,
+        flexDirection: "column",
     },
     superHeaderRow: {
         flexDirection: "row",
@@ -872,7 +852,10 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     tableRowsContainer: {
-        flexDirection: "column",
+        flex: 1,
+    },
+    tableRowsScrollContent: {
+        paddingBottom: 24,
     },
     tableRow: {
         flexDirection: "row",
