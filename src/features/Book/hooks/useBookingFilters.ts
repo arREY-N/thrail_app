@@ -107,6 +107,24 @@ export const getBookingEffectiveStatus = (
 };
 
 /**
+ * Helper to determine if a booking has a payment receipt awaiting verification.
+ */
+export const isPaymentVerifyingBooking = (b?: Booking | null): boolean => {
+    if (!b) return false;
+    return b.paymentVerificationStatus === 'pending_verification' ||
+        Boolean(b.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+};
+
+/**
+ * Helper to determine if a booking has a payment receipt that was rejected.
+ */
+export const isPaymentRejectedBooking = (b?: Booking | null): boolean => {
+    if (!b) return false;
+    return b.paymentVerificationStatus === 'rejected' ||
+        Boolean(b.payment?.length && b.payment[b.payment.length - 1].status === 'rejected');
+};
+
+/**
  * Checks whether a booking status requires user action or attention.
  */
 export const isActionNeededStatus = (
@@ -127,6 +145,10 @@ export const isActionNeededStatus = (
         return false;
     }
 
+    if (isPaymentVerifyingBooking(booking)) {
+        return false;
+    }
+
     if (status === 'refund') {
         return !cancellation?.userWallet?.accountNumber ||
             cancellation?.handshakeStep === 'awaiting_user_confirmation' ||
@@ -142,7 +164,8 @@ export const isActionNeededStatus = (
         'downpayment',
         'cancellation-rejected',
         'reschedule-rejected',
-    ].includes(status);
+        'payment-rejected',
+    ].includes(status) || isPaymentRejectedBooking(booking);
 };
 
 /**
@@ -178,21 +201,24 @@ export const computeOptimalTab = (
         const st = getBookingEffectiveStatus(b, cancellations);
         const hikeDate = safeParseDateString(b.offer?.date);
         const isPast = hikeDate.getTime() < today.getTime();
-        return !isPast && isActionNeededStatus(st, cancelDoc, b) && [
-            'for-reservation',
-            'reservation-rejected',
-            'approved-docs',
-            'for-payment',
-            'for-reschedule',
-            'for-cancellation',
-            'cancellation-rejected',
-            'reschedule-rejected',
-            'refund',
-        ].includes(st);
+        return !isPast && isActionNeededStatus(st, cancelDoc, b) && (
+            isPaymentRejectedBooking(b) || [
+                'for-reservation',
+                'reservation-rejected',
+                'approved-docs',
+                'for-payment',
+                'for-reschedule',
+                'for-cancellation',
+                'cancellation-rejected',
+                'reschedule-rejected',
+                'refund',
+            ].includes(st)
+        );
     });
     if (hasPendingAction) return 'pending';
 
     const hasUpcomingAction = bookings.some((b) => {
+        if (isPaymentVerifyingBooking(b) || isPaymentRejectedBooking(b)) return false;
         const st = getBookingEffectiveStatus(b, cancellations);
         const hikeDate = safeParseDateString(b.offer?.date);
         const isPast = hikeDate.getTime() < today.getTime();
@@ -201,6 +227,7 @@ export const computeOptimalTab = (
     if (hasUpcomingAction) return 'upcoming';
 
     const hasUpcoming = bookings.some((b) => {
+        if (isPaymentVerifyingBooking(b) || isPaymentRejectedBooking(b)) return false;
         const st = getBookingEffectiveStatus(b, cancellations);
         const hikeDate = safeParseDateString(b.offer?.date);
         const isPast = hikeDate.getTime() < today.getTime();
@@ -212,17 +239,20 @@ export const computeOptimalTab = (
         const st = getBookingEffectiveStatus(b, cancellations);
         const hikeDate = safeParseDateString(b.offer?.date);
         const isPast = hikeDate.getTime() < today.getTime();
-        return !isPast && [
-            'for-reservation',
-            'reservation-rejected',
-            'approved-docs',
-            'for-payment',
-            'for-reschedule',
-            'for-cancellation',
-            'cancellation-rejected',
-            'reschedule-rejected',
-            'refund',
-        ].includes(st);
+        return !isPast && (
+            isPaymentVerifyingBooking(b) ||
+            isPaymentRejectedBooking(b) || [
+                'for-reservation',
+                'reservation-rejected',
+                'approved-docs',
+                'for-payment',
+                'for-reschedule',
+                'for-cancellation',
+                'cancellation-rejected',
+                'reschedule-rejected',
+                'refund',
+            ].includes(st)
+        );
     });
     if (hasPending) return 'pending';
 
@@ -286,6 +316,7 @@ export default function useBookingFilters(
                 'refunded',
                 'finished',
                 'expired',
+                'rescheduled',
             ].includes(status);
 
             // History bookings are terminal/archived records — they never increment action counts
@@ -294,7 +325,10 @@ export default function useBookingFilters(
             }
 
             let tab: TabId = 'upcoming';
-            if ([
+            const isVerifying = isPaymentVerifyingBooking(booking);
+            const isRejected = isPaymentRejectedBooking(booking);
+
+            if (isVerifying || isRejected || [
                 'for-reservation',
                 'reservation-rejected',
                 'approved-docs',
@@ -353,13 +387,18 @@ export default function useBookingFilters(
                 'refunded',
                 'finished',
                 'expired',
+                'rescheduled',
             ].includes(status);
 
             if (isDead || isPast) {
                 return activeTab === 'history';
             }
 
+            const isVerifying = isPaymentVerifyingBooking(booking);
+            const isRejected = isPaymentRejectedBooking(booking);
+
             if (activeTab === 'pending') {
+                if (isVerifying || isRejected) return true;
                 return [
                     'for-reservation',
                     'reservation-rejected',
@@ -374,7 +413,8 @@ export default function useBookingFilters(
             }
 
             if (activeTab === 'upcoming') {
-                return ['paid', 'downpayment', 'rescheduled', 'completed'].includes(status);
+                if (isVerifying || isRejected) return false;
+                return ['paid', 'downpayment', 'completed'].includes(status);
             }
 
             return false;
@@ -386,12 +426,17 @@ export default function useBookingFilters(
                 return isActionNeededStatus(getBookingEffectiveStatus(b, userCancellations), cancelDoc, b);
             });
         } else if (filterBy === 'waiting') {
-            filtered = filtered.filter(b => [
-                'for-reservation',
-                'for-reschedule',
-                'for-cancellation',
-                'refund',
-            ].includes(getBookingEffectiveStatus(b, userCancellations)));
+            filtered = filtered.filter(b => {
+                const isVerifying = b.paymentVerificationStatus === 'pending_verification' ||
+                    Boolean(b.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+                if (isVerifying) return true;
+                return [
+                    'for-reservation',
+                    'for-reschedule',
+                    'for-cancellation',
+                    'refund',
+                ].includes(getBookingEffectiveStatus(b, userCancellations));
+            });
         } else if (filterBy === 'partial') {
             filtered = filtered.filter(b => getBookingEffectiveStatus(b, userCancellations) === 'downpayment');
         }

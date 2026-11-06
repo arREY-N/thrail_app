@@ -24,9 +24,13 @@ export function useBusinessAdmin() {
             if (!profile?.id || !businessId) return;
 
             const current = useBusinessesStore.getState().current;
-            if (current?.id === businessId) return;
+            if (current?.id !== businessId) {
+                await useBusinessesStore.getState().load(businessId);
+            }
 
-            await useBusinessesStore.getState().load(businessId);
+            if (useBusinessesStore.getState().businessAdmins.length === 0 || current?.id !== businessId) {
+                await useBusinessesStore.getState().loadBusinessAdmins(businessId);
+            }
         };
 
         fetch();
@@ -35,7 +39,10 @@ export function useBusinessAdmin() {
     const onRefresh = useCallback(async () => {
         if (!profile?.id || !businessId) return;
 
-        await useBusinessesStore.getState().load(businessId);
+        await Promise.all([
+            useBusinessesStore.getState().load(businessId),
+            useBusinessesStore.getState().reloadBusinessAdmins(businessId),
+        ]);
     }, [profile?.id, businessId]);
 
     const updatePaymentConfig = useBusinessesStore(s => s.updatePaymentConfig);

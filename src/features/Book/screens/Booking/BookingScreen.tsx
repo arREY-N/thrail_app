@@ -22,11 +22,17 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { TEdit } from '@/src/core/interface/domainHookInterface';
-import { Booking, BookingLogic } from '@/src/core/models/Booking/Booking';
+import { Booking } from '@/src/core/models/Booking/Booking';
 import { Offer } from '@/src/core/models/Offer/Offer';
 import { IEmergencyContact } from '@/src/core/models/User/User';
 import { toDateOrNull } from '@/src/core/utility/date';
-import { formatDateToStandard, safeParseDateString } from '@/src/utils/dateFormatter';
+import { safeParseDateString } from '@/src/utils/dateFormatter';
+import {
+    getActiveBookingSpans,
+    getCalendarDayGap,
+    getOfferDateSpan,
+    isBookingActivelyBlocking,
+} from '@/src/utils/offerHelpers';
 
 import { UserSearchResult } from '@/src/components/EmergencyModal';
 import ProgressStep from '@/src/features/Book/components/ProgressStep';
@@ -36,7 +42,7 @@ import StatusScreen, { BookingStatusOutcome } from '@/src/features/Book/screens/
 import {
     CustomTutorialModal,
     TutorialHelpButton,
-    useTutorialGuide,
+    useBookingTutorial,
 } from '@/src/components/Tutorial/Tutorial';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -45,6 +51,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export interface BookingScreenProps {
     offers?: Offer[];
+    allOffers?: Offer[];
     bookedOfferIds?: string[];
     userBookings?: Booking[];
     error?: string | null;
@@ -77,6 +84,7 @@ export interface BookingDataState {
  */
 const BookingScreen = ({
     offers = [],
+    allOffers = [],
     bookedOfferIds,
     userBookings,
     error,
@@ -96,9 +104,14 @@ const BookingScreen = ({
     const [bookingErrorMessage, setBookingErrorMessage] = useState<string | null>(null);
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
-    const isTourEnabled = !isSubmitting && (currentView !== 3 || bookingStatusOutcome === 'success');
-    const currentTourId = currentView === 1 ? 'booking_offers' : currentView === 2 ? 'booking_details' : 'booking_status';
-    const tutorial = useTutorialGuide(currentTourId, isTourEnabled);
+    const {
+        tutorial,
+        activeSpotlight,
+    } = useBookingTutorial({
+        currentView,
+        isSubmitting,
+        bookingStatusOutcome,
+    });
 
     useEffect(() => {
         if (Platform.OS === 'web') return;
@@ -128,21 +141,38 @@ const BookingScreen = ({
     });
 
     const safeOffers = React.useMemo(() => (Array.isArray(offers) ? offers : []), [offers]);
+    const mergedAllOffers = React.useMemo(() => {
+        const map = new Map<string, Offer>();
+        if (Array.isArray(allOffers)) {
+            allOffers.forEach((o) => {
+                if (o?.id) map.set(o.id, o);
+            });
+        }
+        safeOffers.forEach((o) => {
+            if (o?.id) map.set(o.id, o);
+        });
+        return Array.from(map.values());
+    }, [allOffers, safeOffers]);
+
     const lineFillPercentage = ((currentView - 1) / 2) * 100;
+
+    const activeBookingSpans = React.useMemo(() => {
+        if (!userBookings || !Array.isArray(userBookings)) return [];
+        return getActiveBookingSpans(userBookings, mergedAllOffers);
+    }, [userBookings, mergedAllOffers]);
 
     const computedBookedOfferIds = React.useMemo(() => {
         if (bookedOfferIds) return bookedOfferIds;
-        if (userBookings && Array.isArray(userBookings)) {
-            const activeBookings = userBookings.filter((b) => !BookingLogic.isInactiveStatus(b.status));
-            return activeBookings.map((b) => b.offer?.id).filter(Boolean) as string[];
-        }
-        return [];
-    }, [bookedOfferIds, userBookings]);
+        return activeBookingSpans.map((s) => s.offerId);
+    }, [bookedOfferIds, activeBookingSpans]);
 
     const createdBookingId = React.useMemo(() => {
         if (userBookings && Array.isArray(userBookings)) {
             const match = userBookings.find(
-                (b) => b.offer?.id === bookingData.selectedOfferId && !BookingLogic.isInactiveStatus(b.status)
+                (b) =>
+                    (b.offer?.id === bookingData.selectedOfferId ||
+                        (b.status === 'for-reschedule' && b.rescheduledToOfferId === bookingData.selectedOfferId)) &&
+                    isBookingActivelyBlocking(b)
             );
             return match?.id || null;
         }
@@ -150,19 +180,21 @@ const BookingScreen = ({
     }, [userBookings, bookingData.selectedOfferId]);
 
     const computedConflictOfferIds = React.useMemo(() => {
-        if (userBookings && Array.isArray(userBookings)) {
-            const activeBookings = userBookings.filter((b) => !BookingLogic.isInactiveStatus(b.status));
-            const bookedDatesSet = new Set(
-                activeBookings.map((b) => formatDateToStandard(b.offer?.date)).filter(Boolean)
-            );
+        if (activeBookingSpans.length === 0) return [];
+        const bookedIdsSet = new Set(computedBookedOfferIds);
 
-            return safeOffers
-                .filter((o) => bookedDatesSet.has(formatDateToStandard(o.date)))
-                .map((o) => o.id);
-        }
-        return [];
-    }, [userBookings, safeOffers]);
-    
+        return safeOffers
+            .filter((candidate) => {
+                if (!candidate?.id || bookedIdsSet.has(candidate.id)) return false;
+                const candidateSpan = getOfferDateSpan(candidate);
+                return activeBookingSpans.some((booked) => {
+                    if (booked.offerId === candidate.id) return false;
+                    return getCalendarDayGap(candidateSpan, booked.span).isOverlap;
+                });
+            })
+            .map((o) => o.id);
+    }, [activeBookingSpans, computedBookedOfferIds, safeOffers]);
+
     const completeOfferRef = useRef(onCompleteOffer);
     useEffect(() => {
         completeOfferRef.current = onCompleteOffer;
@@ -241,9 +273,9 @@ const BookingScreen = ({
         }
     };
 
-    const handleReserve = (payload: { 
-        hikerDetails: HikerBookingDetails; 
-        uploadedDocs: Record<string, string>; 
+    const handleReserve = (payload: {
+        hikerDetails: HikerBookingDetails;
+        uploadedDocs: Record<string, string>;
     }) => {
         if (isSubmittingRef.current || isSubmitting) return;
 
@@ -303,7 +335,7 @@ const BookingScreen = ({
             onUpdatePress({
                 section: 'root',
                 id: 'documents',
-                value: formattedDocsArray, 
+                value: formattedDocsArray,
             });
         }
 
@@ -312,16 +344,16 @@ const BookingScreen = ({
             ...payload,
             hikerDetails: normalizedHikerDetails,
         }));
-        
+
         setSubmitPhase('ready_to_submit');
     };
 
     useEffect(() => {
         if (submitPhase === 'ready_to_submit') {
             const timer = setTimeout(async () => {
-                let successFlag = false; 
+                let successFlag = false;
                 let capturedError: string | null = null;
-                
+
                 try {
                     successFlag = await completeOfferRef.current({
                         hikerDetails: bookingDataRef.current.hikerDetails || undefined,
@@ -354,10 +386,8 @@ const BookingScreen = ({
 
             return () => clearTimeout(timer);
         }
-    }, [submitPhase]); 
+    }, [submitPhase]);
 
-    const activeSpotlight = tutorial.isVisible ? tutorial.currentStep?.targetSpotlight : undefined;
-    
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <CustomLoading
@@ -421,6 +451,7 @@ const BookingScreen = ({
                 {currentView === 1 && (
                     <OffersScreen
                         offers={safeOffers}
+                        allOffers={mergedAllOffers}
                         selectedOfferId={bookingData.selectedOfferId}
                         bookedOfferIds={computedBookedOfferIds}
                         conflictOfferIds={computedConflictOfferIds}
@@ -496,7 +527,7 @@ const BookingScreen = ({
             </View>
 
             {/* Discard / Leave Progress Confirmation Modal */}
-            <ConfirmationModal 
+            <ConfirmationModal
                 visible={showDiscardModal}
                 onClose={() => {
                     setShowDiscardModal(false);
@@ -548,7 +579,7 @@ const styles = StyleSheet.create({
     progressContainer: {
         position: 'relative',
         width: '100%',
-        maxWidth: 450, 
+        maxWidth: 450,
         alignSelf: 'center',
     },
     progressRow: {
@@ -558,9 +589,9 @@ const styles = StyleSheet.create({
     },
     lineWrapper: {
         position: 'absolute',
-        top: 19, 
-        left: 35, 
-        right: 35, 
+        top: 19,
+        left: 35,
+        right: 35,
         height: 2,
         zIndex: 1,
     },

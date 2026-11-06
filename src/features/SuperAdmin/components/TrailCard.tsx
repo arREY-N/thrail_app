@@ -142,13 +142,14 @@ const TrailCard = ({
                     contentContainerStyle={styles.detailsGrid}
                     {...scrollProps}
                 >
-                    {/* Primary Highlight: Map Pins Badge */}
+                    {/* Primary Highlight: Map Pins Badge (commented out as map pins feature is disabled)
                     <View style={styles.detailRowHighlight}>
                         <CustomIcon library="Feather" name="map-pin" size={12} color={Colors.TRAIL_STATUS_ACTIVE_TEXT} />
                         <CustomText variant="caption" style={styles.detailTextHighlight}>
                             {pointCount} map pin{pointCount !== 1 ? 's' : ''}
                         </CustomText>
                     </View>
+                    */}
 
                     {/* Distance Chip */}
                     {distance > 0 ? (
@@ -232,8 +233,9 @@ const TrailCard = ({
                 )}
             </View>
 
-            {/* 4. Action Buttons Row (Crisp 2-Button Horizontal Layout: Map Pins + Edit Info) */}
+            {/* 4. Action Buttons Row (Edit Info full-width; Map Pins button hidden) */}
             <View style={styles.buttonRow}>
+                {/* Map Pins button visually hidden so it does not take up space
                 <View style={styles.actionButtonHalf}>
                     <CustomButton
                         title="Map Pins"
@@ -242,8 +244,10 @@ const TrailCard = ({
                         icon="map"
                         iconLibrary="Feather"
                         style={styles.actionButton}
+                        disabled={true}
                     />
                 </View>
+                */}
 
                 <View style={styles.actionButtonHalf}>
                     <CustomButton

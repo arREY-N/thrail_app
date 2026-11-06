@@ -4,6 +4,7 @@ import { GlobalErrorFallback } from "@/src/components/GlobalErrorFallback";
 import { ToastProvider } from "@/src/components/Toast/Toast";
 import useMaintenance from "@/src/core/hook/useMaintenance";
 import { useAuthHook } from "@/src/core/models/User/User";
+import { silentWifiPreloadOfflineMap } from "@/src/features/Map/services/TrailOfflineManager";
 import {
 	initErrorMonitoring,
 	Sentry,
@@ -83,6 +84,10 @@ function RootLayout() {
 	useEffect(() => {
 		if (isAppReady) {
 			SplashScreen.hideAsync().catch(() => {});
+			// Silently pre-fetch regional offline PMTiles in the background when connected to internet
+			silentWifiPreloadOfflineMap().catch((err) => {
+				console.warn("⚠️ Silent offline map pre-load error:", err);
+			});
 		}
 	}, [isAppReady]);
 

@@ -47,7 +47,7 @@ const CustomStatusBadge: React.FC<CustomStatusBadgeProps> = ({
     role = 'user',
     label,
     icon,
-    iconLibrary = 'Feather',
+    iconLibrary,
     bgColor,
     textColor,
     borderColor,
@@ -56,9 +56,6 @@ const CustomStatusBadge: React.FC<CustomStatusBadgeProps> = ({
     style,
     textStyle,
     showIcon = true,
-    isApproved,
-    isRejected,
-    isCancelled,
 }) => {
     const effectiveStatus = statusKey ?? status;
     const resolvedConfig = effectiveStatus ? getStatusConfig(effectiveStatus, role) : null;
@@ -66,7 +63,9 @@ const CustomStatusBadge: React.FC<CustomStatusBadgeProps> = ({
     const resolvedLabel = label ?? (resolvedConfig?.label || 'UNKNOWN');
     const resolvedBgColor = bgColor ?? (resolvedConfig?.bgColor || Colors.STATUS_PENDING_BG);
     const resolvedTextColor = textColor ?? (resolvedConfig?.textColor || Colors.STATUS_PENDING_TEXT);
+    const resolvedBorderColor = borderColor ?? resolvedConfig?.borderColor;
     const resolvedIcon = icon ?? resolvedConfig?.icon;
+    const resolvedIconLibrary = iconLibrary ?? resolvedConfig?.iconLibrary ?? 'Feather';
 
     const iconSize = size === 'sm' ? 10 : 12;
 
@@ -77,13 +76,13 @@ const CustomStatusBadge: React.FC<CustomStatusBadgeProps> = ({
                 styles[`size_${size}`],
                 styles[`variant_${variant}`],
                 { backgroundColor: resolvedBgColor },
-                borderColor ? { borderWidth: 1, borderColor } : null,
+                resolvedBorderColor ? { borderWidth: 1, borderColor: resolvedBorderColor } : null,
                 style,
             ]}
         >
             {showIcon && resolvedIcon ? (
                 <CustomIcon
-                    library={iconLibrary}
+                    library={resolvedIconLibrary}
                     name={resolvedIcon}
                     size={iconSize}
                     color={resolvedTextColor}
@@ -138,14 +137,15 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textTransform: 'uppercase',
         flexShrink: 1,
+        letterSpacing: 0.5,
     },
     text_sm: {
         fontSize: 10,
         lineHeight: 12,
     },
     text_md: {
-        fontSize: 11,
-        lineHeight: 14,
+        fontSize: 10,
+        lineHeight: 12,
     },
 });
 

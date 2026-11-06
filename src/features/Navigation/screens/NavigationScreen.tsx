@@ -8,27 +8,27 @@ import CustomIcon from "@/src/components/CustomIcon";
 import CustomSearchBar from "@/src/components/CustomSearchBar";
 import CustomText from "@/src/components/CustomText";
 
+import NetworkStatusBanner from "@/src/components/NetworkStatusBanner";
 import { Colors, Palette } from "@/src/constants/colors";
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from "@/src/constants/layout";
-import { Trail, computeTrailMidpoint } from "@/src/core/models/Trail/Trail";
-import NetworkStatusBanner from "@/src/components/NetworkStatusBanner";
 import { useNetworkStatus } from "@/src/core/flows/TrackHikerGPSFlow";
+import { computeTrailMidpoint, Trail } from "@/src/core/models/Trail/Trail";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import { formatDateToStandard } from "@/src/utils/dateFormatter";
 
+import {
+    CustomTutorialModal,
+    TutorialHelpButton,
+    useNavigationTutorial,
+} from "@/src/components/Tutorial/Tutorial";
 import { useWebDrawer } from "@/src/core/context/WebDrawerContext";
 import { Booking } from "@/src/core/models/Booking/Booking";
 import { Group } from "@/src/core/models/Group/Group";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { formatTime } from "@/src/core/utility/formatTime";
 import UpcomingHikesModal from "@/src/features/Navigation/components/UpcomingHikesModal";
-import {
-    CustomTutorialModal,
-    TutorialHelpButton,
-} from "@/src/components/Tutorial/Tutorial";
-import { useNavigationTutorial } from "@/src/features/Navigation/hooks/useNavigationTutorial";
 
 interface NavigationScreenProps {
     upcomingBookings: Booking[];
@@ -93,8 +93,8 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
 
     const mapRef = useRef<TrailMapRef | null>(null);
     const { isOnline } = useNetworkStatus();
-    const [isOfflineMode, setIsOfflineMode] = useState(true);
-    const isEffectiveOffline = !isOnline || isOfflineMode;
+    const [isOfflineMode, setIsOfflineMode] = useState(Platform.OS !== 'web');
+    const isEffectiveOffline = Platform.OS === 'web' ? false : (!isOnline || isOfflineMode);
     const [isDevBypassModalVisible, setDevBypassModalVisible] = useState(false);
     const [isUpcomingModalVisible, setUpcomingModalVisible] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -192,7 +192,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     }, []);
 
     const handleToggleOffline = () => {
-        if (!isOnline) return;
+        if (Platform.OS === 'web' || !isOnline) return;
         const nextMode = !isEffectiveOffline;
         setIsOfflineMode(nextMode);
         mapRef.current?.toggleOffline();
@@ -379,8 +379,8 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
 
             <NetworkStatusBanner isOnline={isOnline} top={Platform.OS === 'web' ? 70 : searchTopPadding + 56} />
 
-            {modeToast && (
-                <View style={[styles.modeToastBanner, { top: Platform.OS === 'web' ? 70 : searchTopPadding + 56 }]} pointerEvents="none">
+            {Platform.OS !== 'web' && modeToast && (
+                <View style={[styles.modeToastBanner, { top: searchTopPadding + 56 }]} pointerEvents="none">
                     <View style={[styles.modeToastContent, styles.toastOnline]}>
                         <CustomIcon
                             library="Feather"
@@ -440,7 +440,7 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    {isOnline && (
+                    {Platform.OS !== 'web' && isOnline && (
                         <View
                             ref={mapStyleBtnRef}
                             collapsable={false}

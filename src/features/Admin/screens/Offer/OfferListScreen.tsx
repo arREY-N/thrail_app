@@ -3,7 +3,7 @@
  * @description Admin screen displaying a list of created offers and basic booking stats, including search, filter, and sorting features.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
@@ -21,12 +21,8 @@ import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 import {
     CustomTutorialModal,
-    isTutorialMeasurementActive,
-    registerMeasureCallback,
-    registerTutorialLayout,
-    requestTargetMeasurement,
     TutorialHelpButton,
-    useTutorialGuide,
+    useAdminOfferListTutorial,
 } from '@/src/components/Tutorial/Tutorial';
 
 import { Colors } from '@/src/constants/colors';
@@ -121,8 +117,14 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         filterSections,
     } = useOfferFilters(offers, bookingByOffer, cancellations);
 
-    const tutorial = useTutorialGuide('admin_offer_list', !isLoading);
-    
+    const {
+        scrollViewRef,
+        searchFiltersRef,
+        firstOfferRef,
+        handleFirstOfferLayout,
+        tutorial,
+    } = useAdminOfferListTutorial({ isReady: !isLoading });
+
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedEditId, setSelectedEditId] = useState<string | null>(null);
     const [showFilterModal, setShowFilterModal] = useState(false);
@@ -138,43 +140,6 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
     else if (containerWidth >= 768) numColumns = 2;
 
     const cardWidth = (containerWidth - gap * (numColumns - 1)) / numColumns;
-    const scrollViewRef = useRef<ScrollView>(null);
-    const searchFiltersRef = useRef<View>(null);
-    const firstOfferRef = useRef<View>(null);
-
-    const measureFiltersNow = useCallback(() => {
-        searchFiltersRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('admin_offer_filters', { x, y, width: w, height: h });
-            }
-        });
-    }, []);
-
-    const measureFirstOfferNow = useCallback(() => {
-        firstOfferRef.current?.measureInWindow((x, y, w, h) => {
-            if (w > 0 && h > 0) {
-                registerTutorialLayout('admin_offer_card', { x, y, width: w, height: h });
-            }
-        });
-    }, []);
-
-    useEffect(() => {
-        const u2 = registerMeasureCallback('admin_offer_filters', measureFiltersNow);
-        const u3 = registerMeasureCallback('admin_offer_card', measureFirstOfferNow);
-        return () => {
-            u2();
-            u3();
-        };
-    }, [measureFiltersNow, measureFirstOfferNow]);
-
-    useEffect(() => {
-        if (!tutorial.isVisible) return;
-        const stepTarget = tutorial.currentStep?.targetSpotlight;
-        if (stepTarget) {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-            requestTargetMeasurement(stepTarget);
-        }
-    }, [tutorial.isVisible, tutorial.currentStep?.targetSpotlight]);
 
     const handleTabSelect = (tab: string) => {
         setActiveFilter(tab);
@@ -268,9 +233,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                             <View
                                 ref={firstOfferRef}
                                 collapsable={false}
-                                onLayout={() => {
-                                    if (isTutorialMeasurementActive()) measureFirstOfferNow();
-                                }}
+                                onLayout={handleFirstOfferLayout}
                                 style={styles.emptyState}
                             >
                                 <CustomIcon 
@@ -292,9 +255,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                             <View
                                 ref={firstOfferRef}
                                 collapsable={false}
-                                onLayout={() => {
-                                    if (isTutorialMeasurementActive()) measureFirstOfferNow();
-                                }}
+                                onLayout={handleFirstOfferLayout}
                                 style={styles.emptyState}
                             >
                                 <CustomIcon 
@@ -320,9 +281,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
                                             key={offer.id}
                                             ref={index === 0 ? firstOfferRef : undefined}
                                             collapsable={false}
-                                            onLayout={index === 0 ? () => {
-                                                if (isTutorialMeasurementActive()) measureFirstOfferNow();
-                                            } : undefined}
+                                            onLayout={index === 0 ? handleFirstOfferLayout : undefined}
                                             style={{ width: cardWidth }}
                                         >
                                             <OfferCard 

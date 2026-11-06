@@ -53,15 +53,17 @@ const PaymentBreakdownPanel: React.FC<PaymentBreakdownPanelProps> = ({
         >
             {/* Column 1: Total Price */}
             <View style={[styles.column, (isNarrow || hasRefund) && styles.columnHalf]}>
-                <CustomText variant="caption" style={styles.label}>
-                    Total Price
-                </CustomText>
+                <View style={styles.labelContainer}>
+                    <CustomText variant="caption" style={styles.label} numberOfLines={2}>
+                        Total Price
+                    </CustomText>
+                </View>
                 <CustomText
                     variant={variant === 'hero' ? 'h2' : 'h3'}
                     style={[styles.value, styles.valueTotal]}
                     numberOfLines={1}
                     adjustsFontSizeToFit={true}
-                    minimumFontScale={0.8}
+                    minimumFontScale={0.75}
                 >
                     {formatCurrency(totalPrice)}
                 </CustomText>
@@ -71,15 +73,17 @@ const PaymentBreakdownPanel: React.FC<PaymentBreakdownPanelProps> = ({
 
             {/* Column 2: Amount Paid */}
             <View style={[styles.column, (isNarrow || hasRefund) && styles.columnHalf]}>
-                <CustomText variant="caption" style={styles.label}>
-                    {variant === 'receipt' ? 'Amount Already Paid' : 'Paid'}
-                </CustomText>
+                <View style={styles.labelContainer}>
+                    <CustomText variant="caption" style={styles.label} numberOfLines={2}>
+                        {variant === 'receipt' ? 'Amount Already Paid' : 'Paid'}
+                    </CustomText>
+                </View>
                 <CustomText
                     variant={variant === 'hero' ? 'h2' : 'h3'}
                     style={[styles.value, { color: Colors.SUCCESS }]}
                     numberOfLines={1}
                     adjustsFontSizeToFit={true}
-                    minimumFontScale={0.8}
+                    minimumFontScale={0.75}
                 >
                     {formatCurrency(amountPaid)}
                 </CustomText>
@@ -87,15 +91,17 @@ const PaymentBreakdownPanel: React.FC<PaymentBreakdownPanelProps> = ({
 
             {hasRefund && (
                 <View style={[styles.column, styles.columnHalf]}>
-                    <CustomText variant="caption" style={[styles.label, { color: Colors.ERROR }]}>
-                        Refunded
-                    </CustomText>
+                    <View style={styles.labelContainer}>
+                        <CustomText variant="caption" style={[styles.label, { color: Colors.ERROR }]} numberOfLines={2}>
+                            Refunded
+                        </CustomText>
+                    </View>
                     <CustomText
                         variant={variant === 'hero' ? 'h2' : 'h3'}
                         style={[styles.value, { color: Colors.ERROR }]}
                         numberOfLines={1}
                         adjustsFontSizeToFit={true}
-                        minimumFontScale={0.8}
+                        minimumFontScale={0.75}
                     >
                         {formatCurrency(refundedAmount)}
                     </CustomText>
@@ -106,9 +112,11 @@ const PaymentBreakdownPanel: React.FC<PaymentBreakdownPanelProps> = ({
 
             {/* Column 3: Remaining Balance */}
             <View style={[styles.column, (isNarrow || hasRefund) && styles.columnHalf]}>
-                <CustomText variant="caption" style={styles.label}>
-                    Remaining Balance
-                </CustomText>
+                <View style={styles.labelContainer}>
+                    <CustomText variant="caption" style={styles.label} numberOfLines={2}>
+                        Remaining Balance
+                    </CustomText>
+                </View>
                 <CustomText
                     variant={variant === 'hero' ? 'h2' : 'h3'}
                     style={[
@@ -117,7 +125,7 @@ const PaymentBreakdownPanel: React.FC<PaymentBreakdownPanelProps> = ({
                     ]}
                     numberOfLines={1}
                     adjustsFontSizeToFit={true}
-                    minimumFontScale={0.8}
+                    minimumFontScale={0.75}
                 >
                     {formatCurrency(remainingBalance)}
                 </CustomText>
@@ -129,7 +137,7 @@ const PaymentBreakdownPanel: React.FC<PaymentBreakdownPanelProps> = ({
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'stretch',
         justifyContent: 'space-between',
         backgroundColor: Colors.WHITE,
         borderRadius: 12,
@@ -152,20 +160,20 @@ const styles = StyleSheet.create({
         borderColor: Colors.GRAY_LIGHT,
     },
     container_receipt: {
-        paddingVertical: 14,
-        paddingHorizontal: 14,
+        paddingVertical: 12,
+        paddingHorizontal: 10,
         borderRadius: 12,
         backgroundColor: Colors.WHITE,
         borderColor: Colors.GRAY_LIGHT,
     },
     containerWrapped: {
         flexWrap: 'wrap',
-        rowGap: 10,
+        rowGap: 12,
     },
     column: {
         flex: 1,
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         paddingHorizontal: 4,
     },
     columnHalf: {
@@ -176,19 +184,30 @@ const styles = StyleSheet.create({
     },
     divider: {
         width: 1,
-        height: 28,
         backgroundColor: Colors.GRAY_LIGHT,
+        alignSelf: 'stretch',
+        marginVertical: 4,
+    },
+    labelContainer: {
+        height: 28,
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        marginBottom: 6,
+        width: '100%',
     },
     label: {
-        fontSize: 10,
+        fontSize: 9.5,
         fontWeight: 'bold',
         textTransform: 'uppercase',
         color: Colors.TEXT_SECONDARY,
-        marginBottom: 2,
+        textAlign: 'center',
+        letterSpacing: 0.2,
     },
     value: {
         fontSize: 14,
         fontWeight: 'bold',
+        textAlign: 'center',
+        width: '100%',
     },
     valueTotal: {
         color: Colors.TEXT_PRIMARY,

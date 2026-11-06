@@ -5,6 +5,11 @@
  * optional reference number, and legal terms digital signature.
  */
 
+import CustomButton from '@/src/components/CustomButton';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as MediaLibrary from 'expo-media-library/legacy';
+import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -15,26 +20,24 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as MediaLibrary from 'expo-media-library/legacy';
-import * as Sharing from 'expo-sharing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useBreakpoints } from '@/src/hooks/useBreakpoints';
-import CustomButton from '@/src/components/CustomButton';
-import { getStickyFooterScrollPadding } from '@/src/components/CustomStickyFooter';
+
 import CustomIcon from '@/src/components/CustomIcon';
+import { getStickyFooterScrollPadding } from '@/src/components/CustomStickyFooter';
 import CustomText from '@/src/components/CustomText';
 import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { useToast } from '@/src/components/Toast/Toast';
+import { useManualQRMethodTutorial } from '@/src/components/Tutorial/Tutorial';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
-import TermsSignature from '@/src/features/Book/components/TermsSignature';
+import { db } from '@/src/core/config/Firebase';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { IBusinessPaymentConfig } from '@/src/core/models/Business/Business';
 import { useOfferStore } from '@/src/core/models/Offer/Offer';
-import { db } from '@/src/core/config/Firebase';
+import TermsSignature from '@/src/features/Book/components/TermsSignature';
+import { BookingNoticeBanner } from '@/src/features/Book/screens/MyBookings/components/BookingNoticeBanner';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 export interface ManualQRMethodScreenProps {
@@ -48,10 +51,14 @@ export interface ManualQRMethodScreenProps {
     setReferenceCode: (code: string) => void;
     profileFullName: string;
     setIsSignatureValid: (isValid: boolean) => void;
+    onSignatureChange?: (text: string) => void;
     paymentError?: string | null;
     isPayingBalance: boolean;
     isMinor: boolean;
     minorName?: string;
+    activeTutorialStep?: string;
+    isTutorialVisible?: boolean;
+    isRejected?: boolean;
 }
 
 export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
@@ -65,12 +72,40 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
     setReferenceCode,
     profileFullName,
     setIsSignatureValid,
+    onSignatureChange,
     paymentError,
     isPayingBalance,
     isMinor,
     minorName,
+    activeTutorialStep,
+    isTutorialVisible,
+    isRejected,
 }) => {
-    const { showToast } = useToast();
+        const { showToast } = useToast();
+    const {
+        scrollViewRef,
+        rejectionBannerRef,
+        qrCardRef,
+        instructionsRef,
+        receiptUploadRef,
+        termsRef,
+        handleScroll,
+        handleMomentumScrollEnd,
+        handleScrollEndDrag,
+        handlers: {
+            handleRejectionBannerLayout,
+            handleQRSectionLayout,
+            handleQRCardLayout,
+            handleInstructionsSectionLayout,
+            handleInstructionsLayout,
+            handleReceiptSectionLayout,
+            handleTermsSectionLayout,
+        },
+    } = useManualQRMethodTutorial({
+        activeTutorialStep,
+        isTutorialVisible,
+        isRejected,
+    });
     const [isSavingQR, setIsSavingQR] = useState(false);
     const [previewQRVisible, setPreviewQRVisible] = useState(false);
 
@@ -175,14 +210,21 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
 
     const insets = useSafeAreaInsets();
     const { isMobile } = useBreakpoints();
-    const bottomScrollPadding = Math.max(getStickyFooterScrollPadding(insets.bottom, isMobile), 140);
+    const defaultBottomPadding = Math.max(getStickyFooterScrollPadding(insets.bottom, isMobile), 140);
+    const bottomScrollPadding = isTutorialVisible ? 320 : defaultBottomPadding;
 
     const hasUploadedReceipt = Boolean(receiptUrl);
     const isReceiptRejected = bookingData?.paymentVerificationStatus === 'rejected' && !hasUploadedReceipt;
 
     return (
         <ScrollView
+            ref={scrollViewRef}
+            onScroll={handleScroll}
+            onMomentumScrollEnd={handleMomentumScrollEnd}
+            onScrollEndDrag={handleScrollEndDrag}
+            scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={[
                 styles.scrollContent,
                 { paddingBottom: bottomScrollPadding },
@@ -197,64 +239,34 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
                 )}
 
                 {bookingData?.paymentVerificationStatus === 'rejected' && (
-                    <View style={styles.rejectionNoticeCard}>
-                        <View style={styles.rejectionNoticeHeader}>
-                            <View style={styles.rejectionIconCircle}>
-                                <CustomIcon library="Feather" name="alert-triangle" size={18} color={Colors.ERROR} />
-                            </View>
-                            <View style={styles.rejectionNoticeHeaderTexts}>
-                                <CustomText style={styles.rejectionNoticeTitle}>Payment Verification Rejected</CustomText>
-                                <CustomText variant="caption" style={styles.rejectionNoticeSubtitle}>
-                                    Your previous receipt was not accepted by the organizer.
-                                </CustomText>
-                            </View>
-                        </View>
-                        {bookingData.paymentRejectionReason ? (
-                            <View style={styles.rejectionReasonBox}>
-                                <CustomText variant="caption" style={styles.rejectionReasonLabel}>
-                                    Organizer Feedback:
-                                </CustomText>
-                                <CustomText style={styles.rejectionReasonText}>
-                                    {`"${bookingData.paymentRejectionReason}"`}
-                                </CustomText>
-                            </View>
-                        ) : null}
-                        <CustomText variant="caption" style={styles.rejectionNoticeDesc}>
-                            Please send the payment again and upload a clear screenshot of the valid transaction receipt.
-                        </CustomText>
+                    <View
+                        ref={rejectionBannerRef}
+                        collapsable={false}
+                        onLayout={handleRejectionBannerLayout}
+                    >
+                        <BookingNoticeBanner
+                            variant="error"
+                            title="Payment Verification Rejected"
+                            message="Your previous receipt was not accepted by the organizer."
+                            details={bookingData.paymentRejectionReason}
+                            detailsLabel="ORGANIZER FEEDBACK:"
+                            hint="Please review the feedback above and resubmit your payment and valid receipt to confirm your reservation."
+                        />
                     </View>
                 )}
 
-                {/* Amount to Pay Card */}
-                <View style={styles.amountDisplayCard}>
-                    <CustomText variant="caption" style={styles.amountDisplayLabel}>
-                        {isPayingBalance ? 'Remaining Balance to Settle' : 'Total Package Amount'}
-                    </CustomText>
-                    <CustomText variant="h1" style={styles.amountDisplayText}>
-                        ₱{amountToPay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </CustomText>
-                    <CustomText variant="caption" style={styles.amountHelperText}>
-                        {isPayingBalance
-                            ? 'Please send your payment to settle the balance.'
-                            : 'You may pay in full or send an initial downpayment. The organizer will verify the exact amount from your receipt.'}
-                    </CustomText>
-                    {isPayingBalance && (
-                        <View style={styles.balanceBadge}>
-                            <CustomText style={styles.balanceBadgeText}>Balance Settlement</CustomText>
-                        </View>
-                    )}
-                </View>
-
                 {/* Master QR Code Section */}
-                <View style={styles.section}>
-                    <CustomText variant="h2" style={styles.sectionTitle}>
-                        {"Scan Organizer's QR Code"}
-                    </CustomText>
-                    <CustomText style={styles.sectionSubtitle}>
+                <View style={styles.section} onLayout={handleQRSectionLayout}>
+                    <View style={styles.sectionHeaderRow}>
+                        <CustomText variant="h2" style={styles.sectionTitleFlat}>
+                            {"Scan Organizer's QR Code"}
+                        </CustomText>
+                    </View>
+                    <CustomText variant="caption" style={styles.sectionSubtitle}>
                         Scan via {providerName} or any QR Ph compatible banking app.
                     </CustomText>
 
-                    <View style={styles.qrCard}>
+                    <View style={[styles.qrCard, !isMobile && styles.qrCardWeb]}>
                         {isLoadingConfig ? (
                             <View style={styles.qrLoadingBox}>
                                 <ActivityIndicator size="small" color={Colors.PRIMARY} />
@@ -264,46 +276,140 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
                             </View>
                         ) : qrCodeUrl ? (
                             <>
-                                <TouchableOpacity
-                                    activeOpacity={0.9}
-                                    onPress={() => setPreviewQRVisible(true)}
-                                    style={styles.qrImageContainer}
-                                >
-                                    <Image
-                                        source={{ uri: qrCodeUrl }}
-                                        style={styles.qrImage}
-                                        resizeMode="contain"
-                                    />
-                                    <View style={styles.tapToZoomRow}>
-                                        <CustomIcon library="Feather" name="maximize-2" size={12} color={Colors.TEXT_MUTED} />
-                                        <CustomText style={styles.tapToZoomText}>Tap to enlarge</CustomText>
-                                    </View>
-                                </TouchableOpacity>
+                                {isMobile ? (
+                                    /* Mobile: Integrated streamlined vertical flow */
+                                    <View style={styles.mobileCardContent}>
+                                        <View style={styles.mobileAmountHeader}>
+                                            <CustomText variant="caption" style={styles.amountDisplayLabel}>
+                                                {isPayingBalance ? "Remaining Balance to Settle" : "Total Amount to Pay"}
+                                            </CustomText>
+                                            <CustomText variant="h1" style={styles.amountDisplayText}>
+                                                ₱{amountToPay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </CustomText>
+                                            {isPayingBalance && (
+                                                <View style={styles.balanceBadge}>
+                                                    <CustomText style={styles.balanceBadgeText}>Balance Settlement</CustomText>
+                                                </View>
+                                            )}
+                                        </View>
 
-                                <View style={styles.accountInfoBox}>
-                                    <View style={styles.accountInfoRow}>
-                                        <CustomText style={styles.accountLabel}>Account Name:</CustomText>
-                                        <CustomText style={styles.accountValue}>{accountName}</CustomText>
-                                    </View>
-                                    <View style={styles.accountInfoRow}>
-                                        <CustomText style={styles.accountLabel}>Account / Mobile:</CustomText>
-                                        <CustomText style={styles.accountValue}>{accountNumber}</CustomText>
-                                    </View>
-                                    <View style={styles.accountInfoRow}>
-                                        <CustomText style={styles.accountLabel}>Provider:</CustomText>
-                                        <CustomText style={styles.accountValue}>{providerName}</CustomText>
-                                    </View>
-                                </View>
+                                        <TouchableOpacity
+                                            ref={qrCardRef}
 
-                                <CustomButton
-                                    title={isSavingQR ? 'Saving...' : 'Save QR to Gallery'}
-                                    variant="outline"
-                                    icon="download"
-                                    iconLibrary="Feather"
-                                    onPress={handleSaveQR}
-                                    isLoading={isSavingQR}
-                                    style={styles.saveQRButton}
-                                />
+                                            onLayout={handleQRCardLayout}
+                                            activeOpacity={0.9}
+                                            onPress={() => setPreviewQRVisible(true)}
+                                            style={styles.qrImageContainer}
+                                        >
+                                            <Image
+                                                source={{ uri: qrCodeUrl }}
+                                                style={styles.qrImage}
+                                                resizeMode="contain"
+                                            />
+                                            <View style={styles.floatingEnlargeBadge}>
+                                                <CustomText variant="caption" style={styles.floatingEnlargeText}>Tap to enlarge</CustomText>
+                                                <CustomIcon library="Feather" name="maximize-2" size={12} color={Colors.WHITE} style={{ marginLeft: 4 }} />
+                                            </View>
+                                        </TouchableOpacity>
+
+                                        <CustomButton
+                                            title={isSavingQR ? "Saving..." : "Save QR to Gallery"}
+                                            variant="outline"
+                                            icon="download"
+                                            iconLibrary="Feather"
+                                            onPress={handleSaveQR}
+                                            isLoading={isSavingQR}
+                                            style={styles.saveQRButtonMobile}
+                                        />
+
+                                        <View style={styles.cardDivider} />
+
+                                        <View style={styles.accountInfoList}>
+                                            <View style={styles.accountInfoRow}>
+                                                <CustomText style={styles.accountLabel}>Account Name:</CustomText>
+                                                <CustomText style={styles.accountValue}>{accountName}</CustomText>
+                                            </View>
+                                            <View style={styles.accountInfoRow}>
+                                                <CustomText style={styles.accountLabel}>Account / Mobile:</CustomText>
+                                                <CustomText style={styles.accountValue}>{accountNumber}</CustomText>
+                                            </View>
+                                            <View style={styles.accountInfoRow}>
+                                                <CustomText style={styles.accountLabel}>Provider:</CustomText>
+                                                <CustomText style={styles.accountValue}>{providerName}</CustomText>
+                                            </View>
+                                        </View>
+                                    </View>
+                                ) : (
+                                    /* Web: Balanced 2-Column with Unified Payment Slip on the right */
+                                    <>
+                                        <TouchableOpacity
+                                            ref={qrCardRef}
+
+                                            onLayout={handleQRCardLayout}
+                                            activeOpacity={0.9}
+                                            onPress={() => setPreviewQRVisible(true)}
+                                            style={styles.qrImageContainerWeb}
+                                        >
+                                            <Image
+                                                source={{ uri: qrCodeUrl }}
+                                                style={styles.qrImage}
+                                                resizeMode="contain"
+                                            />
+                                            <View style={styles.floatingEnlargeBadge}>
+                                                <CustomText variant="caption" style={styles.floatingEnlargeText}>Tap to enlarge</CustomText>
+                                                <CustomIcon library="Feather" name="maximize-2" size={12} color={Colors.WHITE} style={{ marginLeft: 4 }} />
+                                            </View>
+                                        </TouchableOpacity>
+
+                                        <View style={styles.paymentSlipWeb}>
+                                            <View style={styles.slipAmountSection}>
+                                                <CustomText variant="caption" style={styles.amountDisplayLabel}>
+                                                    {isPayingBalance ? "Remaining Balance to Settle" : "Total Amount to Pay"}
+                                                </CustomText>
+                                                <CustomText variant="h1" style={styles.amountDisplayTextWeb}>
+                                                    ₱{amountToPay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </CustomText>
+                                                {isPayingBalance && (
+                                                    <View style={styles.balanceBadge}>
+                                                        <CustomText style={styles.balanceBadgeText}>Balance Settlement</CustomText>
+                                                    </View>
+                                                )}
+                                            </View>
+
+                                            <View style={styles.cardDivider} />
+
+                                            <View style={styles.slipDetailsSection}>
+                                                <CustomText variant="caption" style={styles.slipSectionHeader}>
+                                                    Recipient Details
+                                                </CustomText>
+                                                <View style={styles.accountInfoRow}>
+                                                    <CustomText style={styles.accountLabel}>Account Name:</CustomText>
+                                                    <CustomText style={styles.accountValue}>{accountName}</CustomText>
+                                                </View>
+                                                <View style={styles.accountInfoRow}>
+                                                    <CustomText style={styles.accountLabel}>Account / Mobile:</CustomText>
+                                                    <CustomText style={styles.accountValue}>{accountNumber}</CustomText>
+                                                </View>
+                                                <View style={styles.accountInfoRow}>
+                                                    <CustomText style={styles.accountLabel}>Provider:</CustomText>
+                                                    <CustomText style={styles.accountValue}>{providerName}</CustomText>
+                                                </View>
+                                            </View>
+
+                                            <View style={styles.cardDivider} />
+
+                                            <CustomButton
+                                                title={isSavingQR ? "Saving..." : "Save QR to Gallery"}
+                                                variant="outline"
+                                                icon="download"
+                                                iconLibrary="Feather"
+                                                onPress={handleSaveQR}
+                                                isLoading={isSavingQR}
+                                                style={styles.saveQRButton}
+                                            />
+                                        </View>
+                                    </>
+                                )}
                             </>
                         ) : (
                             <View style={styles.noQRBox}>
@@ -318,11 +424,18 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
                 </View>
 
                 {/* Step-by-Step Payment Instructions */}
-                <View style={styles.section}>
-                    <CustomText variant="h2" style={styles.sectionTitle}>
-                        How to Pay
-                    </CustomText>
-                    <View style={styles.instructionsContainer}>
+                <View style={styles.section} onLayout={handleInstructionsSectionLayout}>
+                    <View style={styles.sectionHeaderRow}>
+                        <CustomText variant="h2" style={styles.sectionTitleFlat}>
+                            How to Pay
+                        </CustomText>
+                    </View>
+                    <View
+                        ref={instructionsRef}
+                        collapsable={false}
+                        onLayout={handleInstructionsLayout}
+                        style={styles.instructionsContainer}
+                    >
                         <View style={styles.stepRow}>
                             <View style={styles.stepNumberBadge}>
                                 <CustomText style={styles.stepNumberText}>1</CustomText>
@@ -331,14 +444,16 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
                                 Save or scan the QR code above using your e-wallet (GCash, Maya) or banking app.
                             </CustomText>
                         </View>
+                        <View style={styles.ruleDivider} />
                         <View style={styles.stepRow}>
                             <View style={styles.stepNumberBadge}>
                                 <CustomText style={styles.stepNumberText}>2</CustomText>
                             </View>
                             <CustomText style={styles.stepText}>
-                                Transfer exactly <CustomText style={{ fontWeight: '700' }}>₱{amountToPay.toFixed(2)}</CustomText> to the account shown.
+                                Transfer exactly <CustomText style={{ fontWeight: '700' }}>₱{amountToPay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</CustomText> to the account shown.
                             </CustomText>
                         </View>
+                        <View style={styles.ruleDivider} />
                         <View style={styles.stepRow}>
                             <View style={styles.stepNumberBadge}>
                                 <CustomText style={styles.stepNumberText}>3</CustomText>
@@ -347,6 +462,7 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
                                 Take a clear screenshot of the completed payment receipt showing the Reference Number.
                             </CustomText>
                         </View>
+                        <View style={styles.ruleDivider} />
                         <View style={styles.stepRow}>
                             <View style={styles.stepNumberBadge}>
                                 <CustomText style={styles.stepNumberText}>4</CustomText>
@@ -359,11 +475,13 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
                 </View>
 
                 {/* Upload Receipt Section */}
-                <View style={styles.section}>
-                    <CustomText variant="h2" style={styles.sectionTitle}>
-                        Upload Payment Receipt
-                    </CustomText>
-                    <CustomText style={styles.sectionSubtitle}>
+                <View style={styles.section} onLayout={handleReceiptSectionLayout}>
+                    <View style={styles.sectionHeaderRow}>
+                        <CustomText variant="h2" style={styles.sectionTitleFlat}>
+                            Upload Payment Receipt
+                        </CustomText>
+                    </View>
+                    <CustomText variant="caption" style={styles.sectionSubtitle}>
                         Proof of transfer is required so the organizer can verify your booking.
                     </CustomText>
 
@@ -372,20 +490,30 @@ export const ManualQRMethodScreen: React.FC<ManualQRMethodScreenProps> = ({
                         subtitle={hasUploadedReceipt ? "Receipt attached • Ready to submit" : "Screenshot showing amount & reference no."}
                         isUploaded={receiptUrl || undefined}
                         isRejected={isReceiptRejected}
-                        rejectionReason={bookingData?.paymentRejectionReason}
-                        contentStyle={hasUploadedReceipt ? styles.receiptUploadedCardGreen : undefined}
+                        uploadButtonRef={receiptUploadRef}
                         onUploadSuccess={(url) => setReceiptUrl(url)}
                         onDelete={() => setReceiptUrl('')}
                     />
                 </View>
 
                 {/* Terms & Digital Signature */}
-                <View style={styles.section}>
+                <View
+                    ref={termsRef}
+                    collapsable={false}
+                    onLayout={handleTermsSectionLayout}
+                    style={styles.section}
+                >
                     <TermsSignature
                         expectedName={profileFullName}
                         isMinor={isMinor}
                         minorName={minorName}
                         onValidChange={setIsSignatureValid}
+                        onSignatureChange={onSignatureChange}
+                        onSignatureFocus={() => {
+                            setTimeout(() => {
+                                scrollViewRef.current?.scrollToEnd({ animated: true });
+                            }, 150);
+                        }}
                     />
                 </View>
             </View>
@@ -429,38 +557,26 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '500',
     },
-    amountDisplayCard: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 16,
-        padding: 20,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.GRAY_ULTRALIGHT,
-        ...GlobalStyles.dropShadow(2),
-    },
     amountDisplayLabel: {
         color: Colors.TEXT_SECONDARY,
         fontSize: 12,
         fontWeight: '600',
         textTransform: 'uppercase',
         letterSpacing: 0.8,
-        marginBottom: 6,
+        marginBottom: 4,
     },
     amountDisplayText: {
         color: Colors.PRIMARY,
-        fontSize: 32,
+        fontSize: 30,
         fontWeight: 'bold',
     },
-    amountHelperText: {
-        fontSize: 12,
-        color: Colors.TEXT_SECONDARY,
-        textAlign: 'center',
-        marginTop: 6,
-        paddingHorizontal: 12,
-        lineHeight: 16,
+    amountDisplayTextWeb: {
+        color: Colors.PRIMARY,
+        fontSize: 28,
+        fontWeight: 'bold',
     },
     balanceBadge: {
-        marginTop: 8,
+        marginTop: 6,
         backgroundColor: Colors.STATUS_PENDING_BG,
         paddingHorizontal: 10,
         paddingVertical: 4,
@@ -474,83 +590,134 @@ const styles = StyleSheet.create({
     section: {
         gap: 8,
     },
-    sectionTitle: {
-        color: Colors.TEXT_PRIMARY,
-        fontSize: 16,
-        fontWeight: 'bold',
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    sectionTitleFlat: {
+        marginBottom: 0,
     },
     sectionSubtitle: {
         color: Colors.TEXT_SECONDARY,
         fontSize: 13,
         marginTop: -4,
-        marginBottom: 4,
-    },
-    toggleContainer: {
-        flexDirection: 'row',
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        borderRadius: 12,
-        padding: 4,
-        gap: 4,
-    },
-    toggleBtn: {
-        flex: 1,
-        paddingVertical: 10,
-        alignItems: 'center',
-        borderRadius: 8,
-    },
-    toggleBtnActive: {
-        backgroundColor: Colors.WHITE,
-        ...GlobalStyles.dropShadow(1),
-    },
-    toggleText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: Colors.TEXT_SECONDARY,
-    },
-    toggleTextActive: {
-        color: Colors.PRIMARY,
-        fontWeight: 'bold',
+        marginBottom: 12,
     },
     qrCard: {
         backgroundColor: Colors.WHITE,
         borderRadius: 16,
-        padding: 20,
-        alignItems: 'center',
+        padding: 16,
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
         ...GlobalStyles.dropShadow(2),
+    },
+    qrCardWeb: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        justifyContent: 'center',
+        gap: 24,
+        padding: 24,
+    },
+    mobileCardContent: {
+        width: '100%',
+        alignItems: 'center',
         gap: 16,
     },
+    mobileAmountHeader: {
+        width: '100%',
+        alignItems: 'center',
+        paddingVertical: 4,
+    },
     qrImageContainer: {
+        width: '100%',
+        maxWidth: 340,
+        aspectRatio: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 12,
-        borderRadius: 12,
+        borderRadius: 14,
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    qrImageContainerWeb: {
+        width: 360,
+        height: 360,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 14,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        position: 'relative',
+        overflow: 'hidden',
     },
     qrImage: {
-        width: 220,
-        height: 220,
+        width: '100%',
+        height: '100%',
         borderRadius: 8,
     },
-    tapToZoomRow: {
+    floatingEnlargeBadge: {
+        position: 'absolute',
+        bottom: 10,
+        right: 10,
+        backgroundColor: 'rgba(0, 0, 0, 0.72)',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 999,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        marginTop: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
     },
-    tapToZoomText: {
+    floatingEnlargeText: {
+        color: Colors.WHITE,
+        fontWeight: 'bold',
         fontSize: 11,
-        color: Colors.TEXT_MUTED,
     },
-    accountInfoBox: {
+    saveQRButtonMobile: {
         width: '100%',
+    },
+    cardDivider: {
+        width: '100%',
+        height: 1,
         backgroundColor: Colors.GRAY_ULTRALIGHT,
-        borderRadius: 12,
-        padding: 14,
+        marginVertical: 4,
+    },
+    accountInfoList: {
+        width: '100%',
+        gap: 10,
+        paddingVertical: 4,
+    },
+    paymentSlipWeb: {
+        flex: 1,
+        maxWidth: 360,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderRadius: 14,
+        padding: 20,
+        justifyContent: 'space-between',
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+    },
+    slipAmountSection: {
+        width: '100%',
+        alignItems: 'flex-start',
+    },
+    slipDetailsSection: {
+        width: '100%',
         gap: 8,
+        paddingVertical: 4,
+    },
+    slipSectionHeader: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: Colors.TEXT_SECONDARY,
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
+        marginBottom: 2,
     },
     accountInfoRow: {
         flexDirection: 'row',
@@ -558,7 +725,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     accountLabel: {
-        fontSize: 12,
+        fontSize: 13,
         color: Colors.TEXT_SECONDARY,
         fontWeight: '500',
     },
@@ -569,6 +736,7 @@ const styles = StyleSheet.create({
     },
     saveQRButton: {
         width: '100%',
+        marginTop: 4,
     },
     qrLoadingBox: {
         paddingVertical: 36,
@@ -599,110 +767,47 @@ const styles = StyleSheet.create({
     instructionsContainer: {
         backgroundColor: Colors.WHITE,
         borderRadius: 16,
-        padding: 16,
+        padding: 18,
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
-        ...GlobalStyles.dropShadow(1),
-        gap: 12,
+        ...GlobalStyles.dropShadow(3),
+    },
+    ruleDivider: {
+        height: 1,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        marginVertical: 12,
     },
     stepRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: 12,
+        width: '100%',
+        paddingVertical: 2,
     },
     stepNumberBadge: {
         width: 24,
         height: 24,
         borderRadius: 12,
-        backgroundColor: Colors.PRIMARY_LIGHT,
+        backgroundColor: Colors.TRAIL_RULES_BULLET_BG,
         alignItems: 'center',
         justifyContent: 'center',
+        marginRight: 12,
         marginTop: 1,
+        flexShrink: 0,
     },
     stepNumberText: {
         fontSize: 12,
-        fontWeight: 'bold',
-        color: Colors.PRIMARY,
+        fontWeight: '900',
+        color: Colors.TRAIL_RULES_BULLET_TEXT,
+        marginBottom: 1,
     },
     stepText: {
         flex: 1,
-        fontSize: 13,
+        flexShrink: 1,
+        flexWrap: 'wrap',
+        fontSize: 14,
+        lineHeight: 22,
         color: Colors.TEXT_PRIMARY,
-        lineHeight: 18,
-    },
-    refInputContainer: {
-        marginTop: 12,
-    },
-    rejectionNoticeCard: {
-        backgroundColor: Colors.ERROR_BG,
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 16,
-        borderWidth: 1.5,
-        borderColor: Colors.ERROR_BORDER,
-        gap: 12,
-        ...GlobalStyles.dropShadow(2),
-    },
-    rejectionNoticeHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    rejectionIconCircle: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: Colors.WHITE,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: Colors.ERROR_BORDER,
-    },
-    rejectionNoticeHeaderTexts: {
-        flex: 1,
-        gap: 2,
-    },
-    rejectionNoticeTitle: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: Colors.ERROR,
-    },
-    rejectionNoticeSubtitle: {
-        fontSize: 12,
-        color: Colors.TEXT_SECONDARY,
-    },
-    rejectionReasonBox: {
-        backgroundColor: Colors.WHITE,
-        borderRadius: 10,
-        padding: 12,
-        borderLeftWidth: 3,
-        borderLeftColor: Colors.ERROR,
-        borderWidth: 1,
-        borderColor: Colors.ERROR_BORDER,
-        gap: 4,
-    },
-    rejectionReasonLabel: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: Colors.ERROR,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    rejectionReasonText: {
-        fontSize: 13,
-        color: Colors.TEXT_PRIMARY,
-        fontStyle: 'italic',
-        lineHeight: 18,
-    },
-    rejectionNoticeDesc: {
-        fontSize: 12,
-        color: Colors.TEXT_SECONDARY,
-        lineHeight: 16,
-    },
-    receiptUploadedCardGreen: {
-        borderColor: Colors.SUCCESS,
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        borderWidth: 1.5,
+        marginTop: 1,
     },
 });
 
