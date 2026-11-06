@@ -15,6 +15,11 @@ import { Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import LoadingScreen from "@/src/app/loading";
 import { TrackHikerGPSFlow } from "@/src/core/flows/TrackHikerGPSFlow";
+import {
+  formatTimeAgo,
+  isHikerSignalLost,
+  LKL_TICKER_INTERVAL_MS,
+} from "@/src/features/Navigation/hooks/useEnrichedHikerLocations";
 import { resolveOfflineFonts } from "@/src/utils/resolveOfflineFonts";
 import { resolveOfflineSprites } from "@/src/utils/resolveOfflineSprites";
 import {
@@ -86,29 +91,6 @@ function isValidCoordinate(lat?: number | null, lon?: number | null): boolean {
 }
 
 /**
- * Returns elapsed minutes between a recorded timestamp and a reference time.
- */
-function getElapsedMinutes(timestamp?: Date | string | number, currentTimeMs = Date.now()): number {
-  if (!timestamp) return 0;
-  const timeMs = timestamp instanceof Date ? timestamp.getTime() : new Date(timestamp).getTime();
-  if (isNaN(timeMs)) return 0;
-  const elapsedMs = Math.max(0, currentTimeMs - timeMs);
-  return Math.floor(elapsedMs / (1000 * 60));
-}
-
-/**
- * Formats relative time elapsed since the last location report.
- */
-function formatTimeAgo(timestamp?: Date | string | number, currentTimeMs = Date.now()): string {
-  const mins = getElapsedMinutes(timestamp, currentTimeMs);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  const remainingMins = mins % 60;
-  return `${hours}h ${remainingMins}m ago`;
-}
-
-/**
  * Formats recorded timestamp for emergency rescue coordinates display.
  */
 function formatRecordedTime(timestamp?: Date | string | number): string {
@@ -129,7 +111,7 @@ interface AnimatedHikerMarkerProps {
  * Bypasses high-frequency JS bridge animation loops and directly positions
  * markers via MapLibre's native Marker coordinate mapping.
  * Automatically transitions to Last Known Location (LKL) state if no updates
- * are received for >= 2 minutes.
+ * are received for >= 40 seconds (SIGNAL_LOST_THRESHOLD_MS) or if status is GPS_SIGNAL_LOST.
  */
 const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, onPress, now = Date.now() }) => {
   const initials = useMemo(() => {
@@ -143,9 +125,8 @@ const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, o
       : "?";
   }, [hiker.hikerName]);
 
-  // LKL condition: 2 or more minutes since last recorded update
-  const elapsedMinutes = getElapsedMinutes(hiker.timestamp, now);
-  const isLkl = elapsedMinutes >= 2;
+  // LKL condition: >= 40s since last recorded update or explicit GPS_SIGNAL_LOST status
+  const isLkl = isHikerSignalLost(hiker.timestamp, hiker.status, now);
   const timeAgoText = formatTimeAgo(hiker.timestamp, now);
 
   const handlePress = useCallback(() => {
@@ -184,13 +165,19 @@ const AnimatedHikerMarker: React.FC<AnimatedHikerMarkerProps> = memo(({ hiker, o
     </Marker>
   );
 }, (prevProps, nextProps) => {
+  const prevLkl = isHikerSignalLost(prevProps.hiker.timestamp, prevProps.hiker.status, prevProps.now);
+  const nextLkl = isHikerSignalLost(nextProps.hiker.timestamp, nextProps.hiker.status, nextProps.now);
+  const prevLabel = prevLkl ? formatTimeAgo(prevProps.hiker.timestamp, prevProps.now) : "";
+  const nextLabel = nextLkl ? formatTimeAgo(nextProps.hiker.timestamp, nextProps.now) : "";
+
   return (
     prevProps.hiker.id === nextProps.hiker.id &&
     prevProps.hiker.latitude === nextProps.hiker.latitude &&
     prevProps.hiker.longitude === nextProps.hiker.longitude &&
     prevProps.hiker.timestamp === nextProps.hiker.timestamp &&
     prevProps.hiker.hikerName === nextProps.hiker.hikerName &&
-    prevProps.now === nextProps.now &&
+    prevLkl === nextLkl &&
+    prevLabel === nextLabel &&
     prevProps.onPress === nextProps.onPress
   );
 });
@@ -303,14 +290,14 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedHiker, setSelectedHiker] = useState<HikerLocation | null>(null);
 
-  // Centralized LKL ticker: runs a single stable 10s interval only when hikers are present
+  // Centralized LKL ticker: runs a single stable 2s interval only when hikers are present
   const hasHikers = Boolean(hikerLocations && hikerLocations.length > 0);
   const [tickerTime, setTickerTime] = useState(() => Date.now());
   useEffect(() => {
     if (!hasHikers) return;
     const interval = setInterval(() => {
       setTickerTime(Date.now());
-    }, 10000);
+    }, LKL_TICKER_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [hasHikers]);
 
@@ -320,7 +307,9 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
     return hikerLocations.find((h) => h.id === selectedHiker.id) || selectedHiker;
   }, [selectedHiker, hikerLocations]);
 
-  const isSelectedLkl = liveSelectedHiker ? getElapsedMinutes(liveSelectedHiker.timestamp) >= 2 : false;
+  const isSelectedLkl = liveSelectedHiker
+    ? isHikerSignalLost(liveSelectedHiker.timestamp, liveSelectedHiker.status, tickerTime)
+    : false;
 
   const handleHikerPress = useCallback((clicked: HikerLocation) => {
     setSelectedHiker(clicked);
@@ -1075,7 +1064,7 @@ const TrailMap = memo(forwardRef<TrailMapRef, TrailMapProps>(({
                   </Text>
                   <Text style={styles.rescueCardStatusSub}>
                     {isSelectedLkl
-                      ? `⚠️ Last Known Location • ${formatTimeAgo(liveSelectedHiker.timestamp)}`
+                      ? `⚠️ Last Known Location • ${formatTimeAgo(liveSelectedHiker.timestamp, tickerTime)}`
                       : "🟢 Live Signal • Active"}
                   </Text>
                 </View>
