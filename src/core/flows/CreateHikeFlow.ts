@@ -269,18 +269,16 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
 
         let location: ITrailSummary = currentHike.trail;
         if (currentHike.trail.id === 'diy' || currentHike.trail.id === 'diy_session' || currentHike.trail.id === '') {
-            const coor = coordinates[0];
+            const coor = coordinates[0] || useHikeStore.getState().currentLocation;
 
-            if (!coor.latitude || !coor.longitude) {
-                return;
-            };
+            if (coor?.latitude && coor?.longitude) {
+                const locationName = await getReverseGeocode(coor.latitude, coor.longitude);
 
-            const locationName = await getReverseGeocode(coor.latitude, coor.longitude);
-
-            location = {
-                id: currentHike.trail.id,
-                location: locationName?.location || 'Location Unknown',
-                name: locationName?.name || 'Location Unknown',
+                location = {
+                    id: currentHike.trail.id,
+                    location: locationName?.location || 'Location Unknown',
+                    name: locationName?.name || 'Location Unknown',
+                };
             }
         }
 
