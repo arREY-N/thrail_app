@@ -567,14 +567,14 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: Palette.Emerald100,
+        backgroundColor: Palette.Green100,
         alignItems: "center",
         justifyContent: "center",
     },
     userAvatarText: {
         fontSize: 16,
         fontWeight: "800",
-        color: Palette.Emerald800,
+        color: Palette.Green800,
     },
     userNameRow: {
         flexDirection: "row",

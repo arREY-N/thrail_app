@@ -20,15 +20,15 @@ import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
-import { ToastContext, useToast } from '@/src/components/Toast/Toast';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { ToastContext, useToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Layout } from '@/src/constants/layout';
 import { RankedUsers } from '@/src/core/models/Leaderboard/Leaderboard';
 import { User } from '@/src/core/models/User/User';
 import LeaderboardRankCard from '@/src/features/Community/screens/Leaderboard/components/LeaderboardRankCard';
-import MetricFilterTabs, { LeaderboardMetric } from '@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs';
+import { LeaderboardMetric } from '@/src/features/Community/screens/Leaderboard/components/MetricFilterTabs';
 import MountainPodium from '@/src/features/Community/screens/Leaderboard/components/MountainPodium';
 import TopUserDetailModal from '@/src/features/Community/screens/Leaderboard/components/TopUserDetailModal';
 import { useLeaderboardView } from '@/src/features/Community/screens/Leaderboard/hooks/useLeaderboardView';
@@ -110,9 +110,9 @@ const LeaderboardScreen = ({
 
     const renderListItem = useCallback(
         ({ item }: ListRenderItemInfo<RankedUsers<Date>>) => (
-            <LeaderboardRankCard 
-                user={item} 
-                activeMetric={activeMetric} 
+            <LeaderboardRankCard
+                user={item}
+                activeMetric={activeMetric}
                 onSelectUser={setSelectedTopUser}
                 currentUserId={currentUserData?.userId}
             />
@@ -125,18 +125,6 @@ const LeaderboardScreen = ({
             <CustomHeader
                 centerTitle={true}
                 onBackPress={onBackPress}
-                rightActions={
-                    <TouchableOpacity 
-                        style={styles.resetBadge}
-                        activeOpacity={0.7}
-                        onPress={() => showToast.info(`Next rankings update on ${nextMonthStr}.`)}
-                    >
-                        <CustomIcon library="MaterialCommunityIcons" name="timer-outline" size={12} color={Colors.PRIMARY} />
-                        <CustomText variant="caption" style={styles.resetBadgeText}>
-                            {nextMonthStr.split(',')[0]}
-                        </CustomText>
-                    </TouchableOpacity>
-                }
             >
                 <View style={styles.headerContentBox}>
                     <CustomText variant="h3" style={styles.headerTitle}>
@@ -150,10 +138,6 @@ const LeaderboardScreen = ({
 
             <View style={[styles.mainContainer, isDesktop && styles.desktopContainer]}>
                 {/* Metric Selection Tabs */}
-                <MetricFilterTabs
-                    activeMetric={activeMetric}
-                    onMetricChange={onMetricChange}
-                />
 
                 {isLoading ? (
                     <View style={styles.emptyContainer}>
@@ -209,7 +193,7 @@ const LeaderboardScreen = ({
 
             {/* Sticky Logged-In User Standing Footer */}
             {currentUserData && (
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[styles.currentUserFooter, { paddingBottom: safeBottomPadding }]}
                     activeOpacity={currentUserData.rank > 0 ? 0.8 : 1}
                     disabled={currentUserData.rank === 0}
@@ -231,8 +215,8 @@ const LeaderboardScreen = ({
                                 {currentUserData.rank > 99
                                     ? '99+'
                                     : currentUserData.rank > 0
-                                    ? `#${currentUserData.rank}`
-                                    : '--'}
+                                        ? `#${currentUserData.rank}`
+                                        : '--'}
                             </CustomText>
                         </View>
 

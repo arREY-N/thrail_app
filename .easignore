@@ -59,3 +59,8 @@ setSuperAdmin.js
 
 engine/
 recommendation_engine/
+scripts/
+scratch/
+plans/
+engine_simulations/
+.venv/

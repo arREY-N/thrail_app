@@ -1,0 +1,31 @@
+{
+  "module": "aberrant_simulation",
+  "created_at": "2026-11-04T06:40:07.605062+00:00",
+  "files_count": 24,
+  "files": {
+    "README.md": "c5c18f71e67d76d7cdc7bbad6d59cf1a3d5735bce6b6780a0d58c10bdc486c07",
+    "manage_aberrant_simulation.py": "ae61d664f58fdb1770f7ffe1f7f21efe16c0745939b03ff6b1764b58c882d7b9",
+    "inputs/app_profiles.json": "836b26a8efcf4ca76d1c3671ac413d97201dfc259c0a937f1d762044d675de1d",
+    "inputs/gt_ranges.json": "7e6dd5d093b6916d26f9d44b275977717f72435ee6649694ceeb7fb290d6603b",
+    "inputs/trails.json": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818",
+    "inputs/trails_meta.json": "8aa5f7f405df5f98c0075346a784b1fd9345b13b4cf9dcb4497d4e6d6b11175f",
+    "output/convergence_summary.csv": "a49ece04c10c41d205610afc2f242c75455af0855f9722f8388e6538a987906e",
+    "output/harness_results.json": "7f914b104bee4a5d3d90f67a2780d4178a986aa27731a0935b7cd9e9107518b4",
+    "output/simulatedUsers.json": "a485d9ea413f57fa78409d24b8f9ca4ce0015d090c8b6f881dca730e5a031482",
+    "output/start_distances.csv": "8c9ab7ae9337d53aaa4379eec827a54adc4d58860e1b62c011836aad765ea59a",
+    "output/users.json": "548ec5380707f792cb7a5654fb59ca8cd2d5d6542515ffdaf5ff1a7fe1d62cbe",
+    "output/users_spec.json": "8f5a7f0ce61e6c3eca77a75cb88934eddaec62c25dad87e08a138a0ad83ad35d",
+    "scripts/define_aberrant_cohorts.py": "aa02bf85d2cb7c77e6b1ac00a656bd9ff7833e25c7a359ef52a7c488c35435d1",
+    "scripts/evaluate_aberrant_trajectories.py": "b7f951075c1dff63a8c3adc960aa677fb709e9cfaefa0e55c62c7050c2adb747",
+    "scripts/run_aberrant_simulation.py": "882e8f0e7c45c1d2b424fbf6fd13d8d26d3743c58bd861d5c497a4c124d121d5",
+    "snapshots/sim_10cycles/convergence_summary.csv": "a49ece04c10c41d205610afc2f242c75455af0855f9722f8388e6538a987906e",
+    "snapshots/sim_10cycles/harness_results.json": "7f914b104bee4a5d3d90f67a2780d4178a986aa27731a0935b7cd9e9107518b4",
+    "snapshots/sim_10cycles/simulatedUsers.json": "a485d9ea413f57fa78409d24b8f9ca4ce0015d090c8b6f881dca730e5a031482",
+    "snapshots/sim_3cycles/convergence_summary.csv": "896d9d1bf1b8388fc6e30f9c99100f1bd9f55d395a256dcdfa39188cc9af15cb",
+    "snapshots/sim_3cycles/harness_results.json": "ab7d1b2d978d80f3d1a24dff557e575661f528a5fbc45de010a9a84fde92aece",
+    "snapshots/sim_3cycles/simulatedUsers.json": "9ae39e8777e37d84e48633e2762671a55a298e377391b1c662ada1200dee12c5",
+    "snapshots/sim_5cycles/convergence_summary.csv": "6bf1f6ddd2277f5a0e3e5bbc4a1ce44ffef93ae8795a0ae063343becd6bb1dc9",
+    "snapshots/sim_5cycles/harness_results.json": "2f867c44490f83577e85832078394506b06902b06672f06f2fd92f4ccdfc926d",
+    "snapshots/sim_5cycles/simulatedUsers.json": "55e2b39c853415ce9c098489e9cd19d3bbdece7bf4e11a4daaca5052c9488247"
+  }
+}

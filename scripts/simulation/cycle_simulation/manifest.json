@@ -1,0 +1,62 @@
+{
+  "created_at": "2026-11-03T16:47:03.799659+00:00",
+  "default_ui_cycles": 10,
+  "description": "Frozen 8-trail multi-cycle convergence benchmark snapshot (3, 5, 7, 10 cycles)",
+  "files": {
+    "README.md": "292198a8b1b69025c61827b70fb1c747d1741230fb0254679b1510a451ece903",
+    "inputs/app_profiles.json": "836b26a8efcf4ca76d1c3671ac413d97201dfc259c0a937f1d762044d675de1d",
+    "inputs/gt_ranges.json": "7e6dd5d093b6916d26f9d44b275977717f72435ee6649694ceeb7fb290d6603b",
+    "inputs/start_distances.csv": "ad5bbce98740603dc98d0915a4823f721bcb73f5de27650144ad94209287a181",
+    "inputs/trails.json": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818",
+    "inputs/trails_meta.json": "8aa5f7f405df5f98c0075346a784b1fd9345b13b4cf9dcb4497d4e6d6b11175f",
+    "inputs/users.json": "3a9385927a2b26bcf76a7bd55960f7ac6cad8d2483b1de046831e627c4d5226e",
+    "inputs/users_spec.json": "6282323d8520c3eba4567c8a62c7ec175d53d2675641fe09434ee7a2725c35c7",
+    "manage_cycle_simulation.py": "d3d9d418b92bdd60ed136370bfb0ea0c961705a64d741423545cf52cbd00f8a2",
+    "reports/simulation1.md": "a4fdfbe002eb23df6fb1cc1b5a7162c1055f653a428bf2f2c8a4d0fa5b778957",
+    "reports/simulation2.md": "c1d92609df5351011d4d6fa7a6280e83cf37fdf4c4b4027eb66b449b236e0bad",
+    "reports/simulation3.md": "108e7babf3074b075ff1f0ddc5c971441572d430e88526611b2129cca00634a4",
+    "reports/simulation4.md": "20b420098ec37bb52289cd27b0b5daae43073db1c72861a8b7e569704ade5dfb",
+    "reports/simulation_cycle_summary.md": "d055eab62068c7c2d77603fdfe0e1f238d2109c6531f3b0f725f6ecdc46c0899",
+    "scripts/define_users.py": "803725e89018c62814bc1aba3eddd48b6ccf3bb18b08bb67c74dda5076f79b41",
+    "scripts/export_trails.py": "2251e107bd06144c84d7e1e5f2f9ec3a85f2f2331ddb4d69da07f7e3e18093bd",
+    "scripts/generate_profile_tables.py": "e25967aafc4218002d7a618f463f2ff36706f46b15947f81f9626a59dae250b8",
+    "scripts/run_simulation_harness.py": "b4f192bfc35bc0ccb0eb30b370537a3b261703c0b4ffb55faeb50290da722779",
+    "scripts/sample_ground_truth.py": "248174c8fd82200bffc2f70c8b8ff23629482f41871a94dcc95a364a8159cc0d",
+    "scripts/test_simulation_users.py": "5bcaf8397c036da06b6ab2ffa9f66e28dbdcc42f6ec1fd0b84031e7014a9bf58",
+    "snapshots/sim1_3cycles/convergence_summary.csv": "a9e34ea55c1e9f23972c9631181c02bafed0bc75883f339a2dbd246f2bb67f92",
+    "snapshots/sim1_3cycles/harness_results.json": "8dfbe53b9964069c9ef4fcfe512c252d255ce5a20a06fefb2785078d199ce028",
+    "snapshots/sim1_3cycles/simulatedUsers.json": "1bd1e85000a9a0fc901e09abee3d0ce744de7ab6d34c6e6fb140638057ee3e91",
+    "snapshots/sim2_5cycles/convergence_summary.csv": "d8d61795d4ef8ff7fa9e691e53b6a9f545a3f38fca6e0e3c2b2795eac2a86f70",
+    "snapshots/sim2_5cycles/harness_results.json": "763e3bfd4f121d4c5f8c125b0939b8f7bf6b7df6d6021eaf227b024c0040859e",
+    "snapshots/sim2_5cycles/simulatedUsers.json": "eebef7f4070acf508ed8bf0b159dffd848fb48e084a3ed8b57a8ee3574b88362",
+    "snapshots/sim3_7cycles/convergence_summary.csv": "b34359717d404b69c1ab42975b22ca594c7af75323b88dd06ff0698d15c901b3",
+    "snapshots/sim3_7cycles/harness_results.json": "e76917f9b648c9821e753cc3b061c87cc0e7be090600dfa2fd3414694a4484b9",
+    "snapshots/sim3_7cycles/simulatedUsers.json": "9bd42e1197e4624667138f53fe8331698ac04251ea11c74c27bd9667f920c3f7",
+    "snapshots/sim4_10cycles/convergence_summary.csv": "9c0cec130656b7799de78fe4a201fb2fac9aee27584e31c780ea5ffffc41b418",
+    "snapshots/sim4_10cycles/harness_results.json": "00cedd7d077027921efacfdfce4894709f769536659a59e2e0985166f5701963",
+    "snapshots/sim4_10cycles/simulatedUsers.json": "c2914ea20217f7a06c196b847e49c72756c83f057397c6913038de1f1b791da6"
+  },
+  "module": "cycle_simulation",
+  "stages": {
+    "3": {
+      "archive": "harness_results_simulation1.json",
+      "folder": "sim1_3cycles",
+      "sim_num": 1
+    },
+    "5": {
+      "archive": "harness_results_simulation2.json",
+      "folder": "sim2_5cycles",
+      "sim_num": 2
+    },
+    "7": {
+      "archive": "harness_results_simulation3.json",
+      "folder": "sim3_7cycles",
+      "sim_num": 3
+    },
+    "10": {
+      "archive": "harness_results_simulation4.json",
+      "folder": "sim4_10cycles",
+      "sim_num": 4
+    }
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "status": "PASSED",
+  "total_sets": 5,
+  "cohorts_per_set": 44,
+  "total_user_profiles": 220,
+  "schema_checks": {
+    "dimension": "32 canonical features",
+    "monotonicity_gap_enforced": 0.05,
+    "dimension_violations": 0,
+    "bounds_violations": 0,
+    "monotonicity_violations": 0
+  },
+  "uniqueness_audit": {
+    "total_pairwise_comparisons": 440,
+    "zero_distance_collisions": 0,
+    "all_10_set_pairs": {
+      "Set 1 vs Set 2": {
+        "cohort_comparisons": 44,
+        "easy_gd_mean": 0.0783,
+        "easy_gd_min": 0.0517,
+        "easy_gd_max": 0.1177,
+        "diff_gd_mean": 0.0914,
+        "diff_gd_min": 0.0647,
+        "diff_gd_max": 0.1325,
+        "mean_gd_overall": 0.0849,
+        "mean_ed_overall": 0.1219,
+        "mean_cs_overall": 0.0575
+      },
+      "Set 1 vs Set 3": {
+        "cohort_comparisons": 44,
+        "easy_gd_mean": 0.0773,
+        "easy_gd_min": 0.0547,
+        "easy_gd_max": 0.1098,
+        "diff_gd_mean": 0.0954,
+        "diff_gd_min": 0.0634,
+        "diff_gd_max": 0.1373,
+        "mean_gd_overall": 0.0864,
+        "mean_ed_overall": 0.125,
+        "mean_cs_overall": 0.0563
+      },
+      "Set 1 vs Set 4": {
+        "cohort_comparisons": 44,
+        "easy_gd_mean": 0.0845,
+        "easy_gd_min": 0.0531,
+        "easy_gd_max": 0.1188,
+        "diff_gd_mean": 0.0928,
+        "diff_gd_min": 0.0696,
+        "diff_gd_max": 0.1183,
+        "mean_gd_overall": 0.0886,
+        "mean_ed_overall": 0.1227,
+        "mean_cs_overall": 0.0545
+      },
+      "Set 1 vs Set 5": {
+        "cohort_comparisons": 44,
+        "easy_gd_mean": 0.0826,
+        "easy_gd_min": 0.0573,
+        "easy_gd_max": 0.121,
+        "diff_gd_mean": 0.0921,
+        "diff_gd_min": 0.057,
+        "diff_gd_max": 0.1275,
+        "mean_gd_overall": 0.0873,
+        "mean_ed_overall": 0.1208,
+        "mean_cs_overall": 0.054
+      },
+      "Set 2 vs Set 3": {
+        "cohort_comparisons": 44,
+        "easy_gd_mean": 0.0799,
+        "easy_gd_min": 0.0545,
+        "easy_gd_max": 0.1152,
+        "diff_gd_mean": 0.0922,
+        "diff_gd_min": 0.0604,
+        "diff_gd_max": 0.1286,
+        "mean_gd_overall": 0.0861,
+        "mean_ed_overall": 0.1246,
+        "mean_cs_overall": 0.0579
+      },
+      "Set 2 vs Set 4": {
+        "cohort_comparisons": 44,
+        "easy_gd_mean": 0.0837,
+        "easy_gd_min": 0.061,
+        "easy_gd_max": 0.1208,
+        "diff_gd_mean": 0.0919,
+        "diff_gd_min": 0.0665,
+        "diff_gd_max": 0.1241,
+        "mean_gd_overall": 0.0878,
+        "mean_ed_overall": 0.1272,
+        "mean_cs_overall": 0.0587
+      },
+      "Set 2 vs Set 5": {
+        "cohort_comparisons": 44,
+        "easy_gd_mean": 0.0836,
+        "easy_gd_min": 0.0521,
+        "easy_gd_max": 0.1121,
+        "diff_gd_mean": 0.093,
+        "diff_gd_min": 0.0519,
+        "diff_gd_max": 0.1238,
+        "mean_gd_overall": 0.0883,
+        "mean_ed_overall": 0.1224,
+        "mean_cs_overall": 0.0548
+      },
+      "Set 3 vs Set 4": {
+        "cohort_comparisons": 44,
+        "easy_gd_mean": 0.0778,
+        "easy_gd_min": 0.0527,
+        "easy_gd_max": 0.1158,
+        "diff_gd_mean": 0.0892,
+        "diff_gd_min": 0.0634,
+        "diff_gd_max": 0.1267,
+        "mean_gd_overall": 0.0835,
+        "mean_ed_overall": 0.1194,
+        "mean_cs_overall": 0.0517
+      },
+      "Set 3 vs Set 5": {
+        "cohort_comparisons": 44,
+        "easy_gd_mean": 0.076,
+        "easy_gd_min": 0.055,
+        "easy_gd_max": 0.1126,
+        "diff_gd_mean": 0.0935,
+        "diff_gd_min": 0.0652,
+        "diff_gd_max": 0.1311,
+        "mean_gd_overall": 0.0847,
+        "mean_ed_overall": 0.1201,
+        "mean_cs_overall": 0.049
+      },
+      "Set 4 vs Set 5": {
+        "cohort_comparisons": 44,
+        "easy_gd_mean": 0.0782,
+        "easy_gd_min": 0.0536,
+        "easy_gd_max": 0.1107,
+        "diff_gd_mean": 0.0928,
+        "diff_gd_min": 0.0613,
+        "diff_gd_max": 0.1188,
+        "mean_gd_overall": 0.0855,
+        "mean_ed_overall": 0.1221,
+        "mean_cs_overall": 0.051
+      }
+    }
+  }
+}

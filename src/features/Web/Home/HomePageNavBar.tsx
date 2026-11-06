@@ -154,6 +154,13 @@ const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
         library: "Feather",
         route: "/(app)/(main)/superadmin/recommendation",
       },
+      {
+        id: "leaderboard",
+        label: "Leaderboard",
+        icon: "award",
+        library: "Feather",
+        route: "/(app)/(main)/superadmin/leaderboard/manage",
+      },
     ],
   },
 ];
