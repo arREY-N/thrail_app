@@ -10,7 +10,6 @@ import {
     StyleSheet,
     TouchableOpacity,
     View,
-    ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,7 +22,6 @@ import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
 
 import { Colors } from '@/src/constants/colors';
-import { GlobalStyles } from '@/src/constants/globalStyles';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import { IReview } from '@/src/core/models/Review/Review';
 import { ITrail, useTrailStats } from '@/src/core/models/Trail/Trail';
@@ -230,8 +228,31 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
     }, [latitude, longitude, trail, onRefreshProp]);
 
     const hasOffers = (offersCount ?? 0) > 0;
-    const resolvedBookTitle = bookButtonTitle ?? (hasOffers ? "Book" : "Offers Coming Soon");
-    const resolvedBookDisabled = isBookDisabled ?? !hasOffers;
+    const isWeb = Platform.OS === 'web';
+
+    const primaryFooterButton = hasOffers ? {
+        title: bookButtonTitle ?? "Book",
+        onPress: () => {
+            if (!isBookDisabled) {
+                onBookPress(trail?.id);
+            }
+        },
+        disabled: isBookDisabled,
+        showIndicator: !isBookDisabled && (offersCount ?? 0) > 0,
+        badgeCount: offersCount,
+    } : (!isWeb ? {
+        title: "Hike",
+        onPress: () => onHikePress(trail?.id),
+        variant: 'primary' as const,
+    } : undefined);
+
+    const secondaryFooterButton = (hasOffers && !isWeb) ? {
+        title: "Hike",
+        onPress: () => onHikePress(trail?.id),
+        variant: 'outline' as const,
+        style: { borderColor: Colors.PRIMARY, borderWidth: 1.5 },
+        textStyle: { color: Colors.PRIMARY },
+    } : undefined;
 
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
@@ -411,29 +432,8 @@ const TrailScreen: React.FC<TrailScreenProps> = ({
             />
 
             <CustomStickyFooter
-                primaryButton={{
-                    title: resolvedBookTitle,
-                    onPress: () => {
-                        if (!resolvedBookDisabled) {
-                            onBookPress(trail?.id);
-                        }
-                    },
-                    disabled: resolvedBookDisabled,
-                    style: resolvedBookDisabled ? [
-                        { backgroundColor: Colors.PRIMARY, borderColor: Colors.PRIMARY },
-                        GlobalStyles.dropShadow(4, 0.15, Colors.SHADOW, { radius: 8 }) as ViewStyle,
-                    ] : undefined,
-                    textStyle: resolvedBookDisabled ? { color: Colors.WHITE } : undefined,
-                    showIndicator: !resolvedBookDisabled && (offersCount ?? 0) > 0,
-                    badgeCount: offersCount,
-                }}
-                secondaryButton={Platform.OS !== 'web' ? {
-                    title: "Hike",
-                    onPress: () => onHikePress(trail?.id),
-                    variant: 'outline',
-                    style: { borderColor: Colors.PRIMARY, borderWidth: 1.5 },
-                    textStyle: { color: Colors.PRIMARY }
-                } : undefined}
+                primaryButton={primaryFooterButton}
+                secondaryButton={secondaryFooterButton}
             />
 
             {isImagePreviewVisible && previewImages.length > 0 && (

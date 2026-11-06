@@ -124,7 +124,7 @@ export default function ViewTrail() {
                 isLiked={isLiked}
                 offersCount={offersCount}
                 initialTab={initialTab}
-                bookButtonTitle={hasOffers ? "Book" : "Offers Coming Soon"}
+                bookButtonTitle={hasOffers ? "Book" : undefined}
                 isBookDisabled={!hasOffers}
                 onRefresh={handleRefreshTrailView}
                 similarTrails={similarTrails}

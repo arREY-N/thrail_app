@@ -125,16 +125,14 @@ const StatItem = ({
   icon,
   lib,
   iconColor = Colors.PRIMARY,
-  isNarrow = false,
 }: {
   label: string;
   value: string;
   icon: string;
   lib: IconLibrary;
   iconColor?: string;
-  isNarrow?: boolean;
 }) => (
-  <View style={[styles.statBox, isNarrow && styles.statBoxNarrow]}>
+  <View style={styles.statBox}>
     <View style={styles.statTopRow}>
       <CustomIcon library={lib} name={icon} size={14} color={iconColor} />
       <CustomText
@@ -185,11 +183,6 @@ const MountainCard: React.FC<MountainCardProps> = ({
 
   // Resolve route icon dynamics
   const routeIconInfo = getRouteIconInfo(displayRoute);
-
-  // Responsive styling for limited widths (e.g. nested lists or narrow viewports)
-  const flattenedStyle = StyleSheet.flatten(style);
-  const cardWidth = flattenedStyle?.width;
-  const isNarrow = typeof cardWidth === "number" && cardWidth < 300;
 
   if (Platform.OS === "web") {
     return (
@@ -302,34 +295,26 @@ const MountainCard: React.FC<MountainCardProps> = ({
           </LinearGradient>
         </View>
 
-        <View
-          style={[
-            styles.statsContainerWeb,
-            isNarrow && styles.statsContainerNarrow,
-          ]}
-        >
+        <View style={styles.statsContainerWeb}>
           <StatItem
             label="Distance"
             value={displayLength}
             icon="map-outline"
             lib="Ionicons"
-            isNarrow={isNarrow}
           />
-          {!isNarrow && <View style={styles.verticalDivider} />}
+          <View style={styles.verticalDivider} />
           <StatItem
             label="Elevation"
             value={displayElev}
             icon="trending-up"
             lib="Feather"
-            isNarrow={isNarrow}
           />
-          {!isNarrow && <View style={styles.verticalDivider} />}
+          <View style={styles.verticalDivider} />
           <StatItem
             label="Route"
             value={displayRoute}
             icon={routeIconInfo.icon}
             lib={routeIconInfo.lib}
-            isNarrow={isNarrow}
           />
         </View>
       </Pressable>
@@ -451,31 +436,26 @@ const MountainCard: React.FC<MountainCardProps> = ({
         </LinearGradient>
       </View>
 
-      <View
-        style={[styles.statsContainer, isNarrow && styles.statsContainerNarrow]}
-      >
+      <View style={styles.statsContainer}>
         <StatItem
           label="Distance"
           value={displayLength}
           icon="map-outline"
           lib="Ionicons"
-          isNarrow={isNarrow}
         />
-        {!isNarrow && <View style={styles.verticalDivider} />}
+        <View style={styles.verticalDivider} />
         <StatItem
           label="Elevation"
           value={displayElev}
           icon="trending-up"
           lib="Feather"
-          isNarrow={isNarrow}
         />
-        {!isNarrow && <View style={styles.verticalDivider} />}
+        <View style={styles.verticalDivider} />
         <StatItem
           label="Route"
           value={displayRoute}
           icon={routeIconInfo.icon}
           lib={routeIconInfo.lib}
-          isNarrow={isNarrow}
         />
       </View>
     </TouchableOpacity>
@@ -605,20 +585,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     backgroundColor: Colors.WHITE,
   },
-  statsContainerNarrow: {
-    flexWrap: "wrap",
-    gap: 8,
-    justifyContent: "space-around",
-  },
   statBox: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  statBoxNarrow: {
-    flex: 0,
-    minWidth: "40%",
-    marginVertical: 4,
   },
   statTopRow: {
     flexDirection: "row",
@@ -690,9 +660,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     backgroundColor: Colors.WHITE,
-    height: 58,
   },
 });
 
