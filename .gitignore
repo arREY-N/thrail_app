@@ -98,3 +98,6 @@ __pycache__/
 .securecoderignore
 .securecoder/
 .ignore
+
+scripts/simulation/aberrant_simulation/snapshots/
+scripts/simulation/cycle_simulation/snapshots/
