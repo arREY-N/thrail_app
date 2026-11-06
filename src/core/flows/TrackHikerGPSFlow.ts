@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { newLocation } from "@/src/core/models/Location/Location";
-import { sharedGpsKalmanFilter, smoothCompassHeading } from "@/src/core/utility/gpsKalmanFilter";
+import { sharedGpsKalmanFilter, smoothCompassHeading } from "@/src/core/utility/gps";
 import { exportHikeData } from "@/src/core/utility/hikeStorage";
 
 export const LOCATION_TASK = "background-location-task";
@@ -278,7 +278,9 @@ export const TrackHikerGPSFlow = () => {
                     longitude: lon,
                     altitude: alt ?? undefined,
                     accuracy: filtered.accuracy,
+                    rawAccuracy: filtered.rawAccuracy,
                     speed: filtered.speed,
+                    isStationary: filtered.isStationary,
                     timestamp: new Date(timestamp),
                     status: 'GPS_SIGNAL_RESTORED',
                 }));
@@ -303,7 +305,9 @@ export const TrackHikerGPSFlow = () => {
                         longitude: lon,
                         altitude: alt ?? undefined,
                         accuracy: filtered.accuracy,
+                        rawAccuracy: filtered.rawAccuracy,
                         speed: filtered.speed,
+                        isStationary: filtered.isStationary,
                         timestamp: new Date(),
                         status: 'GPS_SIGNAL_LOST',
                     }));
@@ -319,7 +323,9 @@ export const TrackHikerGPSFlow = () => {
             longitude: lon,
             altitude: alt ?? undefined,
             accuracy: filtered.accuracy,
+            rawAccuracy: filtered.rawAccuracy,
             speed: filtered.speed,
+            isStationary: filtered.isStationary,
             timestamp: new Date(timestamp),
             status: 'ACTIVE',
         });
