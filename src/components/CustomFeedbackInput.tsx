@@ -34,6 +34,7 @@ import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
  * @param suggestions - List of pre-defined suggestion tags/chips.
  * @param variant - Visual style variant for suggestion chips ('primary' | 'danger'). Defaults to 'primary'.
  * @param allowEmojis - Whether emoji characters are allowed in the feedback input. Defaults to false.
+ * @param fadeColor - Background tone for chip scroll fades ('background' | 'white'). Defaults to 'background'.
  * @param style - Additional style prop for the root container.
  */
 interface CustomFeedbackInputProps {
@@ -45,6 +46,7 @@ interface CustomFeedbackInputProps {
     suggestions?: string[];
     variant?: 'primary' | 'danger';
     allowEmojis?: boolean;
+    fadeColor?: 'background' | 'white';
     style?: StyleProp<ViewStyle>;
 }
 
@@ -61,6 +63,7 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
     suggestions = [], 
     variant = 'primary',
     allowEmojis = false,
+    fadeColor = 'background',
     style 
 }) => {
     const scrollRef = useRef<ScrollView>(null);
@@ -161,7 +164,11 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
 
                     {showLeftFade && (
                         <LinearGradient 
-                            colors={[Colors.BACKGROUND, Colors.BACKGROUND_FADE, Colors.BACKGROUND_TRANSPARENT]} 
+                            colors={
+                                fadeColor === 'white'
+                                    ? [Colors.WHITE, Colors.WHITE_FADE, Colors.WHITE_TRANSPARENT]
+                                    : [Colors.BACKGROUND, Colors.BACKGROUND_FADE, Colors.BACKGROUND_TRANSPARENT]
+                            } 
                             start={{ x: 0, y: 0 }} 
                             end={{ x: 1, y: 0 }} 
                             style={styles.leftFade} 
@@ -171,7 +178,11 @@ const CustomFeedbackInput: React.FC<CustomFeedbackInputProps> = ({
 
                     {showRightFade && (
                         <LinearGradient 
-                            colors={[Colors.BACKGROUND_TRANSPARENT, Colors.BACKGROUND_FADE, Colors.BACKGROUND]} 
+                            colors={
+                                fadeColor === 'white'
+                                    ? [Colors.WHITE_TRANSPARENT, Colors.WHITE_FADE, Colors.WHITE]
+                                    : [Colors.BACKGROUND_TRANSPARENT, Colors.BACKGROUND_FADE, Colors.BACKGROUND]
+                            } 
                             start={{ x: 0, y: 0 }} 
                             end={{ x: 1, y: 0 }} 
                             style={styles.rightFade} 
@@ -226,6 +237,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 12,
         overflow: 'hidden',
+        width: '100%',
     },
     chipScrollContent: {
         gap: 8,
