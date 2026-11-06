@@ -3,6 +3,7 @@
  * @description Main community feed screen rendering user review cards, sorting filters, collapsible header transition animations, and infinite scroll pagination.
  */
 
+import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -17,7 +18,6 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 
 import CustomFAB from '@/src/components/CustomFAB';
 import CustomHeader from '@/src/components/CustomHeader';
@@ -74,10 +74,10 @@ export interface CommunityScreenProps {
  * CommunityScreen — Displays user reviews, posts, and leaderboard activities.
  * Implements smooth absolute scrolling, progressive 5-by-5 pagination loaders, and error reloads.
  */
-const CommunityScreen: React.FC<CommunityScreenProps> = ({ 
-    reviews, 
-    isLoading, 
-    onRefresh, 
+const CommunityScreen: React.FC<CommunityScreenProps> = ({
+    reviews,
+    isLoading,
+    onRefresh,
     onLeaderboardPress,
     likeReview,
     isLiked,
@@ -91,11 +91,11 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
     isError = false,
     onReload,
 }) => {
-    const { 
-        searchQuery, 
-        setSearchQuery, 
-        activeTab, 
-        setActiveTab, 
+    const {
+        searchQuery,
+        setSearchQuery,
+        activeTab,
+        setActiveTab,
         paginatedReviews,
         hasMore: hookHasMore,
         isFetchingMore: hookIsFetchingMore,
@@ -155,12 +155,12 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
         resetPagination();
         onRefresh();
     }, [resetPagination, onRefresh]);
-    
+
     const { isDesktop, isTablet } = useBreakpoints();
     const contentMaxWidth = isDesktop ? 800 : (isTablet ? 650 : '100%');
 
     const renderPostCard = useCallback(({ item }: ListRenderItemInfo<Review>) => (
-        <PostCard 
+        <PostCard
             review={item}
             variant="community"
             onLike={() => likeReview(item)}
@@ -190,8 +190,8 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
         if (isError && reviews.length > 0) {
             return (
                 <View style={styles.footerLoaderContainer}>
-                    <TouchableOpacity 
-                        style={styles.retryButton} 
+                    <TouchableOpacity
+                        style={styles.retryButton}
                         onPress={handleLoadMore}
                         activeOpacity={0.7}
                     >
@@ -231,8 +231,8 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                     <CustomText variant="caption" style={styles.emptyStateText}>
                         Failed to load community reviews.
                     </CustomText>
-                    <TouchableOpacity 
-                        style={styles.mainRetryButton} 
+                    <TouchableOpacity
+                        style={styles.mainRetryButton}
                         onPress={onReload || onRefresh}
                         activeOpacity={0.7}
                     >
@@ -270,7 +270,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
             return;
         }
         const diff = currentOffsetY - lastOffsetY.current;
-        
+
         // Ignore layout size reflow changes / jumps
         if (Math.abs(diff) > 100) {
             lastOffsetY.current = currentOffsetY;
@@ -288,17 +288,17 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <View style={styles.container}>
-                
+
                 <Animated.View style={[
                     styles.headerAnimatedWrapper,
                     { transform: [{ translateY }] }
                 ]}>
-                    <CustomHeader 
+                    <CustomHeader
                         title="Community"
                         showDefaultIcons={true}
                         hasSearch={true}
                         searchProps={{
-                            searchPlaceholder: "Search posts or hikers...",
+                            searchPlaceholder: "Search hikers...",
                             searchValue: searchQuery,
                             onSearchChange: setSearchQuery,
                             onChangeText: setSearchQuery,
@@ -306,7 +306,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
                             rightIconName: "podium",
                             onRightButtonPress: onLeaderboardPress,
                             tabs: [
-                                'Latest', 
+                                'Latest',
                                 'Popular',
                                 'Rating'
                             ],
@@ -360,7 +360,7 @@ const CommunityScreen: React.FC<CommunityScreenProps> = ({
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.BACKGROUND, 
+        backgroundColor: Colors.BACKGROUND,
     },
     headerAnimatedWrapper: {
         position: 'absolute',

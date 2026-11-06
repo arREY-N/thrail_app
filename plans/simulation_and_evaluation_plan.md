@@ -17,17 +17,26 @@ The hybrid recommendation score is computed as:
 
 Each configuration pairs a Content-Based Filtering (CBF) formula with a Collaborative Filtering (CF) formula:
 
-| Configuration | CBF Formula (User_A - Trail_T) | CF Formula (User_A - User_B & User_B - Trail_T) |
-| :--- | :--- | :--- |
-| **Set 1: Pure Gower** | Gower Distance (GD) | Gower Distance (GD) |
-| **Set 2: Pure Euclidean** | Normalized Euclidean (ED) | Normalized Euclidean (ED) |
-| **Set 3: Pure Cosine** | Cosine Distance (CS) | Cosine Distance (CS) |
-| **Set 4** | Gower Distance (GD) | Normalized Euclidean (ED) |
-| **Set 5** | Gower Distance (GD) | Cosine Distance (CS) |
-| **Set 6** | Normalized Euclidean (ED) | Gower Distance (GD) |
-| **Set 7** | Normalized Euclidean (ED) | Cosine Distance (CS) |
-| **Set 8** | Cosine Distance (CS) | Gower Distance (GD) |
-| **Set 9** | Cosine Distance (CS) | Normalized Euclidean (ED) |
+| Configuration | CBF Formula (User_A - Trail_T) | CF Formula (User_A - User_B & User_B - Trail_T) | Production UI Status |
+| :--- | :--- | :--- | :--- |
+| **Set 1: Pure Gower** | Gower Distance (GD) | Gower Distance (GD) | **Active (Default & Recommended)** |
+| **Set 2: Pure Euclidean** | Normalized Euclidean (ED) | Normalized Euclidean (ED) | **Active** |
+| **Set 3: Pure Cosine** | Cosine Distance (CS) | Cosine Distance (CS) | Research Benchmark Only (Hidden from UI) |
+| **Set 4** | Gower Distance (GD) | Normalized Euclidean (ED) | **Active** |
+| **Set 5** | Gower Distance (GD) | Cosine Distance (CS) | **Active** |
+| **Set 6** | Normalized Euclidean (ED) | Gower Distance (GD) | **Active** |
+| **Set 7** | Normalized Euclidean (ED) | Cosine Distance (CS) | **Active** |
+| **Set 8** | Cosine Distance (CS) | Gower Distance (GD) | Research Benchmark Only (Hidden from UI) |
+| **Set 9** | Cosine Distance (CS) | Normalized Euclidean (ED) | Research Benchmark Only (Hidden from UI) |
+
+> [!IMPORTANT]
+> **Safety Architecture: Restriction of Cosine Distance (CS) for CBF in the UI**
+> Cosine Similarity/Distance measures exclusively the *angular orientation* between vectors, completely disregarding *vector magnitude* ($\lVert V \rVert_2$). In the hiking domain, magnitude represents critical physical stamina, distance, elevation gain, and safety constraints. For instance, a novice user vector $[0.10, 0.10, 0.10]$ and an extreme mountain vector $[0.90, 0.90, 0.90]$ share an identical $0^\circ$ angle, falsely yielding a "perfect match" ($dist_{CS} = 0.0$).
+>
+> Consequently:
+> 1. **Admin UI Access Restriction:** CS has been removed from the CBF formula selector in `ConfigureEngineModal.tsx`. Only Gower (`GD`) and Normalized Euclidean (`ED`) are accessible for Content-Based Filtering.
+> 2. **CF Role Preserved:** CS remains fully selectable for Collaborative Filtering (CF) peer similarity, where angular alignment effectively captures shared taste preferences and terrain trade-offs among hikers without violating safety bounds.
+> 3. **Engine Integrity:** The backend recommendation engine (`batch_runner.py`) retains mathematical support for CS in CBF solely for academic comparison and ablation benchmarks.
 
 ---
 
@@ -42,13 +51,15 @@ To prevent evaluating solely on output variance (which could favor erratic rando
   - Formula: `Variety = 1.0 - (Count(Intersection(Recs_A, Recs_B)) / Count(Union(Recs_A, Recs_B)))`
 - **Expected Outcome**: A beginner seeking gentle trails in Rizal should have low recommendation overlap with an experienced peak bagger in Batangas.
 
-### Pillar 2: Constraint Alignment (Logical Correctness)
-- **Question**: Does the engine respect the physical, medical, and geographical profile of the user?
+### Pillar 2: Constraint Alignment (Logical Correctness & Physiological Safety)
+- **Question**: Does the engine respect the physical and medical safety profile of the user?
 - **Measurement**:
-  - **Difficulty Match**: Beginners receive trails with Lasco ratings <= 3/9 and gentle gradients.
-  - **Medical Safety**: Users with reported medical conditions receive conservative physical exertion demands (<= 20% downshifted bounds).
-  - **Location Relevance**: Top recommendations prioritize trails located in or adjacent to the user's preferred provinces.
-- **Expected Outcome**: High compliance with safety and preference filters.
+  - **Difficulty Match**: Beginners receive trails with Lasco ratings <= 3/9 and gentle gradients (slope <= 0.15).
+  - **Medical Safety**: Users with reported medical conditions receive conservative physical exertion demands (>= 20% downshifted bounds).
+  - **Exertion Safety Margin**: Easy-slot trails must not exceed user anchor bounds by > 0.15 in gain or slope.
+  - *(Note: Province criteria has been removed as geographical location does not govern physical difficulty or safety).*
+- **Expected Outcome**: High compliance with safety and difficulty constraints.
+- **Formal Evaluation Benchmark**: Full execution record across 44 user cohorts and 8 trails under computed dynamic alpha $\alpha_{44} = 0.5612244898$ is documented in [pillar_2_constraint_alignment_evaluation.md](file:///c:/Users/LENOVO/Documents/dev/thrail_app/plans/pillar_2_constraint_alignment_evaluation.md).
 
 ### Pillar 3: Dual-Anchor Contrast (Easy vs. Difficult Separation)
 - **Question**: For the same user, does the engine produce high contrast between the Easy Anchor (recovery/leisure) and the Difficult Anchor (aspirational challenge)?

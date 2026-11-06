@@ -1,5 +1,6 @@
 import { Leaderboard } from "@/src/core/models/Leaderboard/interfaces/Leaderboard.types";
 import { useLeaderboardStore } from "@/src/core/models/Leaderboard/stores/leaderboardStore";
+import { useEffect } from "react";
 
 export const useLeaderboard = () => {
     const leaderboard = useLeaderboardStore(s => s.current);
@@ -21,6 +22,14 @@ export const useLeaderboard = () => {
     const setLeaderboard = (board: Leaderboard | null) => {
         useLeaderboardStore.setState({ current: board });
     };
+
+    useEffect(() => {
+        const fetch = async () => {
+            await getMonthLeaderboard();
+        }
+
+        fetch();
+    }, [])
 
     return {
         localError,

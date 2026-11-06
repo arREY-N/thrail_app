@@ -1,0 +1,502 @@
+[
+  {
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "E1-M-P1",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "province_pattern": "P1"
+  },
+  {
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "E1-M-P2",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "province_pattern": "P2"
+  },
+  {
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "E1-M-P3",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "province_pattern": "P3"
+  },
+  {
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "E1-N-P1",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "province_pattern": "P1"
+  },
+  {
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "E1-N-P2",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "province_pattern": "P2"
+  },
+  {
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "E1-N-P3",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "province_pattern": "P3"
+  },
+  {
+    "expected_trail_ids": [
+      "B1ro3QWzbDwi2DKppspQ",
+      "X3dyTBzI69aIysvX697H"
+    ],
+    "experience": "E2",
+    "id": "E2-M-P1",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mt. Kulis - Sambong Trail",
+        "Mt. Tagapo"
+      ],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "province_pattern": "P1"
+  },
+  {
+    "expected_trail_ids": [
+      "B1ro3QWzbDwi2DKppspQ",
+      "X3dyTBzI69aIysvX697H"
+    ],
+    "experience": "E2",
+    "id": "E2-M-P2",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mt. Kulis - Sambong Trail",
+        "Mt. Tagapo"
+      ],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "province_pattern": "P2"
+  },
+  {
+    "expected_trail_ids": [
+      "B1ro3QWzbDwi2DKppspQ",
+      "X3dyTBzI69aIysvX697H"
+    ],
+    "experience": "E2",
+    "id": "E2-M-P3",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mt. Kulis - Sambong Trail",
+        "Mt. Tagapo"
+      ],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "province_pattern": "P3"
+  },
+  {
+    "expected_trail_ids": [
+      "B1ro3QWzbDwi2DKppspQ",
+      "X3dyTBzI69aIysvX697H"
+    ],
+    "experience": "E2",
+    "id": "E2-N-P1",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mt. Kulis - Sambong Trail",
+        "Mt. Tagapo"
+      ],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "province_pattern": "P1"
+  },
+  {
+    "expected_trail_ids": [
+      "B1ro3QWzbDwi2DKppspQ",
+      "X3dyTBzI69aIysvX697H"
+    ],
+    "experience": "E2",
+    "id": "E2-N-P2",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mt. Kulis - Sambong Trail",
+        "Mt. Tagapo"
+      ],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "province_pattern": "P2"
+  },
+  {
+    "expected_trail_ids": [
+      "B1ro3QWzbDwi2DKppspQ",
+      "X3dyTBzI69aIysvX697H"
+    ],
+    "experience": "E2",
+    "id": "E2-N-P3",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mt. Kulis - Sambong Trail",
+        "Mt. Tagapo"
+      ],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "province_pattern": "P3"
+  },
+  {
+    "expected_trail_ids": [
+      "7aTSWWzmcnhS1Q4nfCog",
+      "X3dyTBzI69aIysvX697H"
+    ],
+    "experience": "E3",
+    "id": "E3-M-P1",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mt. Tagapo",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "province_pattern": "P1"
+  },
+  {
+    "expected_trail_ids": [
+      "7aTSWWzmcnhS1Q4nfCog",
+      "X3dyTBzI69aIysvX697H"
+    ],
+    "experience": "E3",
+    "id": "E3-M-P2",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mt. Tagapo",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "province_pattern": "P2"
+  },
+  {
+    "expected_trail_ids": [
+      "7aTSWWzmcnhS1Q4nfCog",
+      "X3dyTBzI69aIysvX697H"
+    ],
+    "experience": "E3",
+    "id": "E3-M-P3",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mt. Tagapo",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "province_pattern": "P3"
+  },
+  {
+    "expected_trail_ids": [
+      "7aTSWWzmcnhS1Q4nfCog",
+      "X3dyTBzI69aIysvX697H"
+    ],
+    "experience": "E3",
+    "id": "E3-N-P1",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mt. Tagapo",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "province_pattern": "P1"
+  },
+  {
+    "expected_trail_ids": [
+      "7aTSWWzmcnhS1Q4nfCog",
+      "X3dyTBzI69aIysvX697H"
+    ],
+    "experience": "E3",
+    "id": "E3-N-P2",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mt. Tagapo",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "province_pattern": "P2"
+  },
+  {
+    "expected_trail_ids": [
+      "7aTSWWzmcnhS1Q4nfCog",
+      "X3dyTBzI69aIysvX697H"
+    ],
+    "experience": "E3",
+    "id": "E3-N-P3",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mt. Tagapo",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "province_pattern": "P3"
+  },
+  {
+    "expected_trail_ids": [
+      "7aTSWWzmcnhS1Q4nfCog",
+      "bocOhrJcgk26AbByYazx"
+    ],
+    "experience": "E4",
+    "id": "E4-M-P1",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mariang Makiling Trail (MMT)",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "province_pattern": "P1"
+  },
+  {
+    "expected_trail_ids": [
+      "7aTSWWzmcnhS1Q4nfCog",
+      "bocOhrJcgk26AbByYazx"
+    ],
+    "experience": "E4",
+    "id": "E4-M-P2",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mariang Makiling Trail (MMT)",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "province_pattern": "P2"
+  },
+  {
+    "expected_trail_ids": [
+      "7aTSWWzmcnhS1Q4nfCog",
+      "bocOhrJcgk26AbByYazx"
+    ],
+    "experience": "E4",
+    "id": "E4-M-P3",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mariang Makiling Trail (MMT)",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "province_pattern": "P3"
+  },
+  {
+    "expected_trail_ids": [
+      "7aTSWWzmcnhS1Q4nfCog",
+      "bocOhrJcgk26AbByYazx"
+    ],
+    "experience": "E4",
+    "id": "E4-N-P1",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mariang Makiling Trail (MMT)",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "province_pattern": "P1"
+  },
+  {
+    "expected_trail_ids": [
+      "7aTSWWzmcnhS1Q4nfCog",
+      "bocOhrJcgk26AbByYazx"
+    ],
+    "experience": "E4",
+    "id": "E4-N-P2",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mariang Makiling Trail (MMT)",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "province_pattern": "P2"
+  },
+  {
+    "expected_trail_ids": [
+      "7aTSWWzmcnhS1Q4nfCog",
+      "bocOhrJcgk26AbByYazx"
+    ],
+    "experience": "E4",
+    "id": "E4-N-P3",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mariang Makiling Trail (MMT)",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "province_pattern": "P3"
+  }
+]

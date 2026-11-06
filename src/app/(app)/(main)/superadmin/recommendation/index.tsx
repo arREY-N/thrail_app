@@ -11,15 +11,19 @@ import { useSuperadminDomain, useSuperadminNavigation } from "@/src/core/models/
 import SuperadminShell from "@/src/features/SuperAdmin/components/SuperadminShell";
 import { useBreakpoints } from "@/src/hooks/useBreakpoints";
 import core from "@/src/recommendation/core";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { RecommendationRepo } from "@/src/core/models/Recommendation/Recommendation";
+import getRecoID from "@/src/core/utility/recommendation";
 import {
     ConfigureEngineModal,
+    RecommendationMatrix,
+    SimulationDataset,
     TrailDataset,
     UserDataset,
 } from "../../../../../recommendation/components";
 
-type DatasetType = "trails" | "users";
+type DatasetType = "trails" | "users" | "recommendations" | "simulation";
 
 export default function RecommendationDatasetScreen() {
     const { isMobile } = useBreakpoints();
@@ -48,14 +52,85 @@ export default function RecommendationDatasetScreen() {
 
     const [activeDataset, setActiveDataset] = useState<DatasetType>("trails");
     const [hasVisitedUsers, setHasVisitedUsers] = useState<boolean>(false);
+    const [hasVisitedRecommendations, setHasVisitedRecommendations] = useState<boolean>(false);
+    const [hasVisitedSimulation, setHasVisitedSimulation] = useState<boolean>(false);
+
+    // THARESYS Recommendations Matrix state
+    const [activeMonth, setActiveMonth] = useState<string>(getRecoID());
+    const [recommendationsMap, setRecommendationsMap] = useState<Record<string, any>>({});
+    const [isLoadingRecommendations, setIsLoadingRecommendations] = useState<boolean>(false);
 
     // THARESYS Engine Modal state
     const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
+
+    // Selected Users for targeted recommendation generation
+    const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+
+    const handleToggleSelectUser = useCallback((userId: string) => {
+        setSelectedUserIds((prev) =>
+            prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+        );
+    }, []);
+
+    const handleSelectAllUsers = useCallback((userIds: string[]) => {
+        setSelectedUserIds(userIds);
+    }, []);
+
+    const handleClearSelectedUsers = useCallback(() => {
+        setSelectedUserIds([]);
+    }, []);
+
+    const selectedUserNames = useMemo(() => {
+        const map = new Map(
+            users.map((u) => [
+                u.id,
+                `${u.firstname || ""} ${u.lastname || ""}`.trim() || u.username || u.id,
+            ])
+        );
+        return selectedUserIds.map((id) => map.get(id) || id);
+    }, [users, selectedUserIds]);
+
+    const fetchAllRecommendationsForMonth = useCallback(
+        async (monthId: string) => {
+            setIsLoadingRecommendations(true);
+            try {
+                const map: Record<string, any> = {};
+                const profiledUsers = users.filter((u) => !!u.profile);
+                await Promise.all(
+                    profiledUsers.map(async (u) => {
+                        try {
+                            const reco = await RecommendationRepo.fetchByMonth(u.id, monthId);
+                            if (reco) {
+                                map[u.id] = reco;
+                            }
+                        } catch (err) {
+                            console.warn(`Failed fetching recommendations for user ${u.id}:`, err);
+                        }
+                    })
+                );
+                setRecommendationsMap(map);
+            } catch (err) {
+                console.error("Failed fetching recommendations:", err);
+            } finally {
+                setIsLoadingRecommendations(false);
+            }
+        },
+        [users]
+    );
 
     const handleSwitchTab = (tab: DatasetType) => {
         setActiveDataset(tab);
         if (tab === "users" && !hasVisitedUsers) {
             setHasVisitedUsers(true);
+        }
+        if (tab === "recommendations" && !hasVisitedRecommendations) {
+            setHasVisitedRecommendations(true);
+            if (Object.keys(recommendationsMap).length === 0) {
+                fetchAllRecommendationsForMonth(activeMonth);
+            }
+        }
+        if (tab === "simulation" && !hasVisitedSimulation) {
+            setHasVisitedSimulation(true);
         }
     };
 
@@ -72,12 +147,22 @@ export default function RecommendationDatasetScreen() {
             rightActions={
                 <View style={styles.rightActionsRow}>
                     <TouchableOpacity
-                        style={[styles.runEngineBtn, isMobile && styles.iconOnlyBtn]}
+                        style={[
+                            styles.runEngineBtn,
+                            selectedUserIds.length > 0 && styles.runEngineBtnSelected,
+                            isMobile && styles.iconOnlyBtn,
+                        ]}
                         onPress={() => setIsConfigModalOpen(true)}
                         accessibilityLabel="Configure and run THARESYS recommendation engine"
                     >
                         <CustomIcon library="Feather" name="cpu" size={15} color={Colors.WHITE} />
-                        {!isMobile && <Text style={styles.runEngineBtnText}>Run Engine</Text>}
+                        {!isMobile && (
+                            <Text style={styles.runEngineBtnText}>
+                                {selectedUserIds.length > 0
+                                    ? `Run Engine (${selectedUserIds.length})`
+                                    : "Run Engine"}
+                            </Text>
+                        )}
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -179,6 +264,82 @@ export default function RecommendationDatasetScreen() {
                             </Text>
                         </View>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.switcherTab,
+                            activeDataset === "recommendations" && styles.switcherTabActive,
+                        ]}
+                        onPress={() => handleSwitchTab("recommendations")}
+                    >
+                        <CustomIcon
+                            library="Feather"
+                            name="grid"
+                            size={16}
+                            color={activeDataset === "recommendations" ? Colors.WHITE : Colors.TEXT_SECONDARY}
+                        />
+                        <Text
+                            style={[
+                                styles.switcherLabel,
+                                activeDataset === "recommendations" && styles.switcherLabelActive,
+                            ]}
+                        >
+                            Recommendations
+                        </Text>
+                        <View
+                            style={[
+                                styles.badgeCount,
+                                activeDataset === "recommendations" && styles.badgeCountActive,
+                            ]}
+                        >
+                            <Text
+                                style={[
+                                    styles.badgeCountText,
+                                    activeDataset === "recommendations" && styles.badgeCountTextActive,
+                                ]}
+                            >
+                                {Object.keys(recommendationsMap).length}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.switcherTab,
+                            activeDataset === "simulation" && styles.switcherTabActive,
+                        ]}
+                        onPress={() => handleSwitchTab("simulation")}
+                    >
+                        <CustomIcon
+                            library="Feather"
+                            name="activity"
+                            size={16}
+                            color={activeDataset === "simulation" ? Colors.WHITE : Colors.TEXT_SECONDARY}
+                        />
+                        <Text
+                            style={[
+                                styles.switcherLabel,
+                                activeDataset === "simulation" && styles.switcherLabelActive,
+                            ]}
+                        >
+                            Simulation
+                        </Text>
+                        <View
+                            style={[
+                                styles.badgeCount,
+                                activeDataset === "simulation" && styles.badgeCountActive,
+                            ]}
+                        >
+                            <Text
+                                style={[
+                                    styles.badgeCountText,
+                                    activeDataset === "simulation" && styles.badgeCountTextActive,
+                                ]}
+                            >
+                                24
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Active Dataset Section with Instant Display Toggling */}
@@ -212,7 +373,45 @@ export default function RecommendationDatasetScreen() {
                             isLoading={isLoading}
                             error={error}
                             refresh={refresh}
+                            selectedUserIds={selectedUserIds}
+                            onToggleSelectUser={handleToggleSelectUser}
+                            onSelectAllUsers={handleSelectAllUsers}
+                            onClearSelectedUsers={handleClearSelectedUsers}
                         />
+                    </View>
+                )}
+
+                {hasVisitedRecommendations && (
+                    <View
+                        style={[
+                            styles.datasetSection,
+                            activeDataset !== "recommendations" && styles.hiddenDataset,
+                        ]}
+                    >
+                        <RecommendationMatrix
+                            trails={trails}
+                            users={users}
+                            recommendationsMap={recommendationsMap}
+                            isLoading={isLoadingRecommendations}
+                            activeMonth={activeMonth}
+                            onMonthChange={(m) => {
+                                setActiveMonth(m);
+                                fetchAllRecommendationsForMonth(m);
+                            }}
+                            onRefresh={() => fetchAllRecommendationsForMonth(activeMonth)}
+                            onRunEnginePress={() => setIsConfigModalOpen(true)}
+                        />
+                    </View>
+                )}
+
+                {hasVisitedSimulation && (
+                    <View
+                        style={[
+                            styles.datasetSection,
+                            activeDataset !== "simulation" && styles.hiddenDataset,
+                        ]}
+                    >
+                        <SimulationDataset />
                     </View>
                 )}
             </View>
@@ -223,8 +422,22 @@ export default function RecommendationDatasetScreen() {
                 onClose={() => setIsConfigModalOpen(false)}
                 userCount={eligibleUsersCount}
                 trailCount={trails.length}
-                onSuccess={() => {
+                selectedUserIds={selectedUserIds}
+                selectedUserNames={selectedUserNames}
+                onClearSelectedUsers={handleClearSelectedUsers}
+                onSuccess={(report) => {
                     refresh();
+                    if (report?.recommendations && Object.keys(report.recommendations).length > 0) {
+                        setRecommendationsMap((prev) => ({
+                            ...prev,
+                            ...report.recommendations,
+                        }));
+                    } else {
+                        fetchAllRecommendationsForMonth(activeMonth);
+                    }
+                    // Automatically navigate to Recommendations Matrix tab to see newly generated results
+                    setHasVisitedRecommendations(true);
+                    setActiveDataset("recommendations");
                 }}
             />
         </SuperadminShell>
@@ -240,6 +453,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
+    },
+    runEngineBtnSelected: {
+        backgroundColor: Palette.Green700,
     },
     runEngineBtn: {
         flexDirection: "row",

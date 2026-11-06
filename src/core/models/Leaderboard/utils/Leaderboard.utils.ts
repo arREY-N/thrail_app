@@ -26,10 +26,10 @@ export const generateUserHikingRecord = (
     const targetYear = targetDate.getFullYear();
 
     const hikes = allHikes.filter(hike =>
-        hike.status === 'completed' &&
-        hike.endTime &&
-        hike.endTime.getMonth() === targetMonth &&
-        hike.endTime.getFullYear() === targetYear
+        hike.status === 'completed'
+        && hike.endTime
+        && hike.endTime.getMonth() === targetMonth
+        && hike.endTime.getFullYear() === targetYear
     );
 
     if (hikes.length === 0) {

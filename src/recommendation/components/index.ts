@@ -7,4 +7,11 @@ export * from "./UserDataset";
 export { default as UserDataset } from "./UserDataset";
 export * from "./UserRecommendationsModal";
 export { default as UserRecommendationsModal } from "./UserRecommendationsModal";
-
+export * from "./RecommendationMatrix";
+export { default as RecommendationMatrix } from "./RecommendationMatrix";
+export * from "./SimulationDataset";
+export { default as SimulationDataset } from "./SimulationDataset";
+export * from "./SimulationTrailDataset";
+export { default as SimulationTrailDataset } from "./SimulationTrailDataset";
+export * from "./SimulationConvergenceChart";
+export { default as SimulationConvergenceChart } from "./SimulationConvergenceChart";

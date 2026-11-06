@@ -1,0 +1,638 @@
+[
+  {
+    "actual_experience": "E2",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "AB-1-2-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E1",
+    "ticked_names": []
+  },
+  {
+    "actual_experience": "E2",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "AB-1-2-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E1",
+    "ticked_names": []
+  },
+  {
+    "actual_experience": "E3",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "AB-1-3-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E1",
+    "ticked_names": []
+  },
+  {
+    "actual_experience": "E3",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "AB-1-3-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E1",
+    "ticked_names": []
+  },
+  {
+    "actual_experience": "E4",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "AB-1-4-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E1",
+    "ticked_names": []
+  },
+  {
+    "actual_experience": "E4",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "AB-1-4-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E1",
+    "ticked_names": []
+  },
+  {
+    "actual_experience": "E1",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E2",
+    "id": "AB-2-1-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E2",
+    "ticked_names": [
+      "Mt. Kulis - Sambong Trail",
+      "Mt. Tagapo"
+    ]
+  },
+  {
+    "actual_experience": "E1",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E2",
+    "id": "AB-2-1-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E2",
+    "ticked_names": [
+      "Mt. Kulis - Sambong Trail",
+      "Mt. Tagapo"
+    ]
+  },
+  {
+    "actual_experience": "E3",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E2",
+    "id": "AB-2-3-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E2",
+    "ticked_names": [
+      "Mt. Kulis - Sambong Trail",
+      "Mt. Tagapo"
+    ]
+  },
+  {
+    "actual_experience": "E3",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E2",
+    "id": "AB-2-3-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E2",
+    "ticked_names": [
+      "Mt. Kulis - Sambong Trail",
+      "Mt. Tagapo"
+    ]
+  },
+  {
+    "actual_experience": "E4",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E2",
+    "id": "AB-2-4-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E2",
+    "ticked_names": [
+      "Mt. Kulis - Sambong Trail",
+      "Mt. Tagapo"
+    ]
+  },
+  {
+    "actual_experience": "E4",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E2",
+    "id": "AB-2-4-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E2",
+    "ticked_names": [
+      "Mt. Kulis - Sambong Trail",
+      "Mt. Tagapo"
+    ]
+  },
+  {
+    "actual_experience": "E1",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E3",
+    "id": "AB-3-1-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E3",
+    "ticked_names": [
+      "Mt. Tagapo",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E1",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E3",
+    "id": "AB-3-1-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E3",
+    "ticked_names": [
+      "Mt. Tagapo",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E2",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E3",
+    "id": "AB-3-2-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E3",
+    "ticked_names": [
+      "Mt. Tagapo",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E2",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E3",
+    "id": "AB-3-2-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E3",
+    "ticked_names": [
+      "Mt. Tagapo",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E4",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E3",
+    "id": "AB-3-4-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E3",
+    "ticked_names": [
+      "Mt. Tagapo",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E4",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E3",
+    "id": "AB-3-4-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E3",
+    "ticked_names": [
+      "Mt. Tagapo",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E1",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E4",
+    "id": "AB-4-1-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E4",
+    "ticked_names": [
+      "Mariang Makiling Trail (MMT)",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E1",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E4",
+    "id": "AB-4-1-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E4",
+    "ticked_names": [
+      "Mariang Makiling Trail (MMT)",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E2",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E4",
+    "id": "AB-4-2-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E4",
+    "ticked_names": [
+      "Mariang Makiling Trail (MMT)",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E2",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E4",
+    "id": "AB-4-2-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E4",
+    "ticked_names": [
+      "Mariang Makiling Trail (MMT)",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E3",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E4",
+    "id": "AB-4-3-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E4",
+    "ticked_names": [
+      "Mariang Makiling Trail (MMT)",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E3",
+    "cohort_group": "aberrant",
+    "expected_trail_ids": [],
+    "experience": "E4",
+    "id": "AB-4-3-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E4",
+    "ticked_names": [
+      "Mariang Makiling Trail (MMT)",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E1",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "E1-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E1",
+    "ticked_names": []
+  },
+  {
+    "actual_experience": "E1",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "E1-M-P2",
+    "medical": "M",
+    "province_pattern": "P2",
+    "stated_experience": "E1",
+    "ticked_names": []
+  },
+  {
+    "actual_experience": "E1",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "E1-M-P3",
+    "medical": "M",
+    "province_pattern": "P3",
+    "stated_experience": "E1",
+    "ticked_names": []
+  },
+  {
+    "actual_experience": "E1",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "E1-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E1",
+    "ticked_names": []
+  },
+  {
+    "actual_experience": "E1",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "E1-N-P2",
+    "medical": "N",
+    "province_pattern": "P2",
+    "stated_experience": "E1",
+    "ticked_names": []
+  },
+  {
+    "actual_experience": "E1",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E1",
+    "id": "E1-N-P3",
+    "medical": "N",
+    "province_pattern": "P3",
+    "stated_experience": "E1",
+    "ticked_names": []
+  },
+  {
+    "actual_experience": "E2",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E2",
+    "id": "E2-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E2",
+    "ticked_names": [
+      "Mt. Kulis - Sambong Trail",
+      "Mt. Tagapo"
+    ]
+  },
+  {
+    "actual_experience": "E2",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E2",
+    "id": "E2-M-P2",
+    "medical": "M",
+    "province_pattern": "P2",
+    "stated_experience": "E2",
+    "ticked_names": [
+      "Mt. Kulis - Sambong Trail",
+      "Mt. Tagapo"
+    ]
+  },
+  {
+    "actual_experience": "E2",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E2",
+    "id": "E2-M-P3",
+    "medical": "M",
+    "province_pattern": "P3",
+    "stated_experience": "E2",
+    "ticked_names": [
+      "Mt. Kulis - Sambong Trail",
+      "Mt. Tagapo"
+    ]
+  },
+  {
+    "actual_experience": "E2",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E2",
+    "id": "E2-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E2",
+    "ticked_names": [
+      "Mt. Kulis - Sambong Trail",
+      "Mt. Tagapo"
+    ]
+  },
+  {
+    "actual_experience": "E2",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E2",
+    "id": "E2-N-P2",
+    "medical": "N",
+    "province_pattern": "P2",
+    "stated_experience": "E2",
+    "ticked_names": [
+      "Mt. Kulis - Sambong Trail",
+      "Mt. Tagapo"
+    ]
+  },
+  {
+    "actual_experience": "E2",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E2",
+    "id": "E2-N-P3",
+    "medical": "N",
+    "province_pattern": "P3",
+    "stated_experience": "E2",
+    "ticked_names": [
+      "Mt. Kulis - Sambong Trail",
+      "Mt. Tagapo"
+    ]
+  },
+  {
+    "actual_experience": "E3",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E3",
+    "id": "E3-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E3",
+    "ticked_names": [
+      "Mt. Tagapo",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E3",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E3",
+    "id": "E3-M-P2",
+    "medical": "M",
+    "province_pattern": "P2",
+    "stated_experience": "E3",
+    "ticked_names": [
+      "Mt. Tagapo",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E3",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E3",
+    "id": "E3-M-P3",
+    "medical": "M",
+    "province_pattern": "P3",
+    "stated_experience": "E3",
+    "ticked_names": [
+      "Mt. Tagapo",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E3",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E3",
+    "id": "E3-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E3",
+    "ticked_names": [
+      "Mt. Tagapo",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E3",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E3",
+    "id": "E3-N-P2",
+    "medical": "N",
+    "province_pattern": "P2",
+    "stated_experience": "E3",
+    "ticked_names": [
+      "Mt. Tagapo",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E3",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E3",
+    "id": "E3-N-P3",
+    "medical": "N",
+    "province_pattern": "P3",
+    "stated_experience": "E3",
+    "ticked_names": [
+      "Mt. Tagapo",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E4",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E4",
+    "id": "E4-M-P1",
+    "medical": "M",
+    "province_pattern": "P1",
+    "stated_experience": "E4",
+    "ticked_names": [
+      "Mariang Makiling Trail (MMT)",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E4",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E4",
+    "id": "E4-M-P2",
+    "medical": "M",
+    "province_pattern": "P2",
+    "stated_experience": "E4",
+    "ticked_names": [
+      "Mariang Makiling Trail (MMT)",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E4",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E4",
+    "id": "E4-M-P3",
+    "medical": "M",
+    "province_pattern": "P3",
+    "stated_experience": "E4",
+    "ticked_names": [
+      "Mariang Makiling Trail (MMT)",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E4",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E4",
+    "id": "E4-N-P1",
+    "medical": "N",
+    "province_pattern": "P1",
+    "stated_experience": "E4",
+    "ticked_names": [
+      "Mariang Makiling Trail (MMT)",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E4",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E4",
+    "id": "E4-N-P2",
+    "medical": "N",
+    "province_pattern": "P2",
+    "stated_experience": "E4",
+    "ticked_names": [
+      "Mariang Makiling Trail (MMT)",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  },
+  {
+    "actual_experience": "E4",
+    "cohort_group": "normal",
+    "expected_trail_ids": [],
+    "experience": "E4",
+    "id": "E4-N-P3",
+    "medical": "N",
+    "province_pattern": "P3",
+    "stated_experience": "E4",
+    "ticked_names": [
+      "Mariang Makiling Trail (MMT)",
+      "Mt. Makiling Traverse (MakTrav)"
+    ]
+  }
+]

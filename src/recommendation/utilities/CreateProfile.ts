@@ -184,6 +184,8 @@ export const BatchTrailProfile = (profiles: Profile[]): Profile['features'] | nu
 /**
  * Resolves user-selected survey trail locations against available trail documents in the database.
  * Matches case-insensitively against trail ID, trail name, or trail general location.
+ * A query that equals a trail's ID or full name matches only that trail; otherwise
+ * the broader name, address and mountain matching applies.
  */
 export const MatchSurveyTrails = (
     surveyLocations: string[] = [],
@@ -199,6 +201,20 @@ export const MatchSurveyTrails = (
         if (!rawLoc || typeof rawLoc !== "string") continue;
         const query = rawLoc.trim().toLowerCase();
         if (!query) continue;
+
+        // Exact identity wins: a full trail ID or full trail name selects only that trail,
+        // so sibling trails sharing a mountain are not pulled in. Mountain/address
+        // matching below only applies when nothing matches exactly.
+        const exactMatches = availableTrails.filter(
+            (trail) =>
+                !!trail &&
+                (trail.id?.trim().toLowerCase() === query ||
+                    trail.general?.name?.trim().toLowerCase() === query)
+        );
+        if (exactMatches.length > 0) {
+            for (const trail of exactMatches) matchedMap.set(trail.id, trail);
+            continue;
+        }
 
         for (const trail of availableTrails) {
             if (!trail) continue;
@@ -241,8 +257,9 @@ export const HasMedicalCondition = (user: User): boolean => {
  * Creates twin user profiles (easy and difficult) for a beginner hiker with no survey trail history.
  * - Easy: Low base (0.25) representing lower physical effort, high affinity (0.85) for preferred provinces.
  * - Difficult: High base (0.75) representing demanding effort, inverted affinity (0.85) for unselected provinces.
- * - Medical adjustment: If the user has any medical conditions, bases are shifted down by medicalFactor (0.80x)
- *   yielding 0.20 for easy and 0.60 for difficult.
+ * - Medical adjustment: If the user has any medical conditions, the physical (length, peak, gain, Lasco, slope)
+ *   and terrain bases are shifted down by medicalFactor (0.80x), yielding 0.20 for easy and 0.60 for difficult.
+ *   Route and waterform bases are not scaled (0.25 easy / 0.75 difficult).
  * - Tourism amenities: initialized to baseline scores (0.20 easy / 0.40 difficult) for vector completeness.
  */
 export const CreateBeginnerProfile = (
@@ -295,14 +312,14 @@ export const CreateBeginnerProfile = (
                 ridges: easyBase,
             },
             circularity: {
-                out_and_back: easyBase,
-                traverse: easyBase,
-                circular: easyBase,
+                out_and_back: BEGINNER_EASY_BASE,
+                traverse: BEGINNER_EASY_BASE,
+                circular: BEGINNER_EASY_BASE,
             },
             waterforms: {
-                fall: easyBase,
-                river: easyBase,
-                lake: easyBase,
+                fall: BEGINNER_EASY_BASE,
+                river: BEGINNER_EASY_BASE,
+                lake: BEGINNER_EASY_BASE,
             },
             tourism: {
                 shelter: easyTourismBase,
@@ -347,14 +364,14 @@ export const CreateBeginnerProfile = (
                 ridges: difficultBase,
             },
             circularity: {
-                out_and_back: difficultBase,
-                traverse: difficultBase,
-                circular: difficultBase,
+                out_and_back: BEGINNER_DIFFICULT_BASE,
+                traverse: BEGINNER_DIFFICULT_BASE,
+                circular: BEGINNER_DIFFICULT_BASE,
             },
             waterforms: {
-                fall: difficultBase,
-                river: difficultBase,
-                lake: difficultBase,
+                fall: BEGINNER_DIFFICULT_BASE,
+                river: BEGINNER_DIFFICULT_BASE,
+                lake: BEGINNER_DIFFICULT_BASE,
             },
             tourism: {
                 shelter: difficultTourismBase,
@@ -439,10 +456,13 @@ export const CreateExperiencedProfile = (
     const easyTourismBase = TOURISM_EASY_BASE;
     const difficultTourismBase = TOURISM_DIFFICULT_BASE;
 
-    // Scaling factors for observed physical/terrain metrics:
-    // If user has any medical condition, appliedFactor (0.80x) downshifts both factors
+    // Scaling factors for observed physical/terrain metrics only.
+    // Medical downshift (appliedFactor, 0.80x) applies to Lasco, length, peak, gain, slope and terrain.
+    // Route, waterforms and amenities are never medically scaled.
     const easyFactor = EXPERIENCED_EASY_FACTOR * appliedFactor;
     const difficultFactor = EXPERIENCED_DIFFICULT_FACTOR * appliedFactor;
+    const easyUnscaledFactor = EXPERIENCED_EASY_FACTOR;
+    const difficultUnscaledFactor = EXPERIENCED_DIFFICULT_FACTOR;
 
     const userProvinces = resolveProvinceFeatures(user.preferences?.province || []);
 
@@ -473,31 +493,31 @@ export const CreateExperiencedProfile = (
         return isDifficult ? difficultBase : easyBase;
     };
 
-    // Helper: calculate circularity weight for experienced user
+    // Helper: calculate circularity weight for experienced user (not medically scaled)
     const calcExperiencedCircularity = (cKey: keyof Profile['features']['circularity'], isDifficult: boolean) => {
         const histVal = avgVector.circularity[cKey];
         if (histVal > 0) {
-            const factor = isDifficult ? difficultFactor : easyFactor;
+            const factor = isDifficult ? difficultUnscaledFactor : easyUnscaledFactor;
             return clamp(histVal * factor);
         }
-        return isDifficult ? difficultBase : easyBase;
+        return isDifficult ? BEGINNER_DIFFICULT_BASE : BEGINNER_EASY_BASE;
     };
 
-    // Helper: calculate waterforms weight for experienced user
+    // Helper: calculate waterforms weight for experienced user (not medically scaled)
     const calcExperiencedWaterforms = (wKey: keyof Profile['features']['waterforms'], isDifficult: boolean) => {
         const histVal = avgVector.waterforms[wKey];
         if (histVal !== null && histVal > 0) {
-            const factor = isDifficult ? difficultFactor : easyFactor;
+            const factor = isDifficult ? difficultUnscaledFactor : easyUnscaledFactor;
             return clamp(histVal * factor);
         }
-        return isDifficult ? difficultBase : easyBase;
+        return isDifficult ? BEGINNER_DIFFICULT_BASE : BEGINNER_EASY_BASE;
     };
 
-    // Helper: calculate tourism weight for experienced user
+    // Helper: calculate tourism weight for experienced user (not medically scaled)
     const calcExperiencedTourism = (tKey: keyof Profile['features']['tourism'], isDifficult: boolean) => {
         const histVal = avgVector.tourism[tKey];
         if (histVal !== null && histVal > 0) {
-            const factor = isDifficult ? difficultFactor : easyFactor;
+            const factor = isDifficult ? difficultUnscaledFactor : easyUnscaledFactor;
             return clamp(histVal * factor);
         }
         return isDifficult ? difficultTourismBase : easyTourismBase;

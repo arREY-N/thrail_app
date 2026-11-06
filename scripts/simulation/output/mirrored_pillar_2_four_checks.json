@@ -1,0 +1,344 @@
+{
+  "Set 1: Pure Gower": {
+    "1.0000": {
+      "hardest_trail_count": 13,
+      "easy_bucket_failed": 16,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 8,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.7500": {
+      "hardest_trail_count": 13,
+      "easy_bucket_failed": 16,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 7,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5612": {
+      "hardest_trail_count": 13,
+      "easy_bucket_failed": 16,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5000": {
+      "hardest_trail_count": 13,
+      "easy_bucket_failed": 16,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    }
+  },
+  "Set 2: Pure Euclidean": {
+    "1.0000": {
+      "hardest_trail_count": 21,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.7500": {
+      "hardest_trail_count": 21,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5612": {
+      "hardest_trail_count": 22,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5000": {
+      "hardest_trail_count": 24,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    }
+  },
+  "Set 3: Pure Cosine": {
+    "1.0000": {
+      "hardest_trail_count": 31,
+      "easy_bucket_failed": 10,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 4,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.7500": {
+      "hardest_trail_count": 31,
+      "easy_bucket_failed": 10,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 2,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5612": {
+      "hardest_trail_count": 31,
+      "easy_bucket_failed": 10,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 2,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5000": {
+      "hardest_trail_count": 31,
+      "easy_bucket_failed": 10,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 2,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    }
+  },
+  "Set 4: GD / ED": {
+    "1.0000": {
+      "hardest_trail_count": 13,
+      "easy_bucket_failed": 16,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 8,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.7500": {
+      "hardest_trail_count": 19,
+      "easy_bucket_failed": 14,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5612": {
+      "hardest_trail_count": 19,
+      "easy_bucket_failed": 14,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5000": {
+      "hardest_trail_count": 19,
+      "easy_bucket_failed": 14,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 5,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    }
+  },
+  "Set 5: GD / CS": {
+    "1.0000": {
+      "hardest_trail_count": 13,
+      "easy_bucket_failed": 16,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 8,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.7500": {
+      "hardest_trail_count": 22,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 5,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5612": {
+      "hardest_trail_count": 26,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 4,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5000": {
+      "hardest_trail_count": 29,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 4,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    }
+  },
+  "Set 6: ED / GD": {
+    "1.0000": {
+      "hardest_trail_count": 21,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.7500": {
+      "hardest_trail_count": 21,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5612": {
+      "hardest_trail_count": 19,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5000": {
+      "hardest_trail_count": 17,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    }
+  },
+  "Set 7: ED / CS": {
+    "1.0000": {
+      "hardest_trail_count": 21,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.7500": {
+      "hardest_trail_count": 28,
+      "easy_bucket_failed": 13,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 6,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5612": {
+      "hardest_trail_count": 29,
+      "easy_bucket_failed": 12,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 3,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5000": {
+      "hardest_trail_count": 29,
+      "easy_bucket_failed": 12,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 3,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    }
+  },
+  "Set 8: CS / GD": {
+    "1.0000": {
+      "hardest_trail_count": 31,
+      "easy_bucket_failed": 10,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 4,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.7500": {
+      "hardest_trail_count": 29,
+      "easy_bucket_failed": 11,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 4,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5612": {
+      "hardest_trail_count": 29,
+      "easy_bucket_failed": 11,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 4,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5000": {
+      "hardest_trail_count": 29,
+      "easy_bucket_failed": 11,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 5,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    }
+  },
+  "Set 9: CS / ED": {
+    "1.0000": {
+      "hardest_trail_count": 31,
+      "easy_bucket_failed": 10,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 4,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.7500": {
+      "hardest_trail_count": 29,
+      "easy_bucket_failed": 11,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 5,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5612": {
+      "hardest_trail_count": 29,
+      "easy_bucket_failed": 11,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 5,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    },
+    "0.5000": {
+      "hardest_trail_count": 29,
+      "easy_bucket_failed": 11,
+      "empty_easy_bucket_count": 0,
+      "medical_lower_than_twin_count": 4,
+      "total_protected": 31,
+      "total_users": 44,
+      "total_pairs": 22
+    }
+  }
+}
