@@ -5,6 +5,7 @@
  * with responsive button layouts and the user-aligned proof -> helper -> buttons hierarchy.
  */
 
+import { httpsCallable } from 'firebase/functions';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
@@ -16,17 +17,16 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { httpsCallable } from 'firebase/functions';
 
+import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { useToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { Booking } from '@/src/core/models/Booking/Booking';
 import { functions } from '@/src/core/config/Firebase';
+import { Booking } from '@/src/core/models/Booking/Booking';
 import { IconLibrary } from '@/src/types/ui.types';
 
 const DISPUTE_SUGGESTIONS = [
@@ -202,6 +202,7 @@ const OverpaymentRefundCard: React.FC<OverpaymentRefundCardProps> = ({
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
             >
                 <ScrollView
+                    style={styles.modalScrollView}
                     contentContainerStyle={styles.modalScrollContent}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
@@ -238,6 +239,7 @@ const OverpaymentRefundCard: React.FC<OverpaymentRefundCardProps> = ({
                             onChangeText={setDisputeReason}
                             suggestions={DISPUTE_SUGGESTIONS}
                             variant="danger"
+                            fadeColor="white"
                             style={{ marginBottom: 4 }}
                         />
 
@@ -738,20 +740,25 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.MODAL_OVERLAY,
         justifyContent: 'center',
-        alignItems: 'center',
-        padding: 16,
+    },
+    modalScrollView: {
+        flex: 1,
+        width: '100%',
     },
     modalScrollContent: {
         flexGrow: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 24,
+        width: '100%',
     },
     disputeModalCard: {
         backgroundColor: Colors.WHITE,
-        borderRadius: 16,
+        borderRadius: 20,
         padding: 20,
         width: '100%',
-        maxWidth: 440,
+        maxWidth: 420,
         gap: 12,
         ...GlobalStyles.dropShadow(4),
     },
