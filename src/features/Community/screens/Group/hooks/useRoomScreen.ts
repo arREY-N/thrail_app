@@ -135,17 +135,6 @@ export const useRoomScreen = ({
         }).sort((a, b) => new Date(b.createdAt as Date).getTime() - new Date(a.createdAt as Date).getTime());
     }, [messages]);
 
-    useEffect(() => {
-        if (!formattedFirebaseMessages) return;
-
-        // Add a visual delay so the user gets clear feedback that more messages are being fetched
-        const timer = setTimeout(() => {
-            setIsLoadingEarlier(false);
-        }, 600);
-
-        return () => clearTimeout(timer);
-    }, [formattedFirebaseMessages]);
-
     /**
      * Combines pending messages with fetched Firebase messages, prepending system message if at the beginning.
      */
@@ -157,7 +146,7 @@ export const useRoomScreen = ({
         });
         const combined = [...activePending, ...formattedFirebaseMessages];
 
-        if (hasReachedEnd && combined.length > 0) {
+        if (hasReachedEnd && !isLoadingEarlier && combined.length > 0) {
             if (!combined.some(m => m._id === 'system-beginning-of-chat')) {
                 const groupCreatedAt = currentGroup?.createdAt
                     ? safeParseDateString(currentGroup.createdAt)
@@ -175,12 +164,8 @@ export const useRoomScreen = ({
 
         // Sort the entire array descending (newest first) after combining all messages
         return combined.sort((a, b) => new Date(b.createdAt as Date).getTime() - new Date(a.createdAt as Date).getTime());
-    }, [pendingMessages, formattedFirebaseMessages, hasReachedEnd, currentGroup]);
+    }, [pendingMessages, formattedFirebaseMessages, hasReachedEnd, isLoadingEarlier, currentGroup]);
 
-    /**
-     * Triggers loading of earlier messages. Uses a ref so the FlatList onEndReached
-     * callback never closes over stale state.
-     */
     const handleLoadEarlier = useCallback(async () => {
         const { hasReachedEnd: atEnd, isLoadingEarlier: loading, fn } = loadMoreRef.current;
         if (atEnd || loading) return;
@@ -190,16 +175,16 @@ export const useRoomScreen = ({
             const isOnline = Boolean(network.isConnected && network.isInternetReachable);
             if (!isOnline) {
                 // Cannot load earlier messages from server while offline
-                setIsLoadingEarlier(false);
                 return;
             }
         }
 
         setIsLoadingEarlier(true);
-        // 600ms visual delay so the spinner is visible before messages appear
-        setTimeout(() => {
-            fn?.();
-        }, 600);
+        try {
+            await fn?.();
+        } finally {
+            setIsLoadingEarlier(false);
+        }
     }, []); // stable — never remounts
 
     /**

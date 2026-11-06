@@ -61,9 +61,7 @@ export const messageStoreCreator: StateCreator<
                 set((state) => {
                     state.messagesByGroup[groupId] = messages;
                     state.messagePrevCounts[groupId] = messages.length;
-                    state.hasReachedEndByGroup[groupId] = fromCache
-                        ? (state.hasReachedEndByGroup[groupId] ?? false)
-                        : messages.length < limitCount;
+                    state.hasReachedEndByGroup[groupId] = messages.length < limitCount;
                 });
             }
         );
@@ -98,25 +96,44 @@ export const messageStoreCreator: StateCreator<
             oldUnsubscribe();
         }
 
-        const newUnsubscribe = MessageRepo.listenToGroupMessages(
-            groupId,
-            newLimit,
-            (messages, fromCache) => {
-                const reachedEnd = fromCache
-                    ? (get().hasReachedEndByGroup[groupId] ?? false)
-                    : messages.length < newLimit;
+        return new Promise<void>((resolve) => {
+            let hasResolved = false;
 
-                set((state) => {
-                    state.messagesByGroup[groupId] = messages;
-                    state.messagePrevCounts[groupId] = messages.length;
-                    state.hasReachedEndByGroup[groupId] = reachedEnd;
-                });
-            }
-        );
+            const newUnsubscribe = MessageRepo.listenToGroupMessages(
+                groupId,
+                newLimit,
+                (messages, fromCache) => {
+                    const currentGroupMsgs = get().messagesByGroup[groupId] || [];
+                    const reachedEnd = fromCache
+                        ? false
+                        : (messages.length < newLimit || messages.length <= currentGroupMsgs.length);
 
-        set((state) => {
-            state.messageLimits[groupId] = newLimit;
-            state.activeListeners[groupId] = newUnsubscribe;
+                    set((state) => {
+                        state.messagesByGroup[groupId] = messages;
+                        state.messagePrevCounts[groupId] = messages.length;
+                        state.hasReachedEndByGroup[groupId] = reachedEnd;
+                    });
+
+                    // Only resolve when server snapshot has arrived, confirming full fetch
+                    if (!fromCache && !hasResolved) {
+                        hasResolved = true;
+                        resolve();
+                    }
+                }
+            );
+
+            // Safety fallback so loading never hangs indefinitely in edge cases
+            setTimeout(() => {
+                if (!hasResolved) {
+                    hasResolved = true;
+                    resolve();
+                }
+            }, 8000);
+
+            set((state) => {
+                state.messageLimits[groupId] = newLimit;
+                state.activeListeners[groupId] = newUnsubscribe;
+            });
         });
     },
 

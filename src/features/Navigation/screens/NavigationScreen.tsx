@@ -102,6 +102,10 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
         const first = upcomingBookings[0];
         return isBookingToday(first) ? first : null;
     });
+    const [hasInitializedTodayBooking, setHasInitializedTodayBooking] = useState<boolean>(() => {
+        const first = upcomingBookings[0];
+        return isBookingToday(first);
+    });
     const [controlsHeight, setControlsHeight] = useState(250);
 
     // Safety Reset: auto-exit fullscreen when user navigates away or switches tabs
@@ -153,10 +157,11 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
     const [prevUpcomingLength, setPrevUpcomingLength] = useState(upcomingBookings.length);
     if (upcomingBookings.length !== prevUpcomingLength) {
         setPrevUpcomingLength(upcomingBookings.length);
-        if (upcomingBookings.length > 0 && !activeBooking) {
+        if (upcomingBookings.length > 0 && !activeBooking && !hasInitializedTodayBooking) {
             const first = upcomingBookings[0];
             if (isBookingToday(first)) {
                 setActiveBooking(first);
+                setHasInitializedTodayBooking(true);
             }
         }
     }
@@ -590,19 +595,17 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                                                 <CustomIcon library="Ionicons" name="chatbubble-outline" size={16} color={Colors.PRIMARY} />
                                             </TouchableOpacity>
                                         </View>
-                                        {!isToday && (
-                                            <TouchableOpacity
-                                                style={styles.cardDismissBtn}
-                                                onPress={() => {
-                                                    setActiveBooking(null);
-                                                    mapRef.current?.centerOnUser();
-                                                }}
-                                                activeOpacity={0.8}
-                                                accessibilityLabel="Dismiss Booked Hike Card"
-                                            >
-                                                <CustomIcon library="Feather" name="x" size={14} color={Colors.TEXT_SECONDARY} />
-                                            </TouchableOpacity>
-                                        )}
+                                        <TouchableOpacity
+                                            style={styles.cardDismissBtn}
+                                            onPress={() => {
+                                                setActiveBooking(null);
+                                                mapRef.current?.centerOnUser();
+                                            }}
+                                            activeOpacity={0.8}
+                                            accessibilityLabel="Dismiss Booked Hike Card"
+                                        >
+                                            <CustomIcon library="Feather" name="x" size={14} color={Colors.TEXT_SECONDARY} />
+                                        </TouchableOpacity>
                                     </View>
                                 </View>
 
@@ -681,9 +684,17 @@ const NavigationScreen: React.FC<NavigationScreenProps> = ({
                         visible={isUpcomingModalVisible}
                         onClose={() => setUpcomingModalVisible(false)}
                         bookings={upcomingBookings}
-                        activeBooking={activeBooking}
-                        onSelectBooking={(booking: Booking) => {
-                            setActiveBooking(booking);
+                        activeBooking={selectedTrail ? null : activeBooking}
+                        onSelectBooking={(booking: Booking | null) => {
+                            if (booking) {
+                                if (selectedTrail) {
+                                    onSearchChange('');
+                                }
+                                setActiveBooking(booking);
+                            } else {
+                                setActiveBooking(null);
+                                mapRef.current?.centerOnUser();
+                            }
                             setUpcomingModalVisible(false);
                         }}
                     />
