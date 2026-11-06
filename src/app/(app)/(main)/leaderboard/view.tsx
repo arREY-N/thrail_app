@@ -12,7 +12,7 @@ import { LeaderboardMetric } from "@/src/features/Community/screens/Leaderboard/
  * Handles navigation hooks, metric filter state, and passes live data to LeaderboardScreen.
  */
 export default function Leaderboard(): React.JSX.Element {
-    const { 
+    const {
         onBackPress,
         onSeeMoreOffersPress,
     } = useAppNavigation();
@@ -26,7 +26,6 @@ export default function Leaderboard(): React.JSX.Element {
     const {
         leaderboard: backendLeaderboard,
         isLoading,
-        // getMonthLeaderboard
     } = useLeaderboard();
 
     useEffect(() => {

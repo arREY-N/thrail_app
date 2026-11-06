@@ -302,10 +302,6 @@ export default function UserProfileInfoSection({
                         </Text>
                     </View>
                     <View style={styles.detailRow}>
-                        <Text style={styles.detailKey}>Experience Level:</Text>
-                        <Text style={styles.detailVal}>{user.preferences?.experience || "Not set"}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
                         <Text style={styles.detailKey}>Hiked Before:</Text>
                         <Text style={styles.detailVal}>{user.preferences?.hiked ? "Yes" : "No"}</Text>
                     </View>
@@ -357,97 +353,97 @@ export default function UserProfileInfoSection({
                 </View>
 
                 <View style={styles.calcTable}>
-                <View style={styles.calcTableRowHeader}>
-                    <Text style={[styles.calcTh, { flex: 2 }]}>Feature</Text>
-                    <Text style={[styles.calcTh, { flex: 1.5, textAlign: "center", color: Palette.Green700 }]}>
-                        Easy Anchor
-                    </Text>
-                    <Text style={[styles.calcTh, { flex: 1.5, textAlign: "center", color: Palette.Amber700 }]}>
-                        Difficult Anchor
-                    </Text>
-                </View>
+                    <View style={styles.calcTableRowHeader}>
+                        <Text style={[styles.calcTh, { flex: 2 }]}>Feature</Text>
+                        <Text style={[styles.calcTh, { flex: 1.5, textAlign: "center", color: Palette.Green700 }]}>
+                            Easy Anchor
+                        </Text>
+                        <Text style={[styles.calcTh, { flex: 1.5, textAlign: "center", color: Palette.Amber700 }]}>
+                            Difficult Anchor
+                        </Text>
+                    </View>
 
-                {featureItems.map((feat) => {
-                    const isExpanded = expandedFeatureKey === feat.id;
+                    {featureItems.map((feat) => {
+                        const isExpanded = expandedFeatureKey === feat.id;
 
-                    return (
-                        <React.Fragment key={feat.id}>
-                            <TouchableOpacity
-                                activeOpacity={0.7}
-                                onPress={() => setExpandedFeatureKey(isExpanded ? null : feat.id)}
-                                style={[styles.calcTableRow, isExpanded && styles.calcTableRowActive]}
-                            >
-                                <View style={{ flex: 2, flexDirection: "row", alignItems: "center", gap: 6 }}>
-                                    <CustomIcon
-                                        library="Feather"
-                                        name={isExpanded ? "chevron-up" : "chevron-down"}
-                                        size={12}
-                                        color={isExpanded ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
-                                    />
-                                    <Text style={[styles.calcTdBold, isExpanded && { color: Colors.PRIMARY }]}>
-                                        {feat.label}
+                        return (
+                            <React.Fragment key={feat.id}>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    onPress={() => setExpandedFeatureKey(isExpanded ? null : feat.id)}
+                                    style={[styles.calcTableRow, isExpanded && styles.calcTableRowActive]}
+                                >
+                                    <View style={{ flex: 2, flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                        <CustomIcon
+                                            library="Feather"
+                                            name={isExpanded ? "chevron-up" : "chevron-down"}
+                                            size={12}
+                                            color={isExpanded ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
+                                        />
+                                        <Text style={[styles.calcTdBold, isExpanded && { color: Colors.PRIMARY }]}>
+                                            {feat.label}
+                                        </Text>
+                                    </View>
+                                    <Text style={[styles.calcTd, { flex: 1.5, textAlign: "center", color: Palette.Green700, fontWeight: "600" }]}>
+                                        {feat.easyDisplay}
                                     </Text>
-                                </View>
-                                <Text style={[styles.calcTd, { flex: 1.5, textAlign: "center", color: Palette.Green700, fontWeight: "600" }]}>
-                                    {feat.easyDisplay}
-                                </Text>
-                                <Text style={[styles.calcTd, { flex: 1.5, textAlign: "center", color: Palette.Amber700, fontWeight: "600" }]}>
-                                    {feat.diffDisplay}
-                                </Text>
-                            </TouchableOpacity>
+                                    <Text style={[styles.calcTd, { flex: 1.5, textAlign: "center", color: Palette.Amber700, fontWeight: "600" }]}>
+                                        {feat.diffDisplay}
+                                    </Text>
+                                </TouchableOpacity>
 
-                            {/* Expanded Dropdown Breakdown */}
-                            {isExpanded && (
-                                <View style={styles.breakdownCard}>
-                                    <View style={styles.breakdownHeader}>
-                                        <View style={styles.breakdownBadge}>
-                                            <Text style={styles.breakdownBadgeText}>{feat.category}</Text>
-                                        </View>
-                                        {hasMed && (feat.category === "Physical Exertion" || feat.category === "Terrain Feature") && (
-                                            <View style={styles.breakdownMedBadge}>
-                                                <Text style={styles.breakdownMedBadgeText}>{medFactorStr}x Medical Downshift</Text>
+                                {/* Expanded Dropdown Breakdown */}
+                                {isExpanded && (
+                                    <View style={styles.breakdownCard}>
+                                        <View style={styles.breakdownHeader}>
+                                            <View style={styles.breakdownBadge}>
+                                                <Text style={styles.breakdownBadgeText}>{feat.category}</Text>
                                             </View>
-                                        )}
-                                    </View>
+                                            {hasMed && (feat.category === "Physical Exertion" || feat.category === "Terrain Feature") && (
+                                                <View style={styles.breakdownMedBadge}>
+                                                    <Text style={styles.breakdownMedBadgeText}>{medFactorStr}x Medical Downshift</Text>
+                                                </View>
+                                            )}
+                                        </View>
 
-                                    {/* Raw Score Breakdown */}
-                                    <View style={styles.breakdownSection}>
-                                        <Text style={styles.breakdownLabel}>Raw Score / Data Source:</Text>
-                                        <Text style={styles.breakdownValue}>{feat.rawScore}</Text>
-                                    </View>
-
-                                    {/* Bounds / Range if applicable */}
-                                    {"boundsText" in feat && feat.boundsText ? (
+                                        {/* Raw Score Breakdown */}
                                         <View style={styles.breakdownSection}>
-                                            <Text style={styles.breakdownLabel}>Dataset Normalization Range:</Text>
-                                            <Text style={styles.breakdownValue}>{feat.boundsText}</Text>
+                                            <Text style={styles.breakdownLabel}>Raw Score / Data Source:</Text>
+                                            <Text style={styles.breakdownValue}>{feat.rawScore}</Text>
                                         </View>
-                                    ) : null}
 
-                                    {/* Normalized Base Formula */}
-                                    <View style={styles.breakdownSection}>
-                                        <Text style={styles.breakdownLabel}>Normalized Base Formula:</Text>
-                                        <Text style={styles.breakdownValue}>{feat.normFormula}</Text>
-                                    </View>
+                                        {/* Bounds / Range if applicable */}
+                                        {"boundsText" in feat && feat.boundsText ? (
+                                            <View style={styles.breakdownSection}>
+                                                <Text style={styles.breakdownLabel}>Dataset Normalization Range:</Text>
+                                                <Text style={styles.breakdownValue}>{feat.boundsText}</Text>
+                                            </View>
+                                        ) : null}
 
-                                    {/* Two-Anchor Computation */}
-                                    <View style={styles.breakdownTwinGrid}>
-                                        <View style={styles.breakdownAnchorBoxEasy}>
-                                            <Text style={styles.breakdownAnchorTitleEasy}>Easy Anchor Computation</Text>
-                                            <Text style={styles.breakdownFormulaText}>{feat.easyFormula}</Text>
-                                            <Text style={styles.breakdownResultEasy}>Final Vector: {feat.easyDisplay}</Text>
+                                        {/* Normalized Base Formula */}
+                                        <View style={styles.breakdownSection}>
+                                            <Text style={styles.breakdownLabel}>Normalized Base Formula:</Text>
+                                            <Text style={styles.breakdownValue}>{feat.normFormula}</Text>
                                         </View>
-                                        <View style={styles.breakdownAnchorBoxDiff}>
-                                            <Text style={styles.breakdownAnchorTitleDiff}>Difficult Anchor Computation</Text>
-                                            <Text style={styles.breakdownFormulaText}>{feat.diffFormula}</Text>
-                                            <Text style={styles.breakdownResultDiff}>Final Vector: {feat.diffDisplay}</Text>
+
+                                        {/* Two-Anchor Computation */}
+                                        <View style={styles.breakdownTwinGrid}>
+                                            <View style={styles.breakdownAnchorBoxEasy}>
+                                                <Text style={styles.breakdownAnchorTitleEasy}>Easy Anchor Computation</Text>
+                                                <Text style={styles.breakdownFormulaText}>{feat.easyFormula}</Text>
+                                                <Text style={styles.breakdownResultEasy}>Final Vector: {feat.easyDisplay}</Text>
+                                            </View>
+                                            <View style={styles.breakdownAnchorBoxDiff}>
+                                                <Text style={styles.breakdownAnchorTitleDiff}>Difficult Anchor Computation</Text>
+                                                <Text style={styles.breakdownFormulaText}>{feat.diffFormula}</Text>
+                                                <Text style={styles.breakdownResultDiff}>Final Vector: {feat.diffDisplay}</Text>
+                                            </View>
                                         </View>
                                     </View>
-                                </View>
-                            )}
-                        </React.Fragment>
-                    );
-                })}
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
                 </View>
             </View>
         </View>

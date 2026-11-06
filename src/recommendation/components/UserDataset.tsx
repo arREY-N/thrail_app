@@ -21,7 +21,7 @@ import {
     HasMedicalCondition,
 } from "@/src/recommendation/utilities/CreateProfile";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -311,6 +311,25 @@ export default function UserDataset({
 
                 {/* Filter Tabs */}
                 <View style={styles.filterTabs}>
+                    <TouchableOpacity
+                        key={'reset'}
+                        style={[styles.filterTab]}
+                        onPress={async () => {
+                            for (const user of users) {
+                                const initialProfiles = GenerateUserProfile(user, trails, startElevations, trailProfilesMap);
+                                if (!saveUserProfile) {
+                                    console.log('Cannot save user profile')
+                                    return
+                                }
+                                const success = await saveUserProfile(user.id, initialProfiles);
+                                if (!success) { console.log('Failed to save user profile', user) }
+                            }
+                        }}
+                    >
+                        <Text style={[styles.filterTabText]}>
+                            Reset All
+                        </Text>
+                    </TouchableOpacity>
                     {[
                         { key: "all", label: `All Users (${users.length})` },
                         { key: "with_profile", label: "Saved in DB" },
@@ -426,8 +445,8 @@ export default function UserDataset({
                                             isAllFilteredSelected
                                                 ? "check-square"
                                                 : isSomeFilteredSelected
-                                                ? "minus-square"
-                                                : "square"
+                                                    ? "minus-square"
+                                                    : "square"
                                         }
                                         size={16}
                                         color={
