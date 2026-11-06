@@ -4050,6 +4050,7 @@ function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0, hik
     let windSpeed = 0;
     let uvIndex = 0;
     let temperature = 0;
+    let apparentTemperature = 0;
 
     if (phase === 'T-3' || phase === 'T-24') {
         // Use hourly data for near-term precision
@@ -4057,6 +4058,10 @@ function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0, hik
         precipProb = weatherData.hourly?.precipitation_probability?.[targetHourIndex] ?? weatherData.daily?.precipitation_probability_max?.[targetDayIndex] ?? 0;
         windSpeed = weatherData.hourly?.windspeed_10m?.[targetHourIndex] ?? weatherData.daily?.windspeed_10m_max?.[targetDayIndex] ?? 0;
         temperature = weatherData.hourly?.temperature_2m?.[targetHourIndex] ?? weatherData.current?.temperature_2m ?? 0;
+        apparentTemperature = weatherData.hourly?.apparent_temperature?.[targetHourIndex]
+            ?? weatherData.daily?.apparent_temperature_max?.[targetDayIndex]
+            ?? weatherData.current?.apparent_temperature
+            ?? temperature;
         uvIndex = weatherData.daily?.uv_index_max?.[targetDayIndex] ?? 0; // UV is daily max
     } else {
         // Use daily data for T-72 and T-168
@@ -4064,21 +4069,36 @@ function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0, hik
         precipProb = weatherData.daily?.precipitation_probability_max?.[targetDayIndex] ?? 0;
         windSpeed = weatherData.daily?.windspeed_10m_max?.[targetDayIndex] ?? 0;
         temperature = weatherData.daily?.temperature_2m_max?.[targetDayIndex] ?? weatherData.current?.temperature_2m ?? 0;
+        apparentTemperature = weatherData.daily?.apparent_temperature_max?.[targetDayIndex]
+            ?? weatherData.current?.apparent_temperature
+            ?? temperature;
         uvIndex = weatherData.daily?.uv_index_max?.[targetDayIndex] ?? 0;
     }
 
-    const isSevereCode = [65, 75, 82, 85, 86, 95, 96, 99].includes(weatherCode);
-    const isRain = precipProb >= 40 || (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82);
-    const isHighWind = windSpeed >= 40;
-    const isExtremeUv = uvIndex >= 11;
-
+    const heatIndex = Math.round(apparentTemperature);
     const dailyRainMm = weatherData.daily?.precipitation_sum?.[targetDayIndex] ?? 0;
-    const isTorrential = dailyRainMm >= 100;
+
+    // Unified thresholds aligned with src/core/utility/weatherHelpers.ts
+    const isThunderstorm = [95, 96, 99].includes(weatherCode);
+    const isHeavyRainCode = [65, 75, 82, 85, 86].includes(weatherCode);
+    const isRainCode = (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82);
+
+    const isTorrentialRain = dailyRainMm >= 100 || (isHeavyRainCode && precipProb >= 85);
+    const isModerateRain = !isThunderstorm && !isTorrentialRain && (precipProb >= 50 || (isRainCode && precipProb >= 50));
+    const isIsolatedShowers = !isThunderstorm && !isTorrentialRain && !isModerateRain && precipProb >= 30 && precipProb < 50;
+
+    const isDangerWind = windSpeed >= 60;
+    const isCautionWind = windSpeed >= 40 && windSpeed < 60;
+
+    const isDangerHeat = heatIndex >= 42 && !isThunderstorm && !isTorrentialRain;
+    const isCautionHeat = heatIndex >= 33 && heatIndex < 42 && !isThunderstorm && !isTorrentialRain;
+
+    const isHighUv = uvIndex >= 8 && !isModerateRain && !isTorrentialRain && !isThunderstorm;
 
     let status = 'SAFE';
-    if (isSevereCode || isTorrential || windSpeed >= 60 || uvIndex >= 13) {
+    if (isThunderstorm || isTorrentialRain || isDangerWind || isDangerHeat) {
         status = 'DANGER';
-    } else if (isRain || isHighWind || isExtremeUv || precipProb >= 40) {
+    } else if (isModerateRain || isCautionWind || isCautionHeat || isHighUv) {
         status = 'CAUTION';
     }
 
@@ -4089,18 +4109,36 @@ function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0, hik
     else if (phase === 'T-3') phasePrefix = 'Final Departure Alert';
 
     let headline = `${phasePrefix}: ${trailName}`;
-    let message = `Weather is clear and optimal for your upcoming hike at ${trailName}.`;
+    let message = isIsolatedShowers
+        ? `Mostly fair conditions with a ${precipProb}% chance of isolated passing showers at ${trailName}. Pack a light rain shell just in case.`
+        : `Weather is clear and optimal for your upcoming hike at ${trailName}.`;
 
     if (status === 'DANGER') {
         headline = `⚠️ Severe Weather Warning: ${trailName} (${phasePrefix})`;
-        message = isSevereCode
-            ? `Thunderstorms and heavy downpours forecast at ${trailName}. Please check group chat and coordinate with guides.`
-            : `Severe weather conditions (${precipProb}% rain, ${Math.round(windSpeed)} km/h wind) expected. High hazard on exposed terrain.`;
+        if (isThunderstorm || isTorrentialRain) {
+            message = `Thunderstorms or heavy downpours (${precipProb}% rain) forecast at ${trailName}. Please check group chat and coordinate with guides.`;
+        } else if (isDangerWind) {
+            message = `Severe gale-force winds (${Math.round(windSpeed)} km/h) expected at ${trailName}. High hazard on exposed ridges.`;
+        } else {
+            message = `Danger-level Heat Index (${heatIndex}°C feels-like) expected at ${trailName}. High risk of heat exhaustion; carry 3L+ water and electrolytes.`;
+        }
     } else if (status === 'CAUTION') {
-        headline = `🌧️ Weather Advisory: ${trailName} (${phasePrefix})`;
-        message = isRain
-            ? `Rain expected (${precipProb}% chance) at ${trailName}. Pack waterproof rain covers and traction footwear.`
-            : `Breezy winds (${Math.round(windSpeed)} km/h) or high UV index expected. Prepare appropriate sun protection.`;
+        if (isModerateRain && isCautionHeat) {
+            headline = `Rain & Humid Heat Advisory: ${trailName} (${phasePrefix})`;
+            message = `Rain showers (${precipProb}% chance) with warm humidity (${heatIndex}°C feels-like) at ${trailName}. Pack waterproof gear and extra hydration.`;
+        } else if (isModerateRain) {
+            headline = `Rain Advisory: ${trailName} (${phasePrefix})`;
+            message = `Rain expected (${precipProb}% chance) at ${trailName}. Pack waterproof rain covers and high-traction footwear.`;
+        } else if (isCautionHeat) {
+            headline = `Heat Advisory: ${trailName} (${phasePrefix})`;
+            message = `Elevated Heat Index (${heatIndex}°C feels-like) expected at ${trailName}. Carry 2.5L+ water and pace ascents on open trails.`;
+        } else if (isCautionWind) {
+            headline = `Wind Advisory: ${trailName} (${phasePrefix})`;
+            message = `Strong winds (${Math.round(windSpeed)} km/h) expected at ${trailName}. Secure loose gear and use caution on exposed summits.`;
+        } else {
+            headline = `UV & Sun Advisory: ${trailName} (${phasePrefix})`;
+            message = `High UV Index (${Math.round(uvIndex)}) expected at ${trailName}. Apply SPF 50+ sunscreen and wear sun protection on exposed ridges.`;
+        }
     }
 
     return {
@@ -4109,6 +4147,7 @@ function evaluateWeatherSafety(weatherData, trailName, phase, diffHours = 0, hik
         message,
         metrics: {
             temperature: Math.round(temperature),
+            apparentTemperature: heatIndex,
             precipitationProbability: precipProb,
             weatherCode,
             windSpeed: Math.round(windSpeed),
@@ -4241,7 +4280,7 @@ async function processGroupWeatherAlert(db, groupDoc, force = false) {
     const roundLat = coords.lat.toFixed(4);
     const roundLon = coords.lon.toFixed(4);
     const elevParam = typeof coords.elevation === 'number' && coords.elevation > 0 ? `&elevation=${Math.round(coords.elevation)}` : '';
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${roundLat}&longitude=${roundLon}${elevParam}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&daily=temperature_2m_max,precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode,precipitation_sum&timezone=Asia/Manila&forecast_days=8&models=best_match`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${roundLat}&longitude=${roundLon}${elevParam}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&daily=temperature_2m_max,apparent_temperature_max,precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode,precipitation_sum&timezone=Asia/Manila&forecast_days=8&models=best_match`;
 
     const res = await fetch(url);
     if (!res.ok) {
@@ -4463,7 +4502,7 @@ exports.testGroupWeatherAlert = functions.https.onRequest(async (req, res) => {
 
         // Direct test by trail & user
         const coords = resolveMountainCoords(trailName, null) || MOUNTAIN_COORDINATES.batulao;
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&daily=precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode&timezone=Asia/Manila&forecast_days=1&models=best_match`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,uv_index&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m&daily=temperature_2m_max,apparent_temperature_max,precipitation_probability_max,windspeed_10m_max,uv_index_max,weathercode,precipitation_sum&timezone=Asia/Manila&forecast_days=1&models=best_match`;
 
         const weatherRes = await fetch(url);
         const weatherData = await weatherRes.json();

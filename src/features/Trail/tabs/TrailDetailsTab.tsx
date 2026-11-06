@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CustomIcon from '@/src/components/CustomIcon';
-import CustomImage from '@/src/components/CustomImage';
+// import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import MountainCard from '@/src/components/MountainCard';
 import NetworkStatusBanner from '@/src/components/NetworkStatusBanner';
@@ -22,7 +22,8 @@ import { Colors, Palette } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { useNetworkStatus } from '@/src/core/flows/TrackHikerGPSFlow';
 import { IOffer } from '@/src/core/models/Offer/Offer';
-import { getPinConfig, getStaticMapAsset, IWaypointPoint, StaticTrailMap, TrailMap, TrailMapRef } from '@/src/features/Map/Map';
+// import { getPinConfig, getStaticMapAsset, IWaypointPoint, StaticTrailMap, TrailMap, TrailMapRef } from '@/src/features/Map/Map';
+import { TrailMap, TrailMapRef } from '@/src/features/Map/Map';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import { getTrailOffersCount } from '@/src/utils/offerHelpers';
 
@@ -117,8 +118,9 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({
         }
     }, []);
 
-    const offlinePoints = useMemo(() => trail?.offlinePoints ?? [], [trail?.offlinePoints]);
-    const hasOfflinePoints = offlinePoints.length > 0;
+    // Static map offline points fallback commented out
+    // const offlinePoints = useMemo(() => trail?.offlinePoints ?? [], [trail?.offlinePoints]);
+    // const hasOfflinePoints = offlinePoints.length > 0;
 
     const viewpoints = getArray<string>(trail?.tourism?.viewpoint, (trail as LegacyTrail)?.viewpoint);
     const guidelines = getArray<string>(trail?.general?.guidelines, []);
@@ -193,12 +195,14 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({
         ? trail.general.mountain[0]
         : (trail?.general?.mountain || trail?.general?.name);
 
+    /* Static route map image source fallback commented out
     const routeMapImageSource = useMemo(() => {
         if (trailRouteMapImage && typeof trailRouteMapImage === 'string' && trailRouteMapImage.trim().length > 0) {
             return { uri: trailRouteMapImage };
         }
         return getStaticMapAsset(trailId || '', trailName);
     }, [trailRouteMapImage, trailId, trailName]);
+    */
 
     const handleStatPress = (id: string) => {
         setActiveStat(prev => prev === id ? null : id);
@@ -207,6 +211,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({
     const isRow1Active = ['distance', 'peak', 'gain'].includes(activeStat || "");
     const isRow2Active = ['class', 'difficulty', 'status'].includes(activeStat || "");
 
+    /* Mini Waypoint Pins on static image fallback commented out
     const renderedMiniPins = useMemo(() => {
         if (!hasOfflinePoints || mapCardLayout.width <= 0 || mapCardLayout.height <= 0) return null;
 
@@ -259,6 +264,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({
             </View>
         );
     }, [hasOfflinePoints, offlinePoints, mapCardLayout.width, mapCardLayout.height]);
+    */
 
     return (
         <View style={styles.tabContent}>
@@ -389,16 +395,21 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({
                             />
                         </View>
                     ) : (
+                        /* Static image fallback commented out — using live vector map preview
                         <CustomImage
                             source={routeMapImageSource}
                             style={styles.mapImage}
                             resizeMode="cover"
                         />
+                        */
+                        null
                     )}
 
                     <View style={styles.mapDarkenOverlay} pointerEvents="none" />
 
+                    {/* Static mini waypoint pins commented out
                     {(!hasValidCoords || isMapPreviewVisible) && renderedMiniPins}
+                    */}
 
                     <TouchableOpacity
                         style={styles.mapCardTouch}
@@ -597,6 +608,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({
                                 isOffline={isEffectiveOffline}
                             />
                         ) : (
+                            /* StaticTrailMap fallback commented out — using live vector map preview
                             <StaticTrailMap
                                 trailId={trail?.id || ''}
                                 trailName={trail?.general?.name}
@@ -606,6 +618,8 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({
                                 routeMapImage={trail?.routeMapImage || undefined}
                                 theme="dark"
                             />
+                            */
+                            null
                         )}
 
                         {/* Floating offline toggle button in the modal, positioned at the same level as NavigationScreen (controlsHeight 250 + 36 + locate button offset 56 = 342) */}
