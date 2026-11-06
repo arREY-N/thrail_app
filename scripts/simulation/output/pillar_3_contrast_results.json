@@ -1,0 +1,336 @@
+{
+  "metadata": {
+    "pillar": "Pillar 3: Dual-Anchor Contrast (Easy vs. Difficult Separation)",
+    "num_cohorts": 24,
+    "num_trails": 8,
+    "exact_24_cohort_alpha": 0.7653061224489796,
+    "configurations": [
+      "Set 1: Pure Gower",
+      "Set 2: Pure Euclidean",
+      "Set 3: Pure Cosine",
+      "Set 4: GD / ED",
+      "Set 5: GD / CS",
+      "Set 6: ED / GD",
+      "Set 7: ED / CS",
+      "Set 8: CS / GD",
+      "Set 9: CS / ED"
+    ]
+  },
+  "results_by_scenario": {
+    "actual_24_cohorts": {
+      "alpha": 0.7653061224489796,
+      "label": "Actual 24-Cohort Dynamic Alpha (alpha=0.765306)",
+      "configurations": {
+        "Set 1: Pure Gower": {
+          "cbf_formula": "GD",
+          "cf_formula": "GD",
+          "mean_32d_vector_distance": 2.8022,
+          "gain_gap_delta": 0.6026,
+          "slope_gap_delta": 0.4489,
+          "length_gap_delta": 0.431,
+          "lasco_gap_delta": 0.1019,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 2: Pure Euclidean": {
+          "cbf_formula": "ED",
+          "cf_formula": "ED",
+          "mean_32d_vector_distance": 2.7413,
+          "gain_gap_delta": 0.6168,
+          "slope_gap_delta": 0.4884,
+          "length_gap_delta": 0.4201,
+          "lasco_gap_delta": 0.0926,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 3: Pure Cosine": {
+          "cbf_formula": "CS",
+          "cf_formula": "CS",
+          "mean_32d_vector_distance": 2.3049,
+          "gain_gap_delta": 0.0148,
+          "slope_gap_delta": 0.2393,
+          "length_gap_delta": 0.3463,
+          "lasco_gap_delta": 0.1944,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 4: GD / ED": {
+          "cbf_formula": "GD",
+          "cf_formula": "ED",
+          "mean_32d_vector_distance": 2.786,
+          "gain_gap_delta": 0.6463,
+          "slope_gap_delta": 0.4572,
+          "length_gap_delta": 0.4287,
+          "lasco_gap_delta": 0.0833,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 5: GD / CS": {
+          "cbf_formula": "GD",
+          "cf_formula": "CS",
+          "mean_32d_vector_distance": 2.8449,
+          "gain_gap_delta": 0.479,
+          "slope_gap_delta": 0.4331,
+          "length_gap_delta": 0.4053,
+          "lasco_gap_delta": 0.1296,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 6: ED / GD": {
+          "cbf_formula": "ED",
+          "cf_formula": "GD",
+          "mean_32d_vector_distance": 2.7195,
+          "gain_gap_delta": 0.586,
+          "slope_gap_delta": 0.5055,
+          "length_gap_delta": 0.4034,
+          "lasco_gap_delta": 0.0926,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 7: ED / CS": {
+          "cbf_formula": "ED",
+          "cf_formula": "CS",
+          "mean_32d_vector_distance": 2.8653,
+          "gain_gap_delta": 0.4133,
+          "slope_gap_delta": 0.4325,
+          "length_gap_delta": 0.369,
+          "lasco_gap_delta": 0.1389,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 8: CS / GD": {
+          "cbf_formula": "CS",
+          "cf_formula": "GD",
+          "mean_32d_vector_distance": 2.362,
+          "gain_gap_delta": 0.2409,
+          "slope_gap_delta": 0.3015,
+          "length_gap_delta": 0.2656,
+          "lasco_gap_delta": 0.1713,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 9: CS / ED": {
+          "cbf_formula": "CS",
+          "cf_formula": "ED",
+          "mean_32d_vector_distance": 2.3815,
+          "gain_gap_delta": 0.2518,
+          "slope_gap_delta": 0.305,
+          "length_gap_delta": 0.2707,
+          "lasco_gap_delta": 0.1759,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        }
+      }
+    },
+    "cold_start": {
+      "alpha": 1.0,
+      "label": "Cold-Start Baseline (alpha=1.000000, N=1)",
+      "configurations": {
+        "Set 1: Pure Gower": {
+          "cbf_formula": "GD",
+          "cf_formula": "GD",
+          "mean_32d_vector_distance": 2.816,
+          "gain_gap_delta": 0.5997,
+          "slope_gap_delta": 0.4394,
+          "length_gap_delta": 0.4185,
+          "lasco_gap_delta": 0.0949,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 2: Pure Euclidean": {
+          "cbf_formula": "ED",
+          "cf_formula": "ED",
+          "mean_32d_vector_distance": 2.7631,
+          "gain_gap_delta": 0.6475,
+          "slope_gap_delta": 0.4712,
+          "length_gap_delta": 0.4367,
+          "lasco_gap_delta": 0.0926,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 3: Pure Cosine": {
+          "cbf_formula": "CS",
+          "cf_formula": "CS",
+          "mean_32d_vector_distance": 2.3353,
+          "gain_gap_delta": 0.0644,
+          "slope_gap_delta": 0.2529,
+          "length_gap_delta": 0.336,
+          "lasco_gap_delta": 0.1944,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 4: GD / ED": {
+          "cbf_formula": "GD",
+          "cf_formula": "ED",
+          "mean_32d_vector_distance": 2.816,
+          "gain_gap_delta": 0.5997,
+          "slope_gap_delta": 0.4394,
+          "length_gap_delta": 0.4185,
+          "lasco_gap_delta": 0.0949,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 5: GD / CS": {
+          "cbf_formula": "GD",
+          "cf_formula": "CS",
+          "mean_32d_vector_distance": 2.816,
+          "gain_gap_delta": 0.5997,
+          "slope_gap_delta": 0.4394,
+          "length_gap_delta": 0.4185,
+          "lasco_gap_delta": 0.0949,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 6: ED / GD": {
+          "cbf_formula": "ED",
+          "cf_formula": "GD",
+          "mean_32d_vector_distance": 2.7631,
+          "gain_gap_delta": 0.6475,
+          "slope_gap_delta": 0.4712,
+          "length_gap_delta": 0.4367,
+          "lasco_gap_delta": 0.0926,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 7: ED / CS": {
+          "cbf_formula": "ED",
+          "cf_formula": "CS",
+          "mean_32d_vector_distance": 2.7631,
+          "gain_gap_delta": 0.6475,
+          "slope_gap_delta": 0.4712,
+          "length_gap_delta": 0.4367,
+          "lasco_gap_delta": 0.0926,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 8: CS / GD": {
+          "cbf_formula": "CS",
+          "cf_formula": "GD",
+          "mean_32d_vector_distance": 2.3353,
+          "gain_gap_delta": 0.0644,
+          "slope_gap_delta": 0.2529,
+          "length_gap_delta": 0.336,
+          "lasco_gap_delta": 0.1944,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 9: CS / ED": {
+          "cbf_formula": "CS",
+          "cf_formula": "ED",
+          "mean_32d_vector_distance": 2.3353,
+          "gain_gap_delta": 0.0644,
+          "slope_gap_delta": 0.2529,
+          "length_gap_delta": 0.336,
+          "lasco_gap_delta": 0.1944,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        }
+      }
+    },
+    "steady_state": {
+      "alpha": 0.5,
+      "label": "Steady-State Boundary (alpha=0.500000, N>=50)",
+      "configurations": {
+        "Set 1: Pure Gower": {
+          "cbf_formula": "GD",
+          "cf_formula": "GD",
+          "mean_32d_vector_distance": 2.724,
+          "gain_gap_delta": 0.5785,
+          "slope_gap_delta": 0.494,
+          "length_gap_delta": 0.3869,
+          "lasco_gap_delta": 0.081,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 2: Pure Euclidean": {
+          "cbf_formula": "ED",
+          "cf_formula": "ED",
+          "mean_32d_vector_distance": 2.7413,
+          "gain_gap_delta": 0.6168,
+          "slope_gap_delta": 0.4884,
+          "length_gap_delta": 0.4201,
+          "lasco_gap_delta": 0.0926,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 3: Pure Cosine": {
+          "cbf_formula": "CS",
+          "cf_formula": "CS",
+          "mean_32d_vector_distance": 2.0224,
+          "gain_gap_delta": 0.0433,
+          "slope_gap_delta": 0.3226,
+          "length_gap_delta": 0.3509,
+          "lasco_gap_delta": 0.1759,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 4: GD / ED": {
+          "cbf_formula": "GD",
+          "cf_formula": "ED",
+          "mean_32d_vector_distance": 2.755,
+          "gain_gap_delta": 0.6694,
+          "slope_gap_delta": 0.4754,
+          "length_gap_delta": 0.4356,
+          "lasco_gap_delta": 0.0833,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 5: GD / CS": {
+          "cbf_formula": "GD",
+          "cf_formula": "CS",
+          "mean_32d_vector_distance": 2.6651,
+          "gain_gap_delta": 0.3815,
+          "slope_gap_delta": 0.3922,
+          "length_gap_delta": 0.3306,
+          "lasco_gap_delta": 0.1528,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 6: ED / GD": {
+          "cbf_formula": "ED",
+          "cf_formula": "GD",
+          "mean_32d_vector_distance": 2.7195,
+          "gain_gap_delta": 0.586,
+          "slope_gap_delta": 0.5055,
+          "length_gap_delta": 0.4034,
+          "lasco_gap_delta": 0.0926,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 7: ED / CS": {
+          "cbf_formula": "ED",
+          "cf_formula": "CS",
+          "mean_32d_vector_distance": 2.9044,
+          "gain_gap_delta": 0.3994,
+          "slope_gap_delta": 0.4232,
+          "length_gap_delta": 0.3423,
+          "lasco_gap_delta": 0.1389,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 8: CS / GD": {
+          "cbf_formula": "CS",
+          "cf_formula": "GD",
+          "mean_32d_vector_distance": 2.9044,
+          "gain_gap_delta": 0.3994,
+          "slope_gap_delta": 0.4232,
+          "length_gap_delta": 0.3423,
+          "lasco_gap_delta": 0.1389,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        },
+        "Set 9: CS / ED": {
+          "cbf_formula": "CS",
+          "cf_formula": "ED",
+          "mean_32d_vector_distance": 2.9044,
+          "gain_gap_delta": 0.3994,
+          "slope_gap_delta": 0.4232,
+          "length_gap_delta": 0.3423,
+          "lasco_gap_delta": 0.1389,
+          "disjoint_overlap_violations": 0,
+          "disjoint_compliance_pct": 100.0
+        }
+      }
+    }
+  }
+}

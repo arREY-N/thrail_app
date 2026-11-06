@@ -53,7 +53,7 @@ class TestProfileUpdater(unittest.TestCase):
             [1.00, 0.20]
         ], dtype=np.float32)
 
-        new_profile = update_profile_vector(profile, trails, scores, matches, weights)
+        new_profile = update_profile_vector(profile, trails, scores, matches, weights, beta_divisor=2.0)
 
         self.assertAlmostEqual(float(new_profile[0]), 0.0300, places=4)
         self.assertAlmostEqual(float(new_profile[1]), 0.2150, places=4)
@@ -71,7 +71,7 @@ class TestProfileUpdater(unittest.TestCase):
         matches = np.array([True, False], dtype=bool)
         weights = np.array([1.00, 0.50], dtype=np.float32)
 
-        new_profile = update_profile_vector(profile, trails, scores, matches, weights)
+        new_profile = update_profile_vector(profile, trails, scores, matches, weights, beta_divisor=2.0)
 
         self.assertAlmostEqual(float(new_profile[0]), 0.0400, places=4)
         self.assertAlmostEqual(float(new_profile[1]), 0.2075, places=4)

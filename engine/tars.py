@@ -93,6 +93,39 @@ def compute_alpha(
     return float(np.clip(alpha, low, high))
 
 
+def select_eligible_peers(
+    func_cf: Callable,
+    vec_user_a: np.ndarray,
+    peer_profiles: Optional[Union[List[List[float]], List[np.ndarray], np.ndarray]] = None,
+    weights: Optional[Union[List[float], np.ndarray]] = None,
+    k: int = CF_TOP_K,
+    tau: float = CF_DISTANCE_CUTOFF_TAU,
+) -> List[Tuple[float, np.ndarray]]:
+    """
+    Filters and returns up to top-k eligible peers within distance tau of vec_user_a.
+    Precomputing this once per user per batch eliminates redundant calculations across all candidate trails.
+    """
+    if peer_profiles is None:
+        return []
+
+    peers = []
+    if isinstance(peer_profiles, np.ndarray) and peer_profiles.ndim == 1:
+        peers = [peer_profiles]
+    elif isinstance(peer_profiles, list) and len(peer_profiles) > 0 and not isinstance(peer_profiles[0], (list, np.ndarray)):
+        peers = [np.asarray(peer_profiles, dtype=np.float32)]
+    else:
+        peers = [np.asarray(p, dtype=np.float32) for p in peer_profiles]
+
+    eligible_peer_dists: List[Tuple[float, np.ndarray]] = []
+    for vec_user_b in peers:
+        dist_a_b = float(func_cf(vec_user_a, vec_user_b, weights=weights))
+        if dist_a_b <= tau:
+            eligible_peer_dists.append((dist_a_b, vec_user_b))
+
+    eligible_peer_dists.sort(key=lambda item: item[0])
+    return eligible_peer_dists[:max(1, int(k))]
+
+
 def compute_cf_component(
     func_cf: Callable,
     vec_user_a: np.ndarray,
@@ -101,7 +134,8 @@ def compute_cf_component(
     weights: Optional[Union[List[float], np.ndarray]] = None,
     k: int = CF_TOP_K,
     tau: float = CF_DISTANCE_CUTOFF_TAU,
-    base_alpha: float = ALPHA_STEADY_STATE
+    base_alpha: float = ALPHA_STEADY_STATE,
+    preselected_peers: Optional[List[Tuple[float, np.ndarray]]] = None
 ) -> Tuple[float, float, int]:
     """
     Computes the revised similarity-weighted, tau-gated top-k CF score.
@@ -115,36 +149,42 @@ def compute_cf_component(
     Returns:
         (cf_score, effective_alpha, eligible_peer_count)
     """
-    if peer_profiles is None:
-        return 0.0, float(ALPHA_COLD_START), 0
-
-    # Standardize peer_profiles to a list of numpy float arrays
-    peers = []
-    if isinstance(peer_profiles, np.ndarray) and peer_profiles.ndim == 1:
-        peers = [peer_profiles]
-    elif isinstance(peer_profiles, list) and len(peer_profiles) > 0 and not isinstance(peer_profiles[0], (list, np.ndarray)):
-        peers = [np.asarray(peer_profiles, dtype=np.float32)]
+    if preselected_peers is not None:
+        selected_k_peers = preselected_peers
+        eligible_count = len(selected_k_peers)
+        if eligible_count == 0:
+            return 0.0, float(ALPHA_COLD_START), 0
     else:
-        peers = [np.asarray(p, dtype=np.float32) for p in peer_profiles]
+        if peer_profiles is None:
+            return 0.0, float(ALPHA_COLD_START), 0
 
-    if len(peers) == 0:
-        return 0.0, float(ALPHA_COLD_START), 0
+        # Standardize peer_profiles to a list of numpy float arrays
+        peers = []
+        if isinstance(peer_profiles, np.ndarray) and peer_profiles.ndim == 1:
+            peers = [peer_profiles]
+        elif isinstance(peer_profiles, list) and len(peer_profiles) > 0 and not isinstance(peer_profiles[0], (list, np.ndarray)):
+            peers = [np.asarray(peer_profiles, dtype=np.float32)]
+        else:
+            peers = [np.asarray(p, dtype=np.float32) for p in peer_profiles]
 
-    # 1. Filter peers where dist(user_a, user_b) <= tau
-    eligible_peer_dists: List[Tuple[float, np.ndarray]] = []
-    for vec_user_b in peers:
-        dist_a_b = float(func_cf(vec_user_a, vec_user_b, weights=weights))
-        if dist_a_b <= tau:
-            eligible_peer_dists.append((dist_a_b, vec_user_b))
+        if len(peers) == 0:
+            return 0.0, float(ALPHA_COLD_START), 0
 
-    eligible_count = len(eligible_peer_dists)
-    if eligible_count == 0:
-        # Fallback to pure CBF when no peer passes tau cutoff
-        return 0.0, float(ALPHA_COLD_START), 0
+        # 1. Filter peers where dist(user_a, user_b) <= tau
+        eligible_peer_dists: List[Tuple[float, np.ndarray]] = []
+        for vec_user_b in peers:
+            dist_a_b = float(func_cf(vec_user_a, vec_user_b, weights=weights))
+            if dist_a_b <= tau:
+                eligible_peer_dists.append((dist_a_b, vec_user_b))
 
-    # 2. Sort ascending by peer distance and take top-k closest peers
-    eligible_peer_dists.sort(key=lambda item: item[0])
-    selected_k_peers = eligible_peer_dists[:max(1, int(k))]
+        eligible_count = len(eligible_peer_dists)
+        if eligible_count == 0:
+            # Fallback to pure CBF when no peer passes tau cutoff
+            return 0.0, float(ALPHA_COLD_START), 0
+
+        # 2. Sort ascending by peer distance and take top-k closest peers
+        eligible_peer_dists.sort(key=lambda item: item[0])
+        selected_k_peers = eligible_peer_dists[:max(1, int(k))]
 
     # 3. Compute normalized similarity-weighted average
     weights_list: List[float] = []
@@ -176,7 +216,8 @@ def engine(
     peer_profiles: Optional[Union[List[List[float]], List[np.ndarray], np.ndarray]] = None,
     weights: Optional[Union[List[float], np.ndarray]] = None,
     k: int = CF_TOP_K,
-    tau: float = CF_DISTANCE_CUTOFF_TAU
+    tau: float = CF_DISTANCE_CUTOFF_TAU,
+    preselected_peers: Optional[List[Tuple[float, np.ndarray]]] = None
 ) -> float:
     """
     THARESYS Recommendation Engine Function.
@@ -193,6 +234,7 @@ def engine(
         weights:    Optional 1D array of feature importance weights.
         k:          Maximum number of closest eligible peers to evaluate (default: CF_TOP_K)
         tau:        Maximum peer distance cutoff for eligibility (default: CF_DISTANCE_CUTOFF_TAU)
+        preselected_peers: Optional pre-filtered and pre-sorted list of top-k (dist, vec) peers
 
     Returns:
         float: R_tu score in [0.0, 1.0] (near 0.0 = highly recommended, near 1.0 = not recommended)
@@ -215,7 +257,8 @@ def engine(
         weights=weights,
         k=k,
         tau=tau,
-        base_alpha=a
+        base_alpha=a,
+        preselected_peers=preselected_peers
     )
 
     # 3. Final Blended Recommendation Score (R_tu)
@@ -234,7 +277,8 @@ def engine_details(
     peer_profiles: Optional[Union[List[List[float]], List[np.ndarray], np.ndarray]] = None,
     weights: Optional[Union[List[float], np.ndarray]] = None,
     k: int = CF_TOP_K,
-    tau: float = CF_DISTANCE_CUTOFF_TAU
+    tau: float = CF_DISTANCE_CUTOFF_TAU,
+    preselected_peers: Optional[List[Tuple[float, np.ndarray]]] = None
 ) -> dict:
     """
     Returns full breakdown of THARESYS calculation:
@@ -256,7 +300,8 @@ def engine_details(
         weights=weights,
         k=k,
         tau=tau,
-        base_alpha=a
+        base_alpha=a,
+        preselected_peers=preselected_peers
     )
 
     r_tu = float(np.clip((effective_alpha * cbf_score) + ((1.0 - effective_alpha) * cf_score), 0.0, 1.0))

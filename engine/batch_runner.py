@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Union, Callable
 import numpy as np
 
-from tars import engine, engine_details, compute_alpha, GD, ED, CS
+from tars import engine, engine_details, compute_alpha, GD, ED, CS, select_eligible_peers, resolve_formula
 from parameters import (
     DEFAULT_CBF_ENGINE,
     DEFAULT_CF_ENGINE,
@@ -40,6 +40,8 @@ from parameters import (
     REVIEW_ACTIVE_FACTOR_WEIGHT,
     REVIEW_BASELINE_UNSELECTED_WEIGHT,
     TERRAIN_PRESENCE_THRESHOLD,
+    EXERTION_SAFETY_MARGIN_DEFAULT,
+    EXERTION_SAFETY_MARGIN_VULNERABLE,
 )
 from profile_utils import (
     flatten_profile_features,
@@ -320,15 +322,28 @@ def run_batch_recommendations(
                         predicted_cat = "easy"
                         rtu_score = round(min(1.0, d_easy / np.sqrt(32)), 4)
 
-                raw_choice = r.get("perceivedDifficulty")
-                if isinstance(raw_choice, (int, float)):
-                    # 1: Easy, 2: Just Right, 3: Moderate, 4: Difficult/Hard, 5: Extreme
-                    is_user_easy = (raw_choice <= 2)
+                # Respect explicit is_match boolean if provided in review document
+                if "is_match" in r:
+                    is_match = bool(r["is_match"])
+                elif "isMatch" in r:
+                    is_match = bool(r["isMatch"])
                 else:
-                    choice_str = str(raw_choice or "easy").strip().lower()
-                    is_user_easy = choice_str in ("easy", "just right", "1", "2")
+                    raw_choice = r.get("perceivedDifficulty")
+                    if isinstance(raw_choice, (int, float)):
+                        # 1: Easy, 2: Just Right, 3: Moderate, 4: Difficult/Hard, 5: Extreme
+                        is_user_easy = (raw_choice <= 2)
+                        is_user_exhausting = (raw_choice >= 5)
+                    else:
+                        choice_str = str(raw_choice or "easy").strip().lower()
+                        is_user_easy = choice_str in ("easy", "just right", "1", "2")
+                        is_user_exhausting = choice_str in ("exhausting", "extreme", "too hard")
 
-                is_match = is_user_easy if (predicted_cat == "easy") else (not is_user_easy)
+                    if predicted_cat == "easy":
+                        is_match = is_user_easy
+                    else:
+                        # On difficult recommendation:
+                        # "Easy" = Underwhelming Mismatch; "Exhausting" = Overexertion Mismatch; "Difficult" = Match
+                        is_match = (not is_user_easy) and (not is_user_exhausting)
 
                 hike_factors = r.get("difficultyFactors") or []
                 hike_weights = resolve_review_factor_weights(
@@ -339,11 +354,22 @@ def run_batch_recommendations(
                     terrain_presence_threshold=terrain_presence_threshold,
                 )
 
+                pd_raw = str(r.get("perceivedDifficulty") or r.get("rawExperience") or r.get("experience") or "").strip().lower()
+                is_user_easy_m = pd_raw in ("easy", "just right", "1", "2")
+                if is_match:
+                    m_kind = "match"
+                elif predicted_cat in ("difficult", "diff") and is_user_easy_m:
+                    m_kind = "underwhelming"
+                else:
+                    m_kind = "overexertion"
+
                 hike_feedbacks.append({
                     "trail_id": tid,
                     "trail_features": trail_feats,
                     "score": rtu_score,
                     "is_match": is_match,
+                    "mismatch_kind": m_kind,
+                    "perceivedDifficulty": r.get("perceivedDifficulty"),
                     "target_anchor": predicted_cat,
                     "feature_weights": hike_weights
                 })
@@ -385,6 +411,24 @@ def run_batch_recommendations(
         other_easy_peers = [p for i, p in enumerate(peer_easy_vectors) if (cf_peer_pool[i].get("id") or "") != uid]
         other_diff_peers = [p for i, p in enumerate(peer_diff_vectors) if (cf_peer_pool[i].get("id") or "") != uid]
 
+        func_cf = resolve_formula(cf_engine)
+        sel_easy_peers = select_eligible_peers(
+            func_cf=func_cf,
+            vec_user_a=easy_vec,
+            peer_profiles=other_easy_peers if other_easy_peers else None,
+            weights=weight_vector,
+            k=cf_k,
+            tau=cf_tau
+        )
+        sel_diff_peers = select_eligible_peers(
+            func_cf=func_cf,
+            vec_user_a=diff_vec,
+            peer_profiles=other_diff_peers if other_diff_peers else None,
+            weights=weight_vector,
+            k=cf_k,
+            tau=cf_tau
+        )
+
         # Score every candidate trail for both easy and difficult categories
         for trail in prepared_trails:
             tid = trail["id"]
@@ -402,7 +446,8 @@ def run_batch_recommendations(
                 peer_profiles=other_easy_peers if other_easy_peers else None,
                 weights=weight_vector,
                 k=cf_k,
-                tau=cf_tau
+                tau=cf_tau,
+                preselected_peers=sel_easy_peers
             )
 
             # Calculate Difficult Score & breakdown
@@ -415,16 +460,36 @@ def run_batch_recommendations(
                 peer_profiles=other_diff_peers if other_diff_peers else None,
                 weights=weight_vector,
                 k=cf_k,
-                tau=cf_tau
+                tau=cf_tau,
+                preselected_peers=sel_diff_peers
             )
 
             easy_score = round(float(res_easy["score"]), 4)
             diff_score = round(float(res_diff["score"]), 4)
 
+            # Absolute exertion safety ceiling check
+            # Core physical metrics: classification (0), length (1), elevation (2), gain (3), slope (4), easy (5)
+            # Vulnerable cohorts (medical condition or E1 beginner) receive a tighter threshold
+            user_med = bool(user.get('medicalProfile', {}).get('hasCondition', False))
+            user_exp = str(user.get('experience', 'E1')).strip()
+            is_vulnerable = user_med or (user_exp == 'E1')
+            exertion_margin = EXERTION_SAFETY_MARGIN_VULNERABLE if is_vulnerable else EXERTION_SAFETY_MARGIN_DEFAULT
+            
+            # Check if trail's slope or elevation gain exceeds the user's easy anchor by more than margin
+            # (Slope and vertical climb are the primary orthopedic/cardiovascular risk factors)
+            exceeds_exertion_safety = False
+            for phys_idx in (3, 4):  # gain (3), slope (4)
+                if tvec[phys_idx] - easy_vec[phys_idx] > exertion_margin:
+                    exceeds_exertion_safety = True
+                    break
+            # Secondary check on extreme length (e.g. MakTrav 1.00)
+            if not exceeds_exertion_safety and (tvec[1] - easy_vec[1] > exertion_margin + 0.20):
+                exceeds_exertion_safety = True
+
             # Disjoint partitioning: assign trail exclusively to whichever profile it is closer to (lower distance)
-            # If scores tie, assign to easy as a safe default.
-            # If no trails are easy for a user, easy_items remains empty as-is (safety first).
-            if easy_score <= diff_score:
+            # SAFETY-FIRST POLICY: Even if closer to easy, if trail exceeds physical exertion safety ceiling,
+            # it is strictly routed to difficult_items so vulnerable hikers are protected.
+            if easy_score <= diff_score and not exceeds_exertion_safety:
                 easy_items.append({
                     "id": tid,
                     "trailName": tname,
@@ -448,6 +513,21 @@ def run_batch_recommendations(
                     "cbfScore": round(float(res_diff["cbf"]), 4),
                     "cfScore": round(float(res_diff["cf"]), 4),
                 })
+
+        # If easy_items is completely empty, admit the candidate with the lowest physical exertion
+        # to ensure vulnerable/beginner cohorts always have a safe option to hike and review
+        if not easy_items and diff_items:
+            # Find candidate with minimal gain + slope exertion
+            def trail_exertion(item):
+                tid = str(item.get("id"))
+                t_obj = trail_by_id.get(tid, {})
+                t_phys = t_obj.get("profile", {}).get("features", t_obj.get("features", {}))
+                return float(t_phys.get("slope", 0.0) or 0.0) + float(t_phys.get("gain", 0.0) or 0.0)
+            safest_idx = min(range(len(diff_items)), key=lambda i: trail_exertion(diff_items[i]))
+            safest_item = diff_items.pop(safest_idx)
+            safest_item["category"] = "easy"
+            safest_item["score"] = safest_item.get("easyScore", safest_item["score"])
+            easy_items.append(safest_item)
 
         # Sort each list ascending by score (0.0 = closest match / highest recommendation)
         easy_items.sort(key=lambda x: x["score"])
@@ -706,7 +786,21 @@ def run_single_user_recommendations(
         easy_score = round(float(res_easy["score"]), 4)
         diff_score = round(float(res_diff["score"]), 4)
 
-        if easy_score <= diff_score:
+        # Absolute exertion safety ceiling check
+        user_med = bool(user_doc.get('medicalProfile', {}).get('hasCondition', False))
+        user_exp = str(user_doc.get('experience', 'E1')).strip()
+        is_vulnerable = user_med or (user_exp == 'E1')
+        exertion_margin = EXERTION_SAFETY_MARGIN_VULNERABLE if is_vulnerable else EXERTION_SAFETY_MARGIN_DEFAULT
+        
+        exceeds_exertion_safety = False
+        for phys_idx in (3, 4):  # gain (3), slope (4)
+            if tvec[phys_idx] - easy_vec[phys_idx] > exertion_margin:
+                exceeds_exertion_safety = True
+                break
+        if not exceeds_exertion_safety and (tvec[1] - easy_vec[1] > exertion_margin + 0.20):
+            exceeds_exertion_safety = True
+
+        if easy_score <= diff_score and not exceeds_exertion_safety:
             easy_items.append({
                 "id": tid,
                 "trailName": tname,

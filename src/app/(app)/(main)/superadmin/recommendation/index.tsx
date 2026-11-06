@@ -18,11 +18,12 @@ import getRecoID from "@/src/core/utility/recommendation";
 import {
     ConfigureEngineModal,
     RecommendationMatrix,
+    SimulationDataset,
     TrailDataset,
     UserDataset,
 } from "../../../../../recommendation/components";
 
-type DatasetType = "trails" | "users" | "recommendations";
+type DatasetType = "trails" | "users" | "recommendations" | "simulation";
 
 export default function RecommendationDatasetScreen() {
     const { isMobile } = useBreakpoints();
@@ -52,6 +53,7 @@ export default function RecommendationDatasetScreen() {
     const [activeDataset, setActiveDataset] = useState<DatasetType>("trails");
     const [hasVisitedUsers, setHasVisitedUsers] = useState<boolean>(false);
     const [hasVisitedRecommendations, setHasVisitedRecommendations] = useState<boolean>(false);
+    const [hasVisitedSimulation, setHasVisitedSimulation] = useState<boolean>(false);
 
     // THARESYS Recommendations Matrix state
     const [activeMonth, setActiveMonth] = useState<string>(getRecoID());
@@ -126,6 +128,9 @@ export default function RecommendationDatasetScreen() {
             if (Object.keys(recommendationsMap).length === 0) {
                 fetchAllRecommendationsForMonth(activeMonth);
             }
+        }
+        if (tab === "simulation" && !hasVisitedSimulation) {
+            setHasVisitedSimulation(true);
         }
     };
 
@@ -297,6 +302,44 @@ export default function RecommendationDatasetScreen() {
                             </Text>
                         </View>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.switcherTab,
+                            activeDataset === "simulation" && styles.switcherTabActive,
+                        ]}
+                        onPress={() => handleSwitchTab("simulation")}
+                    >
+                        <CustomIcon
+                            library="Feather"
+                            name="activity"
+                            size={16}
+                            color={activeDataset === "simulation" ? Colors.WHITE : Colors.TEXT_SECONDARY}
+                        />
+                        <Text
+                            style={[
+                                styles.switcherLabel,
+                                activeDataset === "simulation" && styles.switcherLabelActive,
+                            ]}
+                        >
+                            Simulation
+                        </Text>
+                        <View
+                            style={[
+                                styles.badgeCount,
+                                activeDataset === "simulation" && styles.badgeCountActive,
+                            ]}
+                        >
+                            <Text
+                                style={[
+                                    styles.badgeCountText,
+                                    activeDataset === "simulation" && styles.badgeCountTextActive,
+                                ]}
+                            >
+                                24
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Active Dataset Section with Instant Display Toggling */}
@@ -358,6 +401,17 @@ export default function RecommendationDatasetScreen() {
                             onRefresh={() => fetchAllRecommendationsForMonth(activeMonth)}
                             onRunEnginePress={() => setIsConfigModalOpen(true)}
                         />
+                    </View>
+                )}
+
+                {hasVisitedSimulation && (
+                    <View
+                        style={[
+                            styles.datasetSection,
+                            activeDataset !== "simulation" && styles.hiddenDataset,
+                        ]}
+                    >
+                        <SimulationDataset />
                     </View>
                 )}
             </View>

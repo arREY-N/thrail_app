@@ -906,7 +906,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
     },
     statLabel: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         marginTop: 1,
     },
@@ -1034,7 +1034,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
     },
     userColumnHeaderSub: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         marginTop: 1,
     },
@@ -1065,12 +1065,12 @@ const styles = StyleSheet.create({
         paddingVertical: 1,
     },
     provBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.TEXT_SECONDARY,
     },
     trailSubText: {
-        fontSize: 10,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
     },
 
@@ -1102,7 +1102,7 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_PRIMARY,
     },
     userHandleText: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
     },
     userCountsRow: {
@@ -1120,7 +1120,7 @@ const styles = StyleSheet.create({
         borderColor: Palette.Green200,
     },
     miniEasyBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Green700,
     },
@@ -1133,12 +1133,12 @@ const styles = StyleSheet.create({
         borderColor: Palette.Amber200,
     },
     miniDiffBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
         color: Palette.Amber700,
     },
     inspectHint: {
-        fontSize: 10,
+        fontSize: 12,
         color: Colors.PRIMARY,
         fontWeight: "600",
     },
@@ -1191,7 +1191,7 @@ const styles = StyleSheet.create({
         borderColor: Palette.Amber200,
     },
     cellBadgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "700",
     },
     cellBadgeTextEasy: {
@@ -1368,7 +1368,7 @@ const styles = StyleSheet.create({
         borderColor: Palette.Amber200,
     },
     scoreHeroLabel: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: "600",
         color: Colors.TEXT_SECONDARY,
     },
@@ -1399,7 +1399,7 @@ const styles = StyleSheet.create({
         borderColor: Palette.Slate200,
     },
     detailGridLabel: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
     },
     detailGridValue: {
@@ -1419,7 +1419,7 @@ const styles = StyleSheet.create({
     },
     modalNoteText: {
         flex: 1,
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         lineHeight: 16,
     },

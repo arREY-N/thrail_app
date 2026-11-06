@@ -36,11 +36,17 @@ export interface ConfigureEngineModalProps {
 }
 
 type FormulaType = "GD" | "ED" | "CS";
+type CbfFormulaType = "GD" | "ED";
 
-const FORMULAS: { id: FormulaType; name: string; desc: string }[] = [
-    { id: "GD", name: "Gower's Distance (GD)", desc: "Normalizes each feature difference naturally into [0.0, 1.0]." },
+const CBF_FORMULAS: { id: CbfFormulaType; name: string; desc: string }[] = [
+    { id: "GD", name: "Gower's Distance (GD)", desc: "Default & Recommended. Normalizes each feature difference naturally into [0.0, 1.0]." },
+    { id: "ED", name: "Normalized Euclidean (ED)", desc: "Root Mean Squared Difference across features in [0.0, 1.0]. Penalizes large single-feature gaps." },
+];
+
+const CF_FORMULAS: { id: FormulaType; name: string; desc: string }[] = [
+    { id: "GD", name: "Gower's Distance (GD)", desc: "Robust against sparse categorical vectors (amenities/provinces)." },
     { id: "ED", name: "Normalized Euclidean (ED)", desc: "Root Mean Squared Difference across all 28 features in [0.0, 1.0]." },
-    { id: "CS", name: "Cosine Distance (CS)", desc: "1.0 - Cosine Similarity, measuring profile directional alignment." },
+    { id: "CS", name: "Cosine Distance (CS)", desc: "1.0 - Cosine Similarity, measuring peer profile directional alignment and shared taste orientation." },
 ];
 
 export default function ConfigureEngineModal({
@@ -53,7 +59,7 @@ export default function ConfigureEngineModal({
     selectedUserNames = [],
     onClearSelectedUsers,
 }: ConfigureEngineModalProps) {
-    const [cbfEngine, setCbfEngine] = useState<FormulaType>("GD");
+    const [cbfEngine, setCbfEngine] = useState<CbfFormulaType>("GD");
     const [cfEngine, setCfEngine] = useState<FormulaType>("GD");
     const [monthId, setMonthId] = useState<string>(getRecoID());
     const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -511,10 +517,10 @@ export default function ConfigureEngineModal({
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>1. Content-Based Filtering (CBF) Formula</Text>
                             <Text style={styles.sectionDesc}>
-                                Measures individual user preference alignment against trail feature vectors.
+                                Measures individual user preference alignment against trail feature vectors. (Cosine Distance is excluded for CBF to prevent magnitude blindness on physical exertion).
                             </Text>
                             <View style={styles.formulaGroup}>
-                                {FORMULAS.map((f) => (
+                                {CBF_FORMULAS.map((f) => (
                                     <TouchableOpacity
                                         key={`cbf-${f.id}`}
                                         style={[styles.formulaCard, cbfEngine === f.id && styles.formulaCardActive]}
@@ -552,7 +558,7 @@ export default function ConfigureEngineModal({
                                 Measures peer user similarity to incorporate community behavior patterns.
                             </Text>
                             <View style={styles.formulaGroup}>
-                                {FORMULAS.map((f) => (
+                                {CF_FORMULAS.map((f) => (
                                     <TouchableOpacity
                                         key={`cf-${f.id}`}
                                         style={[styles.formulaCard, cfEngine === f.id && styles.formulaCardActive]}

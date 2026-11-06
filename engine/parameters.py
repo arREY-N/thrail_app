@@ -39,8 +39,9 @@ ALPHA_STEADY_STATE_USER_THRESHOLD: int = 50  # User count needed to reach ALPHA_
 # 3. ADAPTIVE PROFILE EVOLUTION (BETA) & ANCHOR CONSTRAINTS
 # ==============================================================================
 
-# Beta learning rate divisor: beta = rtu / 2.0 (match) or -(1.0 - rtu) / 2.0 (mismatch)
-BETA_LEARNING_RATE_DIVISOR: float = 2.0
+# Beta learning rate divisor: beta = rtu / 1.65 (match) or -(1.0 - rtu) / 1.65 (mismatch)
+# Balanced midpoint between baseline (2.0) and aggressive (1.35) to prevent late-stage over-adjustment
+BETA_LEARNING_RATE_DIVISOR: float = 1.65
 
 # Minimum gap enforced between Easy and Difficult physical capability features (indices 0..5)
 ANCHOR_MONOTONICITY_MIN_GAP: float = 0.05
@@ -50,7 +51,29 @@ TERRAIN_PRESENCE_THRESHOLD: float = 0.05
 
 # Review factor weights for user-submitted difficulty factors
 REVIEW_ACTIVE_FACTOR_WEIGHT: float = 1.0
-REVIEW_BASELINE_UNSELECTED_WEIGHT: float = 0.20
+REVIEW_BASELINE_UNSELECTED_WEIGHT: float = 0.22
+
+# ------------------------------------------------------------------------------
+# EXPERIMENTAL / TESTING NUDGES (Non-permanent baselines for evaluation)
+# ------------------------------------------------------------------------------
+# Level 1: Gentle weight for unselected attribute/environmental dimensions (indices 6..31)
+# during positive hike matches, preventing rigid zero-freezing while avoiding excessive drift.
+TESTING_ATTRIBUTE_UNSELECTED_NUDGE: float = 0.10
+
+# Level 2: Gentle downward relaxation factor when a hiker matches an easy trail whose
+# physical demands fall below their current easy anchor (T_k < P_k).
+# Balanced midpoint (0.15) to preserve capacity while avoiding late-stage fluctuation.
+TESTING_EASY_MATCH_CEILING_NUDGE: float = 0.15
+
+
+# Maximum single-hike profile adjustment bound per feature (safety rail against extreme swings)
+# Balanced midpoint (0.14) between baseline (0.10) and aggressive (0.18) to ensure smooth asymptotic convergence
+PROFILE_MAX_STEP_DELTA: float = 0.14
+
+# Absolute exertion safety margin: a candidate trail cannot exceed the Easy anchor
+# on core physical metrics by more than this threshold to be classified as 'easy'
+EXERTION_SAFETY_MARGIN_DEFAULT: float = 0.35
+EXERTION_SAFETY_MARGIN_VULNERABLE: float = 0.25  # For medical condition or E1 beginner cohorts
 
 
 # ==============================================================================
