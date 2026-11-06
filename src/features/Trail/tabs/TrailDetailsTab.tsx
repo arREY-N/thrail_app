@@ -74,7 +74,7 @@ const TrailDetailsTab: React.FC<TrailDetailsTabProps> = ({
     const hasSimilarTrails = similarTrails.length > 0;
     useWebDragScroll(similarScrollRef, hasSimilarTrails, similarTrails);
     const isWideScreen = width >= Layout.MAX_WIDTH;
-    const similarCardWidth = Math.min(width * 0.75, 300);
+    const similarCardWidth = Math.min(width * 0.85, 360);
 
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
     const [activeStat, setActiveStat] = useState<string | null>(null);
