@@ -334,27 +334,6 @@ export default function SimulatedUserModal({
                                                                                     <Text style={styles.hikedNameText} numberOfLines={1}>
                                                                                         {cData.hiked.trailName}
                                                                                     </Text>
-                                                                                    {cData.review && typeof cData.review.isMatch === "boolean" && (
-                                                                                        <View
-                                                                                            style={[
-                                                                                                styles.matchBadge,
-                                                                                                cData.review.isMatch
-                                                                                                    ? styles.matchBadgeSuccess
-                                                                                                    : styles.mismatchBadge,
-                                                                                            ]}
-                                                                                        >
-                                                                                            <Text
-                                                                                                style={[
-                                                                                                    styles.matchBadgeText,
-                                                                                                    cData.review.isMatch
-                                                                                                        ? styles.matchBadgeSuccessText
-                                                                                                        : styles.mismatchBadgeText,
-                                                                                                ]}
-                                                                                            >
-                                                                                                {cData.review.isMatch ? "Match" : "Mismatch"}
-                                                                                            </Text>
-                                                                                        </View>
-                                                                                    )}
                                                                                 </View>
                                                                                 <Text style={styles.hikedReviewText} numberOfLines={1}>
                                                                                     &quot;{cData.review?.difficultyFactors?.[0] || cData.review?.rawExperience || "Review logged"}&quot;
@@ -484,7 +463,7 @@ export default function SimulatedUserModal({
                                                                     {/* Spacer for Hiked Column */}
                                                                     <View style={[styles.tdCell, styles.colHiked]}>
                                                                         <Text style={styles.meanSummaryText}>
-                                                                            Mean Cycle GD: {(cData.distances?.mean_gd ?? 0).toFixed(4)}
+
                                                                         </Text>
                                                                     </View>
 
