@@ -123,6 +123,7 @@ export default function GroupRoom() {
     }
 
     const headerTitle = formatGroupName(currentGroup, profile);
+    const effectiveHasReachedEnd = hasReachedEnd || (displayMessages?.length ?? 0) < 15;
 
     return (
         <>
@@ -144,7 +145,7 @@ export default function GroupRoom() {
                 onAttachPhotoPress={handleAttachPhotoPress}
                 onCapturePhotoPress={handleCapturePhotoPress}
                 loadMoreMessages={() => loadMoreMessages(roomId)}
-                hasReachedEnd={hasReachedEnd}
+                hasReachedEnd={effectiveHasReachedEnd}
                 isUploading={isUploading}
             />
         </>

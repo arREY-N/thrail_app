@@ -124,9 +124,7 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
                     messagePrevCounts: { ...state.messagePrevCounts, [groupId]: resolvedMsgs.length },
                     hasReachedEndByGroup: {
                         ...state.hasReachedEndByGroup,
-                        [groupId]: fromCache
-                            ? (state.hasReachedEndByGroup[groupId] ?? false)
-                            : messages.length < limitCount,
+                        [groupId]: messages.length < limitCount,
                     },
                 };
             })
@@ -174,42 +172,60 @@ export const groupStoreCreator: StateCreator<GroupState, [["zustand/immer", neve
             oldUnsubscribe();
         }
 
-        // 2. Start a new listener with the expanded limit
-        const newUnsubscribe = GroupRepo.listenToMessages(
-            groupId,
-            newLimit,
-            (messages, fromCache) => {
-                const currentGroupMsgs = get().messagesByGroup[groupId] || [];
-                const resolvedMsgs = (messages && messages.length > 0)
-                    ? messages
-                    : (fromCache && currentGroupMsgs.length > 0 ? currentGroupMsgs : messages);
+        // 2. Start a new listener with the expanded limit and return a Promise that resolves when server snapshot arrives
+        return new Promise<void>((resolve) => {
+            let hasResolved = false;
 
-                const reachedEnd = fromCache
-                    ? (get().hasReachedEndByGroup[groupId] ?? false)
-                    : (messages.length < newLimit);
+            const newUnsubscribe = GroupRepo.listenToMessages(
+                groupId,
+                newLimit,
+                (messages, fromCache) => {
+                    const currentGroupMsgs = get().messagesByGroup[groupId] || [];
+                    const resolvedMsgs = (messages && messages.length > 0)
+                        ? messages
+                        : (fromCache && currentGroupMsgs.length > 0 ? currentGroupMsgs : messages);
 
-                set((state) => ({
-                    messagesByGroup: { ...state.messagesByGroup, [groupId]: resolvedMsgs },
-                    messagePrevCounts: { ...state.messagePrevCounts, [groupId]: resolvedMsgs.length },
-                    hasReachedEndByGroup: {
-                        ...state.hasReachedEndByGroup,
-                        [groupId]: reachedEnd,
-                    },
-                }));
-            }
-        );
+                    const reachedEnd = fromCache
+                        ? false
+                        : (messages.length < newLimit || messages.length <= currentGroupMsgs.length);
 
-        // 3. Update Zustand state with new listener and limit
-        set((state) => ({
-            messageLimits: {
-                ...state.messageLimits,
-                [groupId]: newLimit,
-            },
-            activeListeners: {
-                ...state.activeListeners,
-                [groupId]: newUnsubscribe,
-            },
-        }));
+                    set((state) => ({
+                        messagesByGroup: { ...state.messagesByGroup, [groupId]: resolvedMsgs },
+                        messagePrevCounts: { ...state.messagePrevCounts, [groupId]: resolvedMsgs.length },
+                        hasReachedEndByGroup: {
+                            ...state.hasReachedEndByGroup,
+                            [groupId]: reachedEnd,
+                        },
+                    }));
+
+                    // Only resolve when server snapshot has arrived, confirming full fetch
+                    if (!fromCache && !hasResolved) {
+                        hasResolved = true;
+                        resolve();
+                    }
+                }
+            );
+
+            // Safety fallback so loading never hangs indefinitely in edge cases
+            setTimeout(() => {
+                if (!hasResolved) {
+                    hasResolved = true;
+                    resolve();
+                }
+            }, 8000);
+
+            // 3. Update Zustand state with new listener and limit
+            set((state) => ({
+                messageLimits: {
+                    ...state.messageLimits,
+                    [groupId]: newLimit,
+                },
+                activeListeners: {
+                    ...state.activeListeners,
+                    [groupId]: newUnsubscribe,
+                },
+            }));
+        });
     },
 
     // Marks the group as visited for the user

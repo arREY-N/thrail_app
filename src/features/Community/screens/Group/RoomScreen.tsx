@@ -647,7 +647,7 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                         renderLoading={renderLoading}
                         renderChatEmpty={renderChatEmpty}
                         loadEarlierMessagesProps={{
-                            isAvailable: !hasReachedEnd,
+                            isAvailable: !hasReachedEnd && displayMessages.length >= 15,
                             isLoading: isLoadingEarlier,
                             onPress: handleLoadEarlier,
                             isInfiniteScrollEnabled: true,

@@ -19,6 +19,7 @@ import {
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';
+import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
@@ -32,6 +33,13 @@ import { Layout } from '@/src/constants/layout';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { Cancellation, IUserWalletDetails, useCancellationUser } from '@/src/core/models/Cancellation/Cancellation';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
+
+const DISPUTE_SUGGESTIONS = [
+    'No incoming transfer received',
+    'Transfer amount does not match',
+    'Sent to wrong e-wallet account',
+    'Transaction reference not found',
+];
 
 export interface UserRefundScreenProps {
     booking: Booking;
@@ -463,6 +471,7 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
                     keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
                 >
                     <ScrollView
+                        style={styles.modalScrollView}
                         contentContainerStyle={styles.modalScrollContent}
                         keyboardShouldPersistTaps="handled"
                         showsVerticalScrollIndicator={false}
@@ -486,14 +495,14 @@ export const UserRefundScreen: React.FC<UserRefundScreenProps> = ({
                                 If you checked your e-wallet and haven&apos;t received the funds, or if there is an issue with the organizer&apos;s receipt proof, describe it below. The organizer will be notified immediately to re-verify the payout.
                             </CustomText>
 
-                            <CustomTextInput
-                                multiline
-                                numberOfLines={3}
+                            <CustomFeedbackInput
                                 placeholder="e.g. Checked GCash transaction history at 2:30 PM, no incoming transfer found..."
                                 value={disputeReasonInput}
                                 onChangeText={setDisputeReasonInput}
+                                suggestions={DISPUTE_SUGGESTIONS}
+                                variant="danger"
+                                fadeColor="white"
                                 style={{ marginBottom: 4 }}
-                                containerStyle={{ minHeight: 96 }}
                             />
 
                             <View style={styles.disputeModalChatNotice}>
@@ -808,18 +817,24 @@ const styles = StyleSheet.create({
     },
     modalBackdrop: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: Colors.MODAL_OVERLAY,
         justifyContent: 'center',
+    },
+    modalScrollView: {
+        flex: 1,
+        width: '100%',
     },
     modalScrollContent: {
         flexGrow: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 24,
+        width: '100%',
     },
     disputeModalCard: {
         backgroundColor: Colors.WHITE,
-        borderRadius: 16,
+        borderRadius: 20,
         padding: 20,
         width: '100%',
         maxWidth: 420,
@@ -854,14 +869,11 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         lineHeight: 17,
     },
-    disputeTextInput: {
-        minHeight: 96,
-    },
     disputeModalChatNotice: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        backgroundColor: Colors.PRIMARY_LIGHT,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         padding: 10,
         borderRadius: 8,
     },
