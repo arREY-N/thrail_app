@@ -23,7 +23,12 @@ import { formatDate, formatDateTime } from "@/src/core/utility/date";
 import { formatTime } from "@/src/core/utility/formatTime";
 import { clearLocalTrack } from "@/src/core/utility/hikeStorage";
 import TrailMap, { TrailMapRef } from "@/src/features/Map/TrailMap";
-import { useEnrichedHikerLocations } from "@/src/features/Navigation/hooks/useEnrichedHikerLocations";
+import {
+    formatTimeAgo,
+    isHikerSignalLost,
+    LKL_TICKER_INTERVAL_MS,
+    useEnrichedHikerLocations,
+} from "@/src/features/Navigation/hooks/useEnrichedHikerLocations";
 import { HikeRecordingScreenProps, IEnrichedGroupMember } from "@/src/features/Navigation/types/HikeRecordingScreen.types";
 import { formatActivityTime } from "@/src/utils/dateFormatter";
 import * as Clipboard from "expo-clipboard";
@@ -37,18 +42,6 @@ const getInitials = (firstName?: string, lastName?: string) => {
     if (firstName && lastName) return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
     if (firstName) return firstName.charAt(0).toUpperCase();
     return '?';
-};
-
-const formatTimeAgo = (timestamp?: Date | string | number, currentTimeMs = Date.now()): string => {
-    if (!timestamp) return "";
-    const timeMs = timestamp instanceof Date ? timestamp.getTime() : new Date(timestamp).getTime();
-    if (isNaN(timeMs)) return "";
-    const mins = Math.max(0, Math.floor((currentTimeMs - timeMs) / (1000 * 60)));
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    const remainingMins = mins % 60;
-    return `${hours}h ${remainingMins}m ago`;
 };
 
 interface HikeDurationTimerProps {
@@ -235,9 +228,11 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
     };
 
     useEffect(() => {
-        if (isStarted) {
+        // Keep background location tracking alive during both active and paused states
+        // so paused hikers on a rest break continue sharing their live safety pin with the group.
+        if (isStarted || isPaused) {
             mapRef.current?.startBackgroundTracking?.();
-        } else if (isPaused || isCompleted) {
+        } else if (isCompleted) {
             mapRef.current?.stopBackgroundTracking?.();
         }
     }, [isStarted, isPaused, isCompleted]);
@@ -249,7 +244,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         if (!isGuidedHike && !hasHikers) return;
         const interval = setInterval(() => {
             setCurrentTime(Date.now());
-        }, 5000);
+        }, LKL_TICKER_INTERVAL_MS);
         return () => clearInterval(interval);
     }, [isGuidedHike, hasHikers]);
 
@@ -352,8 +347,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         member: IEnrichedGroupMember | IUserSummary | IGroupMember,
         locData: NonNullable<HikeRecordingScreenProps['hikerLocations']>[number]
     ) => {
-        const timeMs = locData.timestamp instanceof Date ? locData.timestamp.getTime() : new Date(locData.timestamp).getTime();
-        const isLost = (currentTime - timeMs) > 120000;
+        const isLost = isHikerSignalLost(locData.timestamp, locData.status, currentTime);
         const timeAgo = formatTimeAgo(locData.timestamp, currentTime);
 
         Alert.alert(
