@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import { emitFilteredUserLocation, isForegroundGpsActive, LOCATION_TASK } from "@/src/core/flows/TrackHikerGPSFlow";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { newLocation } from "@/src/core/models/Location/Location";
-import { sharedGpsKalmanFilter } from "@/src/core/utility/gpsKalmanFilter";
+import { sharedGpsKalmanFilter } from "@/src/core/utility/gps";
 import * as TaskManager from "expo-task-manager";
 
 export { LOCATION_TASK };
@@ -89,9 +89,11 @@ if (Platform.OS !== 'web') {
         await addCoordinate(newLocation({
           latitude: filtered.latitude,
           longitude: filtered.longitude,
-          altitude: filtered.altitude,
+          altitude: filtered.altitude ?? undefined,
           accuracy: filtered.accuracy,
+          rawAccuracy: filtered.rawAccuracy,
           speed: filtered.speed,
+          isStationary: filtered.isStationary,
           timestamp: new Date(timestamp),
           status: 'APP_BACKGROUNDED',
         }));
