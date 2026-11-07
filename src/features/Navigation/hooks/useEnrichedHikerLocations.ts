@@ -8,6 +8,7 @@ import {
 import { useMemo, useState } from "react";
 
 const MAX_GHOST_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours TTL to retain Last Known Location pins throughout hike day
+const MAX_FUTURE_CLOCK_SKEW_MS = 15 * 60 * 1000; // 15 minutes tolerance for device clock drift across phones
 export const SIGNAL_LOST_THRESHOLD_MS = 40000; // 40 seconds without update qualifies as signal lost (3x 12s broadcast cycles)
 export const LKL_TICKER_INTERVAL_MS = 2000; // 2-second local UI clock evaluation (0 extra Firebase calls)
 
@@ -92,7 +93,7 @@ export function useEnrichedHikerLocations(
             if (isNaN(timeMs) || timeMs <= 0) return false;
 
             const ageMs = now - timeMs;
-            return ageMs >= -60000 && ageMs <= MAX_GHOST_AGE_MS; // Allow up to 1 min clock skew
+            return ageMs >= -MAX_FUTURE_CLOCK_SKEW_MS && ageMs <= MAX_GHOST_AGE_MS; // Allow up to 15 min clock skew across devices
         });
 
         // 2. Build complete member list (Admins + Members + Chat participantsIds fallback)
