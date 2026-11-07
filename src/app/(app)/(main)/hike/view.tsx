@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 import CustomButton from "@/src/components/CustomButton";
 import CustomHeader from "@/src/components/CustomHeader";
@@ -19,6 +19,7 @@ import { CreateHikeFlow } from "@/src/core/flows/CreateHikeFlow";
 import { useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { useAuthHook } from "@/src/core/models/User/User";
+import HikeLiveMonitorScreen from "@/src/features/Navigation/screens/HikeLiveMonitorScreen";
 import HikeRecordingScreen from "@/src/features/Navigation/screens/HikeRecordingScreen";
 import HikeRecordingScreenWeb from "@/src/features/Navigation/screens/HikeRecordingScreen.web";
 import { useEffect, useState } from "react";
@@ -98,16 +99,29 @@ function HikeLiveMonitorView({
     return (
         <>
             <Stack.Screen options={SCREEN_OPTIONS} />
-            <HikeRecordingScreenWeb
-                groupId={groupId}
-                currentGroup={currentGroup}
-                hikerLocations={groupLocations || []}
-                error={locationError}
-                onBackPress={onBackPress}
-                lon={paramLon}
-                lat={paramLat}
-                profile={profile}
-            />
+            {Platform.OS === "web" ? (
+                <HikeRecordingScreenWeb
+                    groupId={groupId}
+                    currentGroup={currentGroup}
+                    hikerLocations={groupLocations || []}
+                    error={locationError}
+                    onBackPress={onBackPress}
+                    lon={paramLon}
+                    lat={paramLat}
+                    profile={profile}
+                />
+            ) : (
+                <HikeLiveMonitorScreen
+                    groupId={groupId}
+                    currentGroup={currentGroup}
+                    hikerLocations={groupLocations || []}
+                    error={locationError}
+                    onBackPress={onBackPress}
+                    lon={paramLon}
+                    lat={paramLat}
+                    profile={profile}
+                />
+            )}
         </>
     );
 }
@@ -160,7 +174,6 @@ function HikeRecorderView({
     const { groups } = useGroupList(profile?.id || "");
 
     const storedHike = useHikeStore((s) => s.currentHike);
-    const isHikeActive = useHikeStore((s) => s.active);
     const resolvedBookingId = bookingId || (storedHike?.mode === 'booked' ? storedHike.bookingId : undefined);
     const userBookings = useBookingsStore((s) => s.userBookings);
     const activeBooking = resolvedBookingId ? userBookings.find(b => b.id === resolvedBookingId) : null;
