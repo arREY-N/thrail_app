@@ -91,7 +91,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
     const displaySubtitle = subtitle || formatOfferDate(offerDate);
     const shouldShowMembersButton = (showMembersButton ?? true) && Boolean(onOpenMembers);
     const isChat = type === 'chat';
-    const shouldShowLiveMonitor = !isChat && Boolean(onOpenLiveMonitor);
+    const shouldShowLiveMonitor = Boolean(onOpenLiveMonitor);
     const hasMultipleRightActions = (shouldShowLiveMonitor || Boolean(rightAction)) && shouldShowMembersButton;
 
     return (
