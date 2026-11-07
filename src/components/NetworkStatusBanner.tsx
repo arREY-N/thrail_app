@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import React, { memo, useEffect, useRef, useState } from "react";
-import { Animated, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { Animated, Platform, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 
 import CustomText from "@/src/components/CustomText";
 import { Colors, Palette } from "@/src/constants/colors";
@@ -47,7 +47,7 @@ const NetworkStatusBanner: React.FC<NetworkStatusBannerProps> = ({
                 Animated.timing(fadeAnim, {
                     toValue: 0,
                     duration: 350,
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }).start(() => {
                     setShowOnlineToast(false);
                 });

@@ -105,10 +105,11 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             Location.getLastKnownPositionAsync()
                 .then((lastPos) => {
                     if (lastPos && !useHikeStore.getState().currentLocation) {
+                        const rawAlt = lastPos.coords.altitude;
                         useHikeStore.getState().setCurrentLocation(newLocation({
                             latitude: lastPos.coords.latitude,
                             longitude: lastPos.coords.longitude,
-                            altitude: lastPos.coords.altitude ?? undefined,
+                            altitude: (typeof rawAlt === 'number' && !isNaN(rawAlt) && rawAlt !== 0) ? rawAlt : undefined,
                             accuracy: lastPos.coords.accuracy ?? undefined,
                             speed: lastPos.coords.speed ?? undefined,
                             timestamp: new Date(lastPos.timestamp || Date.now()),
@@ -148,10 +149,11 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             try {
                 const currentPos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
                 if (currentPos) {
+                    const rawAlt = currentPos.coords.altitude;
                     useHikeStore.getState().setCurrentLocation(newLocation({
                         latitude: currentPos.coords.latitude,
                         longitude: currentPos.coords.longitude,
-                        altitude: currentPos.coords.altitude ?? undefined,
+                        altitude: (typeof rawAlt === 'number' && !isNaN(rawAlt) && rawAlt !== 0) ? rawAlt : undefined,
                         accuracy: currentPos.coords.accuracy ?? undefined,
                         speed: currentPos.coords.speed ?? undefined,
                         timestamp: new Date(currentPos.timestamp || Date.now()),
@@ -171,14 +173,16 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                 lastname: profile.lastname
             }
         );
-        if (groupId) {
+        const effectiveGroupId = groupId || (!bookingId ? profile?.emergencyContact?.chatId : undefined);
+        if (effectiveGroupId) {
             updateHikeStore({
-                activeGroupId: groupId,
+                activeGroupId: effectiveGroupId,
+                lastShareTime: 0,
             });
             const isSharingAllowed = useHikeStore.getState().shareLocationEnabled !== false;
             if (isSharingAllowed) {
                 try {
-                    await shareLocation(groupId);
+                    await shareLocation(effectiveGroupId);
                 } catch (shareErr) {
                     console.warn("[onStartHike] Background location share initialization warning:", shareErr);
                 }
@@ -231,7 +235,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         });
 
         // Ensure live location sharing is active if group exists and sharing is enabled
-        const targetGroupId = groupId || useHikeStore.getState().activeGroupId;
+        const targetGroupId = groupId || (!bookingId ? profile?.emergencyContact?.chatId : undefined) || useHikeStore.getState().activeGroupId;
         if (targetGroupId && useHikeStore.getState().shareLocationEnabled !== false) {
             updateHikeStore({
                 activeGroupId: targetGroupId,
@@ -267,18 +271,16 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
 
         let location: ITrailSummary = currentHike.trail;
         if (currentHike.trail.id === 'diy' || currentHike.trail.id === 'diy_session' || currentHike.trail.id === '') {
-            const coor = coordinates[0];
+            const coor = coordinates[0] || useHikeStore.getState().currentLocation;
 
-            if (!coor.latitude || !coor.longitude) {
-                return;
-            };
+            if (coor?.latitude && coor?.longitude) {
+                const locationName = await getReverseGeocode(coor.latitude, coor.longitude);
 
-            const locationName = await getReverseGeocode(coor.latitude, coor.longitude);
-
-            location = {
-                id: currentHike.trail.id,
-                location: locationName?.location || 'Location Unknown',
-                name: locationName?.name || 'Location Unknown',
+                location = {
+                    id: currentHike.trail.id,
+                    location: locationName?.location || 'Location Unknown',
+                    name: locationName?.name || 'Location Unknown',
+                };
             }
         }
 
@@ -327,6 +329,8 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                 timerStartTime: 0,
                 totalDistance: 0,
                 totalElevationGain: 0,
+                totalElevationLoss: 0,
+                elevationBaseline: null,
                 coordinates: [],
                 walkedRoute: [],
                 isSegmentFirstPoint: true,
@@ -364,9 +368,10 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
 
     const onStartSharingLocation = async () => {
         try {
-            if (!groupId) throw new Error("Group ID is required to share location");
+            const targetGroupId = groupId || (!bookingId ? profile?.emergencyContact?.chatId : undefined) || useHikeStore.getState().activeGroupId;
+            if (!targetGroupId) throw new Error("Group ID is required to share location");
 
-            await shareLocation(groupId);
+            await shareLocation(targetGroupId);
         } catch (error) {
             catchError(error as Error)
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while sharing location.");
@@ -375,13 +380,55 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
 
     const onStopSharingLocation = () => {
         try {
-            if (!groupId) throw new Error("Group ID is required to share location");
-            stopSharingLocation(groupId);
+            const targetGroupId = groupId || (!bookingId ? profile?.emergencyContact?.chatId : undefined) || useHikeStore.getState().activeGroupId;
+            if (!targetGroupId) throw new Error("Group ID is required to share location");
+            stopSharingLocation(targetGroupId);
         } catch (error) {
             catchError(error as Error);
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while stopping location sharing.");
         }
     }
+
+    // Auto-pause crash recovery guard on mount
+    useEffect(() => {
+        const state = useHikeStore.getState();
+        if (state.active && state.currentHike && state.currentHike.status === 'started') {
+            const now = Date.now();
+            const timerStart = state.timerStartTime || 0;
+            const elapsed = state.elapsedTime || 0;
+
+            let lastActivityTime = timerStart > 0 ? timerStart + elapsed : 0;
+            const lastCoord = state.coordinates && state.coordinates.length > 0
+                ? state.coordinates[state.coordinates.length - 1]
+                : null;
+
+            if (lastCoord?.timestamp) {
+                const coordTime = new Date(lastCoord.timestamp).getTime();
+                if (!isNaN(coordTime) && coordTime > 0) {
+                    lastActivityTime = Math.max(lastActivityTime, coordTime);
+                }
+            }
+
+            const CRASH_GAP_THRESHOLD_MS = 120000; // 2 minutes
+            if (lastActivityTime > 0 && now - lastActivityTime > CRASH_GAP_THRESHOLD_MS) {
+                const safeElapsed = Math.max(
+                    elapsed,
+                    timerStart > 0 && lastActivityTime > timerStart ? lastActivityTime - timerStart : elapsed
+                );
+                updateHikeStore({
+                    elapsedTime: safeElapsed,
+                    timerStartTime: 0,
+                    isSegmentFirstPoint: true,
+                });
+                updateCurrentHike({ status: 'paused' });
+                useHikeStore.getState().logHikeEvent('HIKE_PAUSED', lastCoord ? {
+                    latitude: lastCoord.latitude,
+                    longitude: lastCoord.longitude,
+                    altitude: lastCoord.altitude ?? undefined,
+                } : undefined);
+            }
+        }
+    }, [updateCurrentHike, updateHikeStore]);
 
     useEffect(() => {
         if (currentHike?.status !== 'started') {
@@ -407,6 +454,8 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                     timerStartTime: 0,
                     totalDistance: 0,
                     totalElevationGain: 0,
+                    totalElevationLoss: 0,
+                    elevationBaseline: null,
                     coordinates: [],
                     walkedRoute: [],
                     isSegmentFirstPoint: true,
@@ -428,6 +477,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         timerStartTime,
         totalDistance: useHikeStore(s => s.totalDistance),
         totalElevationGain: useHikeStore(s => s.totalElevationGain),
+        totalElevationLoss: useHikeStore(s => s.totalElevationLoss),
         shareLocationEnabled: useHikeStore(s => s.shareLocationEnabled),
 
         onEmergencyPress: () => { },
@@ -440,7 +490,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         setShareLocationEnabled: async (enabled: boolean) => {
             try {
                 await useHikeStore.getState().setShareLocationEnabled(enabled);
-                const targetGroup = groupId || useHikeStore.getState().activeGroupId;
+                const targetGroup = groupId || (!bookingId ? profile?.emergencyContact?.chatId : undefined) || useHikeStore.getState().activeGroupId;
                 if (enabled && targetGroup && !useHikeStore.getState().live) {
                     await shareLocation(targetGroup);
                 }

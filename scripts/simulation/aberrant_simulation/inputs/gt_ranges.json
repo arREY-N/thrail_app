@@ -1,0 +1,26 @@
+{
+  "bands": {
+    "E1": {
+      "easy": [0.05, 0.25],
+      "difficult": [0.30, 0.50]
+    },
+    "E2": {
+      "easy": [0.15, 0.35],
+      "difficult": [0.45, 0.65]
+    },
+    "E3": {
+      "easy": [0.25, 0.45],
+      "difficult": [0.60, 0.80]
+    },
+    "E4": {
+      "easy": [0.35, 0.55],
+      "difficult": [0.75, 0.95]
+    }
+  },
+  "classification": {
+    "easy": [0.00, 0.20],
+    "difficult": [0.40, 0.80]
+  },
+  "medical_scale_range": [0.65, 0.85],
+  "min_physical_diff_gap": 0.15
+}

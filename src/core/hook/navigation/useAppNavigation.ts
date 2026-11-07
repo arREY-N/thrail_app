@@ -1,4 +1,10 @@
 import { router } from "expo-router";
+import {
+    downloadMountainForOffline,
+    downloadOfflineMap,
+    isOfflineMapReady,
+    resolveMountainId,
+} from "@/src/features/Map/services/TrailOfflineManager";
 /**
  * @returns - Access to common navigation functions
  */
@@ -25,9 +31,21 @@ export function useAppNavigation() {
         });
     };
 
-    const onDownloadPress = (id: string) => {
-        console.log('Downloading: ', id);
-    }
+    const onDownloadPress = async (id: string) => {
+        try {
+            console.log("📥 [useAppNavigation] Downloading offline assets for:", id);
+            const resolvedId = resolveMountainId(id);
+            if (resolvedId) {
+                await downloadMountainForOffline(resolvedId);
+            }
+            if (!(await isOfflineMapReady())) {
+                await downloadOfflineMap();
+            }
+            console.log("✅ [useAppNavigation] Offline trail & regional map ready for:", id);
+        } catch (err) {
+            console.warn("⚠️ [useAppNavigation] Failed downloading offline assets for:", id, err);
+        }
+    };
 
 
     const onNotificationPress = () => {
@@ -59,7 +77,7 @@ export function useAppNavigation() {
     const onSeeMoreDiscoverPress = () => {
         router.replace({
             pathname: '/explore',
-            params: { filter: 'trending' }
+            params: { filter: 'all' }
         })
     }
 
@@ -107,10 +125,6 @@ export function useAppNavigation() {
         router.push('/settings/about');
     }
 
-    const onTestSettingsPress = () => {
-        router.push('/settings/test');
-    }
-
     const onHelpSettingsPress = () => {
         router.push('/settings/help');
     }
@@ -149,7 +163,6 @@ export function useAppNavigation() {
         onSecuritySettingsPress,
         onPrivacySettingsPress,
         onAboutSettingsPress,
-        onTestSettingsPress,
         onHelpSettingsPress,
         onHikingPreferencesPress,
         onTermsSettingsPress,

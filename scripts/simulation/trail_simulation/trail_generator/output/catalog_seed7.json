@@ -1,0 +1,6668 @@
+{
+  "header": {
+    "bounds": {
+      "elevation": [
+        319,
+        2332
+      ],
+      "gain": [
+        109,
+        2132
+      ],
+      "lasco": [
+        1,
+        9
+      ],
+      "length": [
+        2.79,
+        18.63
+      ],
+      "slope": [
+        3.91,
+        14.22
+      ]
+    },
+    "catalog_name": "THARESYS 40-Trail Combined Catalog (Seed 7)",
+    "config_hash": "5789079a711ce498e4d34a04958df237ac483accc1c8423609966648ee2dab9e",
+    "real_trail_count": 8,
+    "seed": 7,
+    "synthetic_trail_count": 32,
+    "total_trails": 40
+  },
+  "trails": [
+    {
+      "coverImage": null,
+      "createdAt": "2026-10-17T17:23:02.116000+00:00",
+      "description": {
+        "classificationDescription": "The New Trail is classified as a Minor Climb because its peak stands at a relatively low altitude of 741 MASL and requires less than four hours of trekking to reach.",
+        "lascoRatingDescription": "Mt. Batulao's New Trail is rated a minor climb (4/9 difficulty) because its short duration and gradual, well-established paths make it highly accessible for beginners."
+      },
+      "difficulty": {
+        "circularity": "Circular",
+        "classification": "minor",
+        "difficulty_points": [
+          "Open ridges and rocky terrains",
+          "Minimal obstacles"
+        ],
+        "gain": 320,
+        "hours": 4,
+        "lascoRating": 4,
+        "length": 10.3,
+        "obstacles": 0,
+        "quality": [
+          "Grassland and ridges",
+          "Well-maintained pathway"
+        ],
+        "slope": 6.21
+      },
+      "general": {
+        "active": true,
+        "address": "Mt. Batulao, Calatagan, Batangas",
+        "critical_info": "",
+        "description": "Mount Batulao\u2019s New Trail is a popular hiking destination celebrated for its rolling hills and breathtaking panoramic views. Compared to the Old Trail, which features steeper sections, loose volcanic soil, and challenging terrain, the New Trail offers a more accessible and scenic route to the summit. It is an ideal choice for beginners and hikers seeking a less challenging climbing experience.",
+        "guidelines": [
+          "Practice Leave No Trace principles"
+        ],
+        "lgu_rules": [
+          "Mandatory registration at Barangay Hall"
+        ],
+        "mountain": [
+          "Mt. Batulao"
+        ],
+        "name": "Batulao New Trail",
+        "province": [
+          "Batangas"
+        ],
+        "rating": 0,
+        "reviewCount": 0,
+        "safety_tips": []
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.043387,
+          "longitude": 120.801696
+        },
+        "masl": 811,
+        "start": {
+          "latitude": 14.055417,
+          "longitude": 120.820227
+        }
+      },
+      "id": "00JGDwgZQQeIGXVituut",
+      "offlinePoints": [],
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 1.0,
+            "out_and_back": 0.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.4444444477558136,
+          "elevation": 0.24441131949424744,
+          "gain": 0.05931784585118294,
+          "length": 0.47411617636680603,
+          "province": {
+            "batangas": 1.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.22308439016342163,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 0.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 1.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 0.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "00JGDwgZQQeIGXVituut",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 811,
+        "gain": 229,
+        "lascoRating": 4,
+        "length": 10.3,
+        "slope": 6.21
+      },
+      "routeMapImage": null,
+      "synthetic": false,
+      "tier": "hard",
+      "tourism": {
+        "clean_water": false,
+        "community": true,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": true,
+        "river": false,
+        "shelter": true,
+        "viewpoint": [],
+        "waterfall": false
+      },
+      "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+      "vector": [
+        0.0,
+        0.474116,
+        0.244411,
+        0.059318,
+        0.223084,
+        0.444444,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "coverImage": null,
+      "createdAt": "2026-10-18T13:51:44.459000+00:00",
+      "description": {
+        "classificationDescription": "",
+        "lascoRatingDescription": ""
+      },
+      "difficulty": {
+        "circularity": "Traverse",
+        "classification": "major",
+        "difficulty_points": [
+          "Dense jungle trails"
+        ],
+        "gain": 921,
+        "hours": 0,
+        "lascoRating": 6,
+        "length": 14.1,
+        "obstacles": 1,
+        "quality": [
+          "Forest area"
+        ],
+        "slope": 13.4
+      },
+      "general": {
+        "active": true,
+        "address": "University of the Philippines, Los Ba\u00f1os, Laguna",
+        "critical_info": "",
+        "description": "Mt. Makiling is an ideal destination for adventure seekers who crave the thrill of a challenging hike but have limited time for a multi-day trek. The journey takes you through the rugged landscapes and lush, untamed rainforests of the legendary Maria Makiling, offering an unforgettable outdoor experience.",
+        "guidelines": [
+          "Practice Leave No Trace principles"
+        ],
+        "lgu_rules": [
+          "Accredited local guide required"
+        ],
+        "mountain": [
+          "Mt. Makiling"
+        ],
+        "name": "Mt. Makiling Traverse (MakTrav)",
+        "province": [
+          "Laguna",
+          "Batangas"
+        ],
+        "rating": 0,
+        "reviewCount": 0,
+        "safety_tips": []
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.151188,
+          "longitude": 121.233565
+        },
+        "geoJsonPath": "trail_routes/makiling/maktrav_route.geojson",
+        "masl": 1090,
+        "start": {
+          "latitude": 14.1064219,
+          "longitude": 121.1882611
+        }
+      },
+      "id": "7aTSWWzmcnhS1Q4nfCog",
+      "offlinePoints": [],
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 0.0,
+            "traverse": 1.0
+          },
+          "classification": 1.0,
+          "easy": 0.6666666865348816,
+          "elevation": 0.3830104470252991,
+          "gain": 0.3662876784801483,
+          "length": 0.7140151262283325,
+          "province": {
+            "batangas": 1.0,
+            "cavite": 0.0,
+            "laguna": 1.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.9204655885696411,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.30000001192092896,
+            "ridges": 0.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "7aTSWWzmcnhS1Q4nfCog",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 1090,
+        "gain": 850,
+        "lascoRating": 6,
+        "length": 14.1,
+        "slope": 13.4
+      },
+      "routeMapImage": null,
+      "synthetic": false,
+      "tier": "very_hard",
+      "tourism": {
+        "clean_water": false,
+        "community": false,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": true,
+        "river": false,
+        "shelter": true,
+        "viewpoint": [
+          "Jungle trails"
+        ],
+        "waterfall": false
+      },
+      "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+      "vector": [
+        1.0,
+        0.714015,
+        0.38301,
+        0.366288,
+        0.920466,
+        0.666667,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.3,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "coverImage": null,
+      "createdAt": "2026-10-17T21:02:36.352000+00:00",
+      "description": {
+        "classificationDescription": "To be added",
+        "lascoRatingDescription": "To be added"
+      },
+      "difficulty": {
+        "circularity": "Circular",
+        "classification": "minor",
+        "difficulty_points": [
+          "River crossings and limestone hazards"
+        ],
+        "gain": 118,
+        "hours": 0,
+        "lascoRating": 3,
+        "length": 3.1,
+        "obstacles": 1,
+        "quality": [
+          "Well-maintained pathway",
+          "Dusty when dry, muddy when wet"
+        ],
+        "slope": 13
+      },
+      "general": {
+        "active": true,
+        "address": "Tanay, Rizal",
+        "critical_info": "",
+        "description": "The Mt. Kulis\u2013Sambong Peak trail in Tanay, Rizal, offers a beginner-friendly hike through grassy slopes, rolling hills, and scenic mountain paths with breathtaking views of the Sierra Madre. Hikers can enjoy unique rock formations, panoramic viewpoints, and the chance to witness a beautiful sea of clouds, especially during early morning hikes.",
+        "guidelines": [
+          "Practice Leave No Trace principles"
+        ],
+        "lgu_rules": [
+          "Guides are mandatory"
+        ],
+        "mountain": [
+          "Mt. Kulis"
+        ],
+        "name": "Mt. Kulis - Sambong Trail",
+        "province": [
+          "Rizal"
+        ],
+        "rating": 0,
+        "reviewCount": 0,
+        "safety_tips": []
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.6089637,
+          "longitude": 121.368594
+        },
+        "masl": 620,
+        "start": {
+          "latitude": 14.604786,
+          "longitude": 121.364559
+        }
+      },
+      "id": "B1ro3QWzbDwi2DKppspQ",
+      "offlinePoints": [],
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 1.0,
+            "out_and_back": 0.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.3333333432674408,
+          "elevation": 0.14952807128429413,
+          "gain": 0.004448838531970978,
+          "length": 0.01957070641219616,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 1.0
+          },
+          "slope": 0.8816682696342468,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.5,
+            "ridges": 0.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 0.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "B1ro3QWzbDwi2DKppspQ",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 620,
+        "gain": 118,
+        "lascoRating": 3,
+        "length": 3.1,
+        "slope": 13.0
+      },
+      "routeMapImage": null,
+      "synthetic": false,
+      "tier": "easy",
+      "tourism": {
+        "clean_water": null,
+        "community": null,
+        "information_board": null,
+        "lake": null,
+        "monument": null,
+        "network_connection": false,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": [],
+        "waterfall": null
+      },
+      "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+      "vector": [
+        0.0,
+        0.019571,
+        0.149528,
+        0.004449,
+        0.881668,
+        0.333333,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "coverImage": null,
+      "createdAt": "2026-05-31T16:17:41.632000+00:00",
+      "description": {
+        "classificationDescription": "Mt. Batulao is considered a minor climb because it has a relatively low elevation (811 MASL), can typically be completed as a day hike, and does not require advanced mountaineering skills or specialized equipment. Although the trail includes steep ascents, exposed ridges, and some scrambling sections, the overall hiking duration and technical difficulty are manageable for most beginners with reasonable fitness levels.",
+        "lascoRatingDescription": "Mt. Batulao is rated 4/9 because it features steep ascents and descents, exposed ridges, narrow trails, and occasional scrambling sections that require balance and caution. The open terrain also exposes hikers to intense sun and wind, adding to the challenge. However, the mountain remains accessible to beginners due to its relatively low elevation, short hiking duration, and well-established trails, making it moderately difficult rather than a major climb."
+      },
+      "difficulty": {
+        "circularity": "Circular",
+        "classification": "major",
+        "difficulty_points": [
+          "Open ridges and rocky terrains"
+        ],
+        "elevation": 811,
+        "gain": 500,
+        "hours": 4,
+        "lascoRating": 4,
+        "length": 5,
+        "obstacles": 5,
+        "quality": [
+          "Grassland and ridges"
+        ],
+        "slope": 5
+      },
+      "general": {
+        "active": true,
+        "address": "Nasugbu, Batangas",
+        "critical_info": "",
+        "description": "Mount Batulao is a popular hiking destination in the Philippines, located in the municipality of Nasugbu, Batangas. Known for its rolling grass-covered ridges, scenic mountain views, and relatively accessible trails, it is a favorite among beginner and intermediate hikers. The mountain offers panoramic views of the surrounding landscapes, including nearby mountain ranges and coastal areas.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) at all times."
+        ],
+        "lgu_rules": [
+          "A guide is mandatory."
+        ],
+        "mountain": [
+          "Mt. Batulao"
+        ],
+        "name": "Mt. Batulao",
+        "province": [
+          "Batangas"
+        ],
+        "rating": 3.4285714285714284,
+        "reviewCount": 14,
+        "safety_tips": [
+          "Make sure to bring water as there's no water source at the summit."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.045,
+          "longitude": 120.80444
+        },
+        "masl": 811,
+        "start": {
+          "latitude": 14.039,
+          "longitude": 120.802
+        }
+      },
+      "id": "DMq31CXnrRdGcMJbH8Dh",
+      "offlinePoints": [
+        {
+          "description": "Summit",
+          "id": "1792199298501",
+          "name": "Summit",
+          "type": "summit",
+          "x": 44.83,
+          "y": 61.41
+        }
+      ],
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 1.0,
+            "out_and_back": 0.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 0.4444444477558136,
+          "elevation": 0.24441131949424744,
+          "gain": 0.023727137595415115,
+          "length": 0.13952019810676575,
+          "province": {
+            "batangas": 1.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.10572259873151779,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 0.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "DMq31CXnrRdGcMJbH8Dh",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 811,
+        "gain": 157,
+        "lascoRating": 4,
+        "length": 5.0,
+        "slope": 5.0
+      },
+      "routeMapImage": "https://firebasestorage.googleapis.com/v0/b/thrail.firebasestorage.app/o/trails%2Fmt-batulao.png?alt=media&token=2c9fcfda-f01b-43bd-8627-3a77f6439b4b",
+      "synthetic": false,
+      "tier": "moderate",
+      "tourism": {
+        "clean_water": null,
+        "community": null,
+        "information_board": true,
+        "lake": null,
+        "monument": null,
+        "network_connection": false,
+        "resting": true,
+        "river": null,
+        "shelter": true,
+        "viewpoint": [
+          "Scenic hills"
+        ],
+        "waterfall": null
+      },
+      "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+      "vector": [
+        1.0,
+        0.13952,
+        0.244411,
+        0.023727,
+        0.105723,
+        0.444444,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Traverse",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 0"
+        ],
+        "elevation": 548,
+        "gain": 246,
+        "hours": 2,
+        "lascoRating": 3,
+        "length": 3.83,
+        "obstacles": 0,
+        "quality": [
+          "Rocky terrain"
+        ],
+        "slope": 6.42
+      },
+      "general": {
+        "active": true,
+        "address": "Cavite / Rizal, Philippines",
+        "description": "Synthetic benchmark route SYN-01 in Cavite / Rizal. Tier: easy. Length: 3.83 km, Gain: 246 m, Elevation: 548 MASL, Lasco: 3/9, Slope: 6.42%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 01"
+        ],
+        "name": "Synthetic Trail SYN-01 (Easy)",
+        "province": [
+          "Cavite",
+          "Rizal"
+        ],
+        "rating": 3.8,
+        "reviewCount": 12,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.030759,
+          "longitude": 120.824976
+        },
+        "masl": 548,
+        "start": {
+          "latitude": 14.112148,
+          "longitude": 121.228778
+        }
+      },
+      "id": "SYN-01",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 0.0,
+            "traverse": 1.0
+          },
+          "classification": 0.0,
+          "easy": 0.3333333432674408,
+          "elevation": 0.1137605533003807,
+          "gain": 0.06772120296955109,
+          "length": 0.06565656512975693,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 1.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 1.0
+          },
+          "slope": 0.24345295131206512,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.0,
+            "ridges": 0.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-01",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 548,
+        "gain": 246,
+        "lascoRating": 3,
+        "length": 3.83,
+        "slope": 6.42
+      },
+      "synthetic": true,
+      "tier": "easy",
+      "tourism": {
+        "clean_water": false,
+        "community": false,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        0.0,
+        0.065657,
+        0.113761,
+        0.067721,
+        0.243453,
+        0.333333,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 0"
+        ],
+        "elevation": 593,
+        "gain": 173,
+        "hours": 3,
+        "lascoRating": 3,
+        "length": 3.54,
+        "obstacles": 0,
+        "quality": [
+          "Rocky terrain",
+          "Grassland terrain",
+          "Ridges terrain"
+        ],
+        "slope": 4.89
+      },
+      "general": {
+        "active": true,
+        "address": "Batangas / Laguna, Philippines",
+        "description": "Synthetic benchmark route SYN-02 in Batangas / Laguna. Tier: easy. Length: 3.54 km, Gain: 173 m, Elevation: 593 MASL, Lasco: 3/9, Slope: 4.89%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 02"
+        ],
+        "name": "Synthetic Trail SYN-02 (Easy)",
+        "province": [
+          "Batangas",
+          "Laguna"
+        ],
+        "rating": 4.5,
+        "reviewCount": 17,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.355441,
+          "longitude": 121.409938
+        },
+        "masl": 593,
+        "start": {
+          "latitude": 14.064047,
+          "longitude": 121.178801
+        }
+      },
+      "id": "SYN-02",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.3333333432674408,
+          "elevation": 0.13611525297164917,
+          "gain": 0.031636182218790054,
+          "length": 0.04734848439693451,
+          "province": {
+            "batangas": 1.0,
+            "cavite": 0.0,
+            "laguna": 1.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.09505334496498108,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 0.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 1.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 1.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-02",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 593,
+        "gain": 173,
+        "lascoRating": 3,
+        "length": 3.54,
+        "slope": 4.89
+      },
+      "synthetic": true,
+      "tier": "easy",
+      "tourism": {
+        "clean_water": true,
+        "community": true,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": true,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        0.0,
+        0.047348,
+        0.136115,
+        0.031636,
+        0.095053,
+        0.333333,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 1"
+        ],
+        "elevation": 319,
+        "gain": 168,
+        "hours": 2,
+        "lascoRating": 2,
+        "length": 3.14,
+        "obstacles": 1,
+        "quality": [
+          "Muddy terrain",
+          "Grassland terrain"
+        ],
+        "slope": 5.35
+      },
+      "general": {
+        "active": true,
+        "address": "Quezon, Philippines",
+        "description": "Synthetic benchmark route SYN-03 in Quezon. Tier: easy. Length: 3.14 km, Gain: 168 m, Elevation: 319 MASL, Lasco: 2/9, Slope: 5.35%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 03"
+        ],
+        "name": "Synthetic Trail SYN-03 (Easy)",
+        "province": [
+          "Quezon"
+        ],
+        "rating": 4.4,
+        "reviewCount": 13,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.46355,
+          "longitude": 120.892131
+        },
+        "masl": 319,
+        "start": {
+          "latitude": 14.210294,
+          "longitude": 121.411854
+        }
+      },
+      "id": "SYN-03",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.2222222238779068,
+          "elevation": 0.0,
+          "gain": 0.02916460670530796,
+          "length": 0.02209595963358879,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 1.0,
+            "rizal": 0.0
+          },
+          "slope": 0.1396702229976654,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 1.0,
+            "ridges": 0.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 1.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 1.0,
+            "resting": 1.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 0.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-03",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 319,
+        "gain": 168,
+        "lascoRating": 2,
+        "length": 3.14,
+        "slope": 5.35
+      },
+      "synthetic": true,
+      "tier": "easy",
+      "tourism": {
+        "clean_water": true,
+        "community": true,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": true,
+        "resting": true,
+        "river": false,
+        "shelter": true,
+        "viewpoint": false,
+        "waterfall": false
+      },
+      "vector": [
+        0.0,
+        0.022096,
+        0.0,
+        0.029165,
+        0.13967,
+        0.222222,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Circular",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 0"
+        ],
+        "elevation": 593,
+        "gain": 290,
+        "hours": 3,
+        "lascoRating": 3,
+        "length": 4.4,
+        "obstacles": 0,
+        "quality": [
+          "Muddy terrain",
+          "Grassland terrain",
+          "Ridges terrain"
+        ],
+        "slope": 6.59
+      },
+      "general": {
+        "active": true,
+        "address": "Batangas, Philippines",
+        "description": "Synthetic benchmark route SYN-04 in Batangas. Tier: easy. Length: 4.4 km, Gain: 290 m, Elevation: 593 MASL, Lasco: 3/9, Slope: 6.59%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 04"
+        ],
+        "name": "Synthetic Trail SYN-04 (Easy)",
+        "province": [
+          "Batangas"
+        ],
+        "rating": 4.5,
+        "reviewCount": 8,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.021245,
+          "longitude": 120.886024
+        },
+        "masl": 593,
+        "start": {
+          "latitude": 14.017638,
+          "longitude": 121.06053
+        }
+      },
+      "id": "SYN-04",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 1.0,
+            "out_and_back": 0.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.3333333432674408,
+          "elevation": 0.13611525297164917,
+          "gain": 0.08947107940912247,
+          "length": 0.10164141654968262,
+          "province": {
+            "batangas": 1.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.25994181632995605,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 1.0,
+            "ridges": 1.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 1.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 1.0,
+            "resting": 1.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-04",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 593,
+        "gain": 290,
+        "lascoRating": 3,
+        "length": 4.4,
+        "slope": 6.59
+      },
+      "synthetic": true,
+      "tier": "easy",
+      "tourism": {
+        "clean_water": true,
+        "community": true,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": true,
+        "resting": true,
+        "river": false,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        0.0,
+        0.101641,
+        0.136115,
+        0.089471,
+        0.259942,
+        0.333333,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 0"
+        ],
+        "elevation": 444,
+        "gain": 262,
+        "hours": 3,
+        "lascoRating": 1,
+        "length": 4.71,
+        "obstacles": 0,
+        "quality": [
+          "Muddy terrain",
+          "Grassland terrain"
+        ],
+        "slope": 5.56
+      },
+      "general": {
+        "active": true,
+        "address": "Quezon, Philippines",
+        "description": "Synthetic benchmark route SYN-05 in Quezon. Tier: easy. Length: 4.71 km, Gain: 262 m, Elevation: 444 MASL, Lasco: 1/9, Slope: 5.56%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 05"
+        ],
+        "name": "Synthetic Trail SYN-05 (Easy)",
+        "province": [
+          "Quezon"
+        ],
+        "rating": 3.5,
+        "reviewCount": 26,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.359103,
+          "longitude": 121.308095
+        },
+        "masl": 444,
+        "start": {
+          "latitude": 14.439923,
+          "longitude": 121.355117
+        }
+      },
+      "id": "SYN-05",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.1111111119389534,
+          "elevation": 0.06209637224674225,
+          "gain": 0.07563025504350662,
+          "length": 0.12121212482452393,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 1.0,
+            "rizal": 0.0
+          },
+          "slope": 0.1600387990474701,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 1.0,
+            "ridges": 0.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 1.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-05",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 444,
+        "gain": 262,
+        "lascoRating": 1,
+        "length": 4.71,
+        "slope": 5.56
+      },
+      "synthetic": true,
+      "tier": "easy",
+      "tourism": {
+        "clean_water": false,
+        "community": true,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": false,
+        "river": false,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        0.0,
+        0.121212,
+        0.062096,
+        0.07563,
+        0.160039,
+        0.111111,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 0"
+        ],
+        "elevation": 416,
+        "gain": 109,
+        "hours": 2,
+        "lascoRating": 1,
+        "length": 2.79,
+        "obstacles": 0,
+        "quality": [
+          "Grassland terrain"
+        ],
+        "slope": 3.91
+      },
+      "general": {
+        "active": true,
+        "address": "Cavite, Philippines",
+        "description": "Synthetic benchmark route SYN-06 in Cavite. Tier: easy. Length: 2.79 km, Gain: 109 m, Elevation: 416 MASL, Lasco: 1/9, Slope: 3.91%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 06"
+        ],
+        "name": "Synthetic Trail SYN-06 (Easy)",
+        "province": [
+          "Cavite"
+        ],
+        "rating": 4.7,
+        "reviewCount": 13,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.36366,
+          "longitude": 121.465657
+        },
+        "masl": 416,
+        "start": {
+          "latitude": 14.048101,
+          "longitude": 121.100998
+        }
+      },
+      "id": "SYN-06",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.1111111119389534,
+          "elevation": 0.048186786472797394,
+          "gain": 0.0,
+          "length": 0.0,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 1.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.0,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 0.0,
+            "ridges": 0.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 1.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 1.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 0.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-06",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 416,
+        "gain": 109,
+        "lascoRating": 1,
+        "length": 2.79,
+        "slope": 3.91
+      },
+      "synthetic": true,
+      "tier": "easy",
+      "tourism": {
+        "clean_water": false,
+        "community": true,
+        "information_board": false,
+        "lake": false,
+        "monument": false,
+        "network_connection": true,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": false,
+        "waterfall": false
+      },
+      "vector": [
+        0.0,
+        0.0,
+        0.048187,
+        0.0,
+        0.0,
+        0.111111,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Traverse",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 0"
+        ],
+        "elevation": 516,
+        "gain": 174,
+        "hours": 3,
+        "lascoRating": 1,
+        "length": 2.85,
+        "obstacles": 0,
+        "quality": [
+          "Grassland terrain"
+        ],
+        "slope": 6.11
+      },
+      "general": {
+        "active": true,
+        "address": "Laguna, Philippines",
+        "description": "Synthetic benchmark route SYN-07 in Laguna. Tier: easy. Length: 2.85 km, Gain: 174 m, Elevation: 516 MASL, Lasco: 1/9, Slope: 6.11%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 07"
+        ],
+        "name": "Synthetic Trail SYN-07 (Easy)",
+        "province": [
+          "Laguna"
+        ],
+        "rating": 4.1,
+        "reviewCount": 20,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.128723,
+          "longitude": 120.843306
+        },
+        "masl": 516,
+        "start": {
+          "latitude": 14.439671,
+          "longitude": 121.244658
+        }
+      },
+      "id": "SYN-07",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 0.0,
+            "traverse": 1.0
+          },
+          "classification": 0.0,
+          "easy": 0.1111111119389534,
+          "elevation": 0.09786388278007507,
+          "gain": 0.03213049843907356,
+          "length": 0.0037878789007663727,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 1.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.21338506042957306,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 0.0,
+            "ridges": 0.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 1.0
+          },
+          "waterforms": {
+            "fall": 1.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-07",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 516,
+        "gain": 174,
+        "lascoRating": 1,
+        "length": 2.85,
+        "slope": 6.11
+      },
+      "synthetic": true,
+      "tier": "easy",
+      "tourism": {
+        "clean_water": true,
+        "community": false,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": true
+      },
+      "vector": [
+        0.0,
+        0.003788,
+        0.097864,
+        0.03213,
+        0.213385,
+        0.111111,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Circular",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 1"
+        ],
+        "elevation": 561,
+        "gain": 195,
+        "hours": 3,
+        "lascoRating": 3,
+        "length": 3.27,
+        "obstacles": 1,
+        "quality": [
+          "Grassland terrain"
+        ],
+        "slope": 5.96
+      },
+      "general": {
+        "active": true,
+        "address": "Rizal, Philippines",
+        "description": "Synthetic benchmark route SYN-08 in Rizal. Tier: easy. Length: 3.27 km, Gain: 195 m, Elevation: 561 MASL, Lasco: 3/9, Slope: 5.96%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 08"
+        ],
+        "name": "Synthetic Trail SYN-08 (Easy)",
+        "province": [
+          "Rizal"
+        ],
+        "rating": 4.4,
+        "reviewCount": 7,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.656839,
+          "longitude": 121.176877
+        },
+        "masl": 561,
+        "start": {
+          "latitude": 14.014753,
+          "longitude": 121.017399
+        }
+      },
+      "id": "SYN-08",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 1.0,
+            "out_and_back": 0.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.3333333432674408,
+          "elevation": 0.12021858245134354,
+          "gain": 0.042511120438575745,
+          "length": 0.03030303120613098,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 1.0
+          },
+          "slope": 0.198836088180542,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 0.0,
+            "ridges": 0.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 1.0,
+            "information_board": 1.0,
+            "lake": 1.0,
+            "monument": 0.0,
+            "network_connection": 1.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 1.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-08",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 561,
+        "gain": 195,
+        "lascoRating": 3,
+        "length": 3.27,
+        "slope": 5.96
+      },
+      "synthetic": true,
+      "tier": "easy",
+      "tourism": {
+        "clean_water": true,
+        "community": true,
+        "information_board": true,
+        "lake": true,
+        "monument": false,
+        "network_connection": true,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        0.0,
+        0.030303,
+        0.120219,
+        0.042511,
+        0.198836,
+        0.333333,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 2"
+        ],
+        "elevation": 873,
+        "gain": 686,
+        "hours": 3,
+        "lascoRating": 3,
+        "length": 8.41,
+        "obstacles": 2,
+        "quality": [
+          "Muddy terrain"
+        ],
+        "slope": 8.16
+      },
+      "general": {
+        "active": true,
+        "address": "Laguna / Quezon, Philippines",
+        "description": "Synthetic benchmark route SYN-09 in Laguna / Quezon. Tier: moderate. Length: 8.41 km, Gain: 686 m, Elevation: 873 MASL, Lasco: 3/9, Slope: 8.16%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 09"
+        ],
+        "name": "Synthetic Trail SYN-09 (Moderate)",
+        "province": [
+          "Laguna",
+          "Quezon"
+        ],
+        "rating": 4.6,
+        "reviewCount": 19,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.447125,
+          "longitude": 121.226534
+        },
+        "masl": 873,
+        "start": {
+          "latitude": 14.138098,
+          "longitude": 121.201549
+        }
+      },
+      "id": "SYN-09",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.3333333432674408,
+          "elevation": 0.2752111256122589,
+          "gain": 0.2852199673652649,
+          "length": 0.35479798913002014,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 1.0,
+            "quezon": 1.0,
+            "rizal": 0.0
+          },
+          "slope": 0.41222113370895386,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 1.0,
+            "ridges": 0.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 0.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 1.0
+          },
+          "waterforms": {
+            "fall": 1.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-09",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 873,
+        "gain": 686,
+        "lascoRating": 3,
+        "length": 8.41,
+        "slope": 8.16
+      },
+      "synthetic": true,
+      "tier": "moderate",
+      "tourism": {
+        "clean_water": true,
+        "community": false,
+        "information_board": false,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": true
+      },
+      "vector": [
+        0.0,
+        0.354798,
+        0.275211,
+        0.28522,
+        0.412221,
+        0.333333,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Circular",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 2"
+        ],
+        "elevation": 809,
+        "gain": 441,
+        "hours": 5,
+        "lascoRating": 5,
+        "length": 5.4,
+        "obstacles": 2,
+        "quality": [
+          "Muddy terrain"
+        ],
+        "slope": 8.17
+      },
+      "general": {
+        "active": true,
+        "address": "Batangas / Cavite, Philippines",
+        "description": "Synthetic benchmark route SYN-10 in Batangas / Cavite. Tier: moderate. Length: 5.4 km, Gain: 441 m, Elevation: 809 MASL, Lasco: 5/9, Slope: 8.17%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 10"
+        ],
+        "name": "Synthetic Trail SYN-10 (Moderate)",
+        "province": [
+          "Batangas",
+          "Cavite"
+        ],
+        "rating": 4.0,
+        "reviewCount": 25,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.581387,
+          "longitude": 121.063798
+        },
+        "masl": 809,
+        "start": {
+          "latitude": 14.093605,
+          "longitude": 121.263712
+        }
+      },
+      "id": "SYN-10",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 1.0,
+            "out_and_back": 0.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.5555555820465088,
+          "elevation": 0.24341778457164764,
+          "gain": 0.16411270201206207,
+          "length": 0.16477273404598236,
+          "province": {
+            "batangas": 1.0,
+            "cavite": 1.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.4131910800933838,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 1.0,
+            "ridges": 0.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 1.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 1.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 1.0
+          },
+          "waterforms": {
+            "fall": 1.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-10",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 809,
+        "gain": 441,
+        "lascoRating": 5,
+        "length": 5.4,
+        "slope": 8.17
+      },
+      "synthetic": true,
+      "tier": "moderate",
+      "tourism": {
+        "clean_water": true,
+        "community": true,
+        "information_board": false,
+        "lake": false,
+        "monument": false,
+        "network_connection": true,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": true
+      },
+      "vector": [
+        0.0,
+        0.164773,
+        0.243418,
+        0.164113,
+        0.413191,
+        0.555556,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 1"
+        ],
+        "elevation": 638,
+        "gain": 498,
+        "hours": 3,
+        "lascoRating": 5,
+        "length": 6.56,
+        "obstacles": 1,
+        "quality": [
+          "Rocky terrain"
+        ],
+        "slope": 7.59
+      },
+      "general": {
+        "active": true,
+        "address": "Rizal, Philippines",
+        "description": "Synthetic benchmark route SYN-11 in Rizal. Tier: moderate. Length: 6.56 km, Gain: 498 m, Elevation: 638 MASL, Lasco: 5/9, Slope: 7.59%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 11"
+        ],
+        "name": "Synthetic Trail SYN-11 (Moderate)",
+        "province": [
+          "Rizal"
+        ],
+        "rating": 4.3,
+        "reviewCount": 13,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.618746,
+          "longitude": 121.062762
+        },
+        "masl": 638,
+        "start": {
+          "latitude": 14.131,
+          "longitude": 121.104369
+        }
+      },
+      "id": "SYN-11",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.5555555820465088,
+          "elevation": 0.15846994519233704,
+          "gain": 0.19228868186473846,
+          "length": 0.23800505697727203,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 1.0
+          },
+          "slope": 0.3569350242614746,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.0,
+            "ridges": 0.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 1.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-11",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 638,
+        "gain": 498,
+        "lascoRating": 5,
+        "length": 6.56,
+        "slope": 7.59
+      },
+      "synthetic": true,
+      "tier": "moderate",
+      "tourism": {
+        "clean_water": true,
+        "community": true,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        0.0,
+        0.238005,
+        0.15847,
+        0.192289,
+        0.356935,
+        0.555556,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Circular",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 2"
+        ],
+        "elevation": 848,
+        "gain": 437,
+        "hours": 5,
+        "lascoRating": 3,
+        "length": 7.99,
+        "obstacles": 2,
+        "quality": [
+          "Rocky terrain",
+          "Grassland terrain"
+        ],
+        "slope": 5.47
+      },
+      "general": {
+        "active": true,
+        "address": "Rizal, Philippines",
+        "description": "Synthetic benchmark route SYN-12 in Rizal. Tier: moderate. Length: 7.99 km, Gain: 437 m, Elevation: 848 MASL, Lasco: 3/9, Slope: 5.47%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 12"
+        ],
+        "name": "Synthetic Trail SYN-12 (Moderate)",
+        "province": [
+          "Rizal"
+        ],
+        "rating": 4.8,
+        "reviewCount": 25,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.543981,
+          "longitude": 121.076513
+        },
+        "masl": 848,
+        "start": {
+          "latitude": 14.657426,
+          "longitude": 121.390118
+        }
+      },
+      "id": "SYN-12",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 1.0,
+            "out_and_back": 0.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.3333333432674408,
+          "elevation": 0.26279184222221375,
+          "gain": 0.16213543713092804,
+          "length": 0.32828283309936523,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 1.0
+          },
+          "slope": 0.15130941569805145,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 0.0,
+            "ridges": 0.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 0.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 1.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-12",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 848,
+        "gain": 437,
+        "lascoRating": 3,
+        "length": 7.99,
+        "slope": 5.47
+      },
+      "synthetic": true,
+      "tier": "moderate",
+      "tourism": {
+        "clean_water": true,
+        "community": false,
+        "information_board": false,
+        "lake": false,
+        "monument": true,
+        "network_connection": false,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        0.0,
+        0.328283,
+        0.262792,
+        0.162135,
+        0.151309,
+        0.333333,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Traverse",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 1"
+        ],
+        "elevation": 861,
+        "gain": 453,
+        "hours": 5,
+        "lascoRating": 4,
+        "length": 7.69,
+        "obstacles": 1,
+        "quality": [
+          "Muddy terrain",
+          "Rocky terrain",
+          "Grassland terrain",
+          "Ridges terrain"
+        ],
+        "slope": 5.89
+      },
+      "general": {
+        "active": true,
+        "address": "Batangas, Philippines",
+        "description": "Synthetic benchmark route SYN-13 in Batangas. Tier: moderate. Length: 7.69 km, Gain: 453 m, Elevation: 861 MASL, Lasco: 4/9, Slope: 5.89%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 13"
+        ],
+        "name": "Synthetic Trail SYN-13 (Moderate)",
+        "province": [
+          "Batangas"
+        ],
+        "rating": 4.8,
+        "reviewCount": 23,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.577726,
+          "longitude": 121.4444
+        },
+        "masl": 861,
+        "start": {
+          "latitude": 14.103592,
+          "longitude": 121.298873
+        }
+      },
+      "id": "SYN-13",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 0.0,
+            "traverse": 1.0
+          },
+          "classification": 0.0,
+          "easy": 0.4444444477558136,
+          "elevation": 0.26924988627433777,
+          "gain": 0.17004448175430298,
+          "length": 0.3093434274196625,
+          "province": {
+            "batangas": 1.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.19204655289649963,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 1.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 1.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-13",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 861,
+        "gain": 453,
+        "lascoRating": 4,
+        "length": 7.69,
+        "slope": 5.89
+      },
+      "synthetic": true,
+      "tier": "moderate",
+      "tourism": {
+        "clean_water": false,
+        "community": true,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": true,
+        "river": false,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        0.0,
+        0.309343,
+        0.26925,
+        0.170044,
+        0.192047,
+        0.444444,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 1"
+        ],
+        "elevation": 955,
+        "gain": 300,
+        "hours": 3,
+        "lascoRating": 3,
+        "length": 5.52,
+        "obstacles": 1,
+        "quality": [
+          "Rocky terrain",
+          "Ridges terrain"
+        ],
+        "slope": 5.43
+      },
+      "general": {
+        "active": true,
+        "address": "Quezon, Philippines",
+        "description": "Synthetic benchmark route SYN-14 in Quezon. Tier: moderate. Length: 5.52 km, Gain: 300 m, Elevation: 955 MASL, Lasco: 3/9, Slope: 5.43%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 14"
+        ],
+        "name": "Synthetic Trail SYN-14 (Moderate)",
+        "province": [
+          "Quezon"
+        ],
+        "rating": 4.8,
+        "reviewCount": 9,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.172603,
+          "longitude": 121.075877
+        },
+        "masl": 955,
+        "start": {
+          "latitude": 14.62209,
+          "longitude": 121.441427
+        }
+      },
+      "id": "SYN-14",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.3333333432674408,
+          "elevation": 0.3159463405609131,
+          "gain": 0.09441423416137695,
+          "length": 0.1723484843969345,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 1.0,
+            "rizal": 0.0
+          },
+          "slope": 0.1474296748638153,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 1.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-14",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 955,
+        "gain": 300,
+        "lascoRating": 3,
+        "length": 5.52,
+        "slope": 5.43
+      },
+      "synthetic": true,
+      "tier": "moderate",
+      "tourism": {
+        "clean_water": true,
+        "community": false,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": true,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        0.0,
+        0.172348,
+        0.315946,
+        0.094414,
+        0.14743,
+        0.333333,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Traverse",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 2"
+        ],
+        "elevation": 564,
+        "gain": 333,
+        "hours": 4,
+        "lascoRating": 5,
+        "length": 5.95,
+        "obstacles": 2,
+        "quality": [
+          "Muddy terrain",
+          "Grassland terrain",
+          "Ridges terrain"
+        ],
+        "slope": 5.6
+      },
+      "general": {
+        "active": true,
+        "address": "Cavite, Philippines",
+        "description": "Synthetic benchmark route SYN-15 in Cavite. Tier: moderate. Length: 5.95 km, Gain: 333 m, Elevation: 564 MASL, Lasco: 5/9, Slope: 5.6%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 15"
+        ],
+        "name": "Synthetic Trail SYN-15 (Moderate)",
+        "province": [
+          "Cavite"
+        ],
+        "rating": 3.7,
+        "reviewCount": 8,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.659114,
+          "longitude": 120.961467
+        },
+        "masl": 564,
+        "start": {
+          "latitude": 14.079234,
+          "longitude": 121.485718
+        }
+      },
+      "id": "SYN-15",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 0.0,
+            "traverse": 1.0
+          },
+          "classification": 0.0,
+          "easy": 0.5555555820465088,
+          "elevation": 0.12170889228582382,
+          "gain": 0.11072664707899094,
+          "length": 0.19949494302272797,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 1.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.16391852498054504,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 1.0,
+            "ridges": 1.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 1.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 0.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-15",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 564,
+        "gain": 333,
+        "lascoRating": 5,
+        "length": 5.95,
+        "slope": 5.6
+      },
+      "synthetic": true,
+      "tier": "moderate",
+      "tourism": {
+        "clean_water": false,
+        "community": false,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": true,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": false,
+        "waterfall": false
+      },
+      "vector": [
+        0.0,
+        0.199495,
+        0.121709,
+        0.110727,
+        0.163919,
+        0.555556,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "minor",
+        "difficulty_points": [
+          "Obstacles level 2"
+        ],
+        "elevation": 779,
+        "gain": 544,
+        "hours": 4,
+        "lascoRating": 4,
+        "length": 9.07,
+        "obstacles": 2,
+        "quality": [
+          "Muddy terrain",
+          "Rocky terrain",
+          "Ridges terrain"
+        ],
+        "slope": 6.0
+      },
+      "general": {
+        "active": true,
+        "address": "Laguna, Philippines",
+        "description": "Synthetic benchmark route SYN-16 in Laguna. Tier: moderate. Length: 9.07 km, Gain: 544 m, Elevation: 779 MASL, Lasco: 4/9, Slope: 6.0%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 16"
+        ],
+        "name": "Synthetic Trail SYN-16 (Moderate)",
+        "province": [
+          "Laguna"
+        ],
+        "rating": 3.7,
+        "reviewCount": 27,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.643619,
+          "longitude": 121.21765
+        },
+        "masl": 779,
+        "start": {
+          "latitude": 14.529567,
+          "longitude": 120.916086
+        }
+      },
+      "id": "SYN-16",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.4444444477558136,
+          "elevation": 0.2285146564245224,
+          "gain": 0.21502718329429626,
+          "length": 0.39646464586257935,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 1.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.20271581411361694,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 1.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 1.0,
+            "resting": 0.0,
+            "river": 0.0,
+            "shelter": 0.0,
+            "viewpoint": 1.0,
+            "waterfall": 1.0
+          },
+          "waterforms": {
+            "fall": 1.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-16",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 779,
+        "gain": 544,
+        "lascoRating": 4,
+        "length": 9.07,
+        "slope": 6.0
+      },
+      "synthetic": true,
+      "tier": "moderate",
+      "tourism": {
+        "clean_water": false,
+        "community": false,
+        "information_board": false,
+        "lake": false,
+        "monument": false,
+        "network_connection": true,
+        "resting": false,
+        "river": false,
+        "shelter": false,
+        "viewpoint": true,
+        "waterfall": true
+      },
+      "vector": [
+        0.0,
+        0.396465,
+        0.228515,
+        0.215027,
+        0.202716,
+        0.444444,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Circular",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 3"
+        ],
+        "elevation": 1211,
+        "gain": 1127,
+        "hours": 8,
+        "lascoRating": 5,
+        "length": 9.91,
+        "obstacles": 3,
+        "quality": [
+          "Rocky terrain"
+        ],
+        "slope": 11.37
+      },
+      "general": {
+        "active": true,
+        "address": "Laguna / Rizal, Philippines",
+        "description": "Synthetic benchmark route SYN-17 in Laguna / Rizal. Tier: hard. Length: 9.91 km, Gain: 1127 m, Elevation: 1211 MASL, Lasco: 5/9, Slope: 11.37%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 17"
+        ],
+        "name": "Synthetic Trail SYN-17 (Hard)",
+        "province": [
+          "Laguna",
+          "Rizal"
+        ],
+        "rating": 3.6,
+        "reviewCount": 19,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.670845,
+          "longitude": 121.128069
+        },
+        "masl": 1211,
+        "start": {
+          "latitude": 14.509489,
+          "longitude": 120.810803
+        }
+      },
+      "id": "SYN-17",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 1.0,
+            "out_and_back": 0.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 0.5555555820465088,
+          "elevation": 0.44311973452568054,
+          "gain": 0.5032130479812622,
+          "length": 0.44949495792388916,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 1.0,
+            "quezon": 0.0,
+            "rizal": 1.0
+          },
+          "slope": 0.7235693335533142,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.0,
+            "ridges": 0.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 1.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-17",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 1211,
+        "gain": 1127,
+        "lascoRating": 5,
+        "length": 9.91,
+        "slope": 11.37
+      },
+      "synthetic": true,
+      "tier": "hard",
+      "tourism": {
+        "clean_water": false,
+        "community": true,
+        "information_board": false,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": false,
+        "river": false,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.449495,
+        0.44312,
+        0.503213,
+        0.723569,
+        0.555556,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 4"
+        ],
+        "elevation": 1490,
+        "gain": 1374,
+        "hours": 7,
+        "lascoRating": 7,
+        "length": 11.08,
+        "obstacles": 4,
+        "quality": [
+          "Rocky terrain",
+          "Ridges terrain"
+        ],
+        "slope": 12.4
+      },
+      "general": {
+        "active": true,
+        "address": "Quezon / Rizal, Philippines",
+        "description": "Synthetic benchmark route SYN-18 in Quezon / Rizal. Tier: hard. Length: 11.08 km, Gain: 1374 m, Elevation: 1490 MASL, Lasco: 7/9, Slope: 12.4%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 18"
+        ],
+        "name": "Synthetic Trail SYN-18 (Hard)",
+        "province": [
+          "Quezon",
+          "Rizal"
+        ],
+        "rating": 4.4,
+        "reviewCount": 7,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.326071,
+          "longitude": 121.23427
+        },
+        "masl": 1490,
+        "start": {
+          "latitude": 14.387421,
+          "longitude": 121.364932
+        }
+      },
+      "id": "SYN-18",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 0.7777777910232544,
+          "elevation": 0.5817188024520874,
+          "gain": 0.6253089308738708,
+          "length": 0.5233585834503174,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 1.0,
+            "rizal": 1.0
+          },
+          "slope": 0.8234723806381226,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 1.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-18",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 1490,
+        "gain": 1374,
+        "lascoRating": 7,
+        "length": 11.08,
+        "slope": 12.4
+      },
+      "synthetic": true,
+      "tier": "hard",
+      "tourism": {
+        "clean_water": true,
+        "community": true,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": true,
+        "river": false,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.523359,
+        0.581719,
+        0.625309,
+        0.823472,
+        0.777778,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 2"
+        ],
+        "elevation": 1469,
+        "gain": 1316,
+        "hours": 6,
+        "lascoRating": 5,
+        "length": 12.15,
+        "obstacles": 2,
+        "quality": [
+          "Muddy terrain",
+          "Rocky terrain",
+          "Ridges terrain"
+        ],
+        "slope": 10.83
+      },
+      "general": {
+        "active": true,
+        "address": "Batangas, Philippines",
+        "description": "Synthetic benchmark route SYN-19 in Batangas. Tier: hard. Length: 12.15 km, Gain: 1316 m, Elevation: 1469 MASL, Lasco: 5/9, Slope: 10.83%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 19"
+        ],
+        "name": "Synthetic Trail SYN-19 (Hard)",
+        "province": [
+          "Batangas"
+        ],
+        "rating": 4.2,
+        "reviewCount": 23,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.408519,
+          "longitude": 121.094441
+        },
+        "masl": 1469,
+        "start": {
+          "latitude": 14.465317,
+          "longitude": 121.27437
+        }
+      },
+      "id": "SYN-19",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 0.5555555820465088,
+          "elevation": 0.5712866187095642,
+          "gain": 0.5966386795043945,
+          "length": 0.5909090638160706,
+          "province": {
+            "batangas": 1.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.67119300365448,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 1.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 1.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 0.0,
+            "shelter": 0.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-19",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 1469,
+        "gain": 1316,
+        "lascoRating": 5,
+        "length": 12.15,
+        "slope": 10.83
+      },
+      "synthetic": true,
+      "tier": "hard",
+      "tourism": {
+        "clean_water": false,
+        "community": false,
+        "information_board": true,
+        "lake": false,
+        "monument": true,
+        "network_connection": false,
+        "resting": false,
+        "river": false,
+        "shelter": false,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.590909,
+        0.571287,
+        0.596639,
+        0.671193,
+        0.555556,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Circular",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 3"
+        ],
+        "elevation": 1218,
+        "gain": 1030,
+        "hours": 6,
+        "lascoRating": 5,
+        "length": 10.04,
+        "obstacles": 3,
+        "quality": [
+          "Muddy terrain",
+          "Rocky terrain",
+          "Grassland terrain",
+          "Ridges terrain"
+        ],
+        "slope": 10.26
+      },
+      "general": {
+        "active": true,
+        "address": "Cavite, Philippines",
+        "description": "Synthetic benchmark route SYN-20 in Cavite. Tier: hard. Length: 10.04 km, Gain: 1030 m, Elevation: 1218 MASL, Lasco: 5/9, Slope: 10.26%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 20"
+        ],
+        "name": "Synthetic Trail SYN-20 (Hard)",
+        "province": [
+          "Cavite"
+        ],
+        "rating": 3.8,
+        "reviewCount": 29,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.579305,
+          "longitude": 121.13157
+        },
+        "masl": 1218,
+        "start": {
+          "latitude": 14.29417,
+          "longitude": 121.379634
+        }
+      },
+      "id": "SYN-20",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 1.0,
+            "out_and_back": 0.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 0.5555555820465088,
+          "elevation": 0.4465971291065216,
+          "gain": 0.45526444911956787,
+          "length": 0.45770201086997986,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 1.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.6159068942070007,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 1.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 1.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-20",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 1218,
+        "gain": 1030,
+        "lascoRating": 5,
+        "length": 10.04,
+        "slope": 10.26
+      },
+      "synthetic": true,
+      "tier": "hard",
+      "tourism": {
+        "clean_water": false,
+        "community": false,
+        "information_board": false,
+        "lake": false,
+        "monument": true,
+        "network_connection": false,
+        "resting": false,
+        "river": false,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.457702,
+        0.446597,
+        0.455264,
+        0.615907,
+        0.555556,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Traverse",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 3"
+        ],
+        "elevation": 1358,
+        "gain": 1259,
+        "hours": 6,
+        "lascoRating": 6,
+        "length": 10.92,
+        "obstacles": 3,
+        "quality": [
+          "Rocky terrain"
+        ],
+        "slope": 11.53
+      },
+      "general": {
+        "active": true,
+        "address": "Laguna, Philippines",
+        "description": "Synthetic benchmark route SYN-21 in Laguna. Tier: hard. Length: 10.92 km, Gain: 1259 m, Elevation: 1358 MASL, Lasco: 6/9, Slope: 11.53%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 21"
+        ],
+        "name": "Synthetic Trail SYN-21 (Hard)",
+        "province": [
+          "Laguna"
+        ],
+        "rating": 3.8,
+        "reviewCount": 22,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.214214,
+          "longitude": 120.979419
+        },
+        "masl": 1358,
+        "start": {
+          "latitude": 14.673436,
+          "longitude": 121.002397
+        }
+      },
+      "id": "SYN-21",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 0.0,
+            "traverse": 1.0
+          },
+          "classification": 1.0,
+          "easy": 0.6666666865348816,
+          "elevation": 0.5161450505256653,
+          "gain": 0.5684626698493958,
+          "length": 0.5132575631141663,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 1.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.739088237285614,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.0,
+            "ridges": 0.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-21",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 1358,
+        "gain": 1259,
+        "lascoRating": 6,
+        "length": 10.92,
+        "slope": 11.53
+      },
+      "synthetic": true,
+      "tier": "hard",
+      "tourism": {
+        "clean_water": false,
+        "community": false,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": false,
+        "river": true,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.513258,
+        0.516145,
+        0.568463,
+        0.739088,
+        0.666667,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 4"
+        ],
+        "elevation": 1445,
+        "gain": 1038,
+        "hours": 7,
+        "lascoRating": 6,
+        "length": 9.51,
+        "obstacles": 4,
+        "quality": [
+          "Muddy terrain",
+          "Rocky terrain",
+          "Ridges terrain"
+        ],
+        "slope": 10.91
+      },
+      "general": {
+        "active": true,
+        "address": "Batangas, Philippines",
+        "description": "Synthetic benchmark route SYN-22 in Batangas. Tier: hard. Length: 9.51 km, Gain: 1038 m, Elevation: 1445 MASL, Lasco: 6/9, Slope: 10.91%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 22"
+        ],
+        "name": "Synthetic Trail SYN-22 (Hard)",
+        "province": [
+          "Batangas"
+        ],
+        "rating": 4.3,
+        "reviewCount": 9,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.121605,
+          "longitude": 120.998332
+        },
+        "masl": 1445,
+        "start": {
+          "latitude": 14.095,
+          "longitude": 120.896627
+        }
+      },
+      "id": "SYN-22",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 0.6666666865348816,
+          "elevation": 0.5593641400337219,
+          "gain": 0.45921897888183594,
+          "length": 0.42424243688583374,
+          "province": {
+            "batangas": 1.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.6789524555206299,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 1.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 0.0,
+            "shelter": 0.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-22",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 1445,
+        "gain": 1038,
+        "lascoRating": 6,
+        "length": 9.51,
+        "slope": 10.91
+      },
+      "synthetic": true,
+      "tier": "hard",
+      "tourism": {
+        "clean_water": true,
+        "community": false,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": false,
+        "river": false,
+        "shelter": false,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.424242,
+        0.559364,
+        0.459219,
+        0.678952,
+        0.666667,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Traverse",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 4"
+        ],
+        "elevation": 1318,
+        "gain": 1216,
+        "hours": 5,
+        "lascoRating": 6,
+        "length": 13.62,
+        "obstacles": 4,
+        "quality": [
+          "Muddy terrain",
+          "Rocky terrain",
+          "Grassland terrain",
+          "Ridges terrain"
+        ],
+        "slope": 8.93
+      },
+      "general": {
+        "active": true,
+        "address": "Cavite, Philippines",
+        "description": "Synthetic benchmark route SYN-23 in Cavite. Tier: hard. Length: 13.62 km, Gain: 1216 m, Elevation: 1318 MASL, Lasco: 6/9, Slope: 8.93%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 23"
+        ],
+        "name": "Synthetic Trail SYN-23 (Hard)",
+        "province": [
+          "Cavite"
+        ],
+        "rating": 4.4,
+        "reviewCount": 16,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.149682,
+          "longitude": 121.467349
+        },
+        "masl": 1318,
+        "start": {
+          "latitude": 14.420243,
+          "longitude": 121.340544
+        }
+      },
+      "id": "SYN-23",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 0.0,
+            "traverse": 1.0
+          },
+          "classification": 1.0,
+          "easy": 0.6666666865348816,
+          "elevation": 0.4962742030620575,
+          "gain": 0.5472071170806885,
+          "length": 0.6837121248245239,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 1.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.48690590262413025,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 1.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 0.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 1.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-23",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 1318,
+        "gain": 1216,
+        "lascoRating": 6,
+        "length": 13.62,
+        "slope": 8.93
+      },
+      "synthetic": true,
+      "tier": "hard",
+      "tourism": {
+        "clean_water": true,
+        "community": false,
+        "information_board": false,
+        "lake": false,
+        "monument": false,
+        "network_connection": true,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.683712,
+        0.496274,
+        0.547207,
+        0.486906,
+        0.666667,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 4"
+        ],
+        "elevation": 1375,
+        "gain": 1245,
+        "hours": 5,
+        "lascoRating": 5,
+        "length": 13.28,
+        "obstacles": 4,
+        "quality": [
+          "Ridges terrain"
+        ],
+        "slope": 9.38
+      },
+      "general": {
+        "active": true,
+        "address": "Quezon, Philippines",
+        "description": "Synthetic benchmark route SYN-24 in Quezon. Tier: hard. Length: 13.28 km, Gain: 1245 m, Elevation: 1375 MASL, Lasco: 5/9, Slope: 9.38%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 24"
+        ],
+        "name": "Synthetic Trail SYN-24 (Hard)",
+        "province": [
+          "Quezon"
+        ],
+        "rating": 4.5,
+        "reviewCount": 25,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.092556,
+          "longitude": 120.928991
+        },
+        "masl": 1375,
+        "start": {
+          "latitude": 14.235679,
+          "longitude": 120.854249
+        }
+      },
+      "id": "SYN-24",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 0.5555555820465088,
+          "elevation": 0.5245901346206665,
+          "gain": 0.561542272567749,
+          "length": 0.6622474789619446,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 1.0,
+            "rizal": 0.0
+          },
+          "slope": 0.530552864074707,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.0,
+            "ridges": 1.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 0.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 0.0,
+            "shelter": 0.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-24",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 1375,
+        "gain": 1245,
+        "lascoRating": 5,
+        "length": 13.28,
+        "slope": 9.38
+      },
+      "synthetic": true,
+      "tier": "hard",
+      "tourism": {
+        "clean_water": true,
+        "community": false,
+        "information_board": false,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": true,
+        "river": false,
+        "shelter": false,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.662247,
+        0.52459,
+        0.561542,
+        0.530553,
+        0.555556,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 4"
+        ],
+        "elevation": 2332,
+        "gain": 2048,
+        "hours": 9,
+        "lascoRating": 7,
+        "length": 15.53,
+        "obstacles": 4,
+        "quality": [
+          "Rocky terrain",
+          "Ridges terrain"
+        ],
+        "slope": 13.19
+      },
+      "general": {
+        "active": true,
+        "address": "Cavite / Laguna, Philippines",
+        "description": "Synthetic benchmark route SYN-25 in Cavite / Laguna. Tier: very_hard. Length: 15.53 km, Gain: 2048 m, Elevation: 2332 MASL, Lasco: 7/9, Slope: 13.19%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 25"
+        ],
+        "name": "Synthetic Trail SYN-25 (Very Hard)",
+        "province": [
+          "Cavite",
+          "Laguna"
+        ],
+        "rating": 4.6,
+        "reviewCount": 27,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.024652,
+          "longitude": 121.185055
+        },
+        "masl": 2332,
+        "start": {
+          "latitude": 14.082313,
+          "longitude": 121.161229
+        }
+      },
+      "id": "SYN-25",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 0.7777777910232544,
+          "elevation": 1.0,
+          "gain": 0.9584774971008301,
+          "length": 0.8042929172515869,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 1.0,
+            "laguna": 1.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.9000970125198364,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 1.0,
+            "shelter": 0.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-25",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 2332,
+        "gain": 2048,
+        "lascoRating": 7,
+        "length": 15.53,
+        "slope": 13.19
+      },
+      "synthetic": true,
+      "tier": "very_hard",
+      "tourism": {
+        "clean_water": false,
+        "community": false,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": false,
+        "river": true,
+        "shelter": false,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.804293,
+        1.0,
+        0.958477,
+        0.900097,
+        0.777778,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 6"
+        ],
+        "elevation": 2169,
+        "gain": 2050,
+        "hours": 11,
+        "lascoRating": 9,
+        "length": 18.63,
+        "obstacles": 6,
+        "quality": [
+          "Muddy terrain",
+          "Rocky terrain"
+        ],
+        "slope": 11.0
+      },
+      "general": {
+        "active": true,
+        "address": "Batangas / Quezon, Philippines",
+        "description": "Synthetic benchmark route SYN-26 in Batangas / Quezon. Tier: very_hard. Length: 18.63 km, Gain: 2050 m, Elevation: 2169 MASL, Lasco: 9/9, Slope: 11.0%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 26"
+        ],
+        "name": "Synthetic Trail SYN-26 (Very Hard)",
+        "province": [
+          "Batangas",
+          "Quezon"
+        ],
+        "rating": 3.8,
+        "reviewCount": 20,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.3285,
+          "longitude": 121.401922
+        },
+        "masl": 2169,
+        "start": {
+          "latitude": 14.511565,
+          "longitude": 120.995078
+        }
+      },
+      "id": "SYN-26",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 1.0,
+          "elevation": 0.9190263152122498,
+          "gain": 0.9594661593437195,
+          "length": 1.0,
+          "province": {
+            "batangas": 1.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 1.0,
+            "rizal": 0.0
+          },
+          "slope": 0.6876818537712097,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 1.0,
+            "ridges": 0.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 1.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 0.0,
+            "shelter": 0.0,
+            "viewpoint": 0.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-26",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 2169,
+        "gain": 2050,
+        "lascoRating": 9,
+        "length": 18.63,
+        "slope": 11.0
+      },
+      "synthetic": true,
+      "tier": "very_hard",
+      "tourism": {
+        "clean_water": false,
+        "community": true,
+        "information_board": false,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": true,
+        "river": false,
+        "shelter": false,
+        "viewpoint": false,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        1.0,
+        0.919026,
+        0.959466,
+        0.687682,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 6"
+        ],
+        "elevation": 2141,
+        "gain": 1999,
+        "hours": 8,
+        "lascoRating": 8,
+        "length": 16.35,
+        "obstacles": 6,
+        "quality": [
+          "Muddy terrain",
+          "Rocky terrain",
+          "Grassland terrain",
+          "Ridges terrain"
+        ],
+        "slope": 12.23
+      },
+      "general": {
+        "active": true,
+        "address": "Rizal, Philippines",
+        "description": "Synthetic benchmark route SYN-27 in Rizal. Tier: very_hard. Length: 16.35 km, Gain: 1999 m, Elevation: 2141 MASL, Lasco: 8/9, Slope: 12.23%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 27"
+        ],
+        "name": "Synthetic Trail SYN-27 (Very Hard)",
+        "province": [
+          "Rizal"
+        ],
+        "rating": 3.6,
+        "reviewCount": 10,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.606946,
+          "longitude": 120.804006
+        },
+        "masl": 2141,
+        "start": {
+          "latitude": 14.416369,
+          "longitude": 121.405718
+        }
+      },
+      "id": "SYN-27",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 0.8888888955116272,
+          "elevation": 0.9051167368888855,
+          "gain": 0.9342560768127441,
+          "length": 0.8560606241226196,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 1.0
+          },
+          "slope": 0.8069835305213928,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 1.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 0.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 0.0,
+            "shelter": 0.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-27",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 2141,
+        "gain": 1999,
+        "lascoRating": 8,
+        "length": 16.35,
+        "slope": 12.23
+      },
+      "synthetic": true,
+      "tier": "very_hard",
+      "tourism": {
+        "clean_water": true,
+        "community": false,
+        "information_board": false,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": false,
+        "river": false,
+        "shelter": false,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.856061,
+        0.905117,
+        0.934256,
+        0.806984,
+        0.888889,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Circular",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 4"
+        ],
+        "elevation": 2310,
+        "gain": 2132,
+        "hours": 8,
+        "lascoRating": 9,
+        "length": 16.77,
+        "obstacles": 4,
+        "quality": [
+          "Rocky terrain"
+        ],
+        "slope": 12.71
+      },
+      "general": {
+        "active": true,
+        "address": "Cavite, Philippines",
+        "description": "Synthetic benchmark route SYN-28 in Cavite. Tier: very_hard. Length: 16.77 km, Gain: 2132 m, Elevation: 2310 MASL, Lasco: 9/9, Slope: 12.71%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 28"
+        ],
+        "name": "Synthetic Trail SYN-28 (Very Hard)",
+        "province": [
+          "Cavite"
+        ],
+        "rating": 4.5,
+        "reviewCount": 11,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.385329,
+          "longitude": 120.938701
+        },
+        "masl": 2310,
+        "start": {
+          "latitude": 14.412499,
+          "longitude": 121.361945
+        }
+      },
+      "id": "SYN-28",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 1.0,
+            "out_and_back": 0.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 1.0,
+          "elevation": 0.9890710115432739,
+          "gain": 1.0,
+          "length": 0.8825757503509521,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 1.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.8535402417182922,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.0,
+            "ridges": 0.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-28",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 2310,
+        "gain": 2132,
+        "lascoRating": 9,
+        "length": 16.77,
+        "slope": 12.71
+      },
+      "synthetic": true,
+      "tier": "very_hard",
+      "tourism": {
+        "clean_water": false,
+        "community": false,
+        "information_board": false,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.882576,
+        0.989071,
+        1.0,
+        0.85354,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 6"
+        ],
+        "elevation": 2313,
+        "gain": 2097,
+        "hours": 8,
+        "lascoRating": 8,
+        "length": 14.75,
+        "obstacles": 6,
+        "quality": [
+          "Rocky terrain",
+          "Grassland terrain",
+          "Ridges terrain"
+        ],
+        "slope": 14.22
+      },
+      "general": {
+        "active": true,
+        "address": "Rizal, Philippines",
+        "description": "Synthetic benchmark route SYN-29 in Rizal. Tier: very_hard. Length: 14.75 km, Gain: 2097 m, Elevation: 2313 MASL, Lasco: 8/9, Slope: 14.22%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 29"
+        ],
+        "name": "Synthetic Trail SYN-29 (Very Hard)",
+        "province": [
+          "Rizal"
+        ],
+        "rating": 3.6,
+        "reviewCount": 18,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.328673,
+          "longitude": 121.445113
+        },
+        "masl": 2313,
+        "start": {
+          "latitude": 14.232694,
+          "longitude": 120.934746
+        }
+      },
+      "id": "SYN-29",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 0.8888888955116272,
+          "elevation": 0.9905613660812378,
+          "gain": 0.9826989769935608,
+          "length": 0.7550504803657532,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 1.0
+          },
+          "slope": 1.0,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 0.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 0.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-29",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 2313,
+        "gain": 2097,
+        "lascoRating": 8,
+        "length": 14.75,
+        "slope": 14.22
+      },
+      "synthetic": true,
+      "tier": "very_hard",
+      "tourism": {
+        "clean_water": true,
+        "community": false,
+        "information_board": false,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": false,
+        "river": false,
+        "shelter": true,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.75505,
+        0.990561,
+        0.982699,
+        1.0,
+        0.888889,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Traverse",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 5"
+        ],
+        "elevation": 2010,
+        "gain": 1637,
+        "hours": 10,
+        "lascoRating": 9,
+        "length": 14.2,
+        "obstacles": 5,
+        "quality": [
+          "Muddy terrain",
+          "Rocky terrain"
+        ],
+        "slope": 11.53
+      },
+      "general": {
+        "active": true,
+        "address": "Batangas, Philippines",
+        "description": "Synthetic benchmark route SYN-30 in Batangas. Tier: very_hard. Length: 14.2 km, Gain: 1637 m, Elevation: 2010 MASL, Lasco: 9/9, Slope: 11.53%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 30"
+        ],
+        "name": "Synthetic Trail SYN-30 (Very Hard)",
+        "province": [
+          "Batangas"
+        ],
+        "rating": 3.7,
+        "reviewCount": 23,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.036674,
+          "longitude": 120.951581
+        },
+        "masl": 2010,
+        "start": {
+          "latitude": 14.097383,
+          "longitude": 120.999174
+        }
+      },
+      "id": "SYN-30",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 0.0,
+            "traverse": 1.0
+          },
+          "classification": 1.0,
+          "easy": 1.0,
+          "elevation": 0.8400397300720215,
+          "gain": 0.7553138732910156,
+          "length": 0.7203282713890076,
+          "province": {
+            "batangas": 1.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.739088237285614,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 1.0,
+            "ridges": 0.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 1.0,
+            "shelter": 0.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-30",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 2010,
+        "gain": 1637,
+        "lascoRating": 9,
+        "length": 14.2,
+        "slope": 11.53
+      },
+      "synthetic": true,
+      "tier": "very_hard",
+      "tourism": {
+        "clean_water": false,
+        "community": false,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": false,
+        "river": true,
+        "shelter": false,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.720328,
+        0.84004,
+        0.755314,
+        0.739088,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Circular",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 5"
+        ],
+        "elevation": 2113,
+        "gain": 1932,
+        "hours": 10,
+        "lascoRating": 8,
+        "length": 14.54,
+        "obstacles": 5,
+        "quality": [
+          "Muddy terrain",
+          "Rocky terrain",
+          "Ridges terrain"
+        ],
+        "slope": 13.29
+      },
+      "general": {
+        "active": true,
+        "address": "Quezon, Philippines",
+        "description": "Synthetic benchmark route SYN-31 in Quezon. Tier: very_hard. Length: 14.54 km, Gain: 1932 m, Elevation: 2113 MASL, Lasco: 8/9, Slope: 13.29%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 31"
+        ],
+        "name": "Synthetic Trail SYN-31 (Very Hard)",
+        "province": [
+          "Quezon"
+        ],
+        "rating": 4.7,
+        "reviewCount": 12,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.332825,
+          "longitude": 120.892197
+        },
+        "masl": 2113,
+        "start": {
+          "latitude": 14.102131,
+          "longitude": 121.298654
+        }
+      },
+      "id": "SYN-31",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 1.0,
+            "out_and_back": 0.0,
+            "traverse": 0.0
+          },
+          "classification": 1.0,
+          "easy": 0.8888888955116272,
+          "elevation": 0.8912071585655212,
+          "gain": 0.9011369347572327,
+          "length": 0.7417929172515869,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 1.0,
+            "rizal": 0.0
+          },
+          "slope": 0.9097962975502014,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 1.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 1.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 0.0,
+            "shelter": 0.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-31",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 2113,
+        "gain": 1932,
+        "lascoRating": 8,
+        "length": 14.54,
+        "slope": 13.29
+      },
+      "synthetic": true,
+      "tier": "very_hard",
+      "tourism": {
+        "clean_water": false,
+        "community": true,
+        "information_board": false,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": false,
+        "river": false,
+        "shelter": false,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.741793,
+        0.891207,
+        0.901137,
+        0.909796,
+        0.888889,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "difficulty": {
+        "circularity": "Traverse",
+        "classification": "major",
+        "difficulty_points": [
+          "Obstacles level 6"
+        ],
+        "elevation": 1876,
+        "gain": 1591,
+        "hours": 12,
+        "lascoRating": 7,
+        "length": 14.39,
+        "obstacles": 6,
+        "quality": [
+          "Rocky terrain",
+          "Grassland terrain",
+          "Ridges terrain"
+        ],
+        "slope": 11.06
+      },
+      "general": {
+        "active": true,
+        "address": "Laguna, Philippines",
+        "description": "Synthetic benchmark route SYN-32 in Laguna. Tier: very_hard. Length: 14.39 km, Gain: 1591 m, Elevation: 1876 MASL, Lasco: 7/9, Slope: 11.06%.",
+        "guidelines": [
+          "Practice Leave No Trace (LNT) principles"
+        ],
+        "lgu_rules": [
+          "Follow local community regulations"
+        ],
+        "mountain": [
+          "Mt. Synthetic 32"
+        ],
+        "name": "Synthetic Trail SYN-32 (Very Hard)",
+        "province": [
+          "Laguna"
+        ],
+        "rating": 3.8,
+        "reviewCount": 5,
+        "safety_tips": [
+          "Bring adequate hydration and appropriate trail footwear."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.662017,
+          "longitude": 121.061012
+        },
+        "masl": 1876,
+        "start": {
+          "latitude": 14.317057,
+          "longitude": 121.459945
+        }
+      },
+      "id": "SYN-32",
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 0.0,
+            "traverse": 1.0
+          },
+          "classification": 1.0,
+          "easy": 0.7777777910232544,
+          "elevation": 0.7734724283218384,
+          "gain": 0.7325753569602966,
+          "length": 0.7323232293128967,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 1.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.6935014724731445,
+          "terrain": {
+            "grassland": 1.0,
+            "muddy": 0.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 0.0,
+            "shelter": 0.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "SYN-32",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 1.0,
+        "elevation": 1876,
+        "gain": 1591,
+        "lascoRating": 7,
+        "length": 14.39,
+        "slope": 11.06
+      },
+      "synthetic": true,
+      "tier": "very_hard",
+      "tourism": {
+        "clean_water": false,
+        "community": false,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": false,
+        "river": false,
+        "shelter": false,
+        "viewpoint": true,
+        "waterfall": false
+      },
+      "vector": [
+        1.0,
+        0.732323,
+        0.773472,
+        0.732575,
+        0.693501,
+        0.777778,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "coverImage": "https://firebasestorage.googleapis.com/v0/b/thrail.firebasestorage.app/o/trails%2FMt-Tagapo.jpg?alt=media&token=faf51625-f2e9-4de4-bcd7-8732a9eee1d1",
+      "createdAt": "2026-05-28T03:48:10.858000+00:00",
+      "description": {
+        "classificationDescription": "Mt. Tagapo is classified as a minor climb due to its low elevation, short hiking duration, and non-technical nature. The trail does not require specialized mountaineering skills or equipment, and the summit can be reached through a manageable trek. These characteristics make the mountain accessible to a wide range of hikers, particularly those seeking an introductory hiking experience.",
+        "lascoRatingDescription": "Mt. Tagapo is assigned a 2/10 difficulty rating because it features a relatively short and straightforward trail with gradual ascents and well-defined paths. The hike can typically be completed within a few hours and does not involve significant elevation gain, technical climbing, or challenging terrain. Most sections consist of easy trekking, making it suitable for beginners and hikers with limited experience."
+      },
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "minor",
+        "difficulty_points": [
+          "Minimal obstacles",
+          "Open ridges and rocky terrains"
+        ],
+        "elevation": 438,
+        "gain": 409,
+        "hours": 4,
+        "lascoRating": 2,
+        "length": 5.6,
+        "obstacles": 1,
+        "quality": [
+          "Forest area",
+          "Rocky trail"
+        ],
+        "slope": 14
+      },
+      "general": {
+        "active": true,
+        "address": "Talim Island, Binangonan, Rizal",
+        "description": "Mt. Tagapo is a beginner-friendly minor climb rated 2/9 in difficulty that stands as the highest point on Talim Island in Binangonan, Rizal. Commonly accessed via a multi-step journey from Manila that involves a passenger boat crossing across Laguna de Bay to Barangay Janosa, the standard day hike takes about 3 to 4.5 hours to complete. The trail begins with an easy, partially shaded walk passing through a local residential matrix, wooded areas, and bamboo trails before transitioning onto an open cogon grassland upper slope. While technically manageable with no specialized gear or technical scrambling required, the route presents real challenges in the form of intense heat exposure, high island humidity, a steeper final summit push, and a lack of reliable water sources on the trail. Tourism infrastructure at the jump-off includes basic registration facilities near the barangay basketball court, local guides, toilets, wash-up areas, and small sari-sari stores, while overnight camping is permitted at a designated site located roughly 10 to 15 minutes below the exposed summit.",
+        "guidelines": [
+          "Bonfires are not allowed to avoid grass fire.",
+          "Leave No Trace (LNT) should be practiced when hiking."
+        ],
+        "lgu_rules": [
+          "Camping in the summit is prohibited."
+        ],
+        "mountain": [
+          "Mt. Tagapo"
+        ],
+        "name": "Mt. Tagapo",
+        "province": [
+          "Rizal"
+        ],
+        "rating": 0,
+        "reviewCount": 0,
+        "safety_tips": [
+          "Bring a trekking pole.",
+          "Make sure to bring water as there's no water source at the summit."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.3324744,
+          "longitude": 121.2325889
+        },
+        "masl": 438,
+        "start": {
+          "latitude": 14.349821,
+          "longitude": 121.214477
+        }
+      },
+      "id": "X3dyTBzI69aIysvX697H",
+      "offlinePoints": [
+        {
+          "color": "#4D7C0F",
+          "customCategory": "Start Point",
+          "description": "Starting Point",
+          "icon": "map-pin",
+          "id": "1792079223848",
+          "name": "Start",
+          "type": "other",
+          "x": 34.13,
+          "y": 30.92
+        },
+        {
+          "color": "#D97706",
+          "customCategory": "Campsite",
+          "description": "Resting spot / campsite",
+          "icon": "home",
+          "id": "1792099324368",
+          "name": "Campsite",
+          "type": "other",
+          "x": 52.64,
+          "y": 48.98
+        },
+        {
+          "description": "Summit of Mt. Tagapo",
+          "id": "1792099338352",
+          "name": "Summit",
+          "type": "summit",
+          "x": 51.67,
+          "y": 53.54
+        }
+      ],
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.2222222238779068,
+          "elevation": 0.05911574885249138,
+          "gain": 0.1651013344526291,
+          "length": 0.17739899456501007,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 0.0,
+            "rizal": 1.0
+          },
+          "slope": 0.9786614775657654,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.0,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 0.0,
+            "lake": 1.0,
+            "monument": 0.0,
+            "network_connection": 1.0,
+            "resting": 1.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 1.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "X3dyTBzI69aIysvX697H",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 438,
+        "gain": 443,
+        "lascoRating": 2,
+        "length": 5.6,
+        "slope": 14.0
+      },
+      "routeMapImage": "https://firebasestorage.googleapis.com/v0/b/thrail.firebasestorage.app/o/trails%2Fmt-tagapo.png?alt=media&token=c448bed5-3632-4c53-869b-1a691c2e73f5",
+      "synthetic": false,
+      "tier": "easy",
+      "tourism": {
+        "clean_water": false,
+        "community": false,
+        "information_board": false,
+        "lake": true,
+        "monument": false,
+        "network_connection": true,
+        "resting": true,
+        "river": false,
+        "shelter": true,
+        "viewpoint": [
+          "Scenic hills"
+        ],
+        "waterfall": false
+      },
+      "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+      "vector": [
+        0.0,
+        0.177399,
+        0.059116,
+        0.165101,
+        0.978661,
+        0.222222,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "coverImage": null,
+      "createdAt": "2026-10-18T13:37:34.082000+00:00",
+      "description": {
+        "classificationDescription": "",
+        "lascoRatingDescription": ""
+      },
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "minor",
+        "difficulty_points": [
+          "Open ridges and rocky terrains",
+          "Dense jungle trails"
+        ],
+        "gain": 910,
+        "hours": 0,
+        "lascoRating": 4,
+        "length": 8.85,
+        "obstacles": 1,
+        "quality": [
+          "Forest area"
+        ],
+        "slope": 10.06
+      },
+      "general": {
+        "active": true,
+        "address": "University of the Philippines, Los Ba\u00f1os, Laguna",
+        "critical_info": "",
+        "description": "Mount Makiling features a lush tropical rainforest, towering trees, diverse wildlife, and winding trails surrounded by rich vegetation. The trail consists of steep uphill sections, muddy paths, rocky terrain, and shaded forest areas. Hikers pass through dense foliage and natural forest landscapes along the route. The mountain is home to various species of plants, birds, and other wildlife. The cooler environment and thick forest canopy create a distinct atmosphere throughout the trail.",
+        "guidelines": [
+          "Practice Leave No Trace principles"
+        ],
+        "lgu_rules": [
+          "Mandatory registration at Barangay Hall",
+          "Accredited local guide required"
+        ],
+        "mountain": [
+          "Mt. Makiling"
+        ],
+        "name": "Mariang Makiling Trail (MMT)",
+        "province": [
+          "Laguna"
+        ],
+        "rating": 0,
+        "reviewCount": 0,
+        "safety_tips": [
+          "Sections of the trail requires hikers to go hands-and-feet to pull themselves using massive exposed root systems.",
+          "Involves near-vertical roped segments and exposed ridge sections"
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.135581,
+          "longitude": 121.193706
+        },
+        "geoJsonPath": "trail_routes/makiling/makiling.geojson",
+        "masl": 1090,
+        "start": {
+          "latitude": 14.151188,
+          "longitude": 121.233565
+        }
+      },
+      "id": "bocOhrJcgk26AbByYazx",
+      "offlinePoints": [],
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.4444444477558136,
+          "elevation": 0.3830104470252991,
+          "gain": 0.417696475982666,
+          "length": 0.38257575035095215,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 1.0,
+            "quezon": 0.0,
+            "rizal": 0.0
+          },
+          "slope": 0.596508264541626,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.30000001192092896,
+            "ridges": 1.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 1.0,
+            "river": 0.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "bocOhrJcgk26AbByYazx",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 1090,
+        "gain": 954,
+        "lascoRating": 4,
+        "length": 8.85,
+        "slope": 10.06
+      },
+      "routeMapImage": null,
+      "synthetic": false,
+      "tier": "moderate",
+      "tourism": {
+        "clean_water": false,
+        "community": null,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": false,
+        "resting": true,
+        "river": false,
+        "shelter": true,
+        "viewpoint": [
+          "Jungle trails"
+        ],
+        "waterfall": false
+      },
+      "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+      "vector": [
+        0.0,
+        0.382576,
+        0.38301,
+        0.417696,
+        0.596508,
+        0.444444,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.3,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "coverImage": null,
+      "createdAt": "2026-10-17T19:58:45.194000+00:00",
+      "description": {
+        "classificationDescription": "",
+        "lascoRatingDescription": ""
+      },
+      "difficulty": {
+        "circularity": "Out-and-Back",
+        "classification": "minor",
+        "difficulty_points": [],
+        "gain": 704,
+        "hours": 0,
+        "lascoRating": 3,
+        "length": 7.5,
+        "obstacles": 1,
+        "quality": [
+          "Dusty when dry, muddy when wet"
+        ],
+        "slope": 9.3
+      },
+      "general": {
+        "active": true,
+        "address": "Pililla, Rizal",
+        "critical_info": "",
+        "description": "Mount Sembrano features grassy slopes, rocky trails, and open ridgelines with panoramic views of Laguna de Bay and the surrounding mountains. The trail consists of steep uphill sections, exposed terrain, and limited shaded areas, with scenic landscapes along the way. Hikers pass through rolling hills and narrow dirt paths as they ascend toward the summit. The mountain\u2019s open landscape provides clear views of the lake and nearby peaks. The summit area offers a wide vantage point overlooking the surrounding countryside.",
+        "guidelines": [
+          "Practice Leave No Trace principles"
+        ],
+        "lgu_rules": [
+          "Mandatory registration at Barangay Hall"
+        ],
+        "mountain": [
+          "Mt. Sembrano"
+        ],
+        "name": "Mt. Sembrano",
+        "province": [
+          "Rizal",
+          "Laguna"
+        ],
+        "rating": 0,
+        "reviewCount": 0,
+        "safety_tips": [
+          "Bring at least 2 liters of drinking water"
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.385076,
+          "longitude": 121.3659025
+        },
+        "masl": 745,
+        "start": {
+          "latitude": 14.398105,
+          "longitude": 121.339021
+        }
+      },
+      "id": "o1Oc3DAYGScmQWMOMlwu",
+      "offlinePoints": [],
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 1.0,
+            "traverse": 0.0
+          },
+          "classification": 0.0,
+          "easy": 0.3333333432674408,
+          "elevation": 0.21162444353103638,
+          "gain": 0.3094414174556732,
+          "length": 0.2973484992980957,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 1.0,
+            "quezon": 0.0,
+            "rizal": 1.0
+          },
+          "slope": 0.5227934122085571,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.5,
+            "ridges": 0.0,
+            "rocky": 0.0
+          },
+          "tourism": {
+            "clean_water": 0.0,
+            "community": 0.0,
+            "information_board": 0.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 0.0,
+            "resting": 0.0,
+            "river": 0.0,
+            "shelter": 0.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 0.0
+          }
+        },
+        "metadata": {
+          "id": "o1Oc3DAYGScmQWMOMlwu",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 745,
+        "gain": 735,
+        "lascoRating": 3,
+        "length": 7.5,
+        "slope": 9.3
+      },
+      "routeMapImage": null,
+      "synthetic": false,
+      "tier": "moderate",
+      "tourism": {
+        "clean_water": null,
+        "community": null,
+        "information_board": null,
+        "lake": null,
+        "monument": null,
+        "network_connection": false,
+        "resting": null,
+        "river": null,
+        "shelter": null,
+        "viewpoint": [
+          "Scenic hills"
+        ],
+        "waterfall": null
+      },
+      "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+      "vector": [
+        0.0,
+        0.297348,
+        0.211624,
+        0.309441,
+        0.522793,
+        0.333333,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.5,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "coverImage": null,
+      "createdAt": "2026-04-14T17:31:48.093000+00:00",
+      "description": {
+        "classificationDescription": "Mt. Daraitan is classified as a minor climb because it has a relatively low elevation of approximately 739 MASL, can usually be completed within a day, and does not require specialized climbing equipment or advanced mountaineering skills. Although the terrain is more rugged than many beginner mountains, its elevation, accessibility, and hiking duration align with the characteristics of a minor climb.",
+        "lascoRatingDescription": "Mt. Daraitan is rated 4/9 because it features steep ascents, rocky limestone terrain, narrow trails, river crossings, and sections that require light scrambling and the use of hands for balance. While the hike is physically demanding and requires good endurance, it remains manageable as a day hike and does not involve advanced technical mountaineering. These conditions make it moderately challenging, placing it within the 4/9 difficulty range."
+      },
+      "difficulty": {
+        "circularity": "Traverse",
+        "classification": "minor",
+        "difficulty_points": [
+          "Cliff",
+          "River crossings and limestone hazards"
+        ],
+        "elevation": 739,
+        "gain": 566,
+        "hours": 3,
+        "lascoRating": 4,
+        "length": 8.5,
+        "obstacles": 2,
+        "quality": [
+          "Rocky trail",
+          "Forest area"
+        ],
+        "slope": 6.6
+      },
+      "general": {
+        "active": true,
+        "address": "Daraitan, Rizal",
+        "description": "Mount Daraitan serves as a beginner-friendly hiking route that features a back-and-forth trail layout extending between four and five kilometers. The trail takes between 4 and 5 hours to finish, ascending approximately 300 to 400 meters along a moderate slope that makes it manageable to walk through. The terrain itself consists of rocky material that creates an uneven walking surface, presenting two main path challenges: a river crossing and rocky limestone areas. Despite these obstacles, visitors are rewarded with two viewing points that showcase beautiful mountain views, the river, the summit, and natural limestone formations. Tourism infrastructure in the area includes basic shelters provided by the barangay, designated resting areas, a few information boards, and water access via the nearby Tinipak River. Additionally, the mountain area holds unique cultural value as it is home to the indigenous Dumagat community.",
+        "guidelines": [
+          "Register with the local authorities before hiking.",
+          "Leave No Trace (LNT) is strictly enforced.",
+          "Avoid noise pollution, observe silence especially while trekking at 3:00 AM to avoid disturbing nocturnal wildlife."
+        ],
+        "lgu_rules": [
+          "Accessing Tinipak Cave requires a clearance."
+        ],
+        "mountain": [
+          "Mt. Daraitan"
+        ],
+        "name": "Mt. Daraitan",
+        "province": [
+          "Rizal",
+          "Quezon"
+        ],
+        "rating": 4.428571428571428,
+        "reviewCount": 14,
+        "safety_tips": [
+          "Bring a trekking pole or knee support if prone to knee pain.",
+          "Ask local guides before bringing children.",
+          "It is recommended to use industrial gloves over cheap cotton ones as the share limestones in the summit approach might destroy cotton.",
+          "There is no canopy cover at the summit, apply skin protection if arrival at peak is around noon time."
+        ]
+      },
+      "geography": {
+        "end": {
+          "latitude": 14.6161523,
+          "longitude": 121.4379731
+        },
+        "masl": 739,
+        "start": {
+          "latitude": 14.6032037,
+          "longitude": 121.4290952
+        }
+      },
+      "id": "p8Og0yqESHF4pHCfRLYq",
+      "offlinePoints": [
+        {
+          "description": "Summit",
+          "id": "1792199359637",
+          "name": "Summit",
+          "type": "summit",
+          "x": 54.37,
+          "y": 52.75
+        }
+      ],
+      "profile": {
+        "features": {
+          "circularity": {
+            "circular": 0.0,
+            "out_and_back": 0.0,
+            "traverse": 1.0
+          },
+          "classification": 0.0,
+          "easy": 0.4444444477558136,
+          "elevation": 0.2086438089609146,
+          "gain": 0.2288680225610733,
+          "length": 0.36047980189323425,
+          "province": {
+            "batangas": 0.0,
+            "cavite": 0.0,
+            "laguna": 0.0,
+            "quezon": 1.0,
+            "rizal": 1.0
+          },
+          "slope": 0.2609117329120636,
+          "terrain": {
+            "grassland": 0.0,
+            "muddy": 0.0,
+            "ridges": 0.0,
+            "rocky": 1.0
+          },
+          "tourism": {
+            "clean_water": 1.0,
+            "community": 1.0,
+            "information_board": 1.0,
+            "lake": 0.0,
+            "monument": 0.0,
+            "network_connection": 1.0,
+            "resting": 1.0,
+            "river": 1.0,
+            "shelter": 1.0,
+            "viewpoint": 1.0,
+            "waterfall": 0.0
+          },
+          "waterforms": {
+            "fall": 0.0,
+            "lake": 0.0,
+            "river": 1.0
+          }
+        },
+        "metadata": {
+          "id": "p8Og0yqESHF4pHCfRLYq",
+          "type": "trail"
+        }
+      },
+      "raw": {
+        "classification": 0.0,
+        "elevation": 739,
+        "gain": 572,
+        "lascoRating": 4,
+        "length": 8.5,
+        "slope": 6.6
+      },
+      "routeMapImage": "https://firebasestorage.googleapis.com/v0/b/thrail.firebasestorage.app/o/trails%2Fmt-daraitan.png?alt=media&token=9315b612-106a-4867-b850-f8fdf7a29409",
+      "synthetic": false,
+      "tier": "moderate",
+      "tourism": {
+        "clean_water": true,
+        "community": true,
+        "information_board": true,
+        "lake": false,
+        "monument": false,
+        "network_connection": true,
+        "resting": true,
+        "river": true,
+        "shelter": true,
+        "viewpoint": [
+          "Scenic hills"
+        ],
+        "waterfall": false
+      },
+      "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+      "vector": [
+        0.0,
+        0.36048,
+        0.208644,
+        0.228868,
+        0.260912,
+        0.444444,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ]
+}

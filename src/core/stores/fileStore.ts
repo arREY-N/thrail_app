@@ -102,7 +102,7 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
             }
 
             if (status !== 'granted') {
-                throw new Error('Permission to access camera is required!');
+                return '';
             }
 
             const result = await ImagePicker.launchCameraAsync({
@@ -111,8 +111,8 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
                 base64: false,
             });
 
-            if (result.canceled) {
-                throw new Error('Photo capture canceled');
+            if (result.canceled || !result.assets || result.assets.length === 0) {
+                return '';
             }
 
             const { uri, fileName, mimeType, fileSize: size } = result.assets[0];
@@ -149,43 +149,36 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
                 throw new Error('User profile not found. Please log in again.');
             }
 
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (Platform.OS !== 'web') {
+                const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-            if (status !== 'granted') {
-                throw new Error('Permission to access media library is required!');
+                if (status !== 'granted') {
+                    return '';
+                }
             }
 
-            const result = await DocumentPicker.getDocumentAsync({
-                type: ['image/*'],
-                copyToCacheDirectory: true,
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: false,
+                quality: 0.85,
             });
 
-            if (result.canceled) {
-                throw new Error('Photo selection canceled');
+            if (result.canceled || !result.assets || result.assets.length === 0) {
+                return '';
             }
 
-            const { uri, name, mimeType, size } = result.assets[0];
-
-            const isImage = mimeType?.startsWith('image/');
-
-            const extension = name?.split('.').pop()?.toLocaleLowerCase();
-
-            const isAllowedExt = ['png', 'jpg', 'jpeg', 'webp', 'heic'].includes(extension ?? '');
-
-            if (!isImage && !isAllowedExt) {
-                Alert.alert('Invalid file type', 'Please upload only PDF documents or image files');
-
-                throw new Error('Only image files are allowed')
-            }
+            const { uri, fileName, mimeType, fileSize: size } = result.assets[0];
 
             if (size && size > MAX_FILE_SIZE_BYTES) {
                 Alert.alert('File too large', 'Please upload a file smaller than 5MB');
                 throw new Error('File size exceeds the 5MB limit');
             }
 
+            const extension = (fileName || uri).split('.').pop()?.toLowerCase();
+
             const selectedFile = {
                 uri,
-                name: name ?? `${profile.firstname}_photo_${Date.now()}.jpg`,
+                name: fileName ?? `${profile.firstname}_photo_${Date.now()}.${extension || 'jpg'}`,
                 mimeType: mimeType ?? 'image/jpeg',
                 size
             };
@@ -198,6 +191,10 @@ export const useFilesStore = create<FileState>()(immer((set, get) => ({
 
             return downloadURL;
         } catch (error) {
+            const errMsg = error instanceof Error ? error.message : String(error);
+            if (errMsg.toLowerCase().includes('cancel')) {
+                return '';
+            }
             throw error instanceof Error ? error : new Error('An unexpected error occurred while selecting photo.');
         }
     }

@@ -1,0 +1,1438 @@
+[
+  {
+    "coverImage": null,
+    "createdAt": "2026-10-17T17:23:02.116000+00:00",
+    "description": {
+      "classificationDescription": "The New Trail is classified as a Minor Climb because its peak stands at a relatively low altitude of 741 MASL and requires less than four hours of trekking to reach.",
+      "lascoRatingDescription": "Mt. Batulao's New Trail is rated a minor climb (4/9 difficulty) because its short duration and gradual, well-established paths make it highly accessible for beginners."
+    },
+    "difficulty": {
+      "circularity": "Circular",
+      "classification": "minor",
+      "difficulty_points": [
+        "Open ridges and rocky terrains",
+        "Minimal obstacles"
+      ],
+      "gain": 320,
+      "hours": 4,
+      "lascoRating": 4,
+      "length": 10.3,
+      "obstacles": 0,
+      "quality": [
+        "Grassland and ridges",
+        "Well-maintained pathway"
+      ],
+      "slope": 6.21
+    },
+    "general": {
+      "active": true,
+      "address": "Mt. Batulao, Calatagan, Batangas",
+      "critical_info": "",
+      "description": "Mount Batulao\u2019s New Trail is a popular hiking destination celebrated for its rolling hills and breathtaking panoramic views. Compared to the Old Trail, which features steeper sections, loose volcanic soil, and challenging terrain, the New Trail offers a more accessible and scenic route to the summit. It is an ideal choice for beginners and hikers seeking a less challenging climbing experience.",
+      "guidelines": [
+        "Practice Leave No Trace principles"
+      ],
+      "lgu_rules": [
+        "Mandatory registration at Barangay Hall"
+      ],
+      "mountain": [
+        "Mt. Batulao"
+      ],
+      "name": "Batulao New Trail",
+      "province": [
+        "Batangas"
+      ],
+      "rating": 0,
+      "reviewCount": 0,
+      "safety_tips": []
+    },
+    "geography": {
+      "end": {
+        "latitude": 14.043387,
+        "longitude": 120.801696
+      },
+      "masl": 811,
+      "start": {
+        "latitude": 14.055417,
+        "longitude": 120.820227
+      }
+    },
+    "id": "00JGDwgZQQeIGXVituut",
+    "offlinePoints": [],
+    "profile": {
+      "features": {
+        "circularity": {
+          "circular": 1.0,
+          "out_and_back": 0.0,
+          "traverse": 0.0
+        },
+        "classification": 0.0,
+        "easy": 0.4444444477558136,
+        "elevation": 0.24714072048664093,
+        "gain": 0.06925343722105026,
+        "length": 0.47727271914482117,
+        "province": {
+          "batangas": 1.0,
+          "cavite": 0.0,
+          "laguna": 0.0,
+          "quezon": 0.0,
+          "rizal": 0.0
+        },
+        "slope": 0.2760223150253296,
+        "terrain": {
+          "grassland": 1.0,
+          "muddy": 0.0,
+          "ridges": 1.0,
+          "rocky": 1.0
+        },
+        "tourism": {
+          "clean_water": 0.0,
+          "community": 1.0,
+          "information_board": 1.0,
+          "lake": 0.0,
+          "monument": 0.0,
+          "network_connection": 0.0,
+          "resting": 1.0,
+          "river": 0.0,
+          "shelter": 1.0,
+          "viewpoint": 0.0,
+          "waterfall": 0.0
+        },
+        "waterforms": {
+          "fall": 0.0,
+          "lake": 0.0,
+          "river": 0.0
+        }
+      },
+      "metadata": {
+        "id": "00JGDwgZQQeIGXVituut",
+        "type": "trail"
+      }
+    },
+    "raw": {
+      "classification": 0.0,
+      "elevation": 811,
+      "gain": 229,
+      "lascoRating": 4,
+      "length": 10.3,
+      "slope": 6.21
+    },
+    "routeMapImage": null,
+    "synthetic": false,
+    "tier": "hard",
+    "tourism": {
+      "clean_water": false,
+      "community": true,
+      "information_board": true,
+      "lake": false,
+      "monument": false,
+      "network_connection": false,
+      "resting": true,
+      "river": false,
+      "shelter": true,
+      "viewpoint": [],
+      "waterfall": false
+    },
+    "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+    "vector": [
+      0.0,
+      0.477273,
+      0.247141,
+      0.069253,
+      0.276022,
+      0.444444,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "coverImage": null,
+    "createdAt": "2026-10-18T13:51:44.459000+00:00",
+    "description": {
+      "classificationDescription": "",
+      "lascoRatingDescription": ""
+    },
+    "difficulty": {
+      "circularity": "Traverse",
+      "classification": "major",
+      "difficulty_points": [
+        "Dense jungle trails"
+      ],
+      "gain": 921,
+      "hours": 0,
+      "lascoRating": 6,
+      "length": 14.1,
+      "obstacles": 1,
+      "quality": [
+        "Forest area"
+      ],
+      "slope": 13.4
+    },
+    "general": {
+      "active": true,
+      "address": "University of the Philippines, Los Ba\u00f1os, Laguna",
+      "critical_info": "",
+      "description": "Mt. Makiling is an ideal destination for adventure seekers who crave the thrill of a challenging hike but have limited time for a multi-day trek. The journey takes you through the rugged landscapes and lush, untamed rainforests of the legendary Maria Makiling, offering an unforgettable outdoor experience.",
+      "guidelines": [
+        "Practice Leave No Trace principles"
+      ],
+      "lgu_rules": [
+        "Accredited local guide required"
+      ],
+      "mountain": [
+        "Mt. Makiling"
+      ],
+      "name": "Mt. Makiling Traverse (MakTrav)",
+      "province": [
+        "Laguna",
+        "Batangas"
+      ],
+      "rating": 0,
+      "reviewCount": 0,
+      "safety_tips": []
+    },
+    "geography": {
+      "end": {
+        "latitude": 14.151188,
+        "longitude": 121.233565
+      },
+      "geoJsonPath": "trail_routes/makiling/maktrav_route.geojson",
+      "masl": 1090,
+      "start": {
+        "latitude": 14.1064219,
+        "longitude": 121.1882611
+      }
+    },
+    "id": "7aTSWWzmcnhS1Q4nfCog",
+    "offlinePoints": [],
+    "profile": {
+      "features": {
+        "circularity": {
+          "circular": 0.0,
+          "out_and_back": 0.0,
+          "traverse": 1.0
+        },
+        "classification": 1.0,
+        "easy": 0.6666666865348816,
+        "elevation": 0.38587766885757446,
+        "gain": 0.3742632567882538,
+        "length": 0.7045454382896423,
+        "province": {
+          "batangas": 1.0,
+          "cavite": 0.0,
+          "laguna": 1.0,
+          "quezon": 0.0,
+          "rizal": 0.0
+        },
+        "slope": 0.9442379474639893,
+        "terrain": {
+          "grassland": 0.0,
+          "muddy": 0.30000001192092896,
+          "ridges": 0.0,
+          "rocky": 0.0
+        },
+        "tourism": {
+          "clean_water": 0.0,
+          "community": 0.0,
+          "information_board": 1.0,
+          "lake": 0.0,
+          "monument": 0.0,
+          "network_connection": 0.0,
+          "resting": 1.0,
+          "river": 0.0,
+          "shelter": 1.0,
+          "viewpoint": 1.0,
+          "waterfall": 0.0
+        },
+        "waterforms": {
+          "fall": 0.0,
+          "lake": 0.0,
+          "river": 0.0
+        }
+      },
+      "metadata": {
+        "id": "7aTSWWzmcnhS1Q4nfCog",
+        "type": "trail"
+      }
+    },
+    "raw": {
+      "classification": 1.0,
+      "elevation": 1090,
+      "gain": 850,
+      "lascoRating": 6,
+      "length": 14.1,
+      "slope": 13.4
+    },
+    "routeMapImage": null,
+    "synthetic": false,
+    "tier": "very_hard",
+    "tourism": {
+      "clean_water": false,
+      "community": false,
+      "information_board": true,
+      "lake": false,
+      "monument": false,
+      "network_connection": false,
+      "resting": true,
+      "river": false,
+      "shelter": true,
+      "viewpoint": [
+        "Jungle trails"
+      ],
+      "waterfall": false
+    },
+    "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+    "vector": [
+      1.0,
+      0.704545,
+      0.385878,
+      0.374263,
+      0.944238,
+      0.666667,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.3,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ]
+  },
+  {
+    "coverImage": null,
+    "createdAt": "2026-10-17T21:02:36.352000+00:00",
+    "description": {
+      "classificationDescription": "To be added",
+      "lascoRatingDescription": "To be added"
+    },
+    "difficulty": {
+      "circularity": "Circular",
+      "classification": "minor",
+      "difficulty_points": [
+        "River crossings and limestone hazards"
+      ],
+      "gain": 118,
+      "hours": 0,
+      "lascoRating": 3,
+      "length": 3.1,
+      "obstacles": 1,
+      "quality": [
+        "Well-maintained pathway",
+        "Dusty when dry, muddy when wet"
+      ],
+      "slope": 13
+    },
+    "general": {
+      "active": true,
+      "address": "Tanay, Rizal",
+      "critical_info": "",
+      "description": "The Mt. Kulis\u2013Sambong Peak trail in Tanay, Rizal, offers a beginner-friendly hike through grassy slopes, rolling hills, and scenic mountain paths with breathtaking views of the Sierra Madre. Hikers can enjoy unique rock formations, panoramic viewpoints, and the chance to witness a beautiful sea of clouds, especially during early morning hikes.",
+      "guidelines": [
+        "Practice Leave No Trace principles"
+      ],
+      "lgu_rules": [
+        "Guides are mandatory"
+      ],
+      "mountain": [
+        "Mt. Kulis"
+      ],
+      "name": "Mt. Kulis - Sambong Trail",
+      "province": [
+        "Rizal"
+      ],
+      "rating": 0,
+      "reviewCount": 0,
+      "safety_tips": []
+    },
+    "geography": {
+      "end": {
+        "latitude": 14.6089637,
+        "longitude": 121.368594
+      },
+      "masl": 620,
+      "start": {
+        "latitude": 14.604786,
+        "longitude": 121.364559
+      }
+    },
+    "id": "B1ro3QWzbDwi2DKppspQ",
+    "offlinePoints": [],
+    "profile": {
+      "features": {
+        "circularity": {
+          "circular": 1.0,
+          "out_and_back": 0.0,
+          "traverse": 0.0
+        },
+        "classification": 0.0,
+        "easy": 0.3333333432674408,
+        "elevation": 0.15216310322284698,
+        "gain": 0.014734773896634579,
+        "length": 0.0466507188975811,
+        "province": {
+          "batangas": 0.0,
+          "cavite": 0.0,
+          "laguna": 0.0,
+          "quezon": 0.0,
+          "rizal": 1.0
+        },
+        "slope": 0.9070631861686707,
+        "terrain": {
+          "grassland": 0.0,
+          "muddy": 0.5,
+          "ridges": 0.0,
+          "rocky": 0.0
+        },
+        "tourism": {
+          "clean_water": 0.0,
+          "community": 0.0,
+          "information_board": 0.0,
+          "lake": 0.0,
+          "monument": 0.0,
+          "network_connection": 0.0,
+          "resting": 1.0,
+          "river": 1.0,
+          "shelter": 1.0,
+          "viewpoint": 0.0,
+          "waterfall": 0.0
+        },
+        "waterforms": {
+          "fall": 0.0,
+          "lake": 0.0,
+          "river": 1.0
+        }
+      },
+      "metadata": {
+        "id": "B1ro3QWzbDwi2DKppspQ",
+        "type": "trail"
+      }
+    },
+    "raw": {
+      "classification": 0.0,
+      "elevation": 620,
+      "gain": 118,
+      "lascoRating": 3,
+      "length": 3.1,
+      "slope": 13.0
+    },
+    "routeMapImage": null,
+    "synthetic": false,
+    "tier": "easy",
+    "tourism": {
+      "clean_water": null,
+      "community": null,
+      "information_board": null,
+      "lake": null,
+      "monument": null,
+      "network_connection": false,
+      "resting": true,
+      "river": true,
+      "shelter": true,
+      "viewpoint": [],
+      "waterfall": null
+    },
+    "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+    "vector": [
+      0.0,
+      0.046651,
+      0.152163,
+      0.014735,
+      0.907063,
+      0.333333,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.5,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "coverImage": null,
+    "createdAt": "2026-05-31T16:17:41.632000+00:00",
+    "description": {
+      "classificationDescription": "Mt. Batulao is considered a minor climb because it has a relatively low elevation (811 MASL), can typically be completed as a day hike, and does not require advanced mountaineering skills or specialized equipment. Although the trail includes steep ascents, exposed ridges, and some scrambling sections, the overall hiking duration and technical difficulty are manageable for most beginners with reasonable fitness levels.",
+      "lascoRatingDescription": "Mt. Batulao is rated 4/9 because it features steep ascents and descents, exposed ridges, narrow trails, and occasional scrambling sections that require balance and caution. The open terrain also exposes hikers to intense sun and wind, adding to the challenge. However, the mountain remains accessible to beginners due to its relatively low elevation, short hiking duration, and well-established trails, making it moderately difficult rather than a major climb."
+    },
+    "difficulty": {
+      "circularity": "Circular",
+      "classification": "major",
+      "difficulty_points": [
+        "Open ridges and rocky terrains"
+      ],
+      "elevation": 811,
+      "gain": 500,
+      "hours": 4,
+      "lascoRating": 4,
+      "length": 5,
+      "obstacles": 5,
+      "quality": [
+        "Grassland and ridges"
+      ],
+      "slope": 5
+    },
+    "general": {
+      "active": true,
+      "address": "Nasugbu, Batangas",
+      "critical_info": "",
+      "description": "Mount Batulao is a popular hiking destination in the Philippines, located in the municipality of Nasugbu, Batangas. Known for its rolling grass-covered ridges, scenic mountain views, and relatively accessible trails, it is a favorite among beginner and intermediate hikers. The mountain offers panoramic views of the surrounding landscapes, including nearby mountain ranges and coastal areas.",
+      "guidelines": [
+        "Practice Leave No Trace (LNT) at all times."
+      ],
+      "lgu_rules": [
+        "A guide is mandatory."
+      ],
+      "mountain": [
+        "Mt. Batulao"
+      ],
+      "name": "Mt. Batulao",
+      "province": [
+        "Batangas"
+      ],
+      "rating": 3.4285714285714284,
+      "reviewCount": 14,
+      "safety_tips": [
+        "Make sure to bring water as there's no water source at the summit."
+      ]
+    },
+    "geography": {
+      "end": {
+        "latitude": 14.045,
+        "longitude": 120.80444
+      },
+      "masl": 811,
+      "start": {
+        "latitude": 14.039,
+        "longitude": 120.802
+      }
+    },
+    "id": "DMq31CXnrRdGcMJbH8Dh",
+    "offlinePoints": [
+      {
+        "description": "Summit",
+        "id": "1792199298501",
+        "name": "Summit",
+        "type": "summit",
+        "x": 44.83,
+        "y": 61.41
+      }
+    ],
+    "profile": {
+      "features": {
+        "circularity": {
+          "circular": 1.0,
+          "out_and_back": 0.0,
+          "traverse": 0.0
+        },
+        "classification": 1.0,
+        "easy": 0.4444444477558136,
+        "elevation": 0.24714072048664093,
+        "gain": 0.033889979124069214,
+        "length": 0.16028708219528198,
+        "province": {
+          "batangas": 1.0,
+          "cavite": 0.0,
+          "laguna": 0.0,
+          "quezon": 0.0,
+          "rizal": 0.0
+        },
+        "slope": 0.16356877982616425,
+        "terrain": {
+          "grassland": 1.0,
+          "muddy": 0.0,
+          "ridges": 1.0,
+          "rocky": 1.0
+        },
+        "tourism": {
+          "clean_water": 0.0,
+          "community": 0.0,
+          "information_board": 1.0,
+          "lake": 0.0,
+          "monument": 0.0,
+          "network_connection": 0.0,
+          "resting": 1.0,
+          "river": 0.0,
+          "shelter": 1.0,
+          "viewpoint": 1.0,
+          "waterfall": 0.0
+        },
+        "waterforms": {
+          "fall": 0.0,
+          "lake": 0.0,
+          "river": 0.0
+        }
+      },
+      "metadata": {
+        "id": "DMq31CXnrRdGcMJbH8Dh",
+        "type": "trail"
+      }
+    },
+    "raw": {
+      "classification": 1.0,
+      "elevation": 811,
+      "gain": 157,
+      "lascoRating": 4,
+      "length": 5.0,
+      "slope": 5.0
+    },
+    "routeMapImage": "https://firebasestorage.googleapis.com/v0/b/thrail.firebasestorage.app/o/trails%2Fmt-batulao.png?alt=media&token=2c9fcfda-f01b-43bd-8627-3a77f6439b4b",
+    "synthetic": false,
+    "tier": "moderate",
+    "tourism": {
+      "clean_water": null,
+      "community": null,
+      "information_board": true,
+      "lake": null,
+      "monument": null,
+      "network_connection": false,
+      "resting": true,
+      "river": null,
+      "shelter": true,
+      "viewpoint": [
+        "Scenic hills"
+      ],
+      "waterfall": null
+    },
+    "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+    "vector": [
+      1.0,
+      0.160287,
+      0.247141,
+      0.03389,
+      0.163569,
+      0.444444,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ]
+  },
+  {
+    "coverImage": "https://firebasestorage.googleapis.com/v0/b/thrail.firebasestorage.app/o/trails%2FMt-Tagapo.jpg?alt=media&token=faf51625-f2e9-4de4-bcd7-8732a9eee1d1",
+    "createdAt": "2026-05-28T03:48:10.858000+00:00",
+    "description": {
+      "classificationDescription": "Mt. Tagapo is classified as a minor climb due to its low elevation, short hiking duration, and non-technical nature. The trail does not require specialized mountaineering skills or equipment, and the summit can be reached through a manageable trek. These characteristics make the mountain accessible to a wide range of hikers, particularly those seeking an introductory hiking experience.",
+      "lascoRatingDescription": "Mt. Tagapo is assigned a 2/10 difficulty rating because it features a relatively short and straightforward trail with gradual ascents and well-defined paths. The hike can typically be completed within a few hours and does not involve significant elevation gain, technical climbing, or challenging terrain. Most sections consist of easy trekking, making it suitable for beginners and hikers with limited experience."
+    },
+    "difficulty": {
+      "circularity": "Out-and-Back",
+      "classification": "minor",
+      "difficulty_points": [
+        "Minimal obstacles",
+        "Open ridges and rocky terrains"
+      ],
+      "elevation": 438,
+      "gain": 409,
+      "hours": 4,
+      "lascoRating": 2,
+      "length": 5.6,
+      "obstacles": 1,
+      "quality": [
+        "Forest area",
+        "Rocky trail"
+      ],
+      "slope": 14
+    },
+    "general": {
+      "active": true,
+      "address": "Talim Island, Binangonan, Rizal",
+      "description": "Mt. Tagapo is a beginner-friendly minor climb rated 2/9 in difficulty that stands as the highest point on Talim Island in Binangonan, Rizal. Commonly accessed via a multi-step journey from Manila that involves a passenger boat crossing across Laguna de Bay to Barangay Janosa, the standard day hike takes about 3 to 4.5 hours to complete. The trail begins with an easy, partially shaded walk passing through a local residential matrix, wooded areas, and bamboo trails before transitioning onto an open cogon grassland upper slope. While technically manageable with no specialized gear or technical scrambling required, the route presents real challenges in the form of intense heat exposure, high island humidity, a steeper final summit push, and a lack of reliable water sources on the trail. Tourism infrastructure at the jump-off includes basic registration facilities near the barangay basketball court, local guides, toilets, wash-up areas, and small sari-sari stores, while overnight camping is permitted at a designated site located roughly 10 to 15 minutes below the exposed summit.",
+      "guidelines": [
+        "Bonfires are not allowed to avoid grass fire.",
+        "Leave No Trace (LNT) should be practiced when hiking."
+      ],
+      "lgu_rules": [
+        "Camping in the summit is prohibited."
+      ],
+      "mountain": [
+        "Mt. Tagapo"
+      ],
+      "name": "Mt. Tagapo",
+      "province": [
+        "Rizal"
+      ],
+      "rating": 0,
+      "reviewCount": 0,
+      "safety_tips": [
+        "Bring a trekking pole.",
+        "Make sure to bring water as there's no water source at the summit."
+      ]
+    },
+    "geography": {
+      "end": {
+        "latitude": 14.3324744,
+        "longitude": 121.2325889
+      },
+      "masl": 438,
+      "start": {
+        "latitude": 14.349821,
+        "longitude": 121.214477
+      }
+    },
+    "id": "X3dyTBzI69aIysvX697H",
+    "offlinePoints": [
+      {
+        "color": "#4D7C0F",
+        "customCategory": "Start Point",
+        "description": "Starting Point",
+        "icon": "map-pin",
+        "id": "1792079223848",
+        "name": "Start",
+        "type": "other",
+        "x": 34.13,
+        "y": 30.92
+      },
+      {
+        "color": "#D97706",
+        "customCategory": "Campsite",
+        "description": "Resting spot / campsite",
+        "icon": "home",
+        "id": "1792099324368",
+        "name": "Campsite",
+        "type": "other",
+        "x": 52.64,
+        "y": 48.98
+      },
+      {
+        "description": "Summit of Mt. Tagapo",
+        "id": "1792099338352",
+        "name": "Summit",
+        "type": "summit",
+        "x": 51.67,
+        "y": 53.54
+      }
+    ],
+    "profile": {
+      "features": {
+        "circularity": {
+          "circular": 0.0,
+          "out_and_back": 1.0,
+          "traverse": 0.0
+        },
+        "classification": 0.0,
+        "easy": 0.2222222238779068,
+        "elevation": 0.06166086345911026,
+        "gain": 0.17436149716377258,
+        "length": 0.19617225229740143,
+        "province": {
+          "batangas": 0.0,
+          "cavite": 0.0,
+          "laguna": 0.0,
+          "quezon": 0.0,
+          "rizal": 1.0
+        },
+        "slope": 1.0,
+        "terrain": {
+          "grassland": 0.0,
+          "muddy": 0.0,
+          "ridges": 1.0,
+          "rocky": 1.0
+        },
+        "tourism": {
+          "clean_water": 0.0,
+          "community": 0.0,
+          "information_board": 0.0,
+          "lake": 1.0,
+          "monument": 0.0,
+          "network_connection": 1.0,
+          "resting": 1.0,
+          "river": 0.0,
+          "shelter": 1.0,
+          "viewpoint": 1.0,
+          "waterfall": 0.0
+        },
+        "waterforms": {
+          "fall": 0.0,
+          "lake": 1.0,
+          "river": 0.0
+        }
+      },
+      "metadata": {
+        "id": "X3dyTBzI69aIysvX697H",
+        "type": "trail"
+      }
+    },
+    "raw": {
+      "classification": 0.0,
+      "elevation": 438,
+      "gain": 443,
+      "lascoRating": 2,
+      "length": 5.6,
+      "slope": 14.0
+    },
+    "routeMapImage": "https://firebasestorage.googleapis.com/v0/b/thrail.firebasestorage.app/o/trails%2Fmt-tagapo.png?alt=media&token=c448bed5-3632-4c53-869b-1a691c2e73f5",
+    "synthetic": false,
+    "tier": "easy",
+    "tourism": {
+      "clean_water": false,
+      "community": false,
+      "information_board": false,
+      "lake": true,
+      "monument": false,
+      "network_connection": true,
+      "resting": true,
+      "river": false,
+      "shelter": true,
+      "viewpoint": [
+        "Scenic hills"
+      ],
+      "waterfall": false
+    },
+    "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+    "vector": [
+      0.0,
+      0.196172,
+      0.061661,
+      0.174361,
+      1.0,
+      0.222222,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0
+    ]
+  },
+  {
+    "coverImage": null,
+    "createdAt": "2026-10-18T13:37:34.082000+00:00",
+    "description": {
+      "classificationDescription": "",
+      "lascoRatingDescription": ""
+    },
+    "difficulty": {
+      "circularity": "Out-and-Back",
+      "classification": "minor",
+      "difficulty_points": [
+        "Open ridges and rocky terrains",
+        "Dense jungle trails"
+      ],
+      "gain": 910,
+      "hours": 0,
+      "lascoRating": 4,
+      "length": 8.85,
+      "obstacles": 1,
+      "quality": [
+        "Forest area"
+      ],
+      "slope": 10.06
+    },
+    "general": {
+      "active": true,
+      "address": "University of the Philippines, Los Ba\u00f1os, Laguna",
+      "critical_info": "",
+      "description": "Mount Makiling features a lush tropical rainforest, towering trees, diverse wildlife, and winding trails surrounded by rich vegetation. The trail consists of steep uphill sections, muddy paths, rocky terrain, and shaded forest areas. Hikers pass through dense foliage and natural forest landscapes along the route. The mountain is home to various species of plants, birds, and other wildlife. The cooler environment and thick forest canopy create a distinct atmosphere throughout the trail.",
+      "guidelines": [
+        "Practice Leave No Trace principles"
+      ],
+      "lgu_rules": [
+        "Mandatory registration at Barangay Hall",
+        "Accredited local guide required"
+      ],
+      "mountain": [
+        "Mt. Makiling"
+      ],
+      "name": "Mariang Makiling Trail (MMT)",
+      "province": [
+        "Laguna"
+      ],
+      "rating": 0,
+      "reviewCount": 0,
+      "safety_tips": [
+        "Sections of the trail requires hikers to go hands-and-feet to pull themselves using massive exposed root systems.",
+        "Involves near-vertical roped segments and exposed ridge sections"
+      ]
+    },
+    "geography": {
+      "end": {
+        "latitude": 14.135581,
+        "longitude": 121.193706
+      },
+      "geoJsonPath": "trail_routes/makiling/makiling.geojson",
+      "masl": 1090,
+      "start": {
+        "latitude": 14.151188,
+        "longitude": 121.233565
+      }
+    },
+    "id": "bocOhrJcgk26AbByYazx",
+    "offlinePoints": [],
+    "profile": {
+      "features": {
+        "circularity": {
+          "circular": 0.0,
+          "out_and_back": 1.0,
+          "traverse": 0.0
+        },
+        "classification": 0.0,
+        "easy": 0.4444444477558136,
+        "elevation": 0.38587766885757446,
+        "gain": 0.4253438115119934,
+        "length": 0.3905502259731293,
+        "province": {
+          "batangas": 0.0,
+          "cavite": 0.0,
+          "laguna": 1.0,
+          "quezon": 0.0,
+          "rizal": 0.0
+        },
+        "slope": 0.6338289976119995,
+        "terrain": {
+          "grassland": 0.0,
+          "muddy": 0.30000001192092896,
+          "ridges": 1.0,
+          "rocky": 1.0
+        },
+        "tourism": {
+          "clean_water": 0.0,
+          "community": 0.0,
+          "information_board": 1.0,
+          "lake": 0.0,
+          "monument": 0.0,
+          "network_connection": 0.0,
+          "resting": 1.0,
+          "river": 0.0,
+          "shelter": 1.0,
+          "viewpoint": 1.0,
+          "waterfall": 0.0
+        },
+        "waterforms": {
+          "fall": 0.0,
+          "lake": 0.0,
+          "river": 0.0
+        }
+      },
+      "metadata": {
+        "id": "bocOhrJcgk26AbByYazx",
+        "type": "trail"
+      }
+    },
+    "raw": {
+      "classification": 0.0,
+      "elevation": 1090,
+      "gain": 954,
+      "lascoRating": 4,
+      "length": 8.85,
+      "slope": 10.06
+    },
+    "routeMapImage": null,
+    "synthetic": false,
+    "tier": "moderate",
+    "tourism": {
+      "clean_water": false,
+      "community": null,
+      "information_board": true,
+      "lake": false,
+      "monument": false,
+      "network_connection": false,
+      "resting": true,
+      "river": false,
+      "shelter": true,
+      "viewpoint": [
+        "Jungle trails"
+      ],
+      "waterfall": false
+    },
+    "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+    "vector": [
+      0.0,
+      0.39055,
+      0.385878,
+      0.425344,
+      0.633829,
+      0.444444,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.3,
+      1.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ]
+  },
+  {
+    "coverImage": null,
+    "createdAt": "2026-10-17T19:58:45.194000+00:00",
+    "description": {
+      "classificationDescription": "",
+      "lascoRatingDescription": ""
+    },
+    "difficulty": {
+      "circularity": "Out-and-Back",
+      "classification": "minor",
+      "difficulty_points": [],
+      "gain": 704,
+      "hours": 0,
+      "lascoRating": 3,
+      "length": 7.5,
+      "obstacles": 1,
+      "quality": [
+        "Dusty when dry, muddy when wet"
+      ],
+      "slope": 9.3
+    },
+    "general": {
+      "active": true,
+      "address": "Pililla, Rizal",
+      "critical_info": "",
+      "description": "Mount Sembrano features grassy slopes, rocky trails, and open ridgelines with panoramic views of Laguna de Bay and the surrounding mountains. The trail consists of steep uphill sections, exposed terrain, and limited shaded areas, with scenic landscapes along the way. Hikers pass through rolling hills and narrow dirt paths as they ascend toward the summit. The mountain\u2019s open landscape provides clear views of the lake and nearby peaks. The summit area offers a wide vantage point overlooking the surrounding countryside.",
+      "guidelines": [
+        "Practice Leave No Trace principles"
+      ],
+      "lgu_rules": [
+        "Mandatory registration at Barangay Hall"
+      ],
+      "mountain": [
+        "Mt. Sembrano"
+      ],
+      "name": "Mt. Sembrano",
+      "province": [
+        "Rizal",
+        "Laguna"
+      ],
+      "rating": 0,
+      "reviewCount": 0,
+      "safety_tips": [
+        "Bring at least 2 liters of drinking water"
+      ]
+    },
+    "geography": {
+      "end": {
+        "latitude": 14.385076,
+        "longitude": 121.3659025
+      },
+      "masl": 745,
+      "start": {
+        "latitude": 14.398105,
+        "longitude": 121.339021
+      }
+    },
+    "id": "o1Oc3DAYGScmQWMOMlwu",
+    "offlinePoints": [],
+    "profile": {
+      "features": {
+        "circularity": {
+          "circular": 0.0,
+          "out_and_back": 1.0,
+          "traverse": 0.0
+        },
+        "classification": 0.0,
+        "easy": 0.3333333432674408,
+        "elevation": 0.21432122588157654,
+        "gain": 0.3177799582481384,
+        "length": 0.309808611869812,
+        "province": {
+          "batangas": 0.0,
+          "cavite": 0.0,
+          "laguna": 1.0,
+          "quezon": 0.0,
+          "rizal": 1.0
+        },
+        "slope": 0.5631970167160034,
+        "terrain": {
+          "grassland": 0.0,
+          "muddy": 0.5,
+          "ridges": 0.0,
+          "rocky": 0.0
+        },
+        "tourism": {
+          "clean_water": 0.0,
+          "community": 0.0,
+          "information_board": 0.0,
+          "lake": 0.0,
+          "monument": 0.0,
+          "network_connection": 0.0,
+          "resting": 0.0,
+          "river": 0.0,
+          "shelter": 0.0,
+          "viewpoint": 1.0,
+          "waterfall": 0.0
+        },
+        "waterforms": {
+          "fall": 0.0,
+          "lake": 0.0,
+          "river": 0.0
+        }
+      },
+      "metadata": {
+        "id": "o1Oc3DAYGScmQWMOMlwu",
+        "type": "trail"
+      }
+    },
+    "raw": {
+      "classification": 0.0,
+      "elevation": 745,
+      "gain": 735,
+      "lascoRating": 3,
+      "length": 7.5,
+      "slope": 9.3
+    },
+    "routeMapImage": null,
+    "synthetic": false,
+    "tier": "moderate",
+    "tourism": {
+      "clean_water": null,
+      "community": null,
+      "information_board": null,
+      "lake": null,
+      "monument": null,
+      "network_connection": false,
+      "resting": null,
+      "river": null,
+      "shelter": null,
+      "viewpoint": [
+        "Scenic hills"
+      ],
+      "waterfall": null
+    },
+    "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+    "vector": [
+      0.0,
+      0.309809,
+      0.214321,
+      0.31778,
+      0.563197,
+      0.333333,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.5,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ]
+  },
+  {
+    "coverImage": null,
+    "createdAt": "2026-04-14T17:31:48.093000+00:00",
+    "description": {
+      "classificationDescription": "Mt. Daraitan is classified as a minor climb because it has a relatively low elevation of approximately 739 MASL, can usually be completed within a day, and does not require specialized climbing equipment or advanced mountaineering skills. Although the terrain is more rugged than many beginner mountains, its elevation, accessibility, and hiking duration align with the characteristics of a minor climb.",
+      "lascoRatingDescription": "Mt. Daraitan is rated 4/9 because it features steep ascents, rocky limestone terrain, narrow trails, river crossings, and sections that require light scrambling and the use of hands for balance. While the hike is physically demanding and requires good endurance, it remains manageable as a day hike and does not involve advanced technical mountaineering. These conditions make it moderately challenging, placing it within the 4/9 difficulty range."
+    },
+    "difficulty": {
+      "circularity": "Traverse",
+      "classification": "minor",
+      "difficulty_points": [
+        "Cliff",
+        "River crossings and limestone hazards"
+      ],
+      "elevation": 739,
+      "gain": 566,
+      "hours": 3,
+      "lascoRating": 4,
+      "length": 8.5,
+      "obstacles": 2,
+      "quality": [
+        "Rocky trail",
+        "Forest area"
+      ],
+      "slope": 6.6
+    },
+    "general": {
+      "active": true,
+      "address": "Daraitan, Rizal",
+      "description": "Mount Daraitan serves as a beginner-friendly hiking route that features a back-and-forth trail layout extending between four and five kilometers. The trail takes between 4 and 5 hours to finish, ascending approximately 300 to 400 meters along a moderate slope that makes it manageable to walk through. The terrain itself consists of rocky material that creates an uneven walking surface, presenting two main path challenges: a river crossing and rocky limestone areas. Despite these obstacles, visitors are rewarded with two viewing points that showcase beautiful mountain views, the river, the summit, and natural limestone formations. Tourism infrastructure in the area includes basic shelters provided by the barangay, designated resting areas, a few information boards, and water access via the nearby Tinipak River. Additionally, the mountain area holds unique cultural value as it is home to the indigenous Dumagat community.",
+      "guidelines": [
+        "Register with the local authorities before hiking.",
+        "Leave No Trace (LNT) is strictly enforced.",
+        "Avoid noise pollution, observe silence especially while trekking at 3:00 AM to avoid disturbing nocturnal wildlife."
+      ],
+      "lgu_rules": [
+        "Accessing Tinipak Cave requires a clearance."
+      ],
+      "mountain": [
+        "Mt. Daraitan"
+      ],
+      "name": "Mt. Daraitan",
+      "province": [
+        "Rizal",
+        "Quezon"
+      ],
+      "rating": 4.428571428571428,
+      "reviewCount": 14,
+      "safety_tips": [
+        "Bring a trekking pole or knee support if prone to knee pain.",
+        "Ask local guides before bringing children.",
+        "It is recommended to use industrial gloves over cheap cotton ones as the share limestones in the summit approach might destroy cotton.",
+        "There is no canopy cover at the summit, apply skin protection if arrival at peak is around noon time."
+      ]
+    },
+    "geography": {
+      "end": {
+        "latitude": 14.6161523,
+        "longitude": 121.4379731
+      },
+      "masl": 739,
+      "start": {
+        "latitude": 14.6032037,
+        "longitude": 121.4290952
+      }
+    },
+    "id": "p8Og0yqESHF4pHCfRLYq",
+    "offlinePoints": [
+      {
+        "description": "Summit",
+        "id": "1792199359637",
+        "name": "Summit",
+        "type": "summit",
+        "x": 54.37,
+        "y": 52.75
+      }
+    ],
+    "profile": {
+      "features": {
+        "circularity": {
+          "circular": 0.0,
+          "out_and_back": 0.0,
+          "traverse": 1.0
+        },
+        "classification": 0.0,
+        "easy": 0.4444444477558136,
+        "elevation": 0.2113376408815384,
+        "gain": 0.2377210259437561,
+        "length": 0.369617223739624,
+        "province": {
+          "batangas": 0.0,
+          "cavite": 0.0,
+          "laguna": 0.0,
+          "quezon": 1.0,
+          "rizal": 1.0
+        },
+        "slope": 0.3122676610946655,
+        "terrain": {
+          "grassland": 0.0,
+          "muddy": 0.0,
+          "ridges": 0.0,
+          "rocky": 1.0
+        },
+        "tourism": {
+          "clean_water": 1.0,
+          "community": 1.0,
+          "information_board": 1.0,
+          "lake": 0.0,
+          "monument": 0.0,
+          "network_connection": 1.0,
+          "resting": 1.0,
+          "river": 1.0,
+          "shelter": 1.0,
+          "viewpoint": 1.0,
+          "waterfall": 0.0
+        },
+        "waterforms": {
+          "fall": 0.0,
+          "lake": 0.0,
+          "river": 1.0
+        }
+      },
+      "metadata": {
+        "id": "p8Og0yqESHF4pHCfRLYq",
+        "type": "trail"
+      }
+    },
+    "raw": {
+      "classification": 0.0,
+      "elevation": 739,
+      "gain": 572,
+      "lascoRating": 4,
+      "length": 8.5,
+      "slope": 6.6
+    },
+    "routeMapImage": "https://firebasestorage.googleapis.com/v0/b/thrail.firebasestorage.app/o/trails%2Fmt-daraitan.png?alt=media&token=9315b612-106a-4867-b850-f8fdf7a29409",
+    "synthetic": false,
+    "tier": "moderate",
+    "tourism": {
+      "clean_water": true,
+      "community": true,
+      "information_board": true,
+      "lake": false,
+      "monument": false,
+      "network_connection": true,
+      "resting": true,
+      "river": true,
+      "shelter": true,
+      "viewpoint": [
+        "Scenic hills"
+      ],
+      "waterfall": false
+    },
+    "updatedAt": "2026-11-03T04:59:47.809000+00:00",
+    "vector": [
+      0.0,
+      0.369617,
+      0.211338,
+      0.237721,
+      0.312268,
+      0.444444,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0
+    ]
+  }
+]

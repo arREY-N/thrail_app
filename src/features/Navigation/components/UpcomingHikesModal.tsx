@@ -18,7 +18,7 @@ interface UpcomingHikesModalProps {
     onClose: () => void;
     bookings: Booking[];
     activeBooking: Booking | null;
-    onSelectBooking: (booking: Booking) => void;
+    onSelectBooking: (booking: Booking | null) => void;
 }
 
 const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
@@ -111,7 +111,16 @@ const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
                 >
                     {/* Header */}
                     <View style={styles.header}>
-                        <CustomText variant="h2" style={styles.headerTitle}>My Upcoming Hikes</CustomText>
+                        <View style={styles.headerTextGroup}>
+                            <CustomText variant="h2" style={styles.headerTitle}>
+                                My Upcoming Hikes
+                            </CustomText>
+                            <CustomText variant="caption" style={styles.headerSubtitle}>
+                                {activeBooking
+                                    ? 'Guided hike active • Tap selected hike to switch to Free Roam (DIY).'
+                                    : 'Free Roam (DIY) active • Tap a booking below to switch to Guided Hike.'}
+                            </CustomText>
+                        </View>
                         <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
                             <CustomIcon library="Feather" name="x" size={24} color={Colors.TEXT_PRIMARY} />
                         </TouchableOpacity>
@@ -145,7 +154,7 @@ const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
                             return (
                                 <TouchableOpacity
                                     style={[styles.card, isActive && styles.cardActive]}
-                                    onPress={() => onSelectBooking(item)}
+                                    onPress={() => onSelectBooking(isActive ? null : item)}
                                     activeOpacity={0.7}
                                 >
                                     <View style={styles.cardInfo}>
@@ -175,7 +184,7 @@ const UpcomingHikesModal: React.FC<UpcomingHikesModalProps> = ({
                                             onClose();
                                             setTimeout(() => {
                                                 router.push({
-                                                    pathname: '/(main)/book/list',
+                                                    pathname: '/(app)/(main)/book/list',
                                                     params: { bookingId: item.id, view: 'overview' }
                                                 });
                                             }, 200); // Slight delay ensures smooth modal closing
@@ -211,9 +220,32 @@ const styles = StyleSheet.create({
         maxHeight: '75%',
         shadowColor: Colors.SHADOW, shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, ...GlobalStyles.dropShadow(),
     },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 24, paddingBottom: 0 },
-    headerTitle: { fontSize: 18, color: Colors.TEXT_PRIMARY, marginBottom: 0 },
-    closeBtn: { padding: 4, backgroundColor: Colors.GRAY_ULTRALIGHT, borderRadius: 16 },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        paddingHorizontal: 24,
+        paddingTop: 24,
+        paddingBottom: 0,
+    },
+    headerTextGroup: {
+        flex: 1,
+        marginRight: 12,
+    },
+    headerTitle: {
+        fontSize: 18,
+        color: Colors.TEXT_PRIMARY,
+        marginBottom: 2,
+    },
+    headerSubtitle: {
+        color: Colors.TEXT_SECONDARY,
+        lineHeight: 16,
+    },
+    closeBtn: {
+        padding: 4,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderRadius: 16,
+    },
     scrollBody: { paddingHorizontal: 24, paddingBottom: 24 },
 
     // Timeline Header

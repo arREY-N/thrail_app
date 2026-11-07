@@ -1,0 +1,386 @@
+{
+  "Set 1": {
+    "Set 1: Pure Gower": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 32,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 2: Pure Euclidean": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 38,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 3: Pure Cosine": {
+      "all3": 40,
+      "gain": 43,
+      "length": 41,
+      "slope": 44,
+      "lasco": 40,
+      "total": 44,
+      "inversions": [
+        {
+          "uid": "s1_E2-N-P2",
+          "gain_inv": false,
+          "len_inv": true,
+          "slope_inv": false,
+          "eg": 320.0,
+          "dg": 559.7,
+          "el": 10.16,
+          "dl": 8.03,
+          "es": 6.21,
+          "ds": 9.11,
+          "easy_names": [
+            "Batulao Traverse"
+          ],
+          "diff_names": [
+            "Mt. Makiling Traverse (MakTrav)",
+            "Mariang Makiling Trail (MMT)",
+            "Mt. Batulao via New Trail",
+            "Mt. Sembrano",
+            "Mt. Daraitan",
+            "Mt. Tagapo",
+            "Mt. Kulis - Sambong Trail"
+          ]
+        },
+        {
+          "uid": "s1_E3-N-P3",
+          "gain_inv": true,
+          "len_inv": false,
+          "slope_inv": false,
+          "eg": 536.0,
+          "dg": 528.9,
+          "el": 6.1,
+          "dl": 8.61,
+          "es": 6.6,
+          "ds": 9.05,
+          "easy_names": [
+            "Mt. Daraitan"
+          ],
+          "diff_names": [
+            "Mt. Makiling Traverse (MakTrav)",
+            "Mariang Makiling Trail (MMT)",
+            "Mt. Batulao via New Trail",
+            "Mt. Sembrano",
+            "Batulao Traverse",
+            "Mt. Tagapo",
+            "Mt. Kulis - Sambong Trail"
+          ]
+        },
+        {
+          "uid": "s1_E4-N-P2",
+          "gain_inv": false,
+          "len_inv": true,
+          "slope_inv": false,
+          "eg": 320.0,
+          "dg": 559.7,
+          "el": 10.16,
+          "dl": 8.03,
+          "es": 6.21,
+          "ds": 9.11,
+          "easy_names": [
+            "Batulao Traverse"
+          ],
+          "diff_names": [
+            "Mt. Makiling Traverse (MakTrav)",
+            "Mariang Makiling Trail (MMT)",
+            "Mt. Daraitan",
+            "Mt. Sembrano",
+            "Mt. Batulao via New Trail",
+            "Mt. Tagapo",
+            "Mt. Kulis - Sambong Trail"
+          ]
+        },
+        {
+          "uid": "s1_E4-M-P2",
+          "gain_inv": false,
+          "len_inv": true,
+          "slope_inv": false,
+          "eg": 320.0,
+          "dg": 559.7,
+          "el": 10.16,
+          "dl": 8.03,
+          "es": 6.21,
+          "ds": 9.11,
+          "easy_names": [
+            "Batulao Traverse"
+          ],
+          "diff_names": [
+            "Mt. Makiling Traverse (MakTrav)",
+            "Mt. Daraitan",
+            "Mariang Makiling Trail (MMT)",
+            "Mt. Batulao via New Trail",
+            "Mt. Sembrano",
+            "Mt. Tagapo",
+            "Mt. Kulis - Sambong Trail"
+          ]
+        }
+      ]
+    },
+    "Set 4: GD / ED": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 35,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 5: GD / CS": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 42,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 6: ED / GD": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 36,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 7: ED / CS": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 44,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 8: CS / GD": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 43,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 9: CS / ED": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 44,
+      "total": 44,
+      "inversions": []
+    }
+  },
+  "Set 3": {
+    "Set 1: Pure Gower": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 36,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 2: Pure Euclidean": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 40,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 3: Pure Cosine": {
+      "all3": 39,
+      "gain": 44,
+      "length": 39,
+      "slope": 44,
+      "lasco": 39,
+      "total": 44,
+      "inversions": [
+        {
+          "uid": "s3_E3-N-P2",
+          "gain_inv": false,
+          "len_inv": true,
+          "slope_inv": false,
+          "eg": 320.0,
+          "dg": 559.7,
+          "el": 10.16,
+          "dl": 8.03,
+          "es": 6.21,
+          "ds": 9.11,
+          "easy_names": [
+            "Batulao Traverse"
+          ],
+          "diff_names": [
+            "Mt. Makiling Traverse (MakTrav)",
+            "Mariang Makiling Trail (MMT)",
+            "Mt. Daraitan",
+            "Mt. Sembrano",
+            "Mt. Batulao via New Trail",
+            "Mt. Tagapo",
+            "Mt. Kulis - Sambong Trail"
+          ]
+        },
+        {
+          "uid": "s3_E3-M-P2",
+          "gain_inv": false,
+          "len_inv": true,
+          "slope_inv": false,
+          "eg": 320.0,
+          "dg": 559.7,
+          "el": 10.16,
+          "dl": 8.03,
+          "es": 6.21,
+          "ds": 9.11,
+          "easy_names": [
+            "Batulao Traverse"
+          ],
+          "diff_names": [
+            "Mt. Makiling Traverse (MakTrav)",
+            "Mt. Daraitan",
+            "Mariang Makiling Trail (MMT)",
+            "Mt. Batulao via New Trail",
+            "Mt. Sembrano",
+            "Mt. Tagapo",
+            "Mt. Kulis - Sambong Trail"
+          ]
+        },
+        {
+          "uid": "s3_E4-N-P2",
+          "gain_inv": false,
+          "len_inv": true,
+          "slope_inv": false,
+          "eg": 320.0,
+          "dg": 559.7,
+          "el": 10.16,
+          "dl": 8.03,
+          "es": 6.21,
+          "ds": 9.11,
+          "easy_names": [
+            "Batulao Traverse"
+          ],
+          "diff_names": [
+            "Mt. Makiling Traverse (MakTrav)",
+            "Mariang Makiling Trail (MMT)",
+            "Mt. Sembrano",
+            "Mt. Daraitan",
+            "Mt. Batulao via New Trail",
+            "Mt. Tagapo",
+            "Mt. Kulis - Sambong Trail"
+          ]
+        },
+        {
+          "uid": "s3_E4-N-P3",
+          "gain_inv": false,
+          "len_inv": true,
+          "slope_inv": false,
+          "eg": 320.0,
+          "dg": 559.7,
+          "el": 10.16,
+          "dl": 8.03,
+          "es": 6.21,
+          "ds": 9.11,
+          "easy_names": [
+            "Batulao Traverse"
+          ],
+          "diff_names": [
+            "Mt. Makiling Traverse (MakTrav)",
+            "Mariang Makiling Trail (MMT)",
+            "Mt. Sembrano",
+            "Mt. Daraitan",
+            "Mt. Batulao via New Trail",
+            "Mt. Tagapo",
+            "Mt. Kulis - Sambong Trail"
+          ]
+        },
+        {
+          "uid": "s3_E4-M-P2",
+          "gain_inv": false,
+          "len_inv": true,
+          "slope_inv": false,
+          "eg": 320.0,
+          "dg": 559.7,
+          "el": 10.16,
+          "dl": 8.03,
+          "es": 6.21,
+          "ds": 9.11,
+          "easy_names": [
+            "Batulao Traverse"
+          ],
+          "diff_names": [
+            "Mt. Makiling Traverse (MakTrav)",
+            "Mt. Daraitan",
+            "Mariang Makiling Trail (MMT)",
+            "Mt. Sembrano",
+            "Mt. Batulao via New Trail",
+            "Mt. Tagapo",
+            "Mt. Kulis - Sambong Trail"
+          ]
+        }
+      ]
+    },
+    "Set 4: GD / ED": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 37,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 5: GD / CS": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 43,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 6: ED / GD": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 39,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 7: ED / CS": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 43,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 8: CS / GD": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 43,
+      "total": 44,
+      "inversions": []
+    },
+    "Set 9: CS / ED": {
+      "all3": 44,
+      "gain": 44,
+      "length": 44,
+      "slope": 44,
+      "lasco": 44,
+      "total": 44,
+      "inversions": []
+    }
+  }
+}

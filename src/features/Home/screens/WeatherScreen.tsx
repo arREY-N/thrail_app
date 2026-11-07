@@ -3,8 +3,9 @@
  * @description A comprehensive weather dashboard displaying current conditions, 7-day forecast, and environmental metrics.
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+    Platform,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -25,6 +26,8 @@ import {
     formatLastUpdatedLabel,
     formatWeatherDisplay,
     getBeaufortWindInfo,
+    getCurrentHourIndex,
+    getDetailedWeatherSafety,
     getHourlyForecastForDay,
     getPAGASAHeatIndexInfo,
     getPAGASARainfallWarning,
@@ -38,6 +41,7 @@ import { IconLibrary } from '@/src/types/ui.types';
 
 import WeatherSkeleton from '@/src/features/Home/components/WeatherSkeleton';
 import { WeatherSafetyCard } from '@/src/components/WeatherSafetyCard';
+import { ProcessedWeatherData } from '@/src/core/types/weather';
 
 /**
  * Standardized alert levels for weather metrics.
@@ -107,7 +111,8 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
         longitude: activeLon, 
         locationName: displayName, 
         geocodedName,
-        isLocating
+        isLocating,
+        refreshLocation,
     } = useLocation({ 
         propLatitude: latitude, 
         propLongitude: longitude, 
@@ -115,6 +120,13 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
     });
 
     const [refreshing, setRefreshing] = useState<boolean>(false);
+    const isMountedRef = useRef<boolean>(true);
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     const { weatherData, loading, error, refetch } = useWeather(activeLat, activeLon);
 
@@ -125,46 +137,100 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        if (onRefreshPress) await onRefreshPress(); 
-        await refetch();
-        setRefreshing(false);
-    }, [onRefreshPress, refetch]);
-
-    const display = formatWeatherDisplay(weatherData);
-    const hasData = display.hasData;
+        try {
+            if (onRefreshPress) await onRefreshPress(); 
+            await refreshLocation(true);
+            await refetch();
+        } finally {
+            if (isMountedRef.current) {
+                setRefreshing(false);
+            }
+        }
+    }, [onRefreshPress, refreshLocation, refetch]);
 
     const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
+    const [selectedHourIndex, setSelectedHourIndex] = useState<number>(0);
 
     const activeDay = weatherData?.forecast?.at(selectedDayIndex) ?? weatherData?.forecast?.at(0);
     const isTodaySelected = selectedDayIndex === 0;
 
-    const activeHourlyList = getHourlyForecastForDay(weatherData, selectedDayIndex);
+    const activeHourlyList = React.useMemo(() => {
+        return weatherData ? getHourlyForecastForDay(weatherData, selectedDayIndex) : [];
+    }, [weatherData, selectedDayIndex]);
 
-    // Active metrics computed based on selected day
-    const activeWindRaw = isTodaySelected ? (weatherData?.windSpeed ?? 0) : (activeDay?.windSpeedMax ?? 0);
-    const activePrecipRaw = isTodaySelected ? (weatherData?.precipitationProbability ?? 0) : (activeDay?.precipitationProbabilityMax ?? 0);
-    const activeUvRaw = isTodaySelected ? (weatherData?.uvIndex ?? 0) : (activeDay?.uvIndexMax ?? 0);
+    const activeHour = activeHourlyList.at(selectedHourIndex);
+    const isLiveNowSelected = isTodaySelected && selectedHourIndex === 0;
+
+    const effectiveWeatherData: ProcessedWeatherData | null | undefined = React.useMemo(() => {
+        if (!weatherData) return weatherData;
+        if (isLiveNowSelected || !activeHour) {
+            const curIdx = getCurrentHourIndex(weatherData.hourlyForecast);
+            const liveCurrentHour = activeHour ?? weatherData.hourlyForecast?.[curIdx];
+            if (!liveCurrentHour) return weatherData;
+
+            let liveCode = weatherData.weatherCode;
+            if (liveCode <= 1 && (liveCurrentHour.weatherCode >= 51 || (liveCurrentHour.precipitationProbability ?? 0) >= 50)) {
+                liveCode = liveCurrentHour.weatherCode >= 51 ? liveCurrentHour.weatherCode : 61;
+            }
+
+            return {
+                ...weatherData,
+                weatherCode: liveCode,
+                precipitationProbability: liveCurrentHour.precipitationProbability ?? weatherData.precipitationProbability,
+                hourlyForecast: [liveCurrentHour],
+            };
+        }
+
+        return {
+            ...weatherData,
+            temperature: activeHour.temperature,
+            apparentTemperature: activeHour.apparentTemperature,
+            weatherCode: activeHour.weatherCode,
+            precipitationProbability: activeHour.precipitationProbability,
+            windSpeed: activeHour.windSpeed,
+            windGusts: activeHour.windGusts ?? activeHour.windSpeed,
+            windDirection: activeHour.windDirection ?? weatherData.windDirection,
+            uvIndex: activeHour.uvIndex,
+            visibility: activeHour.visibility ?? weatherData.visibility,
+            hourlyForecast: [activeHour],
+        };
+    }, [weatherData, isLiveNowSelected, activeHour]);
+
+    const display = formatWeatherDisplay(effectiveWeatherData);
+    const hasData = display.hasData;
+
+    const effectiveSafetyReport = React.useMemo(() => {
+        if (!effectiveWeatherData) return undefined;
+        return getDetailedWeatherSafety(effectiveWeatherData, displayName);
+    }, [effectiveWeatherData, displayName]);
+
+    // Active metrics computed based on effective weather data
+    const activeWindRaw = effectiveWeatherData?.windSpeed ?? 0;
+    const activeUvRaw = effectiveWeatherData?.uvIndex ?? 0;
+
+    // Precipitation: Always match the currently selected hour's exact precipitation probability (Option A)
+    const effectivePrecipChance = effectiveWeatherData?.precipitationProbability ?? 0;
 
     const pagasaRain = getPAGASARainfallWarning(
-        activePrecipRaw,
-        isTodaySelected ? (weatherData?.precipitationSum ?? 0) : 0,
-        isTodaySelected ? (weatherData?.weatherCode ?? 0) : (activeDay?.weatherCode ?? 0),
-        isTodaySelected ? weatherData?.precipitationRate : undefined
+        effectivePrecipChance,
+        isLiveNowSelected ? (weatherData?.precipitationSum ?? 0) : 0,
+        effectiveWeatherData?.weatherCode ?? 0,
+        isLiveNowSelected ? weatherData?.precipitationRate : undefined
     );
 
-    const heatIndexVal = isTodaySelected
-        ? (weatherData?.apparentTemperature != null ? weatherData.apparentTemperature : weatherData?.temperature)
-        : activeDay?.temperatureMax;
+    const heatIndexVal = effectiveWeatherData
+        ? (effectiveWeatherData.apparentTemperature != null ? effectiveWeatherData.apparentTemperature : effectiveWeatherData.temperature)
+        : 0;
     const pagasaHeat = getPAGASAHeatIndexInfo(heatIndexVal);
 
     const beaufortWind = getBeaufortWindInfo(
         activeWindRaw,
-        isTodaySelected ? (weatherData?.windGusts ?? 0) : activeWindRaw,
-        weatherData?.windDirection ?? 0
+        effectiveWeatherData?.windGusts ?? activeWindRaw,
+        effectiveWeatherData?.windDirection ?? 0
     );
 
     const visibilityInfo = getSummitVisibilityInfo(
-        weatherData?.visibility ?? 10000,
+        effectiveWeatherData?.visibility ?? 10000,
         weatherData?.cloudCover ?? 0
     );
 
@@ -267,19 +333,41 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                         </CustomText>
                                     ) : null}
                                 </View>
-                                {lastUpdatedLabel && (
-                                    <CustomText variant="caption" style={styles.lastUpdatedLabel}>
-                                        Updated {lastUpdatedLabel}
-                                    </CustomText>
-                                )}
+                                <View style={styles.updatedMetaRow}>
+                                    {lastUpdatedLabel && (
+                                        <CustomText variant="caption" style={styles.lastUpdatedLabel}>
+                                            Updated {lastUpdatedLabel}
+                                        </CustomText>
+                                    )}
+                                    {Platform.OS === 'web' && (
+                                        <TouchableOpacity
+                                            style={styles.webRefreshBtn}
+                                            onPress={onRefresh}
+                                            disabled={loading || isLocating || refreshing}
+                                            activeOpacity={0.7}
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Refresh weather"
+                                        >
+                                            <CustomIcon
+                                                library="Feather"
+                                                name="refresh-cw"
+                                                size={13}
+                                                color={Colors.PRIMARY}
+                                            />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             </View>
                         </View>
 
                         {/* Outdoor Safety Advisory */}
-                        <WeatherSafetyCard
-                            weatherData={weatherData}
-                            trailName={displayName}
-                        />
+                        {effectiveSafetyReport && (
+                            <WeatherSafetyCard
+                                report={effectiveSafetyReport}
+                                weatherData={effectiveWeatherData}
+                                trailName={displayName}
+                            />
+                        )}
                         <View style={styles.fullWidthCard}>
                             <View style={styles.cardHeader}>
                                 <CustomIcon 
@@ -287,7 +375,7 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                     name="calendar-outline" 
                                     size={20} 
                                     color={Colors.PRIMARY} 
-                                />
+                                    />
                                 <CustomText variant="label" style={styles.cardHeaderTitle}>{'7-Day Forecast'}</CustomText>
                             </View>
                             
@@ -309,7 +397,10 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                             high={Math.round(day.temperatureMax)} 
                                             isToday={idx === 0}
                                             isSelected={selectedDayIndex === idx}
-                                            onPress={() => setSelectedDayIndex(idx)}
+                                            onPress={() => {
+                                                setSelectedDayIndex(idx);
+                                                setSelectedHourIndex(0);
+                                            }}
                                         />
                                     );
                                 })}
@@ -340,6 +431,7 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                 >
                                     {activeHourlyList.map((hour, hIdx) => {
                                         const { icon, library } = getWeatherInfoUI(hour.weatherCode);
+                                        const isSelected = selectedHourIndex === hIdx;
                                         return (
                                             <HourlyItem 
                                                 key={hIdx}
@@ -348,7 +440,8 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                                                 lib={library as IconLibrary}
                                                 temperature={hour.temperature}
                                                 precipChance={hour.precipitationProbability}
-                                                isNow={hour.hourLabel === 'Now'}
+                                                isSelected={isSelected}
+                                                onPress={() => setSelectedHourIndex(hIdx)}
                                             />
                                         );
                                     })}
@@ -371,9 +464,9 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                             />
                             <BentoBox 
                                 title="Precipitation" 
-                                value={isTodaySelected ? display.precipChance : String(activePrecipRaw)} 
+                                value={effectivePrecipChance} 
                                 unit="%" 
-                                subValue={weatherData?.precipitationSum ? `${weatherData.precipitationSum.toFixed(1)} mm • ${pagasaRain.badge}` : pagasaRain.badge}
+                                subValue={(isLiveNowSelected && weatherData?.precipitationSum) ? `${weatherData.precipitationSum.toFixed(1)} mm • ${pagasaRain.badge}` : pagasaRain.badge}
                                 desc={pagasaRain.description} 
                                 icon="rainy-outline" 
                                 lib="Ionicons" 
@@ -383,7 +476,7 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                             />
                             <BentoBox 
                                 title="Wind & Gusts" 
-                                value={isTodaySelected ? display.windSpeed : String(activeWindRaw)} 
+                                value={effectiveWeatherData?.windSpeed !== undefined ? String(effectiveWeatherData.windSpeed) : '--'} 
                                 unit="km/h" 
                                 subValue={beaufortWind.gustText}
                                 desc={beaufortWind.description} 
@@ -395,10 +488,10 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                             />
                             <BentoBox 
                                 title="UV Index" 
-                                value={isTodaySelected ? display.uvIndex : String(Math.round(activeUvRaw))} 
+                                value={String(Math.round(activeUvRaw))} 
                                 unit="" 
                                 subValue={weatherData?.uvIndexMax ? `Peak: ${Math.round(weatherData.uvIndexMax)}` : 'Low Risk'}
-                                desc={getUVIndexReminder(activeUvRaw, weatherData?.cloudCover, isTodaySelected ? weatherData?.weatherCode : activeDay?.weatherCode)} 
+                                desc={getUVIndexReminder(activeUvRaw, weatherData?.cloudCover, effectiveWeatherData?.weatherCode)} 
                                 icon="sun"  
                                 lib="Feather" 
                                 alertLevel={getMetricAlertLevel('uv', activeUvRaw)} 
@@ -407,7 +500,7 @@ const WeatherScreen: React.FC<WeatherScreenProps> = ({
                             />
                             <BentoBox 
                                 title="Visibility" 
-                                value={weatherData?.visibility != null ? (weatherData.visibility / 1000).toFixed(1) : '10'} 
+                                value={effectiveWeatherData?.visibility != null ? (effectiveWeatherData.visibility / 1000).toFixed(1) : '10'} 
                                 unit="km" 
                                 subValue={visibilityInfo.badge}
                                 desc={visibilityInfo.description} 
@@ -512,12 +605,17 @@ interface HourlyItemProps {
     lib: IconLibrary;
     temperature: number;
     precipChance: number;
-    isNow: boolean;
+    isSelected: boolean;
+    onPress: () => void;
 }
 
-const HourlyItem = ({ hourLabel, icon, lib, temperature, precipChance, isNow }: HourlyItemProps) => (
-    <View style={[styles.hourlyItem, isNow && styles.hourlyItemNow]}>
-        <CustomText variant="label" style={[styles.hourTimeText, isNow && styles.hourTimeNow]}>
+const HourlyItem = ({ hourLabel, icon, lib, temperature, precipChance, isSelected, onPress }: HourlyItemProps) => (
+    <TouchableOpacity 
+        activeOpacity={0.7}
+        onPress={onPress}
+        style={[styles.hourlyItem, isSelected && styles.hourlyItemNow]}
+    >
+        <CustomText variant="label" style={[styles.hourTimeText, isSelected && styles.hourTimeNow]}>
             {hourLabel}
         </CustomText>
         <View style={styles.hourlyIconWrapper}>
@@ -525,7 +623,7 @@ const HourlyItem = ({ hourLabel, icon, lib, temperature, precipChance, isNow }: 
                 library={lib} 
                 name={icon} 
                 size={26} 
-                color={isNow ? Colors.PRIMARY : Colors.TEXT_PRIMARY} 
+                color={isSelected ? Colors.PRIMARY : Colors.TEXT_PRIMARY} 
             />
         </View>
         <View style={styles.hourlyBottomCol}>
@@ -550,7 +648,7 @@ const HourlyItem = ({ hourLabel, icon, lib, temperature, precipChance, isNow }: 
                 </CustomText>
             </View>
         </View>
-    </View>
+    </TouchableOpacity>
 );
 
 interface BentoBoxProps {
@@ -583,7 +681,10 @@ const BentoBox: React.FC<BentoBoxProps> = ({
     const isMultiColumn = isDesktop || isTablet;
 
     return (
-        <View style={[styles.bentoBox, isTablet && styles.bentoBoxTablet, isDesktop && styles.bentoBoxDesktop]}>
+        <View 
+            style={[styles.bentoBox, isTablet && styles.bentoBoxTablet, isDesktop && styles.bentoBoxDesktop]}
+            {...(Platform.OS === 'web' ? { title: desc } : {})}
+        >
             <View style={styles.bentoHeader}>
                 <CustomIcon library={lib} name={icon} size={16} color={iconColor} />
                 <CustomText variant="caption" style={styles.bentoTitle} numberOfLines={1}>
@@ -619,7 +720,7 @@ const BentoBox: React.FC<BentoBoxProps> = ({
             </View>
 
             <View style={styles.bentoBottom}>
-                <CustomText variant="caption" style={styles.bentoDesc} numberOfLines={2}>
+                <CustomText variant="caption" style={styles.bentoDesc} numberOfLines={isDesktop ? 3 : 2}>
                     {desc}
                 </CustomText>
             </View>
@@ -671,10 +772,25 @@ const styles = StyleSheet.create({
         marginTop: 2,
         color: Colors.TEXT_SECONDARY,
     },
+    updatedMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
     lastUpdatedLabel: {
         color: Colors.TEXT_SECONDARY,
         marginTop: 2,
         lineHeight: 18,
+    },
+    webRefreshBtn: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
     },
     mainWeatherRow: {
         flexDirection: 'row',
@@ -893,7 +1009,7 @@ const styles = StyleSheet.create({
     bentoGrid: { 
         flexDirection: 'row', 
         flexWrap: 'wrap', 
-        justifyContent: 'space-between', 
+        justifyContent: 'flex-start', 
         gap: 12, 
     },
     bentoBox: { 
@@ -901,7 +1017,7 @@ const styles = StyleSheet.create({
         borderRadius: 18, 
         padding: 16, 
         width: '100%', 
-        minHeight: 120, 
+        minHeight: 125, 
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -910,12 +1026,12 @@ const styles = StyleSheet.create({
         ...GlobalStyles.dropShadow(2, 0.06, Colors.SHADOW, { radius: 8 }), 
     },
     bentoBoxTablet: {
-        width: '48%', 
-        minHeight: 150,
+        width: '48.5%', 
+        minHeight: 155,
     },
     bentoBoxDesktop: {
-        width: '23.5%', 
-        minHeight: 155,
+        width: '31.8%', 
+        minHeight: 160,
     },
     bentoHeader: { 
         flexDirection: 'row', 

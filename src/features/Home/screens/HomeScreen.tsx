@@ -34,7 +34,7 @@ import { useWebDragScroll } from "@/src/hooks/useWebDragScroll";
 import {
   CustomTutorialModal,
   TutorialHelpButton,
-  useTutorialGuide,
+  useHomeTutorial,
 } from '@/src/components/Tutorial/Tutorial';
 
 import { getDetailedWeatherSafety } from "@/src/core/utility/weatherHelpers";
@@ -174,7 +174,7 @@ const ListSection: React.FC<ListSectionProps> = ({
       </View>
 
       {/* SKELETON LOADING STATE: Renders shimmering MountainCardSkeleton cards while data is fetching or refreshing */}
-      {(isSectionLoading && !hasData) || isRefreshing ? (
+      {(isSectionLoading && !hasData) ? (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -320,7 +320,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   isRefreshing = false,
   onRefreshPress,
 }) => {
-  const { latitude, longitude, locationName, geocodedName, isLocating } =
+  const { latitude, longitude, locationName, geocodedName, isLocating, refreshLocation } =
     useLocation();
   const { weatherData, loading, error, refetch } = useWeather(
     latitude,
@@ -329,7 +329,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   const { width } = useWindowDimensions();
   const { isDesktop, isTablet } = useBreakpoints();
   const isWideScreen = isDesktop || isTablet;
-  const tutorial = useTutorialGuide('tabs', !isLoading);
+  const tutorial = useHomeTutorial({ isReady: !isLoading });
 
   const MAX_CONTAINER_WIDTH = 860;
   const effectiveWidth = Math.min(width, MAX_CONTAINER_WIDTH);
@@ -404,6 +404,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={async () => {
+                await refreshLocation(true);
                 await refetch();
                 if (onRefreshPress) {
                   await onRefreshPress();
@@ -420,8 +421,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           loading={loading || isLocating}
           isRefreshing={isRefreshing}
           error={error}
-          onPress={onWeatherPress}
-          onReload={refetch}
+          onPress={() => {
+            router.push("/home/weather");
+          }}
+          onReload={async () => {
+            await refreshLocation(true);
+            await refetch();
+          }}
           locationName={geocodedName || locationName}
           safetyReport={safetyReport}
         />
@@ -434,7 +440,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           error={recommendationsError}
           isNewAccount={isNewAccount}
           onPress={onTrailOfTheMonthPress}
-          onExplorePress={onSeeMoreDiscoverPress}
+          onExplorePress={onSeeMoreOffersPress}
           getItemRating={getItemRating}
           onDownloadPress={onDownloadPress}
           getTrailOffersCount={getTrailOffersCountForCard}

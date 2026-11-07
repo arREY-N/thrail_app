@@ -96,7 +96,7 @@ const WeatherSection = ({
     : null;
 
   // 1. Loading / Locating / Refreshing State
-  if ((loading && !weatherData) || isRefreshing) {
+  if (loading && !weatherData) {
     return (
       <View style={styles.wrapper}>
         <View style={styles.container}>
@@ -150,12 +150,29 @@ const WeatherSection = ({
           <CustomIcon
             library="Ionicons"
             name="location-outline"
-            size={32}
+            size={36}
             color={Colors.GRAY_MEDIUM}
           />
-          <CustomText variant="caption" style={styles.emptyStateText}>
-            Location services disabled or weather stats unavailable.
+          <CustomText style={styles.emptyStateTitle}>
+            Location Weather Unavailable
           </CustomText>
+          <CustomText variant="caption" style={styles.emptyStateText}>
+            Enable device location or set a valid address in your profile to view local weather.
+          </CustomText>
+          {onReload && (
+            <Pressable
+              onPress={onReload}
+              style={({ hovered }) => [
+                styles.retryPill,
+                hovered && styles.retryPillHovered,
+              ]}
+            >
+              <CustomIcon library="Feather" name="refresh-cw" size={12} color={Colors.PRIMARY} />
+              <CustomText variant="caption" style={styles.retryPillText}>
+                Refresh Location
+              </CustomText>
+            </Pressable>
+          )}
         </View>
       </View>
     );
@@ -184,10 +201,37 @@ const WeatherSection = ({
             </CustomText>
           </View>
 
-          {lastUpdatedLabel && (
-            <CustomText style={styles.updatedText}>
-              {lastUpdatedLabel}
-            </CustomText>
+          { (lastUpdatedLabel || (Platform.OS === 'web' && onReload)) && (
+            <View style={styles.updatedRow}>
+              {lastUpdatedLabel ? (
+                <CustomText style={styles.updatedText}>
+                  {lastUpdatedLabel}
+                </CustomText>
+              ) : null}
+              {Platform.OS === 'web' && onReload && (
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onReload();
+                  }}
+                  disabled={loading || isRefreshing}
+                  accessibilityRole="button"
+                  accessibilityLabel="Refresh weather"
+                  style={({ hovered }) => [
+                    styles.webRefreshBtn,
+                    hovered && styles.webRefreshBtnHovered,
+                    (loading || isRefreshing) && styles.webRefreshBtnDisabled,
+                  ]}
+                >
+                  <CustomIcon
+                    library="Feather"
+                    name="refresh-cw"
+                    size={12}
+                    color={Colors.PRIMARY}
+                  />
+                </Pressable>
+              )}
+            </View>
           )}
         </View>
 
@@ -337,11 +381,37 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         paddingHorizontal: 16,
     },
+    emptyStateTitle: {
+        color: Colors.TEXT_PRIMARY,
+        fontSize: 15,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
     emptyStateText: {
         color: Colors.TEXT_SECONDARY,
         fontWeight: '500',
         textAlign: 'center',
         paddingHorizontal: 16,
+    },
+    retryPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: Colors.WHITE,
+        borderColor: Colors.PRIMARY,
+        borderWidth: 1,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        marginTop: 4,
+    },
+    retryPillHovered: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+    },
+    retryPillText: {
+        color: Colors.PRIMARY,
+        fontWeight: '600',
+        fontSize: 12,
     },
     headerMetaRow: {
         flexDirection: 'row',
@@ -362,11 +432,31 @@ const styles = StyleSheet.create({
         lineHeight: 16,
         flexShrink: 1,
     },
+    updatedRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
     updatedText: {
         fontSize: 12,
         color: Colors.TEXT_PLACEHOLDER,
         fontWeight: '500',
         lineHeight: 16,
+    },
+    webRefreshBtn: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        ...(Platform.OS === 'web' && { cursor: 'pointer' as const }),
+    },
+    webRefreshBtnHovered: {
+        backgroundColor: Colors.GRAY_LIGHT,
+    },
+    webRefreshBtnDisabled: {
+        opacity: 0.5,
     },
     contentRow: {
         flexDirection: 'row',

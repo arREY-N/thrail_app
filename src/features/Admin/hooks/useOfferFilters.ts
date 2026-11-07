@@ -89,28 +89,78 @@ export default function useOfferFilters(
             const actionableBookingIds = new Set<string>();
             list.forEach(b => {
                 const cancellation = cancellationByBooking.get(b.id);
-                if (cancellation?.status === 'approved' || b.status === 'cancelled') {
-                    return;
-                }
-                if (cancellation && cancellation.cancelledBy === 'admin') {
-                    return;
+
+                const hasRefundedPayment = Boolean(
+                    b.payment?.some(p => p.status === 'refunded' || ((p.refundedAmount || 0) > 0))
+                );
+                const isVerifyingPayment = b.paymentVerificationStatus === 'pending_verification' ||
+                    Boolean(b.payment?.some(p => p.gateway === 'manual_qr' && p.status === 'pending'));
+
+                const isNoRefund = Boolean(
+                    cancellation?.refundDecision === 'no_refund' ||
+                    ((cancellation?.status === 'approved' || b.status === 'cancelled') &&
+                        Boolean(cancellation) &&
+                        (cancellation?.refundAmount ?? 0) === 0 &&
+                        !hasRefundedPayment &&
+                        !cancellation?.adminRefundReceiptUrl &&
+                        cancellation?.handshakeStep !== 'awaiting_user_wallet' &&
+                        cancellation?.handshakeStep !== 'awaiting_admin_payout' &&
+                        cancellation?.handshakeStep !== 'awaiting_user_confirmation' &&
+                        cancellation?.handshakeStep !== 'refund_disputed')
+                );
+
+                const isRefundComplete =
+                    !isNoRefund &&
+                    (b.status === 'refunded' ||
+                        cancellation?.status === 'refund_completed' ||
+                        cancellation?.handshakeStep === 'completed' ||
+                        Boolean(cancellation?.userConfirmedReceivedAt) ||
+                        hasRefundedPayment);
+
+                const isRefunding =
+                    !isNoRefund &&
+                    !isRefundComplete &&
+                    (b.status === 'refund' ||
+                        cancellation?.status === 'refund_pending' ||
+                        cancellation?.status === 'refund_submitted' ||
+                        cancellation?.status === 'refund_disputed' ||
+                        (cancellation?.status === 'approved' &&
+                            (Boolean(cancellation?.refundAmount && cancellation.refundAmount > 0) ||
+                             Boolean(cancellation?.handshakeStep && cancellation.handshakeStep !== 'completed'))));
+
+                const isHikerCancellationPending = cancellation && cancellation.status === 'pending' && cancellation.cancelledBy !== 'admin' && b.status !== 'cancelled';
+
+                let status = (b.status as string) || '';
+                if (isNoRefund) {
+                    status = 'cancelled';
+                } else if (isRefundComplete) {
+                    status = 'refunded';
+                } else if (isRefunding) {
+                    status = 'refund';
+                } else if (isHikerCancellationPending) {
+                    status = 'for-cancellation';
+                } else if (isVerifyingPayment && (b.status === 'for-payment' || b.status === 'downpayment')) {
+                    status = 'verifying-payment';
                 }
 
-                const status = (b.status as string) || '';
-                if (
+                const isRefundActionNeeded = isRefunding && (
+                    cancellation?.handshakeStep === 'awaiting_admin_payout' ||
+                    cancellation?.handshakeStep === 'awaiting_admin_refund_decision' ||
+                    cancellation?.handshakeStep === 'refund_disputed' ||
+                    cancellation?.status === 'refund_disputed' ||
+                    (!cancellation?.adminRefundReceiptUrl && !cancellation?.handshakeStep)
+                );
+
+                const requiresAdminAction =
                     status === 'for-reservation' ||
-                    status === 'paid' ||
-                    status === 'downpayment' ||
+                    status === 'verifying-payment' ||
                     status === 'for-cancellation' ||
-                    status === 'for-reschedule'
-                ) {
-                    actionableBookingIds.add(b.id);
-                }
-            });
+                    status === 'for-reschedule' ||
+                    (status === 'refund' && isRefundActionNeeded) ||
+                    b.overpayment?.status === 'awaiting_admin_payout';
 
-            offerCancellations.forEach(c => {
-                if (c.status === 'pending' && c.cancelledBy !== 'admin') {
-                    actionableBookingIds.add(c.bookingId);
+                if (requiresAdminAction) {
+                    actionableBookingIds.add(b.id);
                 }
             });
 

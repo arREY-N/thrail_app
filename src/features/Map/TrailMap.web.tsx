@@ -19,7 +19,7 @@ import {
   resolveMountainId,
   resolveMountainIdByCoords,
 } from "./services/TrailOfflineManager";
-import { FREE_OFFLINE_STYLE, onlineStyle } from "./styles/onlineStyle";
+import { onlineStyle } from "./styles/onlineStyle";
 
 /* -------------------------------------------------------------------------- */
 /*  Types (keep identical to TrailMap.native.tsx so callers don't change)      */
@@ -62,10 +62,11 @@ export interface TrailMapRef {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Helpers (TODO: move to a shared file used by both native and web)          */
+/*  Helpers (shared LKL thresholds & sub-minute formatting)                    */
 /* -------------------------------------------------------------------------- */
 
-const LKL_MINUTES = 2;
+const SIGNAL_LOST_THRESHOLD_MS = 40000; // 40 seconds
+const LKL_TICKER_INTERVAL_MS = 2000; // 2 seconds
 const GHOST_TTL_MS = 24 * 60 * 60 * 1000;
 
 function isValidCoordinate(lat?: number | null, lon?: number | null): boolean {
@@ -80,15 +81,20 @@ function toMs(timestamp?: Date | string | number): number {
   return isNaN(ms) ? 0 : ms;
 }
 
-function getElapsedMinutes(timestamp?: Date | string | number, now = Date.now()): number {
+function isHikerSignalLost(timestamp?: Date | string | number, status?: string, now = Date.now()): boolean {
+  if (status === "GPS_SIGNAL_LOST") return true;
   const ms = toMs(timestamp);
-  if (!ms) return 0;
-  return Math.floor(Math.max(0, now - ms) / 60000);
+  if (!ms) return true;
+  return Math.max(0, now - ms) >= SIGNAL_LOST_THRESHOLD_MS;
 }
 
 function formatTimeAgo(timestamp?: Date | string | number, now = Date.now()): string {
-  const mins = getElapsedMinutes(timestamp, now);
-  if (mins < 1) return "Just now";
+  const ms = toMs(timestamp);
+  if (!ms) return "";
+  const elapsedSec = Math.max(0, Math.floor((now - ms) / 1000));
+  if (elapsedSec < 15) return "Just now";
+  if (elapsedSec < 60) return `${elapsedSec}s ago`;
+  const mins = Math.floor(elapsedSec / 60);
   if (mins < 60) return `${mins}m ago`;
   return `${Math.floor(mins / 60)}h ${mins % 60}m ago`;
 }
@@ -298,7 +304,7 @@ function buildHikerEntry(hiker: HikerLocation, onClick: (h: HikerLocation) => vo
 
 function refreshHikerEntry(entry: HikerEntry, now: number) {
   const { hiker } = entry;
-  const isLkl = getElapsedMinutes(hiker.timestamp, now) >= LKL_MINUTES;
+  const isLkl = isHikerSignalLost(hiker.timestamp, hiker.status, now);
   entry.initials.textContent = getInitials(hiker.hikerName); // textContent: safe against XSS
   entry.circle.style.background = isLkl ? "#D97706" : "#E65100";
   entry.circle.style.borderColor = isLkl ? "#FEF3C7" : "#FFFFFF";
@@ -414,6 +420,7 @@ const TrailMap = memo(
       const hasInitialCoords = !!(lonStr && latStr && !isNaN(parsedLon) && !isNaN(parsedLat));
       const hasInitialCoordsRef = useRef(hasInitialCoords);
       const centeredOnUserRef = useRef(false);
+      const pendingCenterOnUserRef = useRef(false);
       const trailBoundsRef = useRef<maplibregl.LngLatBounds | null>(null);
       const hasFittedTrailRef = useRef(false);
       const hasFittedHikerRef = useRef(false);
@@ -445,7 +452,7 @@ const TrailMap = memo(
         ensureMapLibreWorker();
 
         let map = sharedMap;
-        const initialStyle = (isOffline ? FREE_OFFLINE_STYLE : onlineStyle) as unknown as maplibregl.StyleSpecification | string;
+        const initialStyle = onlineStyle as unknown as maplibregl.StyleSpecification | string;
         if (!map || !sharedContainer) {
           sharedContainer = document.createElement("div");
           sharedContainer.style.cssText = "width:100%;height:100%;position:absolute;inset:0";
@@ -461,7 +468,7 @@ const TrailMap = memo(
           });
           // Style is set right after construction so transformStyle can filter it
           map.setStyle(initialStyle, { transformStyle: stripShieldLayers });
-          sharedAppliedStyle = isOffline ? FREE_OFFLINE_STYLE : onlineStyle;
+          sharedAppliedStyle = onlineStyle;
           map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
           map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
           map.once("load", () => {
@@ -536,7 +543,7 @@ const TrailMap = memo(
       useEffect(() => {
         const map = mapRef.current;
         if (!map || !mapReady) return;
-        const targetStyle = actuallyOffline ? FREE_OFFLINE_STYLE : onlineStyle;
+        const targetStyle = onlineStyle;
         if (sharedAppliedStyle === targetStyle) return;
         sharedAppliedStyle = targetStyle;
         map.setStyle(targetStyle as unknown as maplibregl.StyleSpecification | string, {
@@ -552,6 +559,9 @@ const TrailMap = memo(
           }
         };
         map.once("idle", handleIdleStyle);
+        return () => {
+          map.off("idle", handleIdleStyle);
+        };
       }, [actuallyOffline, mapReady]);
 
       /* --------------------------- Resolve trail URLs ------------------------ */
@@ -759,8 +769,10 @@ const TrailMap = memo(
         const fitTarget =
           activeGeoJsonUrl ||
           (targetMountain && MOUNTAIN_TRAIL_REGISTRY[targetMountain]?.allFile ? contextGeoJsonUrl : null);
+        let abortController: AbortController | null = null;
         if (!hasInitialCoords && fitTarget) {
-          fetch(fitTarget)
+          abortController = new AbortController();
+          fetch(fitTarget, { signal: abortController.signal })
             .then((r) => r.json())
             .then((json) => {
               const bounds = computeBounds(json);
@@ -777,9 +789,15 @@ const TrailMap = memo(
               }
             })
             .catch((err) => {
+              if (err?.name === "AbortError") return;
               console.warn("Trail fetch failed (check Firebase Storage CORS):", err);
             });
         }
+        return () => {
+          if (abortController) {
+            abortController.abort();
+          }
+        };
       }, [mapReady, contextGeoJsonUrl, activeGeoJsonUrl, styleVersion, hasInitialCoords, showNotice, mountainId, parsedLat, parsedLon]);
 
       /* --------------------------- Initial fly-to --------------------------- */
@@ -790,51 +808,110 @@ const TrailMap = memo(
       }, [mapReady, hasInitialCoords, parsedLon, parsedLat]);
 
       /* ------------------------ Browser geolocation dot --------------------- */
+      const applyUserCoords = useCallback((latitude: number, longitude: number) => {
+        if (!isValidCoordinate(latitude, longitude)) return;
+        const lngLat: [number, number] = [longitude, latitude];
+        userCoordsRef.current = lngLat;
+
+        const map = mapRef.current;
+        if (!map) return;
+        if (!userMarkerRef.current) {
+          const el = document.createElement("div");
+          Object.assign(el.style, {
+            width: "16px",
+            height: "16px",
+            borderRadius: "8px",
+            background: "#2563EB",
+            border: "2.5px solid #fff",
+            boxShadow: "0 0 0 8px rgba(37,99,235,0.2), 0 2px 3px rgba(0,0,0,0.35)",
+            pointerEvents: "none",
+          });
+          userMarkerRef.current = new maplibregl.Marker({ element: el }).setLngLat(lngLat).addTo(map);
+        } else {
+          userMarkerRef.current.setLngLat(lngLat);
+        }
+
+        const shouldFly = pendingCenterOnUserRef.current || (!centeredOnUserRef.current && !hasInitialCoordsRef.current);
+        if (shouldFly) {
+          centeredOnUserRef.current = true;
+          pendingCenterOnUserRef.current = false;
+          isFollowingRef.current = true;
+          map.flyTo({ center: lngLat, zoom: 16.5, duration: 800 });
+        } else if (isFollowingRef.current) {
+          map.easeTo({ center: lngLat, duration: 500 });
+        }
+      }, []);
+
+      const fallbackToIpLocation = useCallback(async () => {
+        try {
+          const res = await fetch("https://ipwho.is/");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && isValidCoordinate(data.latitude, data.longitude)) {
+              if (isMountedRef.current) {
+                applyUserCoords(data.latitude, data.longitude);
+                showNotice("Approximate location (based on IP network)");
+                return true;
+              }
+            }
+          }
+        } catch {
+          // Ignore and try secondary provider
+        }
+
+        try {
+          const res2 = await fetch("https://freeipapi.com/api/json");
+          if (res2.ok) {
+            const data2 = await res2.json();
+            if (isValidCoordinate(data2.latitude, data2.longitude)) {
+              if (isMountedRef.current) {
+                applyUserCoords(data2.latitude, data2.longitude);
+                showNotice("Approximate location (based on IP network)");
+                return true;
+              }
+            }
+          }
+        } catch {
+          // Silently fail
+        }
+
+        return false;
+      }, [applyUserCoords, showNotice]);
+
       const ensureGeolocation = useCallback(() => {
         if (geoWatchRef.current !== null || !("geolocation" in navigator)) return;
+
+        // Try high accuracy with a 4s timeout first (fast on mobile/GPS-enabled devices)
         geoWatchRef.current = navigator.geolocation.watchPosition(
           (pos) => {
-            const { latitude, longitude } = pos.coords;
-            if (!isValidCoordinate(latitude, longitude)) return;
-            const lngLat: [number, number] = [longitude, latitude];
-            userCoordsRef.current = lngLat;
-
-            const map = mapRef.current;
-            if (!map) return;
-            if (!userMarkerRef.current) {
-              const el = document.createElement("div");
-              Object.assign(el.style, {
-                width: "16px",
-                height: "16px",
-                borderRadius: "8px",
-                background: "#2563EB",
-                border: "2.5px solid #fff",
-                boxShadow: "0 0 0 8px rgba(37,99,235,0.2), 0 2px 3px rgba(0,0,0,0.35)",
-                pointerEvents: "none",
-              });
-              userMarkerRef.current = new maplibregl.Marker({ element: el }).setLngLat(lngLat).addTo(map);
-            } else {
-              userMarkerRef.current.setLngLat(lngLat);
-            }
-            if (!centeredOnUserRef.current && !hasInitialCoordsRef.current) {
-              // First fix: zoom to the user once, then keep following (same as native)
-              centeredOnUserRef.current = true;
-              isFollowingRef.current = true;
-              map.flyTo({ center: lngLat, zoom: 16, duration: 800 });
-            } else if (isFollowingRef.current) {
-              map.easeTo({ center: lngLat, duration: 500 });
-            }
+            applyUserCoords(pos.coords.latitude, pos.coords.longitude);
           },
           (err) => {
-            console.warn("Geolocation error:", err.message);
-            showNotice("Location unavailable. Allow location access (HTTPS required).");
-            if (!centeredOnUserRef.current && !hasInitialCoordsRef.current && trailBoundsRef.current) {
-              mapRef.current?.fitBounds(trailBoundsRef.current, { padding: 60, duration: 800 });
-            }
+            console.warn("High-accuracy geolocation failed, attempting low-accuracy fallback:", err.message);
+
+            // Fallback 1: Low-accuracy browser geolocation (instant on desktop Wi-Fi / IP)
+            navigator.geolocation.getCurrentPosition(
+              (lowPos) => {
+                applyUserCoords(lowPos.coords.latitude, lowPos.coords.longitude);
+              },
+              async (lowErr) => {
+                console.warn("Browser geolocation failed, attempting IP fallback:", lowErr.message);
+
+                // Fallback 2: IP-based approximate location
+                const ipSucceeded = await fallbackToIpLocation();
+                if (!ipSucceeded) {
+                  showNotice("Location unavailable. Allow location access (HTTPS required).");
+                  if (!centeredOnUserRef.current && !hasInitialCoordsRef.current && trailBoundsRef.current) {
+                    mapRef.current?.fitBounds(trailBoundsRef.current, { padding: 60, duration: 800 });
+                  }
+                }
+              },
+              { enableHighAccuracy: false, maximumAge: 60000, timeout: 6000 }
+            );
           },
-          { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+          { enableHighAccuracy: true, maximumAge: 5000, timeout: 4000 },
         );
-      }, [showNotice]);
+      }, [applyUserCoords, fallbackToIpLocation, showNotice]);
 
       // Note: Removed auto-geolocation on mount. Geolocation is triggered only when clicking centerOnUser().
 
@@ -903,18 +980,34 @@ const TrailMap = memo(
         });
       }, [hikerLocations, currentUserId, mapReady, handleHikerPress]);
 
-      // Stable 10s ticker via ref so LKL state flips even if no new pings arrive
+      // Stable 2s ticker via ref so LKL state flips even if no new pings arrive (only active when hikers exist)
+      const hasHikers = Boolean(hikerLocations && hikerLocations.length > 0);
       useEffect(() => {
-        const id = setInterval(() => {
+        if (!hasHikers) return;
+        const tick = () => {
           if (!isMountedRef.current) return;
           const locs = hikerLocationsRef.current;
           if (!locs || locs.length === 0) return;
           const now = Date.now();
           hikerEntriesRef.current.forEach((e) => refreshHikerEntry(e, now));
           forceTick((n) => n + 1);
-        }, 10000);
-        return () => clearInterval(id);
-      }, []);
+        };
+
+        const id = setInterval(tick, LKL_TICKER_INTERVAL_MS);
+
+        if (typeof window !== "undefined") {
+          window.addEventListener("focus", tick);
+          window.addEventListener("visibilitychange", tick);
+        }
+
+        return () => {
+          clearInterval(id);
+          if (typeof window !== "undefined") {
+            window.removeEventListener("focus", tick);
+            window.removeEventListener("visibilitychange", tick);
+          }
+        };
+      }, [hasHikers]);
 
       const liveSelectedHiker = useMemo(() => {
         if (!selectedHiker) return null;
@@ -922,7 +1015,7 @@ const TrailMap = memo(
       }, [selectedHiker, hikerLocations]);
 
       const isSelectedLkl = liveSelectedHiker
-        ? getElapsedMinutes(liveSelectedHiker.timestamp) >= LKL_MINUTES
+        ? isHikerSignalLost(liveSelectedHiker.timestamp, liveSelectedHiker.status)
         : false;
 
       /* ---------------------------- Imperative API -------------------------- */
@@ -937,7 +1030,7 @@ const TrailMap = memo(
           if (c && map) {
             map.easeTo({ center: c, zoom: Math.max(map.getZoom(), 16.5), bearing: 0, pitch: 0, duration: 500 });
           } else {
-            // First fix hasn't arrived yet; the watch callback will follow once it does
+            pendingCenterOnUserRef.current = true;
             showNotice("Finding your location…");
           }
         },
@@ -1051,7 +1144,11 @@ const TrailMap = memo(
                   <GridCell label="LONGITUDE" value={liveSelectedHiker.longitude.toFixed(6)} />
                   <GridCell
                     label="ALTITUDE"
-                    value={liveSelectedHiker.altitude != null ? `${Math.round(liveSelectedHiker.altitude)} m` : "—"}
+                    value={
+                      typeof liveSelectedHiker.altitude === "number" && !isNaN(liveSelectedHiker.altitude) && liveSelectedHiker.altitude !== 0
+                        ? `${Math.round(liveSelectedHiker.altitude)} m`
+                        : "—"
+                    }
                   />
                   <GridCell label="RECORDED" value={formatRecordedTime(liveSelectedHiker.timestamp)} />
                 </View>

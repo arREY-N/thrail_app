@@ -5,7 +5,7 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -27,11 +27,8 @@ import CustomText from '@/src/components/CustomText';
 import { CustomToast } from '@/src/components/Toast/Toast';
 import {
     CustomTutorialModal,
-    isTutorialMeasurementActive,
-    registerMeasureCallback,
-    registerTutorialLayout,
     TutorialHelpButton,
-    useTutorialGuide,
+    useLegalTermsTutorial,
 } from '@/src/components/Tutorial/Tutorial';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import { Colors } from '@/src/constants/colors';
@@ -90,55 +87,13 @@ const LegalTermsModal = ({
     const [isAtBottom, setIsAtBottom] = useState<boolean>(false);
     const [animValue] = useState(() => new Animated.Value(visible ? 1 : 0));
 
-    const tabsContainerRef = useRef<View>(null);
-    const actionButtonWrapperRef = useRef<View>(null);
-
-    const tutorial = useTutorialGuide('legal_terms', visible && renderModal);
-
-    const measureLegalTabsNow = useCallback(() => {
-        tabsContainerRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('legal_tabs', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    const measureActionButtonNow = useCallback(() => {
-        actionButtonWrapperRef.current?.measureInWindow((x, y, width, height) => {
-            if (width > 0 && height > 0) {
-                registerTutorialLayout('legal_scroll_bottom', { x, y, width, height });
-            }
-        });
-    }, []);
-
-    useEffect(() => {
-        const unregTabs = registerMeasureCallback('legal_tabs', measureLegalTabsNow);
-        const unregBtn = registerMeasureCallback('legal_scroll_bottom', measureActionButtonNow);
-        return () => {
-            unregTabs();
-            unregBtn();
-        };
-    }, [measureLegalTabsNow, measureActionButtonNow]);
-
-    const handleTabsLayout = useCallback(() => {
-        if (!isTutorialMeasurementActive()) return;
-        measureLegalTabsNow();
-    }, [measureLegalTabsNow]);
-
-    const handleActionButtonLayout = useCallback(() => {
-        if (!isTutorialMeasurementActive()) return;
-        measureActionButtonNow();
-    }, [measureActionButtonNow]);
-
-    useEffect(() => {
-        if (visible && renderModal && tutorial.isVisible) {
-            const timer = setTimeout(() => {
-                measureLegalTabsNow();
-                measureActionButtonNow();
-            }, 260);
-            return () => clearTimeout(timer);
-        }
-    }, [visible, renderModal, tutorial.isVisible, tutorial.currentStepIndex, measureLegalTabsNow, measureActionButtonNow]);
+    const {
+        tabsContainerRef,
+        actionButtonWrapperRef,
+        handleTabsLayout,
+        handleActionButtonLayout,
+        tutorial,
+    } = useLegalTermsTutorial({ visible, renderModal });
 
     // Per-tab scroll completion tracking
     const [hasReadTerms, setHasReadTerms] = useState<boolean>(!requireReadToAgree || isAlreadyAcknowledged);

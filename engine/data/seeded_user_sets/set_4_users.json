@@ -1,0 +1,7182 @@
+[
+  {
+    "id": "s4_E1-N-P1",
+    "set_id": 4,
+    "cohort_id": "E1-N-P1",
+    "cohort_group": "normal",
+    "experience": "E1",
+    "stated_experience": "E1",
+    "actual_experience": "E1",
+    "stated_tier": 1,
+    "actual_tier": 1,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E1, N, P1)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E1",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E1-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0377,
+          "length": 0.2098,
+          "elevation": 0.1273,
+          "gain": 0.1573,
+          "slope": 0.2201,
+          "easy": 0.2111,
+          "province": {
+            "cavite": 0.1254,
+            "laguna": 0.1716,
+            "batangas": 0.1041,
+            "rizal": 0.8599,
+            "quezon": 0.1007
+          },
+          "terrain": {
+            "muddy": 0.2474,
+            "rocky": 0.4975,
+            "grassland": 0.2078,
+            "ridges": 0.2745
+          },
+          "circularity": {
+            "out_and_back": 0.5541,
+            "traverse": 0.1215,
+            "circular": 0.3243
+          },
+          "waterforms": {
+            "fall": 0.1802,
+            "river": 0.2684,
+            "lake": 0.2816
+          },
+          "tourism": {
+            "shelter": 0.2335,
+            "resting": 0.1427,
+            "information_board": 0.1837,
+            "clean_water": 0.213,
+            "river": 0.1979,
+            "lake": 0.136,
+            "waterfall": 0.2985,
+            "monument": 0.15,
+            "community": 0.1485,
+            "viewpoint": 0.2732,
+            "network_connection": 0.1645
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E1-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.9406,
+          "length": 0.6288,
+          "elevation": 0.4764,
+          "gain": 0.6096,
+          "slope": 0.501,
+          "easy": 0.6176,
+          "province": {
+            "cavite": 0.8432,
+            "laguna": 0.9135,
+            "batangas": 0.8518,
+            "rizal": 0.1706,
+            "quezon": 0.893
+          },
+          "terrain": {
+            "muddy": 0.5312,
+            "rocky": 0.6977,
+            "grassland": 0.4701,
+            "ridges": 0.5561
+          },
+          "circularity": {
+            "out_and_back": 0.5568,
+            "traverse": 0.3212,
+            "circular": 0.122
+          },
+          "waterforms": {
+            "fall": 0.3926,
+            "river": 0.6498,
+            "lake": 0.4588
+          },
+          "tourism": {
+            "shelter": 0.4477,
+            "resting": 0.4567,
+            "information_board": 0.4556,
+            "clean_water": 0.4942,
+            "river": 0.3785,
+            "lake": 0.3863,
+            "waterfall": 0.4487,
+            "monument": 0.4685,
+            "community": 0.4391,
+            "viewpoint": 0.3345,
+            "network_connection": 0.2995
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7444
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0642,
+        "length": 0.1464,
+        "elevation": 0.1951,
+        "gain": 0.1365,
+        "slope": 0.1135,
+        "easy": 0.1245,
+        "muddy": 0.218,
+        "rocky": 0.3276,
+        "grassland": 0.1124,
+        "ridges": 0.1511
+      },
+      "difficult": {
+        "classification": 0.8266,
+        "length": 0.583,
+        "elevation": 0.5794,
+        "gain": 0.5256,
+        "slope": 0.586,
+        "easy": 0.6259,
+        "muddy": 0.5584,
+        "rocky": 0.6699,
+        "grassland": 0.5733,
+        "ridges": 0.5389
+      }
+    }
+  },
+  {
+    "id": "s4_E1-N-P2",
+    "set_id": 4,
+    "cohort_id": "E1-N-P2",
+    "cohort_group": "normal",
+    "experience": "E1",
+    "stated_experience": "E1",
+    "actual_experience": "E1",
+    "stated_tier": 1,
+    "actual_tier": 1,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E1, N, P2)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E1",
+      "province": [
+        "Batangas",
+        "Laguna"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E1-N-P2",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0311,
+          "length": 0.1331,
+          "elevation": 0.2411,
+          "gain": 0.1939,
+          "slope": 0.1584,
+          "easy": 0.1302,
+          "province": {
+            "cavite": 0.1342,
+            "laguna": 0.9397,
+            "batangas": 0.9276,
+            "rizal": 0.1033,
+            "quezon": 0.166
+          },
+          "terrain": {
+            "muddy": 0.2783,
+            "rocky": 0.3426,
+            "grassland": 0.1942,
+            "ridges": 0.2555
+          },
+          "circularity": {
+            "out_and_back": 0.1512,
+            "traverse": 0.5544,
+            "circular": 0.2945
+          },
+          "waterforms": {
+            "fall": 0.3107,
+            "river": 0.2302,
+            "lake": 0.229
+          },
+          "tourism": {
+            "shelter": 0.1209,
+            "resting": 0.2031,
+            "information_board": 0.3188,
+            "clean_water": 0.1526,
+            "river": 0.2732,
+            "lake": 0.2861,
+            "waterfall": 0.2101,
+            "monument": 0.2636,
+            "community": 0.262,
+            "viewpoint": 0.1448,
+            "network_connection": 0.1742
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E1-N-P2",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8207,
+          "length": 0.5709,
+          "elevation": 0.6029,
+          "gain": 0.5287,
+          "slope": 0.6475,
+          "easy": 0.5088,
+          "province": {
+            "cavite": 0.9143,
+            "laguna": 0.1832,
+            "batangas": 0.1222,
+            "rizal": 0.8641,
+            "quezon": 0.8972
+          },
+          "terrain": {
+            "muddy": 0.4769,
+            "rocky": 0.7747,
+            "grassland": 0.451,
+            "ridges": 0.5293
+          },
+          "circularity": {
+            "out_and_back": 0.4199,
+            "traverse": 0.3195,
+            "circular": 0.2607
+          },
+          "waterforms": {
+            "fall": 0.6055,
+            "river": 0.6486,
+            "lake": 0.6108
+          },
+          "tourism": {
+            "shelter": 0.5197,
+            "resting": 0.4328,
+            "information_board": 0.488,
+            "clean_water": 0.3597,
+            "river": 0.4,
+            "lake": 0.3229,
+            "waterfall": 0.4955,
+            "monument": 0.4729,
+            "community": 0.5164,
+            "viewpoint": 0.2916,
+            "network_connection": 0.3363
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7481
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0287,
+        "length": 0.1641,
+        "elevation": 0.14,
+        "gain": 0.156,
+        "slope": 0.1005,
+        "easy": 0.1258,
+        "muddy": 0.2242,
+        "rocky": 0.128,
+        "grassland": 0.3139,
+        "ridges": 0.1885
+      },
+      "difficult": {
+        "classification": 0.9106,
+        "length": 0.6396,
+        "elevation": 0.5154,
+        "gain": 0.4896,
+        "slope": 0.6341,
+        "easy": 0.5966,
+        "muddy": 0.5322,
+        "rocky": 0.6853,
+        "grassland": 0.4877,
+        "ridges": 0.7273
+      }
+    }
+  },
+  {
+    "id": "s4_E1-N-P3",
+    "set_id": 4,
+    "cohort_id": "E1-N-P3",
+    "cohort_group": "normal",
+    "experience": "E1",
+    "stated_experience": "E1",
+    "actual_experience": "E1",
+    "stated_tier": 1,
+    "actual_tier": 1,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E1, N, P3)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E1",
+      "province": [
+        "Cavite"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E1-N-P3",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0563,
+          "length": 0.2149,
+          "elevation": 0.1748,
+          "gain": 0.1325,
+          "slope": 0.2037,
+          "easy": 0.1869,
+          "province": {
+            "cavite": 0.9135,
+            "laguna": 0.1229,
+            "batangas": 0.1274,
+            "rizal": 0.166,
+            "quezon": 0.1086
+          },
+          "terrain": {
+            "muddy": 0.1675,
+            "rocky": 0.4105,
+            "grassland": 0.1365,
+            "ridges": 0.3082
+          },
+          "circularity": {
+            "out_and_back": 0.1241,
+            "traverse": 0.3667,
+            "circular": 0.5092
+          },
+          "waterforms": {
+            "fall": 0.3088,
+            "river": 0.3123,
+            "lake": 0.2017
+          },
+          "tourism": {
+            "shelter": 0.1963,
+            "resting": 0.317,
+            "information_board": 0.1707,
+            "clean_water": 0.2805,
+            "river": 0.2333,
+            "lake": 0.1831,
+            "waterfall": 0.1656,
+            "monument": 0.2942,
+            "community": 0.1258,
+            "viewpoint": 0.2391,
+            "network_connection": 0.2894
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E1-N-P3",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.7839,
+          "length": 0.5229,
+          "elevation": 0.642,
+          "gain": 0.654,
+          "slope": 0.5453,
+          "easy": 0.6372,
+          "province": {
+            "cavite": 0.1899,
+            "laguna": 0.8896,
+            "batangas": 0.8586,
+            "rizal": 0.86,
+            "quezon": 0.8817
+          },
+          "terrain": {
+            "muddy": 0.4625,
+            "rocky": 0.7211,
+            "grassland": 0.4111,
+            "ridges": 0.6
+          },
+          "circularity": {
+            "out_and_back": 0.1614,
+            "traverse": 0.1543,
+            "circular": 0.6843
+          },
+          "waterforms": {
+            "fall": 0.4479,
+            "river": 0.5101,
+            "lake": 0.4867
+          },
+          "tourism": {
+            "shelter": 0.3898,
+            "resting": 0.5043,
+            "information_board": 0.2958,
+            "clean_water": 0.4047,
+            "river": 0.3778,
+            "lake": 0.4541,
+            "waterfall": 0.4233,
+            "monument": 0.3766,
+            "community": 0.313,
+            "viewpoint": 0.4825,
+            "network_connection": 0.3621
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7518
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0156,
+        "length": 0.14,
+        "elevation": 0.1794,
+        "gain": 0.1011,
+        "slope": 0.1164,
+        "easy": 0.1664,
+        "muddy": 0.1281,
+        "rocky": 0.1446,
+        "grassland": 0.2024,
+        "ridges": 0.1211
+      },
+      "difficult": {
+        "classification": 0.7992,
+        "length": 0.5787,
+        "elevation": 0.5748,
+        "gain": 0.499,
+        "slope": 0.5851,
+        "easy": 0.6303,
+        "muddy": 0.7061,
+        "rocky": 0.7997,
+        "grassland": 0.691,
+        "ridges": 0.576
+      }
+    }
+  },
+  {
+    "id": "s4_E1-M-P1",
+    "set_id": 4,
+    "cohort_id": "E1-M-P1",
+    "cohort_group": "normal",
+    "experience": "E1",
+    "stated_experience": "E1",
+    "actual_experience": "E1",
+    "stated_tier": 1,
+    "actual_tier": 1,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E1, M, P1)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E1",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E1-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0377,
+          "length": 0.1678,
+          "elevation": 0.1018,
+          "gain": 0.1259,
+          "slope": 0.1761,
+          "easy": 0.1689,
+          "province": {
+            "cavite": 0.1441,
+            "laguna": 0.1655,
+            "batangas": 0.1051,
+            "rizal": 0.866,
+            "quezon": 0.1379
+          },
+          "terrain": {
+            "muddy": 0.1979,
+            "rocky": 0.398,
+            "grassland": 0.1662,
+            "ridges": 0.2196
+          },
+          "circularity": {
+            "out_and_back": 0.1252,
+            "traverse": 0.5066,
+            "circular": 0.3682
+          },
+          "waterforms": {
+            "fall": 0.2569,
+            "river": 0.2083,
+            "lake": 0.2514
+          },
+          "tourism": {
+            "shelter": 0.2672,
+            "resting": 0.2345,
+            "information_board": 0.2058,
+            "clean_water": 0.2882,
+            "river": 0.1776,
+            "lake": 0.1965,
+            "waterfall": 0.3112,
+            "monument": 0.171,
+            "community": 0.1679,
+            "viewpoint": 0.1512,
+            "network_connection": 0.2114
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E1-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.9406,
+          "length": 0.503,
+          "elevation": 0.3811,
+          "gain": 0.4877,
+          "slope": 0.4008,
+          "easy": 0.4941,
+          "province": {
+            "cavite": 0.8891,
+            "laguna": 0.8703,
+            "batangas": 0.9094,
+            "rizal": 0.101,
+            "quezon": 0.835
+          },
+          "terrain": {
+            "muddy": 0.425,
+            "rocky": 0.5582,
+            "grassland": 0.3761,
+            "ridges": 0.4449
+          },
+          "circularity": {
+            "out_and_back": 0.6844,
+            "traverse": 0.1533,
+            "circular": 0.1623
+          },
+          "waterforms": {
+            "fall": 0.3892,
+            "river": 0.5088,
+            "lake": 0.5917
+          },
+          "tourism": {
+            "shelter": 0.5061,
+            "resting": 0.5006,
+            "information_board": 0.5137,
+            "clean_water": 0.3577,
+            "river": 0.4667,
+            "lake": 0.3396,
+            "waterfall": 0.4582,
+            "monument": 0.3802,
+            "community": 0.357,
+            "viewpoint": 0.518,
+            "network_connection": 0.3804
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7555
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.126,
+        "length": 0.129,
+        "elevation": 0.1349,
+        "gain": 0.148,
+        "slope": 0.1661,
+        "easy": 0.1553,
+        "muddy": 0.2173,
+        "rocky": 0.0976,
+        "grassland": 0.1581,
+        "ridges": 0.1917
+      },
+      "difficult": {
+        "classification": 0.8009,
+        "length": 0.4203,
+        "elevation": 0.3644,
+        "gain": 0.4527,
+        "slope": 0.5001,
+        "easy": 0.3798,
+        "muddy": 0.3318,
+        "rocky": 0.606,
+        "grassland": 0.4705,
+        "ridges": 0.4238
+      }
+    }
+  },
+  {
+    "id": "s4_E1-M-P2",
+    "set_id": 4,
+    "cohort_id": "E1-M-P2",
+    "cohort_group": "normal",
+    "experience": "E1",
+    "stated_experience": "E1",
+    "actual_experience": "E1",
+    "stated_tier": 1,
+    "actual_tier": 1,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E1, M, P2)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E1",
+      "province": [
+        "Batangas",
+        "Laguna"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E1-M-P2",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0311,
+          "length": 0.1065,
+          "elevation": 0.1929,
+          "gain": 0.1551,
+          "slope": 0.1268,
+          "easy": 0.1041,
+          "province": {
+            "cavite": 0.1491,
+            "laguna": 0.8719,
+            "batangas": 0.8606,
+            "rizal": 0.1313,
+            "quezon": 0.1096
+          },
+          "terrain": {
+            "muddy": 0.2226,
+            "rocky": 0.274,
+            "grassland": 0.1554,
+            "ridges": 0.2044
+          },
+          "circularity": {
+            "out_and_back": 0.2222,
+            "traverse": 0.0799,
+            "circular": 0.6979
+          },
+          "waterforms": {
+            "fall": 0.3224,
+            "river": 0.2562,
+            "lake": 0.2864
+          },
+          "tourism": {
+            "shelter": 0.2133,
+            "resting": 0.2253,
+            "information_board": 0.1939,
+            "clean_water": 0.2615,
+            "river": 0.2978,
+            "lake": 0.3168,
+            "waterfall": 0.2089,
+            "monument": 0.2827,
+            "community": 0.2604,
+            "viewpoint": 0.2781,
+            "network_connection": 0.1826
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E1-M-P2",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8207,
+          "length": 0.4567,
+          "elevation": 0.4823,
+          "gain": 0.423,
+          "slope": 0.518,
+          "easy": 0.4071,
+          "province": {
+            "cavite": 0.8826,
+            "laguna": 0.116,
+            "batangas": 0.1996,
+            "rizal": 0.8802,
+            "quezon": 0.8331
+          },
+          "terrain": {
+            "muddy": 0.3815,
+            "rocky": 0.6198,
+            "grassland": 0.3608,
+            "ridges": 0.4235
+          },
+          "circularity": {
+            "out_and_back": 0.2392,
+            "traverse": 0.4008,
+            "circular": 0.36
+          },
+          "waterforms": {
+            "fall": 0.4129,
+            "river": 0.6282,
+            "lake": 0.5836
+          },
+          "tourism": {
+            "shelter": 0.402,
+            "resting": 0.4252,
+            "information_board": 0.4213,
+            "clean_water": 0.2901,
+            "river": 0.5039,
+            "lake": 0.2944,
+            "waterfall": 0.3613,
+            "monument": 0.4686,
+            "community": 0.3388,
+            "viewpoint": 0.4786,
+            "network_connection": 0.4165
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7592
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.0317,
+        "length": 0.1021,
+        "elevation": 0.1497,
+        "gain": 0.1491,
+        "slope": 0.0904,
+        "easy": 0.1704,
+        "muddy": 0.1245,
+        "rocky": 0.118,
+        "grassland": 0.2423,
+        "ridges": 0.1012
+      },
+      "difficult": {
+        "classification": 0.7264,
+        "length": 0.4436,
+        "elevation": 0.4974,
+        "gain": 0.4002,
+        "slope": 0.4017,
+        "easy": 0.44,
+        "muddy": 0.5308,
+        "rocky": 0.3817,
+        "grassland": 0.5972,
+        "ridges": 0.5648
+      }
+    }
+  },
+  {
+    "id": "s4_E1-M-P3",
+    "set_id": 4,
+    "cohort_id": "E1-M-P3",
+    "cohort_group": "normal",
+    "experience": "E1",
+    "stated_experience": "E1",
+    "actual_experience": "E1",
+    "stated_tier": 1,
+    "actual_tier": 1,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E1, M, P3)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E1",
+      "province": [
+        "Cavite"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E1-M-P3",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0563,
+          "length": 0.172,
+          "elevation": 0.1398,
+          "gain": 0.106,
+          "slope": 0.163,
+          "easy": 0.1495,
+          "province": {
+            "cavite": 0.8757,
+            "laguna": 0.1504,
+            "batangas": 0.1542,
+            "rizal": 0.1212,
+            "quezon": 0.108
+          },
+          "terrain": {
+            "muddy": 0.134,
+            "rocky": 0.3284,
+            "grassland": 0.1092,
+            "ridges": 0.2466
+          },
+          "circularity": {
+            "out_and_back": 0.2287,
+            "traverse": 0.7198,
+            "circular": 0.0516
+          },
+          "waterforms": {
+            "fall": 0.3476,
+            "river": 0.3176,
+            "lake": 0.2562
+          },
+          "tourism": {
+            "shelter": 0.2246,
+            "resting": 0.2425,
+            "information_board": 0.2371,
+            "clean_water": 0.3127,
+            "river": 0.3173,
+            "lake": 0.1694,
+            "waterfall": 0.2571,
+            "monument": 0.1958,
+            "community": 0.1493,
+            "viewpoint": 0.2087,
+            "network_connection": 0.2121
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E1-M-P3",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.7839,
+          "length": 0.4183,
+          "elevation": 0.5136,
+          "gain": 0.5232,
+          "slope": 0.4362,
+          "easy": 0.5098,
+          "province": {
+            "cavite": 0.1669,
+            "laguna": 0.9019,
+            "batangas": 0.9188,
+            "rizal": 0.843,
+            "quezon": 0.8488
+          },
+          "terrain": {
+            "muddy": 0.37,
+            "rocky": 0.5769,
+            "grassland": 0.3289,
+            "ridges": 0.48
+          },
+          "circularity": {
+            "out_and_back": 0.0671,
+            "traverse": 0.3278,
+            "circular": 0.6052
+          },
+          "waterforms": {
+            "fall": 0.5779,
+            "river": 0.59,
+            "lake": 0.5377
+          },
+          "tourism": {
+            "shelter": 0.3205,
+            "resting": 0.51,
+            "information_board": 0.2931,
+            "clean_water": 0.3608,
+            "river": 0.2933,
+            "lake": 0.4513,
+            "waterfall": 0.5181,
+            "monument": 0.4365,
+            "community": 0.3778,
+            "viewpoint": 0.48,
+            "network_connection": 0.2976
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7629
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.0606,
+        "length": 0.0941,
+        "elevation": 0.1377,
+        "gain": 0.1119,
+        "slope": 0.1462,
+        "easy": 0.1405,
+        "muddy": 0.173,
+        "rocky": 0.268,
+        "grassland": 0.19,
+        "ridges": 0.2093
+      },
+      "difficult": {
+        "classification": 0.7729,
+        "length": 0.384,
+        "elevation": 0.3623,
+        "gain": 0.4497,
+        "slope": 0.3881,
+        "easy": 0.4104,
+        "muddy": 0.5234,
+        "rocky": 0.3488,
+        "grassland": 0.4638,
+        "ridges": 0.3294
+      }
+    }
+  },
+  {
+    "id": "s4_E2-N-P1",
+    "set_id": 4,
+    "cohort_id": "E2-N-P1",
+    "cohort_group": "normal",
+    "experience": "E2",
+    "stated_experience": "E2",
+    "actual_experience": "E2",
+    "stated_tier": 2,
+    "actual_tier": 2,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E2, N, P1)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E2",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E2-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0774,
+          "length": 0.2501,
+          "elevation": 0.2313,
+          "gain": 0.2074,
+          "slope": 0.1956,
+          "easy": 0.1747,
+          "province": {
+            "cavite": 0.1204,
+            "laguna": 0.1583,
+            "batangas": 0.1599,
+            "rizal": 0.8538,
+            "quezon": 0.1039
+          },
+          "terrain": {
+            "muddy": 0.2067,
+            "rocky": 0.309,
+            "grassland": 0.452,
+            "ridges": 0.2343
+          },
+          "circularity": {
+            "out_and_back": 0.6679,
+            "traverse": 0.0103,
+            "circular": 0.3218
+          },
+          "waterforms": {
+            "fall": 0.189,
+            "river": 0.3105,
+            "lake": 0.3203
+          },
+          "tourism": {
+            "shelter": 0.1488,
+            "resting": 0.158,
+            "information_board": 0.1254,
+            "clean_water": 0.2361,
+            "river": 0.2006,
+            "lake": 0.2419,
+            "waterfall": 0.1612,
+            "monument": 0.3104,
+            "community": 0.1368,
+            "viewpoint": 0.2936,
+            "network_connection": 0.2567
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E2-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.852,
+          "length": 0.6707,
+          "elevation": 0.5825,
+          "gain": 0.6325,
+          "slope": 0.7001,
+          "easy": 0.607,
+          "province": {
+            "cavite": 0.8298,
+            "laguna": 0.8813,
+            "batangas": 0.8916,
+            "rizal": 0.1469,
+            "quezon": 0.8633
+          },
+          "terrain": {
+            "muddy": 0.4351,
+            "rocky": 0.5502,
+            "grassland": 0.7792,
+            "ridges": 0.4466
+          },
+          "circularity": {
+            "out_and_back": 0.405,
+            "traverse": 0.1617,
+            "circular": 0.4334
+          },
+          "waterforms": {
+            "fall": 0.4105,
+            "river": 0.5415,
+            "lake": 0.5566
+          },
+          "tourism": {
+            "shelter": 0.2956,
+            "resting": 0.4351,
+            "information_board": 0.4465,
+            "clean_water": 0.3929,
+            "river": 0.3729,
+            "lake": 0.4333,
+            "waterfall": 0.2956,
+            "monument": 0.4107,
+            "community": 0.3882,
+            "viewpoint": 0.3978,
+            "network_connection": 0.4566
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7666
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.1018,
+        "length": 0.1934,
+        "elevation": 0.1745,
+        "gain": 0.2583,
+        "slope": 0.1797,
+        "easy": 0.1513,
+        "muddy": 0.193,
+        "rocky": 0.2178,
+        "grassland": 0.2014,
+        "ridges": 0.2215
+      },
+      "difficult": {
+        "classification": 0.7599,
+        "length": 0.533,
+        "elevation": 0.5398,
+        "gain": 0.598,
+        "slope": 0.669,
+        "easy": 0.5485,
+        "muddy": 0.7495,
+        "rocky": 0.6688,
+        "grassland": 0.5718,
+        "ridges": 0.6437
+      }
+    }
+  },
+  {
+    "id": "s4_E2-N-P2",
+    "set_id": 4,
+    "cohort_id": "E2-N-P2",
+    "cohort_group": "normal",
+    "experience": "E2",
+    "stated_experience": "E2",
+    "actual_experience": "E2",
+    "stated_tier": 2,
+    "actual_tier": 2,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E2, N, P2)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E2",
+      "province": [
+        "Batangas",
+        "Laguna"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E2-N-P2",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1105,
+          "length": 0.2901,
+          "elevation": 0.1918,
+          "gain": 0.2921,
+          "slope": 0.2232,
+          "easy": 0.1897,
+          "province": {
+            "cavite": 0.1791,
+            "laguna": 0.8503,
+            "batangas": 0.909,
+            "rizal": 0.1644,
+            "quezon": 0.1491
+          },
+          "terrain": {
+            "muddy": 0.3297,
+            "rocky": 0.1384,
+            "grassland": 0.4625,
+            "ridges": 0.3185
+          },
+          "circularity": {
+            "out_and_back": 0.3276,
+            "traverse": 0.2684,
+            "circular": 0.404
+          },
+          "waterforms": {
+            "fall": 0.338,
+            "river": 0.3373,
+            "lake": 0.2591
+          },
+          "tourism": {
+            "shelter": 0.2381,
+            "resting": 0.1526,
+            "information_board": 0.1232,
+            "clean_water": 0.1381,
+            "river": 0.2629,
+            "lake": 0.2715,
+            "waterfall": 0.1511,
+            "monument": 0.2045,
+            "community": 0.1317,
+            "viewpoint": 0.2779,
+            "network_connection": 0.1827
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E2-N-P2",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8874,
+          "length": 0.6887,
+          "elevation": 0.6339,
+          "gain": 0.7125,
+          "slope": 0.5889,
+          "easy": 0.6268,
+          "province": {
+            "cavite": 0.9085,
+            "laguna": 0.1869,
+            "batangas": 0.1737,
+            "rizal": 0.8785,
+            "quezon": 0.8892
+          },
+          "terrain": {
+            "muddy": 0.5019,
+            "rocky": 0.5922,
+            "grassland": 0.8133,
+            "ridges": 0.6183
+          },
+          "circularity": {
+            "out_and_back": 0.2183,
+            "traverse": 0.2955,
+            "circular": 0.4861
+          },
+          "waterforms": {
+            "fall": 0.6063,
+            "river": 0.4131,
+            "lake": 0.571
+          },
+          "tourism": {
+            "shelter": 0.3725,
+            "resting": 0.336,
+            "information_board": 0.3647,
+            "clean_water": 0.3717,
+            "river": 0.402,
+            "lake": 0.5022,
+            "waterfall": 0.388,
+            "monument": 0.369,
+            "community": 0.3578,
+            "viewpoint": 0.401,
+            "network_connection": 0.4164
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7703
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0611,
+        "length": 0.1697,
+        "elevation": 0.1821,
+        "gain": 0.2655,
+        "slope": 0.2011,
+        "easy": 0.2013,
+        "muddy": 0.1734,
+        "rocky": 0.2278,
+        "grassland": 0.1014,
+        "ridges": 0.2899
+      },
+      "difficult": {
+        "classification": 0.9066,
+        "length": 0.5543,
+        "elevation": 0.679,
+        "gain": 0.5918,
+        "slope": 0.5719,
+        "easy": 0.5115,
+        "muddy": 0.7427,
+        "rocky": 0.6651,
+        "grassland": 0.6033,
+        "ridges": 0.6515
+      }
+    }
+  },
+  {
+    "id": "s4_E2-N-P3",
+    "set_id": 4,
+    "cohort_id": "E2-N-P3",
+    "cohort_group": "normal",
+    "experience": "E2",
+    "stated_experience": "E2",
+    "actual_experience": "E2",
+    "stated_tier": 2,
+    "actual_tier": 2,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E2, N, P3)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E2",
+      "province": [
+        "Cavite"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E2-N-P3",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0102,
+          "length": 0.2687,
+          "elevation": 0.2501,
+          "gain": 0.2451,
+          "slope": 0.1851,
+          "easy": 0.2453,
+          "province": {
+            "cavite": 0.9033,
+            "laguna": 0.1398,
+            "batangas": 0.1505,
+            "rizal": 0.18,
+            "quezon": 0.138
+          },
+          "terrain": {
+            "muddy": 0.2133,
+            "rocky": 0.2206,
+            "grassland": 0.4894,
+            "ridges": 0.2612
+          },
+          "circularity": {
+            "out_and_back": 0.4134,
+            "traverse": 0.2493,
+            "circular": 0.3373
+          },
+          "waterforms": {
+            "fall": 0.2316,
+            "river": 0.2479,
+            "lake": 0.3468
+          },
+          "tourism": {
+            "shelter": 0.3094,
+            "resting": 0.134,
+            "information_board": 0.2788,
+            "clean_water": 0.1234,
+            "river": 0.1547,
+            "lake": 0.1334,
+            "waterfall": 0.2102,
+            "monument": 0.1834,
+            "community": 0.1484,
+            "viewpoint": 0.2286,
+            "network_connection": 0.2608
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E2-N-P3",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8233,
+          "length": 0.6851,
+          "elevation": 0.636,
+          "gain": 0.6414,
+          "slope": 0.5352,
+          "easy": 0.5576,
+          "province": {
+            "cavite": 0.1907,
+            "laguna": 0.9033,
+            "batangas": 0.8492,
+            "rizal": 0.89,
+            "quezon": 0.858
+          },
+          "terrain": {
+            "muddy": 0.5839,
+            "rocky": 0.6172,
+            "grassland": 0.6042,
+            "ridges": 0.4231
+          },
+          "circularity": {
+            "out_and_back": 0.3807,
+            "traverse": 0.3361,
+            "circular": 0.2832
+          },
+          "waterforms": {
+            "fall": 0.5066,
+            "river": 0.4625,
+            "lake": 0.5604
+          },
+          "tourism": {
+            "shelter": 0.4957,
+            "resting": 0.4543,
+            "information_board": 0.4164,
+            "clean_water": 0.444,
+            "river": 0.469,
+            "lake": 0.4484,
+            "waterfall": 0.4389,
+            "monument": 0.4304,
+            "community": 0.4396,
+            "viewpoint": 0.3525,
+            "network_connection": 0.3892
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7740
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0351,
+        "length": 0.2377,
+        "elevation": 0.1452,
+        "gain": 0.1936,
+        "slope": 0.2672,
+        "easy": 0.262,
+        "muddy": 0.2697,
+        "rocky": 0.1019,
+        "grassland": 0.2584,
+        "ridges": 0.3264
+      },
+      "difficult": {
+        "classification": 0.7881,
+        "length": 0.5854,
+        "elevation": 0.691,
+        "gain": 0.5049,
+        "slope": 0.6593,
+        "easy": 0.6208,
+        "muddy": 0.7565,
+        "rocky": 0.588,
+        "grassland": 0.5918,
+        "ridges": 0.5607
+      }
+    }
+  },
+  {
+    "id": "s4_E2-M-P1",
+    "set_id": 4,
+    "cohort_id": "E2-M-P1",
+    "cohort_group": "normal",
+    "experience": "E2",
+    "stated_experience": "E2",
+    "actual_experience": "E2",
+    "stated_tier": 2,
+    "actual_tier": 2,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E2, M, P1)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E2",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E2-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0774,
+          "length": 0.2001,
+          "elevation": 0.185,
+          "gain": 0.1659,
+          "slope": 0.1565,
+          "easy": 0.1397,
+          "province": {
+            "cavite": 0.1754,
+            "laguna": 0.1471,
+            "batangas": 0.1197,
+            "rizal": 0.8662,
+            "quezon": 0.1525
+          },
+          "terrain": {
+            "muddy": 0.1653,
+            "rocky": 0.2472,
+            "grassland": 0.3616,
+            "ridges": 0.1875
+          },
+          "circularity": {
+            "out_and_back": 0.2195,
+            "traverse": 0.0414,
+            "circular": 0.7391
+          },
+          "waterforms": {
+            "fall": 0.27,
+            "river": 0.1817,
+            "lake": 0.1811
+          },
+          "tourism": {
+            "shelter": 0.3175,
+            "resting": 0.193,
+            "information_board": 0.1894,
+            "clean_water": 0.2965,
+            "river": 0.1265,
+            "lake": 0.129,
+            "waterfall": 0.3182,
+            "monument": 0.2396,
+            "community": 0.133,
+            "viewpoint": 0.3063,
+            "network_connection": 0.306
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E2-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.852,
+          "length": 0.5366,
+          "elevation": 0.466,
+          "gain": 0.506,
+          "slope": 0.56,
+          "easy": 0.4856,
+          "province": {
+            "cavite": 0.8796,
+            "laguna": 0.8914,
+            "batangas": 0.883,
+            "rizal": 0.1395,
+            "quezon": 0.9058
+          },
+          "terrain": {
+            "muddy": 0.3481,
+            "rocky": 0.4401,
+            "grassland": 0.6234,
+            "ridges": 0.3573
+          },
+          "circularity": {
+            "out_and_back": 0.2095,
+            "traverse": 0.2963,
+            "circular": 0.4942
+          },
+          "waterforms": {
+            "fall": 0.5745,
+            "river": 0.4514,
+            "lake": 0.6478
+          },
+          "tourism": {
+            "shelter": 0.4641,
+            "resting": 0.5077,
+            "information_board": 0.4398,
+            "clean_water": 0.5199,
+            "river": 0.3334,
+            "lake": 0.4975,
+            "waterfall": 0.4123,
+            "monument": 0.3826,
+            "community": 0.4926,
+            "viewpoint": 0.3293,
+            "network_connection": 0.3405
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7777
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.0084,
+        "length": 0.1283,
+        "elevation": 0.1479,
+        "gain": 0.1275,
+        "slope": 0.2069,
+        "easy": 0.1388,
+        "muddy": 0.1772,
+        "rocky": 0.1399,
+        "grassland": 0.2161,
+        "ridges": 0.1257
+      },
+      "difficult": {
+        "classification": 0.9421,
+        "length": 0.4782,
+        "elevation": 0.508,
+        "gain": 0.467,
+        "slope": 0.468,
+        "easy": 0.5233,
+        "muddy": 0.5835,
+        "rocky": 0.5165,
+        "grassland": 0.4418,
+        "ridges": 0.6124
+      }
+    }
+  },
+  {
+    "id": "s4_E2-M-P2",
+    "set_id": 4,
+    "cohort_id": "E2-M-P2",
+    "cohort_group": "normal",
+    "experience": "E2",
+    "stated_experience": "E2",
+    "actual_experience": "E2",
+    "stated_tier": 2,
+    "actual_tier": 2,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E2, M, P2)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E2",
+      "province": [
+        "Batangas",
+        "Laguna"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E2-M-P2",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1105,
+          "length": 0.2321,
+          "elevation": 0.1535,
+          "gain": 0.2336,
+          "slope": 0.1786,
+          "easy": 0.1517,
+          "province": {
+            "cavite": 0.1311,
+            "laguna": 0.8891,
+            "batangas": 0.9021,
+            "rizal": 0.1677,
+            "quezon": 0.1381
+          },
+          "terrain": {
+            "muddy": 0.2638,
+            "rocky": 0.1108,
+            "grassland": 0.37,
+            "ridges": 0.2548
+          },
+          "circularity": {
+            "out_and_back": 0.5228,
+            "traverse": 0.1075,
+            "circular": 0.3697
+          },
+          "waterforms": {
+            "fall": 0.2968,
+            "river": 0.2899,
+            "lake": 0.2648
+          },
+          "tourism": {
+            "shelter": 0.1958,
+            "resting": 0.1719,
+            "information_board": 0.1779,
+            "clean_water": 0.1969,
+            "river": 0.2465,
+            "lake": 0.2512,
+            "waterfall": 0.2855,
+            "monument": 0.2745,
+            "community": 0.2237,
+            "viewpoint": 0.1369,
+            "network_connection": 0.1272
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E2-M-P2",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8874,
+          "length": 0.5509,
+          "elevation": 0.5071,
+          "gain": 0.57,
+          "slope": 0.4711,
+          "easy": 0.5015,
+          "province": {
+            "cavite": 0.869,
+            "laguna": 0.145,
+            "batangas": 0.109,
+            "rizal": 0.8808,
+            "quezon": 0.846
+          },
+          "terrain": {
+            "muddy": 0.4015,
+            "rocky": 0.4738,
+            "grassland": 0.6507,
+            "ridges": 0.4946
+          },
+          "circularity": {
+            "out_and_back": 0.392,
+            "traverse": 0.3004,
+            "circular": 0.3077
+          },
+          "waterforms": {
+            "fall": 0.5847,
+            "river": 0.5694,
+            "lake": 0.4892
+          },
+          "tourism": {
+            "shelter": 0.4583,
+            "resting": 0.3376,
+            "information_board": 0.4444,
+            "clean_water": 0.4498,
+            "river": 0.4105,
+            "lake": 0.2914,
+            "waterfall": 0.333,
+            "monument": 0.4224,
+            "community": 0.346,
+            "viewpoint": 0.454,
+            "network_connection": 0.417
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7814
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.1485,
+        "length": 0.1377,
+        "elevation": 0.2156,
+        "gain": 0.1479,
+        "slope": 0.1606,
+        "easy": 0.115,
+        "muddy": 0.1385,
+        "rocky": 0.2236,
+        "grassland": 0.1881,
+        "ridges": 0.2728
+      },
+      "difficult": {
+        "classification": 0.8795,
+        "length": 0.4804,
+        "elevation": 0.5285,
+        "gain": 0.4428,
+        "slope": 0.413,
+        "easy": 0.5448,
+        "muddy": 0.6277,
+        "rocky": 0.3781,
+        "grassland": 0.4271,
+        "ridges": 0.5214
+      }
+    }
+  },
+  {
+    "id": "s4_E2-M-P3",
+    "set_id": 4,
+    "cohort_id": "E2-M-P3",
+    "cohort_group": "normal",
+    "experience": "E2",
+    "stated_experience": "E2",
+    "actual_experience": "E2",
+    "stated_tier": 2,
+    "actual_tier": 2,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E2, M, P3)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E2",
+      "province": [
+        "Cavite"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E2-M-P3",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0102,
+          "length": 0.215,
+          "elevation": 0.2001,
+          "gain": 0.1961,
+          "slope": 0.1481,
+          "easy": 0.1962,
+          "province": {
+            "cavite": 0.8716,
+            "laguna": 0.1753,
+            "batangas": 0.1208,
+            "rizal": 0.1788,
+            "quezon": 0.1129
+          },
+          "terrain": {
+            "muddy": 0.1706,
+            "rocky": 0.1764,
+            "grassland": 0.3916,
+            "ridges": 0.209
+          },
+          "circularity": {
+            "out_and_back": 0.5328,
+            "traverse": 0.1412,
+            "circular": 0.326
+          },
+          "waterforms": {
+            "fall": 0.2288,
+            "river": 0.3412,
+            "lake": 0.2854
+          },
+          "tourism": {
+            "shelter": 0.2993,
+            "resting": 0.2449,
+            "information_board": 0.2516,
+            "clean_water": 0.2049,
+            "river": 0.2378,
+            "lake": 0.1603,
+            "waterfall": 0.1678,
+            "monument": 0.208,
+            "community": 0.2439,
+            "viewpoint": 0.1524,
+            "network_connection": 0.3012
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E2-M-P3",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8233,
+          "length": 0.5481,
+          "elevation": 0.5088,
+          "gain": 0.5131,
+          "slope": 0.4282,
+          "easy": 0.4461,
+          "province": {
+            "cavite": 0.1159,
+            "laguna": 0.8209,
+            "batangas": 0.8564,
+            "rizal": 0.8215,
+            "quezon": 0.8965
+          },
+          "terrain": {
+            "muddy": 0.4671,
+            "rocky": 0.4938,
+            "grassland": 0.4834,
+            "ridges": 0.3385
+          },
+          "circularity": {
+            "out_and_back": 0.17,
+            "traverse": 0.5495,
+            "circular": 0.2805
+          },
+          "waterforms": {
+            "fall": 0.578,
+            "river": 0.3854,
+            "lake": 0.5602
+          },
+          "tourism": {
+            "shelter": 0.31,
+            "resting": 0.4296,
+            "information_board": 0.4089,
+            "clean_water": 0.3398,
+            "river": 0.4099,
+            "lake": 0.5114,
+            "waterfall": 0.3829,
+            "monument": 0.4028,
+            "community": 0.5109,
+            "viewpoint": 0.3657,
+            "network_connection": 0.3848
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7851
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.1168,
+        "length": 0.2235,
+        "elevation": 0.1694,
+        "gain": 0.1996,
+        "slope": 0.1976,
+        "easy": 0.2211,
+        "muddy": 0.2242,
+        "rocky": 0.1056,
+        "grassland": 0.1131,
+        "ridges": 0.1585
+      },
+      "difficult": {
+        "classification": 0.9325,
+        "length": 0.4013,
+        "elevation": 0.5457,
+        "gain": 0.5519,
+        "slope": 0.4554,
+        "easy": 0.4997,
+        "muddy": 0.4387,
+        "rocky": 0.3539,
+        "grassland": 0.3587,
+        "ridges": 0.3453
+      }
+    }
+  },
+  {
+    "id": "s4_E3-N-P1",
+    "set_id": 4,
+    "cohort_id": "E3-N-P1",
+    "cohort_group": "normal",
+    "experience": "E3",
+    "stated_experience": "E3",
+    "actual_experience": "E3",
+    "stated_tier": 3,
+    "actual_tier": 3,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E3, N, P1)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E3",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E3-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1059,
+          "length": 0.3253,
+          "elevation": 0.3342,
+          "gain": 0.3155,
+          "slope": 0.4014,
+          "easy": 0.3713,
+          "province": {
+            "cavite": 0.1394,
+            "laguna": 0.1772,
+            "batangas": 0.1728,
+            "rizal": 0.8676,
+            "quezon": 0.101
+          },
+          "terrain": {
+            "muddy": 0.1609,
+            "rocky": 0.2802,
+            "grassland": 0.2898,
+            "ridges": 0.4849
+          },
+          "circularity": {
+            "out_and_back": 0.5415,
+            "traverse": 0.2416,
+            "circular": 0.2169
+          },
+          "waterforms": {
+            "fall": 0.3215,
+            "river": 0.3191,
+            "lake": 0.2612
+          },
+          "tourism": {
+            "shelter": 0.127,
+            "resting": 0.1857,
+            "information_board": 0.122,
+            "clean_water": 0.2827,
+            "river": 0.1253,
+            "lake": 0.1939,
+            "waterfall": 0.1312,
+            "monument": 0.2949,
+            "community": 0.1427,
+            "viewpoint": 0.1571,
+            "network_connection": 0.1461
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E3-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.9119,
+          "length": 0.7586,
+          "elevation": 0.7731,
+          "gain": 0.6802,
+          "slope": 0.7058,
+          "easy": 0.8313,
+          "province": {
+            "cavite": 0.913,
+            "laguna": 0.8232,
+            "batangas": 0.8789,
+            "rizal": 0.1517,
+            "quezon": 0.8519
+          },
+          "terrain": {
+            "muddy": 0.5393,
+            "rocky": 0.4916,
+            "grassland": 0.4736,
+            "ridges": 0.7601
+          },
+          "circularity": {
+            "out_and_back": 0.1492,
+            "traverse": 0.0962,
+            "circular": 0.7545
+          },
+          "waterforms": {
+            "fall": 0.5196,
+            "river": 0.6142,
+            "lake": 0.3993
+          },
+          "tourism": {
+            "shelter": 0.4193,
+            "resting": 0.3126,
+            "information_board": 0.4146,
+            "clean_water": 0.3227,
+            "river": 0.4459,
+            "lake": 0.3873,
+            "waterfall": 0.4393,
+            "monument": 0.4323,
+            "community": 0.443,
+            "viewpoint": 0.4763,
+            "network_connection": 0.336
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7888
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0008,
+        "length": 0.3335,
+        "elevation": 0.3007,
+        "gain": 0.2554,
+        "slope": 0.2503,
+        "easy": 0.3338,
+        "muddy": 0.2842,
+        "rocky": 0.1008,
+        "grassland": 0.1358,
+        "ridges": 0.1461
+      },
+      "difficult": {
+        "classification": 0.7693,
+        "length": 0.7848,
+        "elevation": 0.7747,
+        "gain": 0.7149,
+        "slope": 0.6955,
+        "easy": 0.7897,
+        "muddy": 0.4851,
+        "rocky": 0.7301,
+        "grassland": 0.6807,
+        "ridges": 0.6293
+      }
+    }
+  },
+  {
+    "id": "s4_E3-N-P2",
+    "set_id": 4,
+    "cohort_id": "E3-N-P2",
+    "cohort_group": "normal",
+    "experience": "E3",
+    "stated_experience": "E3",
+    "actual_experience": "E3",
+    "stated_tier": 3,
+    "actual_tier": 3,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E3, N, P2)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E3",
+      "province": [
+        "Batangas",
+        "Laguna"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E3-N-P2",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1234,
+          "length": 0.375,
+          "elevation": 0.3655,
+          "gain": 0.2743,
+          "slope": 0.3861,
+          "easy": 0.2731,
+          "province": {
+            "cavite": 0.1596,
+            "laguna": 0.9374,
+            "batangas": 0.8735,
+            "rizal": 0.1252,
+            "quezon": 0.142
+          },
+          "terrain": {
+            "muddy": 0.2156,
+            "rocky": 0.1341,
+            "grassland": 0.268,
+            "ridges": 0.4962
+          },
+          "circularity": {
+            "out_and_back": 0.2383,
+            "traverse": 0.4044,
+            "circular": 0.3573
+          },
+          "waterforms": {
+            "fall": 0.2599,
+            "river": 0.228,
+            "lake": 0.1814
+          },
+          "tourism": {
+            "shelter": 0.1223,
+            "resting": 0.2807,
+            "information_board": 0.2764,
+            "clean_water": 0.1699,
+            "river": 0.148,
+            "lake": 0.2894,
+            "waterfall": 0.2754,
+            "monument": 0.2592,
+            "community": 0.2176,
+            "viewpoint": 0.1259,
+            "network_connection": 0.2308
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E3-N-P2",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.7629,
+          "length": 0.7871,
+          "elevation": 0.7592,
+          "gain": 0.7084,
+          "slope": 0.7759,
+          "easy": 0.799,
+          "province": {
+            "cavite": 0.8974,
+            "laguna": 0.1833,
+            "batangas": 0.1425,
+            "rizal": 0.8888,
+            "quezon": 0.8773
+          },
+          "terrain": {
+            "muddy": 0.4064,
+            "rocky": 0.4957,
+            "grassland": 0.4918,
+            "ridges": 0.7961
+          },
+          "circularity": {
+            "out_and_back": 0.0285,
+            "traverse": 0.5122,
+            "circular": 0.4594
+          },
+          "waterforms": {
+            "fall": 0.6085,
+            "river": 0.619,
+            "lake": 0.5409
+          },
+          "tourism": {
+            "shelter": 0.2897,
+            "resting": 0.4926,
+            "information_board": 0.3084,
+            "clean_water": 0.4858,
+            "river": 0.4165,
+            "lake": 0.5127,
+            "waterfall": 0.3597,
+            "monument": 0.3249,
+            "community": 0.4619,
+            "viewpoint": 0.5096,
+            "network_connection": 0.3333
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7925
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0601,
+        "length": 0.3285,
+        "elevation": 0.3311,
+        "gain": 0.2786,
+        "slope": 0.2474,
+        "easy": 0.299,
+        "muddy": 0.3392,
+        "rocky": 0.1366,
+        "grassland": 0.3163,
+        "ridges": 0.2291
+      },
+      "difficult": {
+        "classification": 0.8082,
+        "length": 0.6672,
+        "elevation": 0.718,
+        "gain": 0.7758,
+        "slope": 0.7094,
+        "easy": 0.6869,
+        "muddy": 0.5453,
+        "rocky": 0.6196,
+        "grassland": 0.7489,
+        "ridges": 0.5366
+      }
+    }
+  },
+  {
+    "id": "s4_E3-N-P3",
+    "set_id": 4,
+    "cohort_id": "E3-N-P3",
+    "cohort_group": "normal",
+    "experience": "E3",
+    "stated_experience": "E3",
+    "actual_experience": "E3",
+    "stated_tier": 3,
+    "actual_tier": 3,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E3, N, P3)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E3",
+      "province": [
+        "Cavite"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E3-N-P3",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0643,
+          "length": 0.3894,
+          "elevation": 0.3688,
+          "gain": 0.2704,
+          "slope": 0.3422,
+          "easy": 0.3667,
+          "province": {
+            "cavite": 0.8494,
+            "laguna": 0.1629,
+            "batangas": 0.1082,
+            "rizal": 0.1715,
+            "quezon": 0.1472
+          },
+          "terrain": {
+            "muddy": 0.1806,
+            "rocky": 0.2457,
+            "grassland": 0.2882,
+            "ridges": 0.3579
+          },
+          "circularity": {
+            "out_and_back": 0.4535,
+            "traverse": 0.3818,
+            "circular": 0.1647
+          },
+          "waterforms": {
+            "fall": 0.2628,
+            "river": 0.2515,
+            "lake": 0.2459
+          },
+          "tourism": {
+            "shelter": 0.1823,
+            "resting": 0.3037,
+            "information_board": 0.279,
+            "clean_water": 0.2158,
+            "river": 0.2861,
+            "lake": 0.1915,
+            "waterfall": 0.2451,
+            "monument": 0.1823,
+            "community": 0.1891,
+            "viewpoint": 0.2549,
+            "network_connection": 0.2833
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E3-N-P3",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.888,
+          "length": 0.7569,
+          "elevation": 0.8085,
+          "gain": 0.7054,
+          "slope": 0.8194,
+          "easy": 0.8381,
+          "province": {
+            "cavite": 0.1633,
+            "laguna": 0.85,
+            "batangas": 0.8264,
+            "rizal": 0.8681,
+            "quezon": 0.8846
+          },
+          "terrain": {
+            "muddy": 0.5343,
+            "rocky": 0.5397,
+            "grassland": 0.4415,
+            "ridges": 0.7261
+          },
+          "circularity": {
+            "out_and_back": 0.0469,
+            "traverse": 0.3156,
+            "circular": 0.6375
+          },
+          "waterforms": {
+            "fall": 0.5858,
+            "river": 0.5995,
+            "lake": 0.4937
+          },
+          "tourism": {
+            "shelter": 0.4771,
+            "resting": 0.4353,
+            "information_board": 0.2963,
+            "clean_water": 0.4208,
+            "river": 0.3952,
+            "lake": 0.4006,
+            "waterfall": 0.2998,
+            "monument": 0.4785,
+            "community": 0.3828,
+            "viewpoint": 0.4622,
+            "network_connection": 0.4845
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7962
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0646,
+        "length": 0.3635,
+        "elevation": 0.3147,
+        "gain": 0.3306,
+        "slope": 0.3524,
+        "easy": 0.2473,
+        "muddy": 0.247,
+        "rocky": 0.1704,
+        "grassland": 0.198,
+        "ridges": 0.1471
+      },
+      "difficult": {
+        "classification": 0.7732,
+        "length": 0.8053,
+        "elevation": 0.7325,
+        "gain": 0.7831,
+        "slope": 0.7047,
+        "easy": 0.6943,
+        "muddy": 0.6892,
+        "rocky": 0.4214,
+        "grassland": 0.4266,
+        "ridges": 0.4518
+      }
+    }
+  },
+  {
+    "id": "s4_E3-M-P1",
+    "set_id": 4,
+    "cohort_id": "E3-M-P1",
+    "cohort_group": "normal",
+    "experience": "E3",
+    "stated_experience": "E3",
+    "actual_experience": "E3",
+    "stated_tier": 3,
+    "actual_tier": 3,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E3, M, P1)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E3",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E3-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1059,
+          "length": 0.2603,
+          "elevation": 0.2673,
+          "gain": 0.2524,
+          "slope": 0.3211,
+          "easy": 0.297,
+          "province": {
+            "cavite": 0.1061,
+            "laguna": 0.1162,
+            "batangas": 0.124,
+            "rizal": 0.9087,
+            "quezon": 0.1775
+          },
+          "terrain": {
+            "muddy": 0.1288,
+            "rocky": 0.2241,
+            "grassland": 0.2319,
+            "ridges": 0.3879
+          },
+          "circularity": {
+            "out_and_back": 0.4899,
+            "traverse": 0.0065,
+            "circular": 0.5036
+          },
+          "waterforms": {
+            "fall": 0.3363,
+            "river": 0.2563,
+            "lake": 0.3407
+          },
+          "tourism": {
+            "shelter": 0.2566,
+            "resting": 0.2686,
+            "information_board": 0.3106,
+            "clean_water": 0.1628,
+            "river": 0.3112,
+            "lake": 0.1259,
+            "waterfall": 0.1812,
+            "monument": 0.312,
+            "community": 0.1704,
+            "viewpoint": 0.3085,
+            "network_connection": 0.2248
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E3-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.9119,
+          "length": 0.6069,
+          "elevation": 0.6185,
+          "gain": 0.5442,
+          "slope": 0.5646,
+          "easy": 0.665,
+          "province": {
+            "cavite": 0.9199,
+            "laguna": 0.8564,
+            "batangas": 0.9039,
+            "rizal": 0.1829,
+            "quezon": 0.9043
+          },
+          "terrain": {
+            "muddy": 0.4314,
+            "rocky": 0.3933,
+            "grassland": 0.3789,
+            "ridges": 0.6081
+          },
+          "circularity": {
+            "out_and_back": 0.5051,
+            "traverse": 0.2743,
+            "circular": 0.2206
+          },
+          "waterforms": {
+            "fall": 0.3873,
+            "river": 0.5908,
+            "lake": 0.4559
+          },
+          "tourism": {
+            "shelter": 0.2896,
+            "resting": 0.4567,
+            "information_board": 0.4907,
+            "clean_water": 0.4249,
+            "river": 0.4978,
+            "lake": 0.3614,
+            "waterfall": 0.4101,
+            "monument": 0.3671,
+            "community": 0.3237,
+            "viewpoint": 0.4774,
+            "network_connection": 0.284
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        7999
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.1404,
+        "length": 0.1953,
+        "elevation": 0.294,
+        "gain": 0.2074,
+        "slope": 0.2039,
+        "easy": 0.2828,
+        "muddy": 0.1407,
+        "rocky": 0.2509,
+        "grassland": 0.2724,
+        "ridges": 0.2738
+      },
+      "difficult": {
+        "classification": 0.7266,
+        "length": 0.6543,
+        "elevation": 0.5228,
+        "gain": 0.571,
+        "slope": 0.5412,
+        "easy": 0.5675,
+        "muddy": 0.4153,
+        "rocky": 0.3798,
+        "grassland": 0.5169,
+        "ridges": 0.5449
+      }
+    }
+  },
+  {
+    "id": "s4_E3-M-P2",
+    "set_id": 4,
+    "cohort_id": "E3-M-P2",
+    "cohort_group": "normal",
+    "experience": "E3",
+    "stated_experience": "E3",
+    "actual_experience": "E3",
+    "stated_tier": 3,
+    "actual_tier": 3,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E3, M, P2)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E3",
+      "province": [
+        "Batangas",
+        "Laguna"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E3-M-P2",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1234,
+          "length": 0.3,
+          "elevation": 0.2924,
+          "gain": 0.2195,
+          "slope": 0.3089,
+          "easy": 0.2185,
+          "province": {
+            "cavite": 0.1245,
+            "laguna": 0.888,
+            "batangas": 0.9109,
+            "rizal": 0.1028,
+            "quezon": 0.1139
+          },
+          "terrain": {
+            "muddy": 0.1724,
+            "rocky": 0.1073,
+            "grassland": 0.2144,
+            "ridges": 0.397
+          },
+          "circularity": {
+            "out_and_back": 0.3164,
+            "traverse": 0.3598,
+            "circular": 0.3238
+          },
+          "waterforms": {
+            "fall": 0.2344,
+            "river": 0.2106,
+            "lake": 0.1914
+          },
+          "tourism": {
+            "shelter": 0.2243,
+            "resting": 0.1756,
+            "information_board": 0.2146,
+            "clean_water": 0.2713,
+            "river": 0.2976,
+            "lake": 0.1919,
+            "waterfall": 0.3193,
+            "monument": 0.3097,
+            "community": 0.2879,
+            "viewpoint": 0.2897,
+            "network_connection": 0.2265
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E3-M-P2",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.7629,
+          "length": 0.6297,
+          "elevation": 0.6074,
+          "gain": 0.5667,
+          "slope": 0.6208,
+          "easy": 0.6392,
+          "province": {
+            "cavite": 0.9134,
+            "laguna": 0.1693,
+            "batangas": 0.1875,
+            "rizal": 0.824,
+            "quezon": 0.8628
+          },
+          "terrain": {
+            "muddy": 0.3251,
+            "rocky": 0.3966,
+            "grassland": 0.3935,
+            "ridges": 0.6369
+          },
+          "circularity": {
+            "out_and_back": 0.4417,
+            "traverse": 0.3834,
+            "circular": 0.1748
+          },
+          "waterforms": {
+            "fall": 0.6364,
+            "river": 0.633,
+            "lake": 0.564
+          },
+          "tourism": {
+            "shelter": 0.4743,
+            "resting": 0.3437,
+            "information_board": 0.4664,
+            "clean_water": 0.4561,
+            "river": 0.4133,
+            "lake": 0.3484,
+            "waterfall": 0.3978,
+            "monument": 0.3627,
+            "community": 0.3117,
+            "viewpoint": 0.4347,
+            "network_connection": 0.2904
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8036
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.0911,
+        "length": 0.2319,
+        "elevation": 0.2836,
+        "gain": 0.2645,
+        "slope": 0.2983,
+        "easy": 0.2091,
+        "muddy": 0.0977,
+        "rocky": 0.2087,
+        "grassland": 0.1523,
+        "ridges": 0.2397
+      },
+      "difficult": {
+        "classification": 0.9079,
+        "length": 0.6466,
+        "elevation": 0.5928,
+        "gain": 0.5442,
+        "slope": 0.6121,
+        "easy": 0.5259,
+        "muddy": 0.4666,
+        "rocky": 0.5711,
+        "grassland": 0.3447,
+        "ridges": 0.6288
+      }
+    }
+  },
+  {
+    "id": "s4_E3-M-P3",
+    "set_id": 4,
+    "cohort_id": "E3-M-P3",
+    "cohort_group": "normal",
+    "experience": "E3",
+    "stated_experience": "E3",
+    "actual_experience": "E3",
+    "stated_tier": 3,
+    "actual_tier": 3,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E3, M, P3)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E3",
+      "province": [
+        "Cavite"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E3-M-P3",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0643,
+          "length": 0.3115,
+          "elevation": 0.295,
+          "gain": 0.2163,
+          "slope": 0.2737,
+          "easy": 0.2934,
+          "province": {
+            "cavite": 0.9053,
+            "laguna": 0.156,
+            "batangas": 0.1463,
+            "rizal": 0.1468,
+            "quezon": 0.1459
+          },
+          "terrain": {
+            "muddy": 0.1445,
+            "rocky": 0.1966,
+            "grassland": 0.2306,
+            "ridges": 0.2863
+          },
+          "circularity": {
+            "out_and_back": 0.3698,
+            "traverse": 0.5779,
+            "circular": 0.0523
+          },
+          "waterforms": {
+            "fall": 0.2692,
+            "river": 0.2808,
+            "lake": 0.2811
+          },
+          "tourism": {
+            "shelter": 0.2875,
+            "resting": 0.2833,
+            "information_board": 0.1757,
+            "clean_water": 0.1491,
+            "river": 0.2553,
+            "lake": 0.2947,
+            "waterfall": 0.2833,
+            "monument": 0.2243,
+            "community": 0.1821,
+            "viewpoint": 0.1785,
+            "network_connection": 0.1224
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E3-M-P3",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.888,
+          "length": 0.6055,
+          "elevation": 0.6468,
+          "gain": 0.5643,
+          "slope": 0.6556,
+          "easy": 0.6705,
+          "province": {
+            "cavite": 0.1415,
+            "laguna": 0.8888,
+            "batangas": 0.8882,
+            "rizal": 0.8595,
+            "quezon": 0.8732
+          },
+          "terrain": {
+            "muddy": 0.4274,
+            "rocky": 0.4317,
+            "grassland": 0.3532,
+            "ridges": 0.5809
+          },
+          "circularity": {
+            "out_and_back": 0.018,
+            "traverse": 0.2656,
+            "circular": 0.7164
+          },
+          "waterforms": {
+            "fall": 0.4973,
+            "river": 0.5387,
+            "lake": 0.5704
+          },
+          "tourism": {
+            "shelter": 0.5139,
+            "resting": 0.3966,
+            "information_board": 0.3411,
+            "clean_water": 0.3305,
+            "river": 0.4146,
+            "lake": 0.4847,
+            "waterfall": 0.4948,
+            "monument": 0.3536,
+            "community": 0.4274,
+            "viewpoint": 0.2856,
+            "network_connection": 0.3963
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8073
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.0435,
+        "length": 0.2469,
+        "elevation": 0.2134,
+        "gain": 0.222,
+        "slope": 0.2465,
+        "easy": 0.2026,
+        "muddy": 0.1771,
+        "rocky": 0.1768,
+        "grassland": 0.1927,
+        "ridges": 0.1869
+      },
+      "difficult": {
+        "classification": 0.9375,
+        "length": 0.552,
+        "elevation": 0.5754,
+        "gain": 0.5668,
+        "slope": 0.6173,
+        "easy": 0.5933,
+        "muddy": 0.5321,
+        "rocky": 0.4831,
+        "grassland": 0.5158,
+        "ridges": 0.5305
+      }
+    }
+  },
+  {
+    "id": "s4_E4-N-P1",
+    "set_id": 4,
+    "cohort_id": "E4-N-P1",
+    "cohort_group": "normal",
+    "experience": "E4",
+    "stated_experience": "E4",
+    "actual_experience": "E4",
+    "stated_tier": 4,
+    "actual_tier": 4,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E4, N, P1)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E4",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E4-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1231,
+          "length": 0.4109,
+          "elevation": 0.3969,
+          "gain": 0.4779,
+          "slope": 0.3954,
+          "easy": 0.3844,
+          "province": {
+            "cavite": 0.1205,
+            "laguna": 0.1686,
+            "batangas": 0.1745,
+            "rizal": 0.8938,
+            "quezon": 0.1063
+          },
+          "terrain": {
+            "muddy": 0.4982,
+            "rocky": 0.2593,
+            "grassland": 0.3123,
+            "ridges": 0.2625
+          },
+          "circularity": {
+            "out_and_back": 0.8458,
+            "traverse": 0.0514,
+            "circular": 0.1029
+          },
+          "waterforms": {
+            "fall": 0.3358,
+            "river": 0.321,
+            "lake": 0.2234
+          },
+          "tourism": {
+            "shelter": 0.1778,
+            "resting": 0.1584,
+            "information_board": 0.1429,
+            "clean_water": 0.1884,
+            "river": 0.2302,
+            "lake": 0.1351,
+            "waterfall": 0.1484,
+            "monument": 0.218,
+            "community": 0.2982,
+            "viewpoint": 0.2402,
+            "network_connection": 0.2175
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E4-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8315,
+          "length": 0.8951,
+          "elevation": 0.8931,
+          "gain": 0.8546,
+          "slope": 0.8868,
+          "easy": 0.8694,
+          "province": {
+            "cavite": 0.8269,
+            "laguna": 0.875,
+            "batangas": 0.8326,
+            "rizal": 0.1363,
+            "quezon": 0.8592
+          },
+          "terrain": {
+            "muddy": 0.6337,
+            "rocky": 0.478,
+            "grassland": 0.5136,
+            "ridges": 0.5608
+          },
+          "circularity": {
+            "out_and_back": 0.1291,
+            "traverse": 0.7812,
+            "circular": 0.0897
+          },
+          "waterforms": {
+            "fall": 0.5485,
+            "river": 0.5808,
+            "lake": 0.5925
+          },
+          "tourism": {
+            "shelter": 0.3905,
+            "resting": 0.5033,
+            "information_board": 0.3426,
+            "clean_water": 0.3281,
+            "river": 0.3923,
+            "lake": 0.4926,
+            "waterfall": 0.3122,
+            "monument": 0.3446,
+            "community": 0.4261,
+            "viewpoint": 0.4605,
+            "network_connection": 0.3334
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8110
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.056,
+        "length": 0.3438,
+        "elevation": 0.4797,
+        "gain": 0.4055,
+        "slope": 0.4475,
+        "easy": 0.4544,
+        "muddy": 0.3349,
+        "rocky": 0.1613,
+        "grassland": 0.2126,
+        "ridges": 0.269
+      },
+      "difficult": {
+        "classification": 0.8568,
+        "length": 0.8785,
+        "elevation": 0.9241,
+        "gain": 0.8748,
+        "slope": 0.8205,
+        "easy": 0.9169,
+        "muddy": 0.7619,
+        "rocky": 0.7612,
+        "grassland": 0.6124,
+        "ridges": 0.4998
+      }
+    }
+  },
+  {
+    "id": "s4_E4-N-P2",
+    "set_id": 4,
+    "cohort_id": "E4-N-P2",
+    "cohort_group": "normal",
+    "experience": "E4",
+    "stated_experience": "E4",
+    "actual_experience": "E4",
+    "stated_tier": 4,
+    "actual_tier": 4,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E4, N, P2)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E4",
+      "province": [
+        "Batangas",
+        "Laguna"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E4-N-P2",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1016,
+          "length": 0.4676,
+          "elevation": 0.4022,
+          "gain": 0.3796,
+          "slope": 0.4433,
+          "easy": 0.4359,
+          "province": {
+            "cavite": 0.147,
+            "laguna": 0.8771,
+            "batangas": 0.8798,
+            "rizal": 0.1096,
+            "quezon": 0.1734
+          },
+          "terrain": {
+            "muddy": 0.4778,
+            "rocky": 0.1972,
+            "grassland": 0.1903,
+            "ridges": 0.2818
+          },
+          "circularity": {
+            "out_and_back": 0.2787,
+            "traverse": 0.33,
+            "circular": 0.3913
+          },
+          "waterforms": {
+            "fall": 0.2938,
+            "river": 0.277,
+            "lake": 0.2243
+          },
+          "tourism": {
+            "shelter": 0.3021,
+            "resting": 0.1686,
+            "information_board": 0.2617,
+            "clean_water": 0.1961,
+            "river": 0.2415,
+            "lake": 0.1511,
+            "waterfall": 0.1511,
+            "monument": 0.2631,
+            "community": 0.1785,
+            "viewpoint": 0.2711,
+            "network_connection": 0.1864
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E4-N-P2",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.78,
+          "length": 0.9006,
+          "elevation": 0.9064,
+          "gain": 0.8398,
+          "slope": 0.8098,
+          "easy": 0.8162,
+          "province": {
+            "cavite": 0.8844,
+            "laguna": 0.1802,
+            "batangas": 0.1524,
+            "rizal": 0.8233,
+            "quezon": 0.8906
+          },
+          "terrain": {
+            "muddy": 0.7904,
+            "rocky": 0.4757,
+            "grassland": 0.4321,
+            "ridges": 0.4941
+          },
+          "circularity": {
+            "out_and_back": 0.5795,
+            "traverse": 0.1405,
+            "circular": 0.28
+          },
+          "waterforms": {
+            "fall": 0.525,
+            "river": 0.5443,
+            "lake": 0.5734
+          },
+          "tourism": {
+            "shelter": 0.393,
+            "resting": 0.512,
+            "information_board": 0.3771,
+            "clean_water": 0.382,
+            "river": 0.392,
+            "lake": 0.393,
+            "waterfall": 0.4483,
+            "monument": 0.4002,
+            "community": 0.4438,
+            "viewpoint": 0.2865,
+            "network_connection": 0.3881
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8147
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0716,
+        "length": 0.36,
+        "elevation": 0.3484,
+        "gain": 0.3766,
+        "slope": 0.4776,
+        "easy": 0.4257,
+        "muddy": 0.1107,
+        "rocky": 0.1329,
+        "grassland": 0.1196,
+        "ridges": 0.3295
+      },
+      "difficult": {
+        "classification": 0.7938,
+        "length": 0.9099,
+        "elevation": 0.8312,
+        "gain": 0.8642,
+        "slope": 0.9289,
+        "easy": 0.8153,
+        "muddy": 0.4359,
+        "rocky": 0.7801,
+        "grassland": 0.4626,
+        "ridges": 0.6236
+      }
+    }
+  },
+  {
+    "id": "s4_E4-N-P3",
+    "set_id": 4,
+    "cohort_id": "E4-N-P3",
+    "cohort_group": "normal",
+    "experience": "E4",
+    "stated_experience": "E4",
+    "actual_experience": "E4",
+    "stated_tier": 4,
+    "actual_tier": 4,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E4, N, P3)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E4",
+      "province": [
+        "Cavite"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E4-N-P3",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1149,
+          "length": 0.4063,
+          "elevation": 0.382,
+          "gain": 0.3874,
+          "slope": 0.4119,
+          "easy": 0.4498,
+          "province": {
+            "cavite": 0.9063,
+            "laguna": 0.1145,
+            "batangas": 0.1324,
+            "rizal": 0.1034,
+            "quezon": 0.1056
+          },
+          "terrain": {
+            "muddy": 0.4671,
+            "rocky": 0.2584,
+            "grassland": 0.2043,
+            "ridges": 0.2301
+          },
+          "circularity": {
+            "out_and_back": 0.4721,
+            "traverse": 0.4309,
+            "circular": 0.0969
+          },
+          "waterforms": {
+            "fall": 0.1811,
+            "river": 0.2136,
+            "lake": 0.2169
+          },
+          "tourism": {
+            "shelter": 0.1725,
+            "resting": 0.318,
+            "information_board": 0.1817,
+            "clean_water": 0.2784,
+            "river": 0.2079,
+            "lake": 0.14,
+            "waterfall": 0.2937,
+            "monument": 0.3074,
+            "community": 0.1262,
+            "viewpoint": 0.1823,
+            "network_connection": 0.1562
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E4-N-P3",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.9231,
+          "length": 0.8539,
+          "elevation": 0.8611,
+          "gain": 0.9555,
+          "slope": 0.8852,
+          "easy": 0.9079,
+          "province": {
+            "cavite": 0.1842,
+            "laguna": 0.8299,
+            "batangas": 0.8255,
+            "rizal": 0.869,
+            "quezon": 0.9014
+          },
+          "terrain": {
+            "muddy": 0.7412,
+            "rocky": 0.5208,
+            "grassland": 0.6159,
+            "ridges": 0.5496
+          },
+          "circularity": {
+            "out_and_back": 0.0554,
+            "traverse": 0.8481,
+            "circular": 0.0965
+          },
+          "waterforms": {
+            "fall": 0.5676,
+            "river": 0.5451,
+            "lake": 0.4324
+          },
+          "tourism": {
+            "shelter": 0.439,
+            "resting": 0.409,
+            "information_board": 0.3326,
+            "clean_water": 0.3081,
+            "river": 0.3961,
+            "lake": 0.3331,
+            "waterfall": 0.4781,
+            "monument": 0.3605,
+            "community": 0.3251,
+            "viewpoint": 0.3847,
+            "network_connection": 0.4176
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8184
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.033,
+        "length": 0.3461,
+        "elevation": 0.3535,
+        "gain": 0.3944,
+        "slope": 0.4267,
+        "easy": 0.4657,
+        "muddy": 0.2954,
+        "rocky": 0.2617,
+        "grassland": 0.1453,
+        "ridges": 0.1082
+      },
+      "difficult": {
+        "classification": 0.864,
+        "length": 0.9026,
+        "elevation": 0.8799,
+        "gain": 0.8225,
+        "slope": 0.8344,
+        "easy": 0.8957,
+        "muddy": 0.5819,
+        "rocky": 0.7727,
+        "grassland": 0.6016,
+        "ridges": 0.6047
+      }
+    }
+  },
+  {
+    "id": "s4_E4-M-P1",
+    "set_id": 4,
+    "cohort_id": "E4-M-P1",
+    "cohort_group": "normal",
+    "experience": "E4",
+    "stated_experience": "E4",
+    "actual_experience": "E4",
+    "stated_tier": 4,
+    "actual_tier": 4,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E4, M, P1)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E4",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E4-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1231,
+          "length": 0.3287,
+          "elevation": 0.3175,
+          "gain": 0.3823,
+          "slope": 0.3163,
+          "easy": 0.3076,
+          "province": {
+            "cavite": 0.1293,
+            "laguna": 0.1757,
+            "batangas": 0.172,
+            "rizal": 0.8763,
+            "quezon": 0.1785
+          },
+          "terrain": {
+            "muddy": 0.3986,
+            "rocky": 0.2075,
+            "grassland": 0.2498,
+            "ridges": 0.21
+          },
+          "circularity": {
+            "out_and_back": 0.4496,
+            "traverse": 0.0348,
+            "circular": 0.5156
+          },
+          "waterforms": {
+            "fall": 0.1945,
+            "river": 0.1973,
+            "lake": 0.3452
+          },
+          "tourism": {
+            "shelter": 0.169,
+            "resting": 0.3094,
+            "information_board": 0.2877,
+            "clean_water": 0.2223,
+            "river": 0.2611,
+            "lake": 0.2189,
+            "waterfall": 0.313,
+            "monument": 0.2264,
+            "community": 0.2799,
+            "viewpoint": 0.1293,
+            "network_connection": 0.1446
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E4-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8315,
+          "length": 0.7161,
+          "elevation": 0.7145,
+          "gain": 0.6837,
+          "slope": 0.7095,
+          "easy": 0.6956,
+          "province": {
+            "cavite": 0.9139,
+            "laguna": 0.8287,
+            "batangas": 0.8429,
+            "rizal": 0.1627,
+            "quezon": 0.8655
+          },
+          "terrain": {
+            "muddy": 0.507,
+            "rocky": 0.3824,
+            "grassland": 0.4108,
+            "ridges": 0.4487
+          },
+          "circularity": {
+            "out_and_back": 0.3927,
+            "traverse": 0.0718,
+            "circular": 0.5355
+          },
+          "waterforms": {
+            "fall": 0.3993,
+            "river": 0.3848,
+            "lake": 0.5881
+          },
+          "tourism": {
+            "shelter": 0.2852,
+            "resting": 0.3232,
+            "information_board": 0.4784,
+            "clean_water": 0.4247,
+            "river": 0.4444,
+            "lake": 0.4539,
+            "waterfall": 0.48,
+            "monument": 0.4977,
+            "community": 0.4826,
+            "viewpoint": 0.5022,
+            "network_connection": 0.3529
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8221
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.0838,
+        "length": 0.3047,
+        "elevation": 0.3129,
+        "gain": 0.3122,
+        "slope": 0.3022,
+        "easy": 0.2766,
+        "muddy": 0.1305,
+        "rocky": 0.0987,
+        "grassland": 0.1173,
+        "ridges": 0.1869
+      },
+      "difficult": {
+        "classification": 0.7214,
+        "length": 0.6463,
+        "elevation": 0.7092,
+        "gain": 0.6869,
+        "slope": 0.7318,
+        "easy": 0.7057,
+        "muddy": 0.5495,
+        "rocky": 0.6287,
+        "grassland": 0.3614,
+        "ridges": 0.4056
+      }
+    }
+  },
+  {
+    "id": "s4_E4-M-P2",
+    "set_id": 4,
+    "cohort_id": "E4-M-P2",
+    "cohort_group": "normal",
+    "experience": "E4",
+    "stated_experience": "E4",
+    "actual_experience": "E4",
+    "stated_tier": 4,
+    "actual_tier": 4,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E4, M, P2)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E4",
+      "province": [
+        "Batangas",
+        "Laguna"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E4-M-P2",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1016,
+          "length": 0.3741,
+          "elevation": 0.3218,
+          "gain": 0.3037,
+          "slope": 0.3547,
+          "easy": 0.3487,
+          "province": {
+            "cavite": 0.1143,
+            "laguna": 0.8698,
+            "batangas": 0.8735,
+            "rizal": 0.1247,
+            "quezon": 0.1639
+          },
+          "terrain": {
+            "muddy": 0.3822,
+            "rocky": 0.1578,
+            "grassland": 0.1522,
+            "ridges": 0.2255
+          },
+          "circularity": {
+            "out_and_back": 0.3279,
+            "traverse": 0.5526,
+            "circular": 0.1195
+          },
+          "waterforms": {
+            "fall": 0.2741,
+            "river": 0.2104,
+            "lake": 0.2623
+          },
+          "tourism": {
+            "shelter": 0.1747,
+            "resting": 0.1712,
+            "information_board": 0.2203,
+            "clean_water": 0.3047,
+            "river": 0.2106,
+            "lake": 0.2397,
+            "waterfall": 0.2764,
+            "monument": 0.2556,
+            "community": 0.1359,
+            "viewpoint": 0.2287,
+            "network_connection": 0.1618
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E4-M-P2",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.78,
+          "length": 0.7204,
+          "elevation": 0.7251,
+          "gain": 0.6719,
+          "slope": 0.6478,
+          "easy": 0.653,
+          "province": {
+            "cavite": 0.9065,
+            "laguna": 0.1812,
+            "batangas": 0.1365,
+            "rizal": 0.9099,
+            "quezon": 0.8896
+          },
+          "terrain": {
+            "muddy": 0.6323,
+            "rocky": 0.3805,
+            "grassland": 0.3457,
+            "ridges": 0.3953
+          },
+          "circularity": {
+            "out_and_back": 0.1412,
+            "traverse": 0.7431,
+            "circular": 0.1157
+          },
+          "waterforms": {
+            "fall": 0.3952,
+            "river": 0.5862,
+            "lake": 0.5227
+          },
+          "tourism": {
+            "shelter": 0.4649,
+            "resting": 0.2923,
+            "information_board": 0.4008,
+            "clean_water": 0.375,
+            "river": 0.3123,
+            "lake": 0.2954,
+            "waterfall": 0.4168,
+            "monument": 0.2839,
+            "community": 0.2912,
+            "viewpoint": 0.2911,
+            "network_connection": 0.3885
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8258
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.107,
+        "length": 0.2851,
+        "elevation": 0.3292,
+        "gain": 0.3395,
+        "slope": 0.3543,
+        "easy": 0.3633,
+        "muddy": 0.1794,
+        "rocky": 0.13,
+        "grassland": 0.2739,
+        "ridges": 0.1118
+      },
+      "difficult": {
+        "classification": 0.7048,
+        "length": 0.7115,
+        "elevation": 0.7241,
+        "gain": 0.6448,
+        "slope": 0.7499,
+        "easy": 0.7308,
+        "muddy": 0.5021,
+        "rocky": 0.4489,
+        "grassland": 0.4738,
+        "ridges": 0.5033
+      }
+    }
+  },
+  {
+    "id": "s4_E4-M-P3",
+    "set_id": 4,
+    "cohort_id": "E4-M-P3",
+    "cohort_group": "normal",
+    "experience": "E4",
+    "stated_experience": "E4",
+    "actual_experience": "E4",
+    "stated_tier": 4,
+    "actual_tier": 4,
+    "mismatch_type": "concordant",
+    "mismatch_gap": 0,
+    "label": "Normal Concordant (E4, M, P3)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E4",
+      "province": [
+        "Cavite"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E4-M-P3",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1149,
+          "length": 0.3251,
+          "elevation": 0.3056,
+          "gain": 0.3099,
+          "slope": 0.3295,
+          "easy": 0.3598,
+          "province": {
+            "cavite": 0.8705,
+            "laguna": 0.1067,
+            "batangas": 0.1328,
+            "rizal": 0.161,
+            "quezon": 0.1203
+          },
+          "terrain": {
+            "muddy": 0.3737,
+            "rocky": 0.2067,
+            "grassland": 0.1634,
+            "ridges": 0.1841
+          },
+          "circularity": {
+            "out_and_back": 0.363,
+            "traverse": 0.0628,
+            "circular": 0.5742
+          },
+          "waterforms": {
+            "fall": 0.3128,
+            "river": 0.2577,
+            "lake": 0.3388
+          },
+          "tourism": {
+            "shelter": 0.199,
+            "resting": 0.1681,
+            "information_board": 0.2651,
+            "clean_water": 0.1422,
+            "river": 0.2219,
+            "lake": 0.2964,
+            "waterfall": 0.209,
+            "monument": 0.2792,
+            "community": 0.2125,
+            "viewpoint": 0.1813,
+            "network_connection": 0.2877
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_E4-M-P3",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.9231,
+          "length": 0.6832,
+          "elevation": 0.6888,
+          "gain": 0.7644,
+          "slope": 0.7082,
+          "easy": 0.7263,
+          "province": {
+            "cavite": 0.1472,
+            "laguna": 0.8911,
+            "batangas": 0.8545,
+            "rizal": 0.8466,
+            "quezon": 0.8534
+          },
+          "terrain": {
+            "muddy": 0.5929,
+            "rocky": 0.4166,
+            "grassland": 0.4927,
+            "ridges": 0.4397
+          },
+          "circularity": {
+            "out_and_back": 0.2607,
+            "traverse": 0.6752,
+            "circular": 0.0641
+          },
+          "waterforms": {
+            "fall": 0.4001,
+            "river": 0.5646,
+            "lake": 0.4309
+          },
+          "tourism": {
+            "shelter": 0.3611,
+            "resting": 0.3122,
+            "information_board": 0.3736,
+            "clean_water": 0.3814,
+            "river": 0.3919,
+            "lake": 0.4448,
+            "waterfall": 0.4215,
+            "monument": 0.4544,
+            "community": 0.2846,
+            "viewpoint": 0.3858,
+            "network_connection": 0.3776
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8295
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.1246,
+        "length": 0.324,
+        "elevation": 0.2741,
+        "gain": 0.344,
+        "slope": 0.3563,
+        "easy": 0.3429,
+        "muddy": 0.1748,
+        "rocky": 0.274,
+        "grassland": 0.2786,
+        "ridges": 0.0828
+      },
+      "difficult": {
+        "classification": 0.9473,
+        "length": 0.6681,
+        "elevation": 0.6631,
+        "gain": 0.7442,
+        "slope": 0.6687,
+        "easy": 0.6659,
+        "muddy": 0.4733,
+        "rocky": 0.5168,
+        "grassland": 0.449,
+        "ridges": 0.3957
+      }
+    }
+  },
+  {
+    "id": "s4_AB-4-1-N-P1",
+    "set_id": 4,
+    "cohort_id": "AB-4-1-N-P1",
+    "cohort_group": "aberrant",
+    "experience": "E4",
+    "stated_experience": "E4",
+    "actual_experience": "E1",
+    "stated_tier": 4,
+    "actual_tier": 1,
+    "mismatch_type": "overestimated",
+    "mismatch_gap": 3,
+    "label": "Aberrant Overestimated (Max Overestimation (Novice -> Expert), N)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E4",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-4-1-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0316,
+          "length": 0.3853,
+          "elevation": 0.4971,
+          "gain": 0.3713,
+          "slope": 0.468,
+          "easy": 0.4795,
+          "province": {
+            "cavite": 0.1333,
+            "laguna": 0.1065,
+            "batangas": 0.1149,
+            "rizal": 0.8607,
+            "quezon": 0.1361
+          },
+          "terrain": {
+            "muddy": 0.4322,
+            "rocky": 0.1609,
+            "grassland": 0.2542,
+            "ridges": 0.1672
+          },
+          "circularity": {
+            "out_and_back": 0.4203,
+            "traverse": 0.2408,
+            "circular": 0.3389
+          },
+          "waterforms": {
+            "fall": 0.2947,
+            "river": 0.34,
+            "lake": 0.2183
+          },
+          "tourism": {
+            "shelter": 0.1689,
+            "resting": 0.152,
+            "information_board": 0.1848,
+            "clean_water": 0.2743,
+            "river": 0.245,
+            "lake": 0.225,
+            "waterfall": 0.1382,
+            "monument": 0.135,
+            "community": 0.1982,
+            "viewpoint": 0.2076,
+            "network_connection": 0.1262
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-4-1-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.7839,
+          "length": 0.873,
+          "elevation": 0.8898,
+          "gain": 0.9524,
+          "slope": 0.9036,
+          "easy": 0.8107,
+          "province": {
+            "cavite": 0.8796,
+            "laguna": 0.8223,
+            "batangas": 0.8301,
+            "rizal": 0.1977,
+            "quezon": 0.8797
+          },
+          "terrain": {
+            "muddy": 0.6184,
+            "rocky": 0.5811,
+            "grassland": 0.484,
+            "ridges": 0.4819
+          },
+          "circularity": {
+            "out_and_back": 0.2307,
+            "traverse": 0.7108,
+            "circular": 0.0584
+          },
+          "waterforms": {
+            "fall": 0.5274,
+            "river": 0.4318,
+            "lake": 0.6137
+          },
+          "tourism": {
+            "shelter": 0.3863,
+            "resting": 0.4075,
+            "information_board": 0.3701,
+            "clean_water": 0.4216,
+            "river": 0.3546,
+            "lake": 0.4475,
+            "waterfall": 0.3373,
+            "monument": 0.3614,
+            "community": 0.4866,
+            "viewpoint": 0.5153,
+            "network_connection": 0.4075
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8332
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.083,
+        "length": 0.1396,
+        "elevation": 0.1672,
+        "gain": 0.1305,
+        "slope": 0.128,
+        "easy": 0.1982,
+        "muddy": 0.2429,
+        "rocky": 0.1611,
+        "grassland": 0.2811,
+        "ridges": 0.2937
+      },
+      "difficult": {
+        "classification": 0.9199,
+        "length": 0.5259,
+        "elevation": 0.6327,
+        "gain": 0.6292,
+        "slope": 0.5396,
+        "easy": 0.5263,
+        "muddy": 0.5083,
+        "rocky": 0.5661,
+        "grassland": 0.6688,
+        "ridges": 0.6244
+      }
+    }
+  },
+  {
+    "id": "s4_AB-4-1-M-P1",
+    "set_id": 4,
+    "cohort_id": "AB-4-1-M-P1",
+    "cohort_group": "aberrant",
+    "experience": "E4",
+    "stated_experience": "E4",
+    "actual_experience": "E1",
+    "stated_tier": 4,
+    "actual_tier": 1,
+    "mismatch_type": "overestimated",
+    "mismatch_gap": 3,
+    "label": "Aberrant Overestimated (Max Overestimation (Novice -> Expert), M)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E4",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-4-1-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0316,
+          "length": 0.3082,
+          "elevation": 0.3977,
+          "gain": 0.2971,
+          "slope": 0.3744,
+          "easy": 0.3836,
+          "province": {
+            "cavite": 0.12,
+            "laguna": 0.1595,
+            "batangas": 0.1158,
+            "rizal": 0.8904,
+            "quezon": 0.1193
+          },
+          "terrain": {
+            "muddy": 0.3458,
+            "rocky": 0.1287,
+            "grassland": 0.2034,
+            "ridges": 0.1338
+          },
+          "circularity": {
+            "out_and_back": 0.1906,
+            "traverse": 0.5647,
+            "circular": 0.2447
+          },
+          "waterforms": {
+            "fall": 0.2309,
+            "river": 0.2658,
+            "lake": 0.2249
+          },
+          "tourism": {
+            "shelter": 0.2055,
+            "resting": 0.2507,
+            "information_board": 0.1226,
+            "clean_water": 0.2995,
+            "river": 0.1608,
+            "lake": 0.2372,
+            "waterfall": 0.3131,
+            "monument": 0.16,
+            "community": 0.1295,
+            "viewpoint": 0.3019,
+            "network_connection": 0.2267
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-4-1-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.7839,
+          "length": 0.6984,
+          "elevation": 0.7118,
+          "gain": 0.762,
+          "slope": 0.7229,
+          "easy": 0.6486,
+          "province": {
+            "cavite": 0.8216,
+            "laguna": 0.858,
+            "batangas": 0.834,
+            "rizal": 0.1298,
+            "quezon": 0.8278
+          },
+          "terrain": {
+            "muddy": 0.4947,
+            "rocky": 0.4649,
+            "grassland": 0.3872,
+            "ridges": 0.3855
+          },
+          "circularity": {
+            "out_and_back": 0.1174,
+            "traverse": 0.518,
+            "circular": 0.3646
+          },
+          "waterforms": {
+            "fall": 0.3904,
+            "river": 0.517,
+            "lake": 0.5966
+          },
+          "tourism": {
+            "shelter": 0.337,
+            "resting": 0.3299,
+            "information_board": 0.2981,
+            "clean_water": 0.4421,
+            "river": 0.3058,
+            "lake": 0.4974,
+            "waterfall": 0.4451,
+            "monument": 0.3177,
+            "community": 0.4418,
+            "viewpoint": 0.2816,
+            "network_connection": 0.3996
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8369
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.056,
+        "length": 0.1251,
+        "elevation": 0.1121,
+        "gain": 0.1358,
+        "slope": 0.1741,
+        "easy": 0.1527,
+        "muddy": 0.1233,
+        "rocky": 0.2186,
+        "grassland": 0.1841,
+        "ridges": 0.2586
+      },
+      "difficult": {
+        "classification": 0.9056,
+        "length": 0.4922,
+        "elevation": 0.5186,
+        "gain": 0.4838,
+        "slope": 0.3724,
+        "easy": 0.457,
+        "muddy": 0.5441,
+        "rocky": 0.5516,
+        "grassland": 0.4161,
+        "ridges": 0.5648
+      }
+    }
+  },
+  {
+    "id": "s4_AB-4-2-N-P1",
+    "set_id": 4,
+    "cohort_id": "AB-4-2-N-P1",
+    "cohort_group": "aberrant",
+    "experience": "E4",
+    "stated_experience": "E4",
+    "actual_experience": "E2",
+    "stated_tier": 4,
+    "actual_tier": 2,
+    "mismatch_type": "overestimated",
+    "mismatch_gap": 2,
+    "label": "Aberrant Overestimated (High Overestimation (Gentle -> Expert), N)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E4",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-4-2-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0333,
+          "length": 0.4064,
+          "elevation": 0.4225,
+          "gain": 0.4637,
+          "slope": 0.4002,
+          "easy": 0.4501,
+          "province": {
+            "cavite": 0.1222,
+            "laguna": 0.1763,
+            "batangas": 0.1674,
+            "rizal": 0.9135,
+            "quezon": 0.1162
+          },
+          "terrain": {
+            "muddy": 0.4543,
+            "rocky": 0.1874,
+            "grassland": 0.2374,
+            "ridges": 0.2265
+          },
+          "circularity": {
+            "out_and_back": 0.1237,
+            "traverse": 0.5515,
+            "circular": 0.3248
+          },
+          "waterforms": {
+            "fall": 0.1905,
+            "river": 0.203,
+            "lake": 0.1906
+          },
+          "tourism": {
+            "shelter": 0.1304,
+            "resting": 0.2962,
+            "information_board": 0.3136,
+            "clean_water": 0.1554,
+            "river": 0.3098,
+            "lake": 0.2452,
+            "waterfall": 0.2805,
+            "monument": 0.2197,
+            "community": 0.2936,
+            "viewpoint": 0.2268,
+            "network_connection": 0.1719
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-4-2-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.7659,
+          "length": 0.8622,
+          "elevation": 0.9168,
+          "gain": 0.9555,
+          "slope": 0.8916,
+          "easy": 0.9013,
+          "province": {
+            "cavite": 0.9125,
+            "laguna": 0.8472,
+            "batangas": 0.8873,
+            "rizal": 0.1756,
+            "quezon": 0.9172
+          },
+          "terrain": {
+            "muddy": 0.6537,
+            "rocky": 0.5434,
+            "grassland": 0.4135,
+            "ridges": 0.5657
+          },
+          "circularity": {
+            "out_and_back": 0.4044,
+            "traverse": 0.348,
+            "circular": 0.2476
+          },
+          "waterforms": {
+            "fall": 0.4976,
+            "river": 0.4295,
+            "lake": 0.4285
+          },
+          "tourism": {
+            "shelter": 0.4048,
+            "resting": 0.2885,
+            "information_board": 0.426,
+            "clean_water": 0.4411,
+            "river": 0.4316,
+            "lake": 0.4553,
+            "waterfall": 0.4962,
+            "monument": 0.321,
+            "community": 0.3955,
+            "viewpoint": 0.3197,
+            "network_connection": 0.4712
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8406
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.136,
+        "length": 0.1686,
+        "elevation": 0.2775,
+        "gain": 0.1762,
+        "slope": 0.1656,
+        "easy": 0.1903,
+        "muddy": 0.1699,
+        "rocky": 0.2748,
+        "grassland": 0.1372,
+        "ridges": 0.1724
+      },
+      "difficult": {
+        "classification": 0.8351,
+        "length": 0.5177,
+        "elevation": 0.6641,
+        "gain": 0.6443,
+        "slope": 0.6387,
+        "easy": 0.6307,
+        "muddy": 0.6537,
+        "rocky": 0.7099,
+        "grassland": 0.4902,
+        "ridges": 0.7702
+      }
+    }
+  },
+  {
+    "id": "s4_AB-4-2-M-P1",
+    "set_id": 4,
+    "cohort_id": "AB-4-2-M-P1",
+    "cohort_group": "aberrant",
+    "experience": "E4",
+    "stated_experience": "E4",
+    "actual_experience": "E2",
+    "stated_tier": 4,
+    "actual_tier": 2,
+    "mismatch_type": "overestimated",
+    "mismatch_gap": 2,
+    "label": "Aberrant Overestimated (High Overestimation (Gentle -> Expert), M)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E4",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-4-2-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0333,
+          "length": 0.3251,
+          "elevation": 0.338,
+          "gain": 0.371,
+          "slope": 0.3201,
+          "easy": 0.3601,
+          "province": {
+            "cavite": 0.1445,
+            "laguna": 0.1379,
+            "batangas": 0.1632,
+            "rizal": 0.9025,
+            "quezon": 0.1549
+          },
+          "terrain": {
+            "muddy": 0.3635,
+            "rocky": 0.1499,
+            "grassland": 0.1899,
+            "ridges": 0.1812
+          },
+          "circularity": {
+            "out_and_back": 0.2504,
+            "traverse": 0.6899,
+            "circular": 0.0598
+          },
+          "waterforms": {
+            "fall": 0.3447,
+            "river": 0.1923,
+            "lake": 0.3341
+          },
+          "tourism": {
+            "shelter": 0.1768,
+            "resting": 0.2115,
+            "information_board": 0.2328,
+            "clean_water": 0.2118,
+            "river": 0.1805,
+            "lake": 0.1432,
+            "waterfall": 0.122,
+            "monument": 0.2651,
+            "community": 0.2758,
+            "viewpoint": 0.1972,
+            "network_connection": 0.1652
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-4-2-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.7659,
+          "length": 0.6898,
+          "elevation": 0.7334,
+          "gain": 0.7644,
+          "slope": 0.7133,
+          "easy": 0.7211,
+          "province": {
+            "cavite": 0.8638,
+            "laguna": 0.8827,
+            "batangas": 0.8853,
+            "rizal": 0.117,
+            "quezon": 0.883
+          },
+          "terrain": {
+            "muddy": 0.523,
+            "rocky": 0.4347,
+            "grassland": 0.3308,
+            "ridges": 0.4526
+          },
+          "circularity": {
+            "out_and_back": 0.0106,
+            "traverse": 0.6683,
+            "circular": 0.3211
+          },
+          "waterforms": {
+            "fall": 0.4114,
+            "river": 0.4646,
+            "lake": 0.5407
+          },
+          "tourism": {
+            "shelter": 0.4217,
+            "resting": 0.2873,
+            "information_board": 0.3756,
+            "clean_water": 0.4587,
+            "river": 0.3548,
+            "lake": 0.5,
+            "waterfall": 0.3787,
+            "monument": 0.3856,
+            "community": 0.3429,
+            "viewpoint": 0.4969,
+            "network_connection": 0.3706
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8443
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.0052,
+        "length": 0.1263,
+        "elevation": 0.1236,
+        "gain": 0.1206,
+        "slope": 0.21,
+        "easy": 0.1209,
+        "muddy": 0.2638,
+        "rocky": 0.088,
+        "grassland": 0.1504,
+        "ridges": 0.1426
+      },
+      "difficult": {
+        "classification": 0.8691,
+        "length": 0.5406,
+        "elevation": 0.5104,
+        "gain": 0.4959,
+        "slope": 0.5476,
+        "easy": 0.5575,
+        "muddy": 0.3492,
+        "rocky": 0.3757,
+        "grassland": 0.3221,
+        "ridges": 0.4168
+      }
+    }
+  },
+  {
+    "id": "s4_AB-4-3-N-P1",
+    "set_id": 4,
+    "cohort_id": "AB-4-3-N-P1",
+    "cohort_group": "aberrant",
+    "experience": "E4",
+    "stated_experience": "E4",
+    "actual_experience": "E3",
+    "stated_tier": 4,
+    "actual_tier": 3,
+    "mismatch_type": "overestimated",
+    "mismatch_gap": 1,
+    "label": "Aberrant Overestimated (Slight Overestimation (Interm -> Expert), N)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E4",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-4-3-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0748,
+          "length": 0.4241,
+          "elevation": 0.4868,
+          "gain": 0.4363,
+          "slope": 0.4634,
+          "easy": 0.4505,
+          "province": {
+            "cavite": 0.1445,
+            "laguna": 0.1659,
+            "batangas": 0.148,
+            "rizal": 0.9172,
+            "quezon": 0.1719
+          },
+          "terrain": {
+            "muddy": 0.4727,
+            "rocky": 0.253,
+            "grassland": 0.149,
+            "ridges": 0.2025
+          },
+          "circularity": {
+            "out_and_back": 0.251,
+            "traverse": 0.2716,
+            "circular": 0.4774
+          },
+          "waterforms": {
+            "fall": 0.2286,
+            "river": 0.2823,
+            "lake": 0.2721
+          },
+          "tourism": {
+            "shelter": 0.2782,
+            "resting": 0.2743,
+            "information_board": 0.2651,
+            "clean_water": 0.1661,
+            "river": 0.2331,
+            "lake": 0.291,
+            "waterfall": 0.267,
+            "monument": 0.1945,
+            "community": 0.1462,
+            "viewpoint": 0.1676,
+            "network_connection": 0.2481
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-4-3-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.9335,
+          "length": 0.8517,
+          "elevation": 0.9277,
+          "gain": 0.8257,
+          "slope": 0.8393,
+          "easy": 0.9215,
+          "province": {
+            "cavite": 0.8703,
+            "laguna": 0.8434,
+            "batangas": 0.8328,
+            "rizal": 0.1688,
+            "quezon": 0.8951
+          },
+          "terrain": {
+            "muddy": 0.8087,
+            "rocky": 0.4479,
+            "grassland": 0.6155,
+            "ridges": 0.5851
+          },
+          "circularity": {
+            "out_and_back": 0.2478,
+            "traverse": 0.5705,
+            "circular": 0.1816
+          },
+          "waterforms": {
+            "fall": 0.3837,
+            "river": 0.64,
+            "lake": 0.3884
+          },
+          "tourism": {
+            "shelter": 0.3062,
+            "resting": 0.4824,
+            "information_board": 0.471,
+            "clean_water": 0.3216,
+            "river": 0.4312,
+            "lake": 0.3945,
+            "waterfall": 0.3094,
+            "monument": 0.5168,
+            "community": 0.3998,
+            "viewpoint": 0.4448,
+            "network_connection": 0.3298
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8480
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0981,
+        "length": 0.335,
+        "elevation": 0.2655,
+        "gain": 0.3774,
+        "slope": 0.2774,
+        "easy": 0.3416,
+        "muddy": 0.2518,
+        "rocky": 0.2538,
+        "grassland": 0.3486,
+        "ridges": 0.1346
+      },
+      "difficult": {
+        "classification": 0.812,
+        "length": 0.6812,
+        "elevation": 0.6837,
+        "gain": 0.7985,
+        "slope": 0.7585,
+        "easy": 0.7007,
+        "muddy": 0.5318,
+        "rocky": 0.5449,
+        "grassland": 0.6564,
+        "ridges": 0.4013
+      }
+    }
+  },
+  {
+    "id": "s4_AB-4-3-M-P1",
+    "set_id": 4,
+    "cohort_id": "AB-4-3-M-P1",
+    "cohort_group": "aberrant",
+    "experience": "E4",
+    "stated_experience": "E4",
+    "actual_experience": "E3",
+    "stated_tier": 4,
+    "actual_tier": 3,
+    "mismatch_type": "overestimated",
+    "mismatch_gap": 1,
+    "label": "Aberrant Overestimated (Slight Overestimation (Interm -> Expert), M)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E4",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-4-3-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0748,
+          "length": 0.3393,
+          "elevation": 0.3894,
+          "gain": 0.349,
+          "slope": 0.3707,
+          "easy": 0.3604,
+          "province": {
+            "cavite": 0.1083,
+            "laguna": 0.1709,
+            "batangas": 0.1416,
+            "rizal": 0.9245,
+            "quezon": 0.133
+          },
+          "terrain": {
+            "muddy": 0.3782,
+            "rocky": 0.2024,
+            "grassland": 0.1192,
+            "ridges": 0.162
+          },
+          "circularity": {
+            "out_and_back": 0.2039,
+            "traverse": 0.749,
+            "circular": 0.0471
+          },
+          "waterforms": {
+            "fall": 0.1927,
+            "river": 0.2893,
+            "lake": 0.3076
+          },
+          "tourism": {
+            "shelter": 0.2676,
+            "resting": 0.1675,
+            "information_board": 0.1999,
+            "clean_water": 0.1884,
+            "river": 0.2082,
+            "lake": 0.1372,
+            "waterfall": 0.268,
+            "monument": 0.2393,
+            "community": 0.2705,
+            "viewpoint": 0.3191,
+            "network_connection": 0.1637
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-4-3-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.9335,
+          "length": 0.6813,
+          "elevation": 0.7422,
+          "gain": 0.6605,
+          "slope": 0.6714,
+          "easy": 0.7372,
+          "province": {
+            "cavite": 0.8442,
+            "laguna": 0.8697,
+            "batangas": 0.8362,
+            "rizal": 0.1144,
+            "quezon": 0.8911
+          },
+          "terrain": {
+            "muddy": 0.647,
+            "rocky": 0.3583,
+            "grassland": 0.4924,
+            "ridges": 0.4681
+          },
+          "circularity": {
+            "out_and_back": 0.0238,
+            "traverse": 0.7152,
+            "circular": 0.261
+          },
+          "waterforms": {
+            "fall": 0.5782,
+            "river": 0.4241,
+            "lake": 0.5896
+          },
+          "tourism": {
+            "shelter": 0.2962,
+            "resting": 0.5154,
+            "information_board": 0.4588,
+            "clean_water": 0.3335,
+            "river": 0.375,
+            "lake": 0.3196,
+            "waterfall": 0.2999,
+            "monument": 0.4368,
+            "community": 0.4937,
+            "viewpoint": 0.3123,
+            "network_connection": 0.3591
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8517
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.0235,
+        "length": 0.2163,
+        "elevation": 0.2457,
+        "gain": 0.2702,
+        "slope": 0.2272,
+        "easy": 0.1959,
+        "muddy": 0.0874,
+        "rocky": 0.2265,
+        "grassland": 0.1939,
+        "ridges": 0.1998
+      },
+      "difficult": {
+        "classification": 0.8832,
+        "length": 0.521,
+        "elevation": 0.6123,
+        "gain": 0.5822,
+        "slope": 0.5788,
+        "easy": 0.5715,
+        "muddy": 0.509,
+        "rocky": 0.4059,
+        "grassland": 0.5322,
+        "ridges": 0.4598
+      }
+    }
+  },
+  {
+    "id": "s4_AB-3-1-N-P1",
+    "set_id": 4,
+    "cohort_id": "AB-3-1-N-P1",
+    "cohort_group": "aberrant",
+    "experience": "E3",
+    "stated_experience": "E3",
+    "actual_experience": "E1",
+    "stated_tier": 3,
+    "actual_tier": 1,
+    "mismatch_type": "overestimated",
+    "mismatch_gap": 2,
+    "label": "Aberrant Overestimated (High Overestimation (Novice -> Interm), N)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E3",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-3-1-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0145,
+          "length": 0.395,
+          "elevation": 0.4004,
+          "gain": 0.384,
+          "slope": 0.3459,
+          "easy": 0.3352,
+          "province": {
+            "cavite": 0.1577,
+            "laguna": 0.1499,
+            "batangas": 0.1005,
+            "rizal": 0.9328,
+            "quezon": 0.1164
+          },
+          "terrain": {
+            "muddy": 0.2108,
+            "rocky": 0.2152,
+            "grassland": 0.2349,
+            "ridges": 0.3779
+          },
+          "circularity": {
+            "out_and_back": 0.549,
+            "traverse": 0.3084,
+            "circular": 0.1427
+          },
+          "waterforms": {
+            "fall": 0.277,
+            "river": 0.2632,
+            "lake": 0.2146
+          },
+          "tourism": {
+            "shelter": 0.3079,
+            "resting": 0.1726,
+            "information_board": 0.1966,
+            "clean_water": 0.1844,
+            "river": 0.1642,
+            "lake": 0.2766,
+            "waterfall": 0.1531,
+            "monument": 0.276,
+            "community": 0.3172,
+            "viewpoint": 0.2463,
+            "network_connection": 0.1684
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-3-1-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8138,
+          "length": 0.6938,
+          "elevation": 0.7176,
+          "gain": 0.738,
+          "slope": 0.8181,
+          "easy": 0.6929,
+          "province": {
+            "cavite": 0.9027,
+            "laguna": 0.8436,
+            "batangas": 0.8507,
+            "rizal": 0.1542,
+            "quezon": 0.8895
+          },
+          "terrain": {
+            "muddy": 0.5419,
+            "rocky": 0.4064,
+            "grassland": 0.4311,
+            "ridges": 0.7955
+          },
+          "circularity": {
+            "out_and_back": 0.4988,
+            "traverse": 0.1581,
+            "circular": 0.3431
+          },
+          "waterforms": {
+            "fall": 0.502,
+            "river": 0.4511,
+            "lake": 0.4889
+          },
+          "tourism": {
+            "shelter": 0.4753,
+            "resting": 0.351,
+            "information_board": 0.3108,
+            "clean_water": 0.4749,
+            "river": 0.4993,
+            "lake": 0.4059,
+            "waterfall": 0.3373,
+            "monument": 0.3005,
+            "community": 0.371,
+            "viewpoint": 0.3411,
+            "network_connection": 0.3528
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8554
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0222,
+        "length": 0.196,
+        "elevation": 0.1053,
+        "gain": 0.1296,
+        "slope": 0.176,
+        "easy": 0.1012,
+        "muddy": 0.3129,
+        "rocky": 0.3357,
+        "grassland": 0.1983,
+        "ridges": 0.1895
+      },
+      "difficult": {
+        "classification": 0.8765,
+        "length": 0.4924,
+        "elevation": 0.4816,
+        "gain": 0.6422,
+        "slope": 0.6298,
+        "easy": 0.4873,
+        "muddy": 0.4212,
+        "rocky": 0.6044,
+        "grassland": 0.5722,
+        "ridges": 0.5961
+      }
+    }
+  },
+  {
+    "id": "s4_AB-3-1-M-P1",
+    "set_id": 4,
+    "cohort_id": "AB-3-1-M-P1",
+    "cohort_group": "aberrant",
+    "experience": "E3",
+    "stated_experience": "E3",
+    "actual_experience": "E1",
+    "stated_tier": 3,
+    "actual_tier": 1,
+    "mismatch_type": "overestimated",
+    "mismatch_gap": 2,
+    "label": "Aberrant Overestimated (High Overestimation (Novice -> Interm), M)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E3",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-3-1-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0145,
+          "length": 0.316,
+          "elevation": 0.3203,
+          "gain": 0.3072,
+          "slope": 0.2767,
+          "easy": 0.2682,
+          "province": {
+            "cavite": 0.1311,
+            "laguna": 0.1222,
+            "batangas": 0.1409,
+            "rizal": 0.9035,
+            "quezon": 0.1046
+          },
+          "terrain": {
+            "muddy": 0.1687,
+            "rocky": 0.1722,
+            "grassland": 0.1879,
+            "ridges": 0.3023
+          },
+          "circularity": {
+            "out_and_back": 0.2305,
+            "traverse": 0.2075,
+            "circular": 0.562
+          },
+          "waterforms": {
+            "fall": 0.3311,
+            "river": 0.2477,
+            "lake": 0.3169
+          },
+          "tourism": {
+            "shelter": 0.2871,
+            "resting": 0.1765,
+            "information_board": 0.157,
+            "clean_water": 0.233,
+            "river": 0.2189,
+            "lake": 0.1209,
+            "waterfall": 0.1873,
+            "monument": 0.2037,
+            "community": 0.2521,
+            "viewpoint": 0.3022,
+            "network_connection": 0.1659
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-3-1-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8138,
+          "length": 0.555,
+          "elevation": 0.5741,
+          "gain": 0.5904,
+          "slope": 0.6545,
+          "easy": 0.5543,
+          "province": {
+            "cavite": 0.8997,
+            "laguna": 0.8736,
+            "batangas": 0.8518,
+            "rizal": 0.1388,
+            "quezon": 0.8814
+          },
+          "terrain": {
+            "muddy": 0.4335,
+            "rocky": 0.3251,
+            "grassland": 0.3449,
+            "ridges": 0.6364
+          },
+          "circularity": {
+            "out_and_back": 0.7695,
+            "traverse": 0.1997,
+            "circular": 0.0308
+          },
+          "waterforms": {
+            "fall": 0.3942,
+            "river": 0.4249,
+            "lake": 0.629
+          },
+          "tourism": {
+            "shelter": 0.4127,
+            "resting": 0.467,
+            "information_board": 0.3742,
+            "clean_water": 0.4681,
+            "river": 0.4295,
+            "lake": 0.5137,
+            "waterfall": 0.477,
+            "monument": 0.284,
+            "community": 0.3198,
+            "viewpoint": 0.5178,
+            "network_connection": 0.2977
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8591
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.0992,
+        "length": 0.1399,
+        "elevation": 0.0845,
+        "gain": 0.1583,
+        "slope": 0.0922,
+        "easy": 0.1282,
+        "muddy": 0.198,
+        "rocky": 0.1411,
+        "grassland": 0.1781,
+        "ridges": 0.0945
+      },
+      "difficult": {
+        "classification": 0.8937,
+        "length": 0.4172,
+        "elevation": 0.3682,
+        "gain": 0.383,
+        "slope": 0.4594,
+        "easy": 0.3953,
+        "muddy": 0.3442,
+        "rocky": 0.5541,
+        "grassland": 0.5479,
+        "ridges": 0.4754
+      }
+    }
+  },
+  {
+    "id": "s4_AB-3-2-N-P1",
+    "set_id": 4,
+    "cohort_id": "AB-3-2-N-P1",
+    "cohort_group": "aberrant",
+    "experience": "E3",
+    "stated_experience": "E3",
+    "actual_experience": "E2",
+    "stated_tier": 3,
+    "actual_tier": 2,
+    "mismatch_type": "overestimated",
+    "mismatch_gap": 1,
+    "label": "Aberrant Overestimated (Slight Overestimation (Gentle -> Interm), N)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E3",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-3-2-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0431,
+          "length": 0.3602,
+          "elevation": 0.2905,
+          "gain": 0.3128,
+          "slope": 0.3838,
+          "easy": 0.2997,
+          "province": {
+            "cavite": 0.1285,
+            "laguna": 0.1502,
+            "batangas": 0.105,
+            "rizal": 0.9112,
+            "quezon": 0.1289
+          },
+          "terrain": {
+            "muddy": 0.2593,
+            "rocky": 0.2818,
+            "grassland": 0.3271,
+            "ridges": 0.3569
+          },
+          "circularity": {
+            "out_and_back": 0.064,
+            "traverse": 0.665,
+            "circular": 0.271
+          },
+          "waterforms": {
+            "fall": 0.2897,
+            "river": 0.3303,
+            "lake": 0.2781
+          },
+          "tourism": {
+            "shelter": 0.2666,
+            "resting": 0.2496,
+            "information_board": 0.1343,
+            "clean_water": 0.3025,
+            "river": 0.2772,
+            "lake": 0.2163,
+            "waterfall": 0.1503,
+            "monument": 0.1994,
+            "community": 0.3018,
+            "viewpoint": 0.1381,
+            "network_connection": 0.1336
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-3-2-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.86,
+          "length": 0.8106,
+          "elevation": 0.797,
+          "gain": 0.7695,
+          "slope": 0.6975,
+          "easy": 0.7764,
+          "province": {
+            "cavite": 0.8217,
+            "laguna": 0.9187,
+            "batangas": 0.9166,
+            "rizal": 0.1198,
+            "quezon": 0.8417
+          },
+          "terrain": {
+            "muddy": 0.4069,
+            "rocky": 0.5075,
+            "grassland": 0.5063,
+            "ridges": 0.7018
+          },
+          "circularity": {
+            "out_and_back": 0.0708,
+            "traverse": 0.7465,
+            "circular": 0.1827
+          },
+          "waterforms": {
+            "fall": 0.4354,
+            "river": 0.4978,
+            "lake": 0.4846
+          },
+          "tourism": {
+            "shelter": 0.3172,
+            "resting": 0.4467,
+            "information_board": 0.3443,
+            "clean_water": 0.4154,
+            "river": 0.2923,
+            "lake": 0.454,
+            "waterfall": 0.4959,
+            "monument": 0.4163,
+            "community": 0.4204,
+            "viewpoint": 0.4987,
+            "network_connection": 0.354
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8628
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0601,
+        "length": 0.2172,
+        "elevation": 0.1555,
+        "gain": 0.2131,
+        "slope": 0.2544,
+        "easy": 0.1525,
+        "muddy": 0.1814,
+        "rocky": 0.3004,
+        "grassland": 0.1536,
+        "ridges": 0.2206
+      },
+      "difficult": {
+        "classification": 0.7383,
+        "length": 0.6004,
+        "elevation": 0.5218,
+        "gain": 0.6758,
+        "slope": 0.5601,
+        "easy": 0.544,
+        "muddy": 0.5054,
+        "rocky": 0.762,
+        "grassland": 0.6046,
+        "ridges": 0.5766
+      }
+    }
+  },
+  {
+    "id": "s4_AB-3-2-M-P1",
+    "set_id": 4,
+    "cohort_id": "AB-3-2-M-P1",
+    "cohort_group": "aberrant",
+    "experience": "E3",
+    "stated_experience": "E3",
+    "actual_experience": "E2",
+    "stated_tier": 3,
+    "actual_tier": 2,
+    "mismatch_type": "overestimated",
+    "mismatch_gap": 1,
+    "label": "Aberrant Overestimated (Slight Overestimation (Gentle -> Interm), M)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E3",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-3-2-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0431,
+          "length": 0.2881,
+          "elevation": 0.2324,
+          "gain": 0.2502,
+          "slope": 0.307,
+          "easy": 0.2398,
+          "province": {
+            "cavite": 0.1492,
+            "laguna": 0.1437,
+            "batangas": 0.1245,
+            "rizal": 0.8719,
+            "quezon": 0.1393
+          },
+          "terrain": {
+            "muddy": 0.2075,
+            "rocky": 0.2255,
+            "grassland": 0.2617,
+            "ridges": 0.2855
+          },
+          "circularity": {
+            "out_and_back": 0.1895,
+            "traverse": 0.28,
+            "circular": 0.5304
+          },
+          "waterforms": {
+            "fall": 0.267,
+            "river": 0.2123,
+            "lake": 0.2571
+          },
+          "tourism": {
+            "shelter": 0.1831,
+            "resting": 0.2074,
+            "information_board": 0.2065,
+            "clean_water": 0.2422,
+            "river": 0.1266,
+            "lake": 0.2231,
+            "waterfall": 0.1327,
+            "monument": 0.1897,
+            "community": 0.2492,
+            "viewpoint": 0.2959,
+            "network_connection": 0.2212
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-3-2-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.86,
+          "length": 0.6485,
+          "elevation": 0.6376,
+          "gain": 0.6156,
+          "slope": 0.558,
+          "easy": 0.6211,
+          "province": {
+            "cavite": 0.8383,
+            "laguna": 0.8564,
+            "batangas": 0.8435,
+            "rizal": 0.1875,
+            "quezon": 0.8767
+          },
+          "terrain": {
+            "muddy": 0.3255,
+            "rocky": 0.406,
+            "grassland": 0.4051,
+            "ridges": 0.5614
+          },
+          "circularity": {
+            "out_and_back": 0.2283,
+            "traverse": 0.4113,
+            "circular": 0.3604
+          },
+          "waterforms": {
+            "fall": 0.5005,
+            "river": 0.4431,
+            "lake": 0.4009
+          },
+          "tourism": {
+            "shelter": 0.3382,
+            "resting": 0.3154,
+            "information_board": 0.2938,
+            "clean_water": 0.4319,
+            "river": 0.2806,
+            "lake": 0.2948,
+            "waterfall": 0.3683,
+            "monument": 0.3906,
+            "community": 0.5004,
+            "viewpoint": 0.4285,
+            "network_connection": 0.301
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8665
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.1343,
+        "length": 0.1716,
+        "elevation": 0.1928,
+        "gain": 0.1336,
+        "slope": 0.2074,
+        "easy": 0.1388,
+        "muddy": 0.1518,
+        "rocky": 0.0833,
+        "grassland": 0.2211,
+        "ridges": 0.1606
+      },
+      "difficult": {
+        "classification": 0.7876,
+        "length": 0.4069,
+        "elevation": 0.5072,
+        "gain": 0.5218,
+        "slope": 0.4688,
+        "easy": 0.4463,
+        "muddy": 0.4162,
+        "rocky": 0.4651,
+        "grassland": 0.3239,
+        "ridges": 0.5468
+      }
+    }
+  },
+  {
+    "id": "s4_AB-2-1-N-P1",
+    "set_id": 4,
+    "cohort_id": "AB-2-1-N-P1",
+    "cohort_group": "aberrant",
+    "experience": "E2",
+    "stated_experience": "E2",
+    "actual_experience": "E1",
+    "stated_tier": 2,
+    "actual_tier": 1,
+    "mismatch_type": "overestimated",
+    "mismatch_gap": 1,
+    "label": "Aberrant Overestimated (Near-Tier Overestimation (Novice -> Gentle), N)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E2",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-2-1-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0748,
+          "length": 0.2836,
+          "elevation": 0.261,
+          "gain": 0.2867,
+          "slope": 0.1974,
+          "easy": 0.1801,
+          "province": {
+            "cavite": 0.1189,
+            "laguna": 0.1381,
+            "batangas": 0.1756,
+            "rizal": 0.8852,
+            "quezon": 0.1046
+          },
+          "terrain": {
+            "muddy": 0.194,
+            "rocky": 0.3165,
+            "grassland": 0.5113,
+            "ridges": 0.2791
+          },
+          "circularity": {
+            "out_and_back": 0.4369,
+            "traverse": 0.3681,
+            "circular": 0.195
+          },
+          "waterforms": {
+            "fall": 0.2551,
+            "river": 0.3275,
+            "lake": 0.3149
+          },
+          "tourism": {
+            "shelter": 0.1936,
+            "resting": 0.1513,
+            "information_board": 0.1681,
+            "clean_water": 0.1995,
+            "river": 0.2577,
+            "lake": 0.1591,
+            "waterfall": 0.1358,
+            "monument": 0.2662,
+            "community": 0.216,
+            "viewpoint": 0.1753,
+            "network_connection": 0.2894
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-2-1-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.9362,
+          "length": 0.5456,
+          "elevation": 0.6288,
+          "gain": 0.5715,
+          "slope": 0.6369,
+          "easy": 0.651,
+          "province": {
+            "cavite": 0.8547,
+            "laguna": 0.834,
+            "batangas": 0.8852,
+            "rizal": 0.1112,
+            "quezon": 0.8914
+          },
+          "terrain": {
+            "muddy": 0.4899,
+            "rocky": 0.3948,
+            "grassland": 0.6669,
+            "ridges": 0.4159
+          },
+          "circularity": {
+            "out_and_back": 0.113,
+            "traverse": 0.6095,
+            "circular": 0.2774
+          },
+          "waterforms": {
+            "fall": 0.3999,
+            "river": 0.4085,
+            "lake": 0.451
+          },
+          "tourism": {
+            "shelter": 0.4614,
+            "resting": 0.3926,
+            "information_board": 0.3313,
+            "clean_water": 0.3439,
+            "river": 0.4863,
+            "lake": 0.2883,
+            "waterfall": 0.3351,
+            "monument": 0.3976,
+            "community": 0.3457,
+            "viewpoint": 0.4823,
+            "network_connection": 0.41
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8702
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.1148,
+        "length": 0.1766,
+        "elevation": 0.1838,
+        "gain": 0.2023,
+        "slope": 0.1385,
+        "easy": 0.1952,
+        "muddy": 0.1013,
+        "rocky": 0.2351,
+        "grassland": 0.1094,
+        "ridges": 0.253
+      },
+      "difficult": {
+        "classification": 0.8913,
+        "length": 0.5497,
+        "elevation": 0.5161,
+        "gain": 0.5199,
+        "slope": 0.6338,
+        "easy": 0.5571,
+        "muddy": 0.6583,
+        "rocky": 0.619,
+        "grassland": 0.4122,
+        "ridges": 0.4509
+      }
+    }
+  },
+  {
+    "id": "s4_AB-2-1-M-P1",
+    "set_id": 4,
+    "cohort_id": "AB-2-1-M-P1",
+    "cohort_group": "aberrant",
+    "experience": "E2",
+    "stated_experience": "E2",
+    "actual_experience": "E1",
+    "stated_tier": 2,
+    "actual_tier": 1,
+    "mismatch_type": "overestimated",
+    "mismatch_gap": 1,
+    "label": "Aberrant Overestimated (Near-Tier Overestimation (Novice -> Gentle), M)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E2",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-2-1-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0748,
+          "length": 0.2269,
+          "elevation": 0.2088,
+          "gain": 0.2293,
+          "slope": 0.1579,
+          "easy": 0.1441,
+          "province": {
+            "cavite": 0.1558,
+            "laguna": 0.1599,
+            "batangas": 0.1662,
+            "rizal": 0.8445,
+            "quezon": 0.1766
+          },
+          "terrain": {
+            "muddy": 0.1552,
+            "rocky": 0.2532,
+            "grassland": 0.409,
+            "ridges": 0.2233
+          },
+          "circularity": {
+            "out_and_back": 0.8079,
+            "traverse": 0.1772,
+            "circular": 0.0149
+          },
+          "waterforms": {
+            "fall": 0.1856,
+            "river": 0.1985,
+            "lake": 0.2247
+          },
+          "tourism": {
+            "shelter": 0.1575,
+            "resting": 0.1691,
+            "information_board": 0.2176,
+            "clean_water": 0.2809,
+            "river": 0.3158,
+            "lake": 0.1338,
+            "waterfall": 0.1221,
+            "monument": 0.192,
+            "community": 0.2837,
+            "viewpoint": 0.2551,
+            "network_connection": 0.2062
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-2-1-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.9362,
+          "length": 0.4364,
+          "elevation": 0.503,
+          "gain": 0.4572,
+          "slope": 0.5095,
+          "easy": 0.5208,
+          "province": {
+            "cavite": 0.8875,
+            "laguna": 0.8286,
+            "batangas": 0.8655,
+            "rizal": 0.1987,
+            "quezon": 0.856
+          },
+          "terrain": {
+            "muddy": 0.3919,
+            "rocky": 0.3159,
+            "grassland": 0.5335,
+            "ridges": 0.3327
+          },
+          "circularity": {
+            "out_and_back": 0.2876,
+            "traverse": 0.5388,
+            "circular": 0.1735
+          },
+          "waterforms": {
+            "fall": 0.5764,
+            "river": 0.4729,
+            "lake": 0.4769
+          },
+          "tourism": {
+            "shelter": 0.4947,
+            "resting": 0.3901,
+            "information_board": 0.4452,
+            "clean_water": 0.4114,
+            "river": 0.4953,
+            "lake": 0.4511,
+            "waterfall": 0.4389,
+            "monument": 0.5028,
+            "community": 0.4679,
+            "viewpoint": 0.4816,
+            "network_connection": 0.3857
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8739
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.013,
+        "length": 0.1572,
+        "elevation": 0.0877,
+        "gain": 0.1384,
+        "slope": 0.1645,
+        "easy": 0.1463,
+        "muddy": 0.2461,
+        "rocky": 0.2756,
+        "grassland": 0.2702,
+        "ridges": 0.0994
+      },
+      "difficult": {
+        "classification": 0.7835,
+        "length": 0.4434,
+        "elevation": 0.442,
+        "gain": 0.4694,
+        "slope": 0.423,
+        "easy": 0.3673,
+        "muddy": 0.5474,
+        "rocky": 0.5641,
+        "grassland": 0.495,
+        "ridges": 0.3291
+      }
+    }
+  },
+  {
+    "id": "s4_AB-1-4-N-P1",
+    "set_id": 4,
+    "cohort_id": "AB-1-4-N-P1",
+    "cohort_group": "aberrant",
+    "experience": "E1",
+    "stated_experience": "E1",
+    "actual_experience": "E4",
+    "stated_tier": 1,
+    "actual_tier": 4,
+    "mismatch_type": "underestimated",
+    "mismatch_gap": -3,
+    "label": "Aberrant Underestimated (Max Underestimation (Expert -> Novice), N)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E1",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-1-4-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0338,
+          "length": 0.1516,
+          "elevation": 0.2378,
+          "gain": 0.1557,
+          "slope": 0.2224,
+          "easy": 0.1471,
+          "province": {
+            "cavite": 0.1414,
+            "laguna": 0.1635,
+            "batangas": 0.1349,
+            "rizal": 0.9152,
+            "quezon": 0.1126
+          },
+          "terrain": {
+            "muddy": 0.2374,
+            "rocky": 0.3652,
+            "grassland": 0.2801,
+            "ridges": 0.3132
+          },
+          "circularity": {
+            "out_and_back": 0.0089,
+            "traverse": 0.5384,
+            "circular": 0.4527
+          },
+          "waterforms": {
+            "fall": 0.3154,
+            "river": 0.1839,
+            "lake": 0.2476
+          },
+          "tourism": {
+            "shelter": 0.3071,
+            "resting": 0.2218,
+            "information_board": 0.2145,
+            "clean_water": 0.1312,
+            "river": 0.1915,
+            "lake": 0.1838,
+            "waterfall": 0.2152,
+            "monument": 0.1692,
+            "community": 0.2013,
+            "viewpoint": 0.1382,
+            "network_connection": 0.1858
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-1-4-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.943,
+          "length": 0.5797,
+          "elevation": 0.5896,
+          "gain": 0.5173,
+          "slope": 0.5446,
+          "easy": 0.6717,
+          "province": {
+            "cavite": 0.8859,
+            "laguna": 0.9173,
+            "batangas": 0.8745,
+            "rizal": 0.1739,
+            "quezon": 0.8645
+          },
+          "terrain": {
+            "muddy": 0.6034,
+            "rocky": 0.6484,
+            "grassland": 0.466,
+            "ridges": 0.5281
+          },
+          "circularity": {
+            "out_and_back": 0.5262,
+            "traverse": 0.1589,
+            "circular": 0.315
+          },
+          "waterforms": {
+            "fall": 0.504,
+            "river": 0.4194,
+            "lake": 0.5181
+          },
+          "tourism": {
+            "shelter": 0.3598,
+            "resting": 0.392,
+            "information_board": 0.4178,
+            "clean_water": 0.2959,
+            "river": 0.4833,
+            "lake": 0.466,
+            "waterfall": 0.3658,
+            "monument": 0.318,
+            "community": 0.4615,
+            "viewpoint": 0.4373,
+            "network_connection": 0.4787
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8776
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.138,
+        "length": 0.4047,
+        "elevation": 0.4732,
+        "gain": 0.4219,
+        "slope": 0.4551,
+        "easy": 0.3867,
+        "muddy": 0.1802,
+        "rocky": 0.261,
+        "grassland": 0.2922,
+        "ridges": 0.2788
+      },
+      "difficult": {
+        "classification": 0.8456,
+        "length": 0.8681,
+        "elevation": 0.7916,
+        "gain": 0.8745,
+        "slope": 0.8716,
+        "easy": 0.9344,
+        "muddy": 0.6605,
+        "rocky": 0.6436,
+        "grassland": 0.6745,
+        "ridges": 0.5595
+      }
+    }
+  },
+  {
+    "id": "s4_AB-1-4-M-P1",
+    "set_id": 4,
+    "cohort_id": "AB-1-4-M-P1",
+    "cohort_group": "aberrant",
+    "experience": "E1",
+    "stated_experience": "E1",
+    "actual_experience": "E4",
+    "stated_tier": 1,
+    "actual_tier": 4,
+    "mismatch_type": "underestimated",
+    "mismatch_gap": -3,
+    "label": "Aberrant Underestimated (Max Underestimation (Expert -> Novice), M)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E1",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-1-4-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0338,
+          "length": 0.1212,
+          "elevation": 0.1902,
+          "gain": 0.1246,
+          "slope": 0.1779,
+          "easy": 0.1177,
+          "province": {
+            "cavite": 0.1634,
+            "laguna": 0.1034,
+            "batangas": 0.1511,
+            "rizal": 0.9228,
+            "quezon": 0.1586
+          },
+          "terrain": {
+            "muddy": 0.1899,
+            "rocky": 0.2922,
+            "grassland": 0.2241,
+            "ridges": 0.2505
+          },
+          "circularity": {
+            "out_and_back": 0.2916,
+            "traverse": 0.0416,
+            "circular": 0.6668
+          },
+          "waterforms": {
+            "fall": 0.3139,
+            "river": 0.3131,
+            "lake": 0.219
+          },
+          "tourism": {
+            "shelter": 0.2489,
+            "resting": 0.1711,
+            "information_board": 0.2411,
+            "clean_water": 0.2818,
+            "river": 0.1311,
+            "lake": 0.1299,
+            "waterfall": 0.1306,
+            "monument": 0.1919,
+            "community": 0.1995,
+            "viewpoint": 0.2932,
+            "network_connection": 0.1746
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-1-4-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.943,
+          "length": 0.4638,
+          "elevation": 0.4717,
+          "gain": 0.4138,
+          "slope": 0.4357,
+          "easy": 0.5374,
+          "province": {
+            "cavite": 0.8526,
+            "laguna": 0.9154,
+            "batangas": 0.8805,
+            "rizal": 0.1558,
+            "quezon": 0.8338
+          },
+          "terrain": {
+            "muddy": 0.4827,
+            "rocky": 0.5187,
+            "grassland": 0.3728,
+            "ridges": 0.4225
+          },
+          "circularity": {
+            "out_and_back": 0.1773,
+            "traverse": 0.5623,
+            "circular": 0.2604
+          },
+          "waterforms": {
+            "fall": 0.4303,
+            "river": 0.5282,
+            "lake": 0.4826
+          },
+          "tourism": {
+            "shelter": 0.2816,
+            "resting": 0.4905,
+            "information_board": 0.2841,
+            "clean_water": 0.286,
+            "river": 0.4497,
+            "lake": 0.4722,
+            "waterfall": 0.2963,
+            "monument": 0.3563,
+            "community": 0.3282,
+            "viewpoint": 0.4335,
+            "network_connection": 0.4777
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8813
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.0079,
+        "length": 0.3753,
+        "elevation": 0.3175,
+        "gain": 0.3749,
+        "slope": 0.3521,
+        "easy": 0.3838,
+        "muddy": 0.2449,
+        "rocky": 0.2767,
+        "grassland": 0.2662,
+        "ridges": 0.2514
+      },
+      "difficult": {
+        "classification": 0.7961,
+        "length": 0.6977,
+        "elevation": 0.7136,
+        "gain": 0.6985,
+        "slope": 0.6256,
+        "easy": 0.7321,
+        "muddy": 0.5367,
+        "rocky": 0.354,
+        "grassland": 0.4155,
+        "ridges": 0.6128
+      }
+    }
+  },
+  {
+    "id": "s4_AB-1-3-N-P1",
+    "set_id": 4,
+    "cohort_id": "AB-1-3-N-P1",
+    "cohort_group": "aberrant",
+    "experience": "E1",
+    "stated_experience": "E1",
+    "actual_experience": "E3",
+    "stated_tier": 1,
+    "actual_tier": 3,
+    "mismatch_type": "underestimated",
+    "mismatch_gap": -2,
+    "label": "Aberrant Underestimated (High Underestimation (Interm -> Novice), N)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E1",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-1-3-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1095,
+          "length": 0.2133,
+          "elevation": 0.2417,
+          "gain": 0.163,
+          "slope": 0.1323,
+          "easy": 0.2327,
+          "province": {
+            "cavite": 0.1354,
+            "laguna": 0.1277,
+            "batangas": 0.1267,
+            "rizal": 0.8528,
+            "quezon": 0.1743
+          },
+          "terrain": {
+            "muddy": 0.2945,
+            "rocky": 0.4717,
+            "grassland": 0.1448,
+            "ridges": 0.3252
+          },
+          "circularity": {
+            "out_and_back": 0.5538,
+            "traverse": 0.0024,
+            "circular": 0.4438
+          },
+          "waterforms": {
+            "fall": 0.3301,
+            "river": 0.2436,
+            "lake": 0.2369
+          },
+          "tourism": {
+            "shelter": 0.1525,
+            "resting": 0.2024,
+            "information_board": 0.2651,
+            "clean_water": 0.2823,
+            "river": 0.261,
+            "lake": 0.1994,
+            "waterfall": 0.2092,
+            "monument": 0.1821,
+            "community": 0.3025,
+            "viewpoint": 0.1895,
+            "network_connection": 0.2742
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-1-3-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.7597,
+          "length": 0.5227,
+          "elevation": 0.5772,
+          "gain": 0.4901,
+          "slope": 0.6584,
+          "easy": 0.5368,
+          "province": {
+            "cavite": 0.8904,
+            "laguna": 0.9135,
+            "batangas": 0.8234,
+            "rizal": 0.116,
+            "quezon": 0.8645
+          },
+          "terrain": {
+            "muddy": 0.5881,
+            "rocky": 0.6584,
+            "grassland": 0.4069,
+            "ridges": 0.4339
+          },
+          "circularity": {
+            "out_and_back": 0.3884,
+            "traverse": 0.4778,
+            "circular": 0.1338
+          },
+          "waterforms": {
+            "fall": 0.624,
+            "river": 0.4204,
+            "lake": 0.6008
+          },
+          "tourism": {
+            "shelter": 0.4331,
+            "resting": 0.3643,
+            "information_board": 0.4658,
+            "clean_water": 0.3234,
+            "river": 0.3132,
+            "lake": 0.4494,
+            "waterfall": 0.5195,
+            "monument": 0.331,
+            "community": 0.4371,
+            "viewpoint": 0.4825,
+            "network_connection": 0.48
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8850
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0155,
+        "length": 0.3468,
+        "elevation": 0.2977,
+        "gain": 0.3021,
+        "slope": 0.2465,
+        "easy": 0.2676,
+        "muddy": 0.1845,
+        "rocky": 0.1514,
+        "grassland": 0.3324,
+        "ridges": 0.3273
+      },
+      "difficult": {
+        "classification": 0.8243,
+        "length": 0.7319,
+        "elevation": 0.7422,
+        "gain": 0.6683,
+        "slope": 0.6561,
+        "easy": 0.67,
+        "muddy": 0.5959,
+        "rocky": 0.6547,
+        "grassland": 0.5839,
+        "ridges": 0.5114
+      }
+    }
+  },
+  {
+    "id": "s4_AB-1-3-M-P1",
+    "set_id": 4,
+    "cohort_id": "AB-1-3-M-P1",
+    "cohort_group": "aberrant",
+    "experience": "E1",
+    "stated_experience": "E1",
+    "actual_experience": "E3",
+    "stated_tier": 1,
+    "actual_tier": 3,
+    "mismatch_type": "underestimated",
+    "mismatch_gap": -2,
+    "label": "Aberrant Underestimated (High Underestimation (Interm -> Novice), M)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E1",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-1-3-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1095,
+          "length": 0.1706,
+          "elevation": 0.1933,
+          "gain": 0.1304,
+          "slope": 0.1058,
+          "easy": 0.1861,
+          "province": {
+            "cavite": 0.1189,
+            "laguna": 0.1782,
+            "batangas": 0.107,
+            "rizal": 0.8983,
+            "quezon": 0.1266
+          },
+          "terrain": {
+            "muddy": 0.2356,
+            "rocky": 0.3774,
+            "grassland": 0.1159,
+            "ridges": 0.2601
+          },
+          "circularity": {
+            "out_and_back": 0.2578,
+            "traverse": 0.1967,
+            "circular": 0.5455
+          },
+          "waterforms": {
+            "fall": 0.2263,
+            "river": 0.24,
+            "lake": 0.2889
+          },
+          "tourism": {
+            "shelter": 0.1811,
+            "resting": 0.1509,
+            "information_board": 0.1832,
+            "clean_water": 0.2158,
+            "river": 0.1398,
+            "lake": 0.1567,
+            "waterfall": 0.3113,
+            "monument": 0.3159,
+            "community": 0.1285,
+            "viewpoint": 0.2877,
+            "network_connection": 0.1521
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-1-3-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.7597,
+          "length": 0.4181,
+          "elevation": 0.4618,
+          "gain": 0.3921,
+          "slope": 0.5267,
+          "easy": 0.4295,
+          "province": {
+            "cavite": 0.8579,
+            "laguna": 0.8808,
+            "batangas": 0.9105,
+            "rizal": 0.1641,
+            "quezon": 0.8973
+          },
+          "terrain": {
+            "muddy": 0.4705,
+            "rocky": 0.5267,
+            "grassland": 0.3255,
+            "ridges": 0.3471
+          },
+          "circularity": {
+            "out_and_back": 0.3249,
+            "traverse": 0.5275,
+            "circular": 0.1476
+          },
+          "waterforms": {
+            "fall": 0.4937,
+            "river": 0.4918,
+            "lake": 0.6066
+          },
+          "tourism": {
+            "shelter": 0.3597,
+            "resting": 0.4238,
+            "information_board": 0.3444,
+            "clean_water": 0.3901,
+            "river": 0.3858,
+            "lake": 0.4456,
+            "waterfall": 0.3394,
+            "monument": 0.3468,
+            "community": 0.3549,
+            "viewpoint": 0.3511,
+            "network_connection": 0.4293
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8887
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.0793,
+        "length": 0.2025,
+        "elevation": 0.2794,
+        "gain": 0.2089,
+        "slope": 0.1926,
+        "easy": 0.2542,
+        "muddy": 0.236,
+        "rocky": 0.2208,
+        "grassland": 0.1996,
+        "ridges": 0.2046
+      },
+      "difficult": {
+        "classification": 0.7558,
+        "length": 0.5885,
+        "elevation": 0.6147,
+        "gain": 0.6366,
+        "slope": 0.553,
+        "easy": 0.5378,
+        "muddy": 0.4965,
+        "rocky": 0.5119,
+        "grassland": 0.5,
+        "ridges": 0.3861
+      }
+    }
+  },
+  {
+    "id": "s4_AB-1-2-N-P1",
+    "set_id": 4,
+    "cohort_id": "AB-1-2-N-P1",
+    "cohort_group": "aberrant",
+    "experience": "E1",
+    "stated_experience": "E1",
+    "actual_experience": "E2",
+    "stated_tier": 1,
+    "actual_tier": 2,
+    "mismatch_type": "underestimated",
+    "mismatch_gap": -1,
+    "label": "Aberrant Underestimated (Near-Tier Underestimation (Gentle -> Novice), N)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E1",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-1-2-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0659,
+          "length": 0.2279,
+          "elevation": 0.2223,
+          "gain": 0.1729,
+          "slope": 0.1854,
+          "easy": 0.1459,
+          "province": {
+            "cavite": 0.1351,
+            "laguna": 0.1176,
+            "batangas": 0.1249,
+            "rizal": 0.8484,
+            "quezon": 0.1214
+          },
+          "terrain": {
+            "muddy": 0.2571,
+            "rocky": 0.5251,
+            "grassland": 0.1901,
+            "ridges": 0.1535
+          },
+          "circularity": {
+            "out_and_back": 0.5177,
+            "traverse": 0.2766,
+            "circular": 0.2057
+          },
+          "waterforms": {
+            "fall": 0.3232,
+            "river": 0.2136,
+            "lake": 0.2339
+          },
+          "tourism": {
+            "shelter": 0.1309,
+            "resting": 0.1876,
+            "information_board": 0.205,
+            "clean_water": 0.144,
+            "river": 0.1453,
+            "lake": 0.2983,
+            "waterfall": 0.2938,
+            "monument": 0.2259,
+            "community": 0.2007,
+            "viewpoint": 0.2837,
+            "network_connection": 0.2605
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-1-2-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8986,
+          "length": 0.5957,
+          "elevation": 0.6059,
+          "gain": 0.504,
+          "slope": 0.6311,
+          "easy": 0.5476,
+          "province": {
+            "cavite": 0.8251,
+            "laguna": 0.8368,
+            "batangas": 0.845,
+            "rizal": 0.1505,
+            "quezon": 0.8501
+          },
+          "terrain": {
+            "muddy": 0.3994,
+            "rocky": 0.6583,
+            "grassland": 0.6086,
+            "ridges": 0.4541
+          },
+          "circularity": {
+            "out_and_back": 0.5334,
+            "traverse": 0.0909,
+            "circular": 0.3756
+          },
+          "waterforms": {
+            "fall": 0.402,
+            "river": 0.4653,
+            "lake": 0.5303
+          },
+          "tourism": {
+            "shelter": 0.4658,
+            "resting": 0.3725,
+            "information_board": 0.5178,
+            "clean_water": 0.4709,
+            "river": 0.342,
+            "lake": 0.511,
+            "waterfall": 0.4294,
+            "monument": 0.3906,
+            "community": 0.4034,
+            "viewpoint": 0.3605,
+            "network_connection": 0.439
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8924
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0126,
+        "length": 0.2058,
+        "elevation": 0.2753,
+        "gain": 0.1423,
+        "slope": 0.2425,
+        "easy": 0.2454,
+        "muddy": 0.1577,
+        "rocky": 0.3323,
+        "grassland": 0.3422,
+        "ridges": 0.2644
+      },
+      "difficult": {
+        "classification": 0.9495,
+        "length": 0.5276,
+        "elevation": 0.6271,
+        "gain": 0.5724,
+        "slope": 0.591,
+        "easy": 0.5177,
+        "muddy": 0.4428,
+        "rocky": 0.6798,
+        "grassland": 0.4236,
+        "ridges": 0.4157
+      }
+    }
+  },
+  {
+    "id": "s4_AB-1-2-M-P1",
+    "set_id": 4,
+    "cohort_id": "AB-1-2-M-P1",
+    "cohort_group": "aberrant",
+    "experience": "E1",
+    "stated_experience": "E1",
+    "actual_experience": "E2",
+    "stated_tier": 1,
+    "actual_tier": 2,
+    "mismatch_type": "underestimated",
+    "mismatch_gap": -1,
+    "label": "Aberrant Underestimated (Near-Tier Underestimation (Gentle -> Novice), M)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E1",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-1-2-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.0659,
+          "length": 0.1824,
+          "elevation": 0.1778,
+          "gain": 0.1383,
+          "slope": 0.1483,
+          "easy": 0.1167,
+          "province": {
+            "cavite": 0.14,
+            "laguna": 0.1283,
+            "batangas": 0.1139,
+            "rizal": 0.8555,
+            "quezon": 0.1692
+          },
+          "terrain": {
+            "muddy": 0.2057,
+            "rocky": 0.4201,
+            "grassland": 0.1521,
+            "ridges": 0.1228
+          },
+          "circularity": {
+            "out_and_back": 0.448,
+            "traverse": 0.3068,
+            "circular": 0.2452
+          },
+          "waterforms": {
+            "fall": 0.2053,
+            "river": 0.3053,
+            "lake": 0.2788
+          },
+          "tourism": {
+            "shelter": 0.2309,
+            "resting": 0.2749,
+            "information_board": 0.12,
+            "clean_water": 0.2982,
+            "river": 0.1361,
+            "lake": 0.1692,
+            "waterfall": 0.2036,
+            "monument": 0.1986,
+            "community": 0.2505,
+            "viewpoint": 0.1862,
+            "network_connection": 0.2685
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-1-2-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8986,
+          "length": 0.4765,
+          "elevation": 0.4847,
+          "gain": 0.4032,
+          "slope": 0.5049,
+          "easy": 0.4381,
+          "province": {
+            "cavite": 0.9053,
+            "laguna": 0.8329,
+            "batangas": 0.8861,
+            "rizal": 0.1559,
+            "quezon": 0.8227
+          },
+          "terrain": {
+            "muddy": 0.3195,
+            "rocky": 0.5266,
+            "grassland": 0.4868,
+            "ridges": 0.3633
+          },
+          "circularity": {
+            "out_and_back": 0.6188,
+            "traverse": 0.3594,
+            "circular": 0.0218
+          },
+          "waterforms": {
+            "fall": 0.4513,
+            "river": 0.4377,
+            "lake": 0.4761
+          },
+          "tourism": {
+            "shelter": 0.4724,
+            "resting": 0.4413,
+            "information_board": 0.3452,
+            "clean_water": 0.2876,
+            "river": 0.3046,
+            "lake": 0.5183,
+            "waterfall": 0.3387,
+            "monument": 0.4743,
+            "community": 0.3225,
+            "viewpoint": 0.504,
+            "network_connection": 0.5133
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8961
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.1036,
+        "length": 0.1205,
+        "elevation": 0.1293,
+        "gain": 0.2103,
+        "slope": 0.2227,
+        "easy": 0.2216,
+        "muddy": 0.2089,
+        "rocky": 0.2203,
+        "grassland": 0.2269,
+        "ridges": 0.1454
+      },
+      "difficult": {
+        "classification": 0.8495,
+        "length": 0.5273,
+        "elevation": 0.4258,
+        "gain": 0.4198,
+        "slope": 0.4343,
+        "easy": 0.424,
+        "muddy": 0.4993,
+        "rocky": 0.3383,
+        "grassland": 0.4907,
+        "ridges": 0.3913
+      }
+    }
+  },
+  {
+    "id": "s4_AB-2-4-N-P1",
+    "set_id": 4,
+    "cohort_id": "AB-2-4-N-P1",
+    "cohort_group": "aberrant",
+    "experience": "E2",
+    "stated_experience": "E2",
+    "actual_experience": "E4",
+    "stated_tier": 2,
+    "actual_tier": 4,
+    "mismatch_type": "underestimated",
+    "mismatch_gap": -2,
+    "label": "Aberrant Underestimated (Moderate Underestimation (Expert -> Gentle), N)",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "experience": "E2",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-2-4-N-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1096,
+          "length": 0.1969,
+          "elevation": 0.2595,
+          "gain": 0.299,
+          "slope": 0.2379,
+          "easy": 0.2188,
+          "province": {
+            "cavite": 0.1521,
+            "laguna": 0.1797,
+            "batangas": 0.1399,
+            "rizal": 0.9052,
+            "quezon": 0.1512
+          },
+          "terrain": {
+            "muddy": 0.1918,
+            "rocky": 0.1634,
+            "grassland": 0.5099,
+            "ridges": 0.1517
+          },
+          "circularity": {
+            "out_and_back": 0.5682,
+            "traverse": 0.4139,
+            "circular": 0.0179
+          },
+          "waterforms": {
+            "fall": 0.3496,
+            "river": 0.2076,
+            "lake": 0.2488
+          },
+          "tourism": {
+            "shelter": 0.1513,
+            "resting": 0.3114,
+            "information_board": 0.2152,
+            "clean_water": 0.1996,
+            "river": 0.2784,
+            "lake": 0.2193,
+            "waterfall": 0.1921,
+            "monument": 0.2007,
+            "community": 0.2526,
+            "viewpoint": 0.2601,
+            "network_connection": 0.1841
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-2-4-N-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8961,
+          "length": 0.5455,
+          "elevation": 0.6194,
+          "gain": 0.7211,
+          "slope": 0.7069,
+          "easy": 0.5872,
+          "province": {
+            "cavite": 0.8471,
+            "laguna": 0.8894,
+            "batangas": 0.9152,
+            "rizal": 0.1526,
+            "quezon": 0.8882
+          },
+          "terrain": {
+            "muddy": 0.6058,
+            "rocky": 0.4529,
+            "grassland": 0.6031,
+            "ridges": 0.5788
+          },
+          "circularity": {
+            "out_and_back": 0.4993,
+            "traverse": 0.2786,
+            "circular": 0.2221
+          },
+          "waterforms": {
+            "fall": 0.5606,
+            "river": 0.5759,
+            "lake": 0.5699
+          },
+          "tourism": {
+            "shelter": 0.4408,
+            "resting": 0.3853,
+            "information_board": 0.4849,
+            "clean_water": 0.3608,
+            "river": 0.2894,
+            "lake": 0.4064,
+            "waterfall": 0.4348,
+            "monument": 0.4054,
+            "community": 0.3645,
+            "viewpoint": 0.4941,
+            "network_connection": 0.4899
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        8998
+      ],
+      "attempts": 1,
+      "medical_scale_factor": null,
+      "easy": {
+        "classification": 0.0195,
+        "length": 0.4112,
+        "elevation": 0.3631,
+        "gain": 0.3737,
+        "slope": 0.4168,
+        "easy": 0.3918,
+        "muddy": 0.2001,
+        "rocky": 0.1337,
+        "grassland": 0.227,
+        "ridges": 0.3372
+      },
+      "difficult": {
+        "classification": 0.8731,
+        "length": 0.8294,
+        "elevation": 0.9265,
+        "gain": 0.8306,
+        "slope": 0.8597,
+        "easy": 0.934,
+        "muddy": 0.4381,
+        "rocky": 0.4116,
+        "grassland": 0.6304,
+        "ridges": 0.4752
+      }
+    }
+  },
+  {
+    "id": "s4_AB-2-4-M-P1",
+    "set_id": 4,
+    "cohort_id": "AB-2-4-M-P1",
+    "cohort_group": "aberrant",
+    "experience": "E2",
+    "stated_experience": "E2",
+    "actual_experience": "E4",
+    "stated_tier": 2,
+    "actual_tier": 4,
+    "mismatch_type": "underestimated",
+    "mismatch_gap": -2,
+    "label": "Aberrant Underestimated (Moderate Underestimation (Expert -> Gentle), M)",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "experience": "E2",
+      "province": [
+        "Rizal"
+      ],
+      "location": []
+    },
+    "profile": {
+      "easy": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-2-4-M-P1",
+          "profile": "easy",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.1096,
+          "length": 0.1575,
+          "elevation": 0.2076,
+          "gain": 0.2392,
+          "slope": 0.1903,
+          "easy": 0.175,
+          "province": {
+            "cavite": 0.1539,
+            "laguna": 0.1755,
+            "batangas": 0.1779,
+            "rizal": 0.8837,
+            "quezon": 0.1071
+          },
+          "terrain": {
+            "muddy": 0.1534,
+            "rocky": 0.1307,
+            "grassland": 0.408,
+            "ridges": 0.1214
+          },
+          "circularity": {
+            "out_and_back": 0.3594,
+            "traverse": 0.003,
+            "circular": 0.6376
+          },
+          "waterforms": {
+            "fall": 0.2017,
+            "river": 0.3045,
+            "lake": 0.341
+          },
+          "tourism": {
+            "shelter": 0.2926,
+            "resting": 0.2869,
+            "information_board": 0.1695,
+            "clean_water": 0.1266,
+            "river": 0.2872,
+            "lake": 0.1615,
+            "waterfall": 0.2216,
+            "monument": 0.3022,
+            "community": 0.2505,
+            "viewpoint": 0.305,
+            "network_connection": 0.2588
+          }
+        }
+      },
+      "difficult": {
+        "metadata": {
+          "type": "user",
+          "id": "s4_AB-2-4-M-P1",
+          "profile": "difficult",
+          "set": 4
+        },
+        "features": {
+          "classification": 0.8961,
+          "length": 0.4364,
+          "elevation": 0.4955,
+          "gain": 0.5769,
+          "slope": 0.5655,
+          "easy": 0.4697,
+          "province": {
+            "cavite": 0.8223,
+            "laguna": 0.9164,
+            "batangas": 0.8701,
+            "rizal": 0.1771,
+            "quezon": 0.8494
+          },
+          "terrain": {
+            "muddy": 0.4847,
+            "rocky": 0.3623,
+            "grassland": 0.4825,
+            "ridges": 0.463
+          },
+          "circularity": {
+            "out_and_back": 0.4814,
+            "traverse": 0.0432,
+            "circular": 0.4754
+          },
+          "waterforms": {
+            "fall": 0.4839,
+            "river": 0.5487,
+            "lake": 0.5842
+          },
+          "tourism": {
+            "shelter": 0.498,
+            "resting": 0.3311,
+            "information_board": 0.2912,
+            "clean_water": 0.4511,
+            "river": 0.5025,
+            "lake": 0.4873,
+            "waterfall": 0.3549,
+            "monument": 0.3548,
+            "community": 0.4322,
+            "viewpoint": 0.3995,
+            "network_connection": 0.3957
+          }
+        }
+      }
+    },
+    "groundTruth": {
+      "seed": [
+        7444,
+        9035
+      ],
+      "attempts": 1,
+      "medical_scale_factor": 0.8,
+      "easy": {
+        "classification": 0.0723,
+        "length": 0.277,
+        "elevation": 0.3286,
+        "gain": 0.3643,
+        "slope": 0.283,
+        "easy": 0.3206,
+        "muddy": 0.0955,
+        "rocky": 0.2429,
+        "grassland": 0.1985,
+        "ridges": 0.1037
+      },
+      "difficult": {
+        "classification": 0.7161,
+        "length": 0.6919,
+        "elevation": 0.7127,
+        "gain": 0.7219,
+        "slope": 0.7202,
+        "easy": 0.7447,
+        "muddy": 0.5998,
+        "rocky": 0.4077,
+        "grassland": 0.4414,
+        "ridges": 0.5922
+      }
+    }
+  }
+]

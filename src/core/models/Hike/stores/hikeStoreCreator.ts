@@ -4,19 +4,19 @@ import { newHike } from "@/src/core/models/Hike/utils/HikeFactory";
 import { Location, newLocation } from "@/src/core/models/Location/Location";
 import { upsertItem } from "@/src/core/models/utils/upsert";
 import { logger } from "@/src/core/utility/errorFormatter";
-import { computeTurnCosine } from "@/src/core/utility/gpsKalmanFilter";
+import {
+    applyBreadcrumbPipeline,
+    haversineMeters,
+    sharedGpsKalmanFilter,
+    simplifyMultiLineRouteRDP,
+    simplifyPolylineRDP,
+} from "@/src/core/utility/gps";
 import { saveLocalTrackPoint } from "@/src/core/utility/hikeStorage";
 import { Unsubscribe } from "firebase/auth";
 import { StateCreator } from "zustand";
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-    const R = 6371000;
-    const toRad = (val: number) => (val * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.asin(Math.sqrt(a));
-    return R * c;
+    return haversineMeters(lat1, lon1, lat2, lon2);
 }
 
 export interface HikeState {
@@ -39,6 +39,8 @@ export interface HikeState {
 
     totalDistance: number;
     totalElevationGain: number;
+    totalElevationLoss: number;
+    elevationBaseline: number | null;
 
     active: boolean;
     coordinates: Location[];
@@ -97,6 +99,8 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     timerStartTime: 0,
     totalDistance: 0,
     totalElevationGain: 0,
+    totalElevationLoss: 0,
+    elevationBaseline: null,
     active: false,
     coordinates: [],
     walkedRoute: [],
@@ -111,7 +115,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     profile: null,
     events: [],
 
-    clearWalkedRoute: () => set({ walkedRoute: [], isSegmentFirstPoint: true }),
+    clearWalkedRoute: () => set({ walkedRoute: [], isSegmentFirstPoint: true, elevationBaseline: null }),
     startNewSegment: () => set((state) => {
         if (!state.walkedRoute) state.walkedRoute = [];
         const lastSeg = state.walkedRoute[state.walkedRoute.length - 1];
@@ -119,6 +123,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             state.walkedRoute.push([]);
         }
         state.isSegmentFirstPoint = true;
+        state.elevationBaseline = null;
     }),
     currentLocation: null,
     setCurrentLocation: (location: Location | null) => {
@@ -159,6 +164,8 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
             timerStartTime: 0,
             totalDistance: 0,
             totalElevationGain: 0,
+            totalElevationLoss: 0,
+            elevationBaseline: null,
             active: false,
             coordinates: [],
             walkedRoute: [],
@@ -209,90 +216,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                         if (!state.walkedRoute || state.walkedRoute.length === 0) {
                             state.walkedRoute = [[]];
                         }
-
-                        let currentSegment = state.walkedRoute[state.walkedRoute.length - 1];
-                        if (!currentSegment) {
-                            currentSegment = [];
-                            state.walkedRoute.push(currentSegment);
-                        }
-
-                        // If this coordinate is the first point of a new segment (after start or resume),
-                        // skip displacement calculation so pause distance is not counted, and set as segment anchor
-                        if (state.isSegmentFirstPoint || state.coordinates.length === 0) {
-                            state.isSegmentFirstPoint = false;
-                            state.coordinates.push(coordinate);
-                            currentSegment.push([coordinate.longitude, coordinate.latitude]);
-                            isCommitted = true;
-                            return;
-                        }
-
-                        const lastCoord = state.coordinates[state.coordinates.length - 1];
-
-                        if (lastCoord && typeof lastCoord.latitude === 'number' && typeof lastCoord.longitude === 'number') {
-                            const distMeters = calculateDistance(lastCoord.latitude, lastCoord.longitude, coordinate.latitude, coordinate.longitude);
-
-                            // 1. Dynamic Accuracy + Doppler ZUPT Stationary Deadband
-                            // Scales deadband with GPS uncertainty so shade/indoor multipath (accuracy 10-30m) cannot accumulate phantom distance
-                            const reportedAccuracy = typeof coordinate.accuracy === 'number' && coordinate.accuracy > 0 ? coordinate.accuracy : 5.0;
-                            const reportedSpeed = typeof coordinate.speed === 'number' && coordinate.speed >= 0 ? coordinate.speed : undefined;
-                            const isDopplerStationary = reportedSpeed !== undefined && reportedSpeed < 0.45;
-
-                            const minCommitDist = isDopplerStationary
-                                ? Math.max(5.0, reportedAccuracy * 0.85)
-                                : Math.max(3.5, Math.min(10.5, 3.5 + Math.max(0, reportedAccuracy - 5) * 0.5));
-
-                            if (distMeters < minCommitDist) {
-                                return; // Hiker is stationary or within uncertainty envelope; ignore noise
-                            }
-
-                            // 2. Speed plausibility filter (suppresses impossible jumps > 7.5 m/s or ~27 km/h)
-                            const lastTime = lastCoord.timestamp ? new Date(lastCoord.timestamp).getTime() : 0;
-                            const currTime = coordinate.timestamp ? new Date(coordinate.timestamp).getTime() : Date.now();
-                            const timeDeltaSec = (lastTime > 0 && currTime > lastTime)
-                                ? Math.max(1, (currTime - lastTime) / 1000)
-                                : 2;
-                            const speedMps = distMeters / timeDeltaSec;
-
-                            const MAX_HIKE_SPEED_MPS = 7.5; // ~27 km/h (maximum plausible mountain descent sprint)
-                            if (speedMps > MAX_HIKE_SPEED_MPS) {
-                                console.warn(`[addCoordinate] Discarded impossible GPS jump: ${distMeters.toFixed(1)}m in ${timeDeltaSec.toFixed(1)}s (${(speedMps * 3.6).toFixed(1)} km/h)`);
-                                return;
-                            }
-
-                            // 3. 3-Point Hairpin Multipath Spike Rejection
-                            // Under dense canopy or indoors, a reflected satellite signal can bounce sideways and snap back on the next fix,
-                            // forming an acute hairpin angle (< 35 deg, cosTheta < -0.82) within a short window (< 12s).
-                            if (state.coordinates.length >= 2 && currentSegment.length >= 2 && timeDeltaSec < 12) {
-                                const prevCoord = state.coordinates[state.coordinates.length - 2];
-                                if (prevCoord && typeof prevCoord.latitude === 'number' && typeof prevCoord.longitude === 'number') {
-                                    const turnCos = computeTurnCosine(
-                                        prevCoord.latitude,
-                                        prevCoord.longitude,
-                                        lastCoord.latitude,
-                                        lastCoord.longitude,
-                                        coordinate.latitude,
-                                        coordinate.longitude
-                                    );
-                                    if (turnCos < -0.82 && (reportedAccuracy > 8 || speedMps > 2.2)) {
-                                        return; // Suppress canopy multipath hairpin spike
-                                    }
-                                }
-                            }
-
-                            // 4. Commit valid displacement
-                            state.totalDistance += distMeters;
-
-                            // 5. Elevation gain filter (ignore minor vertical noise < 2.5m and sensor glitches > 35m)
-                            const altDiff = (coordinate.altitude || 0) - (lastCoord.altitude || 0);
-                            if (altDiff > 2.5 && altDiff < 35) {
-                                state.totalElevationGain += altDiff;
-                            }
-
-                            // 6. Append to session telemetry & active segment
-                            state.coordinates.push(coordinate);
-                            currentSegment.push([coordinate.longitude, coordinate.latitude]);
-                            isCommitted = true;
-                        }
+                        isCommitted = applyBreadcrumbPipeline(state, coordinate);
                     }
                 });
 
@@ -321,10 +245,6 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                     const shouldShare = timeSinceLastShare >= 12 || distFromLastShare >= 10 || lastShareTime === 0;
 
                     if (shouldShare) {
-                        set({
-                            lastShareTime: nowMs,
-                            lastShareCoord: { latitude: coordinate.latitude, longitude: coordinate.longitude },
-                        });
                         try {
                             const name = `${profile.firstname || ''} ${profile.lastname || ''}`.trim() || 'Anonymous Hiker';
                             const coordinateWithHikerName = newLocation({
@@ -332,8 +252,13 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                                 hikerName: name,
                             });
                             await HikeRepo.shareLocation(profile.id, activeGroupId, coordinateWithHikerName);
+                            // Update lastShareTime only after successful transmission so offline failures don't lock out immediate retry
+                            set({
+                                lastShareTime: Date.now(),
+                                lastShareCoord: { latitude: coordinate.latitude, longitude: coordinate.longitude },
+                            });
                         } catch (shareError) {
-                            console.error('[addCoordinate] Background location share failed:', shareError);
+                            console.warn('[addCoordinate] Live location share failed (will retry on next fix once online):', shareError);
                         }
                     }
                 }
@@ -533,7 +458,18 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     updateCurrentHike: (patch) => set((state) => {
         if (state.currentHike) {
             const wasPaused = state.currentHike.status === 'paused';
+            const wasStarted = state.currentHike.status === 'started';
             Object.assign(state.currentHike, patch);
+
+            // Tier 2 RDP Simplification when pausing an active segment
+            if (wasStarted && patch.status === 'paused' && state.walkedRoute && state.walkedRoute.length > 0) {
+                const lastIdx = state.walkedRoute.length - 1;
+                const activeSeg = state.walkedRoute[lastIdx];
+                if (activeSeg && activeSeg.length > 2) {
+                    state.walkedRoute[lastIdx] = simplifyPolylineRDP(activeSeg, 1.8);
+                }
+            }
+
             if (wasPaused && patch.status === 'started') {
                 if (!state.walkedRoute) state.walkedRoute = [];
                 const lastSeg = state.walkedRoute[state.walkedRoute.length - 1];
@@ -541,6 +477,7 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                     state.walkedRoute.push([]);
                 }
                 state.isSegmentFirstPoint = true;
+                state.elevationBaseline = null;
             }
         }
     }),
@@ -548,6 +485,9 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
     startHike: async (hike: IHike, profile: { id: string, firstname: string, lastname: string }) => {
         set({ isLoading: true });
         try {
+            // Reset EKF & ZUPT state so stale pre-hike road coordinates cannot pull the newly started hike
+            sharedGpsKalmanFilter.reset();
+
             const active = newHike({
                 ...hike,
                 status: 'started',
@@ -561,11 +501,13 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
                 coordinates: [],
                 walkedRoute: [],
                 isSegmentFirstPoint: true,
+                elevationBaseline: null,
                 active: true,
                 elapsedTime: 0,
                 timerStartTime: Date.now(),
                 totalDistance: 0,
                 totalElevationGain: 0,
+                totalElevationLoss: 0,
                 profile,
             });
         } catch (error) {
@@ -638,9 +580,13 @@ export const hikeStoreCreator: StateCreator<HikeState, [["zustand/immer", never]
 
             const response = await HikeRepo.write(toUploadHike, userId);
 
-            // Consolidated route persistence: save the completed trail in a single document
-            const route = get().walkedRoute;
+            // Consolidated route persistence: apply Tier 2 RDP simplification and save in a single document
+            const rawRoute = get().walkedRoute;
+            const route = rawRoute && rawRoute.length > 0
+                ? simplifyMultiLineRouteRDP(rawRoute, 1.8)
+                : rawRoute;
             if (route && route.length > 0) {
+                set({ walkedRoute: route });
                 try {
                     await HikeRepo.writeRoute(userId, response.id, route);
                 } catch (routeError) {

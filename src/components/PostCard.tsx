@@ -25,8 +25,8 @@ import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors, Palette } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { IReview, Review } from '@/src/core/models/Review/Review';
-import { Trail, useTrailStore } from "@/src/core/models/Trail/Trail";
-import { getHeroImageSource } from "@/src/features/Trail/utils/TrailDetailsHelpers";
+import { ITrail, Trail, useTrailStore } from "@/src/core/models/Trail/Trail";
+import { getTrailHeroPhoto } from "@/src/features/Trail/utils/TrailDetailsHelpers";
 import { useScrollFades } from '@/src/hooks/useScrollFades';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import { IconLibrary } from '@/src/types/ui.types';
@@ -123,20 +123,38 @@ const PostCard = <T extends IReview = Review>({
 
     const legacy = (review ?? {}) as LegacyReviewFields;
     const legacyTrailId = review?.trail?.id || legacy.trailId || legacy.mountainId;
+    const reviewTrailName = review?.trail?.name || legacy.trailName || legacy.mountainName || '';
 
     // Read trail from store synchronously — no load(), no network call.
-    // If the trail has been deleted from Firebase the store won't have it and
-    // getHeroImageSource(undefined) returns the local fallback asset safely.
     const storeTrail = propTrailData
         ? undefined
         : useTrailStore.getState().data.find(
             (t) => t.id === (legacyTrailId ?? '')
         );
 
-    const fallbackImage = getHeroImageSource(propTrailData ?? storeTrail);
-    const imagesList = (review?.image && review.image.length > 0) ? review.image : [fallbackImage];
+    const syntheticTrailForLookup: Partial<ITrail> = {
+        id: legacyTrailId || '',
+        general: {
+            name: reviewTrailName,
+            active: true,
+            address: '',
+            province: [],
+            mountain: [reviewTrailName],
+            rating: 0,
+            reviewCount: 0,
+            description: '',
+            guidelines: [],
+        },
+    };
+
+    const fallbackPhoto = getTrailHeroPhoto(propTrailData ?? storeTrail ?? syntheticTrailForLookup);
+    const hasUploadedPhotos = Boolean(review?.image && review.image.length > 0);
+    const imagesList: (string | ImageSourcePropType)[] = hasUploadedPhotos
+        ? (review.image as string[])
+        : (fallbackPhoto ? [fallbackPhoto] : []);
+
     const safeActiveIndex = (activeImageIndex >= 0 && activeImageIndex < imagesList.length) ? activeImageIndex : 0;
-    const displayImage = imagesList[safeActiveIndex];
+    const displayImage = imagesList.length > 0 ? imagesList[safeActiveIndex] : null;
 
     const getImgSource = (img: string | ImageSourcePropType): ImageSourcePropType => {
         return typeof img === 'string' ? { uri: img } : img;
@@ -294,37 +312,72 @@ const PostCard = <T extends IReview = Review>({
                 </View>
             )}
 
-            <TouchableOpacity
-                style={styles.imageWrapper}
-                activeOpacity={0.9}
-                onPress={() => setIsPreviewVisible(true)}
-            >
-                <CustomImage source={getImgSource(displayImage)} style={styles.postImage} resizeMode="cover" />
+            {displayImage ? (
+                <TouchableOpacity
+                    style={styles.imageWrapper}
+                    activeOpacity={0.9}
+                    onPress={() => setIsPreviewVisible(true)}
+                >
+                    <CustomImage source={getImgSource(displayImage)} style={styles.postImage} resizeMode="cover" />
 
-                <LinearGradient colors={['transparent', Palette.BlackAlpha65, Palette.DarkBackdrop94]} style={styles.gradientOverlay}>
-                    <View style={styles.headerTextColumn}>
-                        <CustomText variant="h2" style={styles.mountainTitleOverlay}>
-                            {review.trail?.name || legacy.trailName || "Mountain Name"}
-                        </CustomText>
-
-                        <View style={styles.locationRow}>
-                            <CustomIcon library="FontAwesome6" name="location-dot" size={10} color={Colors.TEXT_INVERSE} />
-                            <CustomText variant="caption" style={styles.locationTextOverlay} numberOfLines={1}>
-                                {review.trail?.location || legacy.location || "Philippines"}
+                    <LinearGradient colors={['transparent', Palette.BlackAlpha65, Palette.DarkBackdrop94]} style={styles.gradientOverlay}>
+                        <View style={styles.headerTextColumn}>
+                            <CustomText variant="h2" style={styles.mountainTitleOverlay}>
+                                {review.trail?.name || legacy.trailName || "Mountain Name"}
                             </CustomText>
-                        </View>
-                    </View>
 
-                    {imagesList.length > 1 && (
-                        <View style={styles.imageCountBadge}>
-                            <CustomIcon library="Feather" name="image" size={11} color={Colors.TEXT_INVERSE} style={styles.imageCountIcon} />
-                            <CustomText variant='label' style={styles.imageCountText}>
-                                {`${safeActiveIndex + 1}/${imagesList.length}`}
-                            </CustomText>
+                            <View style={styles.locationRow}>
+                                <CustomIcon library="FontAwesome6" name="location-dot" size={10} color={Colors.TEXT_INVERSE} />
+                                <CustomText variant="caption" style={styles.locationTextOverlay} numberOfLines={1}>
+                                    {review.trail?.location || legacy.location || "Philippines"}
+                                </CustomText>
+                            </View>
                         </View>
-                    )}
-                </LinearGradient>
-            </TouchableOpacity>
+
+                        {imagesList.length > 1 && (
+                            <View style={styles.imageCountBadge}>
+                                <CustomIcon library="Feather" name="image" size={11} color={Colors.TEXT_INVERSE} style={styles.imageCountIcon} />
+                                <CustomText variant='label' style={styles.imageCountText}>
+                                    {`${safeActiveIndex + 1}/${imagesList.length}`}
+                                </CustomText>
+                            </View>
+                        )}
+                    </LinearGradient>
+                </TouchableOpacity>
+            ) : (
+                <View style={styles.imageWrapper}>
+                    <LinearGradient
+                        colors={["#064e3b", "#065f46", "#047857"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.scenicPostPlaceholder}
+                    >
+                        <View style={styles.scenicEmblemCircle}>
+                            <CustomIcon
+                                library="FontAwesome6"
+                                name="mountain"
+                                size={26}
+                                color="rgba(255, 255, 255, 0.7)"
+                            />
+                        </View>
+                    </LinearGradient>
+
+                    <LinearGradient colors={['transparent', Palette.BlackAlpha65, Palette.DarkBackdrop94]} style={styles.gradientOverlay}>
+                        <View style={styles.headerTextColumn}>
+                            <CustomText variant="h2" style={styles.mountainTitleOverlay}>
+                                {review.trail?.name || legacy.trailName || "Recorded Hike"}
+                            </CustomText>
+
+                            <View style={styles.locationRow}>
+                                <CustomIcon library="FontAwesome6" name="location-dot" size={10} color={Colors.TEXT_INVERSE} />
+                                <CustomText variant="caption" style={styles.locationTextOverlay} numberOfLines={1}>
+                                    {review.trail?.location || legacy.location || "Philippines"}
+                                </CustomText>
+                            </View>
+                        </View>
+                    </LinearGradient>
+                </View>
+            )}
 
             {imagesList.length > 1 && (
                 <View style={styles.thumbnailStripWrapper}>
@@ -435,7 +488,13 @@ const PostCard = <T extends IReview = Review>({
                     )}
                 </View>
             )}
-            <ImagePreviewModal visible={isPreviewVisible} images={imagesList as (string | { uri: string })[]} onClose={() => setIsPreviewVisible(false)} />
+            {isPreviewVisible && imagesList.length > 0 && (
+                <ImagePreviewModal
+                    visible={isPreviewVisible}
+                    images={imagesList as (string | { uri: string })[]}
+                    onClose={() => setIsPreviewVisible(false)}
+                />
+            )}
         </View>
     );
 };
@@ -597,6 +656,23 @@ const styles = StyleSheet.create({
     postImage: {
         width: '100%',
         height: '100%',
+    },
+    scenicPostPlaceholder: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingBottom: 32,
+    },
+    scenicEmblemCircle: {
+        width: 58,
+        height: 58,
+        borderRadius: 29,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.18)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     gradientOverlay: {
         position: 'absolute',

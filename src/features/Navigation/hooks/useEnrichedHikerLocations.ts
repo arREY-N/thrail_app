@@ -8,7 +8,44 @@ import {
 import { useMemo, useState } from "react";
 
 const MAX_GHOST_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours TTL to retain Last Known Location pins throughout hike day
-const SIGNAL_LOST_THRESHOLD_MS = 120000; // 2 minutes without update qualifies as signal lost
+export const SIGNAL_LOST_THRESHOLD_MS = 40000; // 40 seconds without update qualifies as signal lost (3x 12s broadcast cycles)
+export const LKL_TICKER_INTERVAL_MS = 2000; // 2-second local UI clock evaluation (0 extra Firebase calls)
+
+/**
+ * Millisecond-accurate check for whether a hiker's signal is considered lost (LKL).
+ */
+export function isHikerSignalLost(
+    timestamp?: Date | string | number,
+    status?: string,
+    currentTimeMs = Date.now()
+): boolean {
+    if (status === 'GPS_SIGNAL_LOST') return true;
+    if (!timestamp) return true;
+    const timeMs = timestamp instanceof Date ? timestamp.getTime() : new Date(timestamp).getTime();
+    if (isNaN(timeMs) || timeMs <= 0) return true;
+    return Math.max(0, currentTimeMs - timeMs) >= SIGNAL_LOST_THRESHOLD_MS;
+}
+
+/**
+ * Formats relative time elapsed since the last location report, including sub-minute granularity
+ * so a 40s LKL badge displays "40s ago" instead of "Just now".
+ */
+export function formatTimeAgo(
+    timestamp?: Date | string | number,
+    currentTimeMs = Date.now()
+): string {
+    if (!timestamp) return "";
+    const timeMs = timestamp instanceof Date ? timestamp.getTime() : new Date(timestamp).getTime();
+    if (isNaN(timeMs) || timeMs <= 0) return "";
+    const elapsedSec = Math.max(0, Math.floor((currentTimeMs - timeMs) / 1000));
+    if (elapsedSec < 15) return "Just now";
+    if (elapsedSec < 60) return `${elapsedSec}s ago`;
+    const mins = Math.floor(elapsedSec / 60);
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+    return `${hours}h ${remainingMins}m ago`;
+}
 
 const STATUS_RANK: Record<HikerLiveStatus, number> = {
     live: 0,
@@ -140,12 +177,7 @@ export function useEnrichedHikerLocations(
             let status: HikerLiveStatus = 'offline';
 
             if (locData) {
-                const timeMs = locData.timestamp instanceof Date
-                    ? locData.timestamp.getTime()
-                    : new Date(locData.timestamp).getTime();
-                const elapsedMs = isNaN(timeMs) ? Infinity : Math.max(0, now - timeMs);
-
-                if (locData.status === 'GPS_SIGNAL_LOST' || elapsedMs > SIGNAL_LOST_THRESHOLD_MS) {
+                if (isHikerSignalLost(locData.timestamp, locData.status, now)) {
                     status = 'signal_lost';
                     lostCount++;
                 } else {

@@ -1,0 +1,4888 @@
+[
+  {
+    "experience": "E1",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.6702,
+        "easy": 0.4433,
+        "elevation": 0.4324,
+        "gain": 0.4038,
+        "grassland": 0.4017,
+        "length": 0.4302,
+        "muddy": 0.4556,
+        "ridges": 0.3066,
+        "rocky": 0.4287,
+        "slope": 0.3445
+      },
+      "easy": {
+        "classification": 0.096,
+        "easy": 0.2343,
+        "elevation": 0.1146,
+        "gain": 0.082,
+        "grassland": 0.184,
+        "length": 0.2061,
+        "muddy": 0.1463,
+        "ridges": 0.1871,
+        "rocky": 0.2542,
+        "slope": 0.0773
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": 0.7275,
+      "seed": [
+        42,
+        1659670404
+      ]
+    },
+    "id": "E1-M-P1",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.75,
+            "traverse": 0.75
+          },
+          "classification": 1,
+          "easy": 0.6000000000000001,
+          "elevation": 0.6000000000000001,
+          "gain": 0.6000000000000001,
+          "length": 0.6000000000000001,
+          "province": {
+            "batangas": 0.85,
+            "cavite": 0.85,
+            "laguna": 0.85,
+            "quezon": 0.85,
+            "rizal": 0.15
+          },
+          "slope": 0.6000000000000001,
+          "terrain": {
+            "grassland": 0.6000000000000001,
+            "muddy": 0.6000000000000001,
+            "ridges": 0.6000000000000001,
+            "rocky": 0.6000000000000001
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.4,
+            "lake": 0.4,
+            "monument": 0.4,
+            "network_connection": 0.4,
+            "resting": 0.4,
+            "river": 0.4,
+            "shelter": 0.4,
+            "viewpoint": 0.4,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.75,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E1-M-P1",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.2,
+          "elevation": 0.2,
+          "gain": 0.2,
+          "length": 0.2,
+          "province": {
+            "batangas": 0.15,
+            "cavite": 0.15,
+            "laguna": 0.15,
+            "quezon": 0.15,
+            "rizal": 0.85
+          },
+          "slope": 0.2,
+          "terrain": {
+            "grassland": 0.2,
+            "muddy": 0.2,
+            "ridges": 0.2,
+            "rocky": 0.2
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.2,
+            "lake": 0.2,
+            "monument": 0.2,
+            "network_connection": 0.2,
+            "resting": 0.2,
+            "river": 0.2,
+            "shelter": 0.2,
+            "viewpoint": 0.2,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E1-M-P1",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P1",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E1",
+    "groundTruth": {
+      "attempts": 5,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.7042,
+        "easy": 0.4784,
+        "elevation": 0.3616,
+        "gain": 0.4603,
+        "grassland": 0.4762,
+        "length": 0.4067,
+        "muddy": 0.4849,
+        "ridges": 0.4159,
+        "rocky": 0.3615,
+        "slope": 0.4554
+      },
+      "easy": {
+        "classification": 0.0677,
+        "easy": 0.266,
+        "elevation": 0.1907,
+        "gain": 0.2377,
+        "grassland": 0.2509,
+        "length": 0.047,
+        "muddy": 0.2732,
+        "ridges": 0.2575,
+        "rocky": 0.0528,
+        "slope": 0.0457
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": 0.7888,
+      "seed": [
+        42,
+        400645995
+      ]
+    },
+    "id": "E1-M-P2",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.75,
+            "traverse": 0.75
+          },
+          "classification": 1,
+          "easy": 0.6000000000000001,
+          "elevation": 0.6000000000000001,
+          "gain": 0.6000000000000001,
+          "length": 0.6000000000000001,
+          "province": {
+            "batangas": 0.15,
+            "cavite": 0.85,
+            "laguna": 0.15,
+            "quezon": 0.85,
+            "rizal": 0.85
+          },
+          "slope": 0.6000000000000001,
+          "terrain": {
+            "grassland": 0.6000000000000001,
+            "muddy": 0.6000000000000001,
+            "ridges": 0.6000000000000001,
+            "rocky": 0.6000000000000001
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.4,
+            "lake": 0.4,
+            "monument": 0.4,
+            "network_connection": 0.4,
+            "resting": 0.4,
+            "river": 0.4,
+            "shelter": 0.4,
+            "viewpoint": 0.4,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.75,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E1-M-P2",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.2,
+          "elevation": 0.2,
+          "gain": 0.2,
+          "length": 0.2,
+          "province": {
+            "batangas": 0.85,
+            "cavite": 0.15,
+            "laguna": 0.85,
+            "quezon": 0.15,
+            "rizal": 0.15
+          },
+          "slope": 0.2,
+          "terrain": {
+            "grassland": 0.2,
+            "muddy": 0.2,
+            "ridges": 0.2,
+            "rocky": 0.2
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.2,
+            "lake": 0.2,
+            "monument": 0.2,
+            "network_connection": 0.2,
+            "resting": 0.2,
+            "river": 0.2,
+            "shelter": 0.2,
+            "viewpoint": 0.2,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E1-M-P2",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P2",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E1",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.754,
+        "easy": 0.3432,
+        "elevation": 0.4846,
+        "gain": 0.4256,
+        "grassland": 0.316,
+        "length": 0.372,
+        "muddy": 0.4402,
+        "ridges": 0.4807,
+        "rocky": 0.3722,
+        "slope": 0.4712
+      },
+      "easy": {
+        "classification": 0.1082,
+        "easy": 0.0962,
+        "elevation": 0.2164,
+        "gain": 0.042,
+        "grassland": 0.2401,
+        "length": 0.1985,
+        "muddy": 0.2599,
+        "ridges": 0.2373,
+        "rocky": 0.0937,
+        "slope": 0.197
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": 0.7495,
+      "seed": [
+        42,
+        2952183851
+      ]
+    },
+    "id": "E1-M-P3",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.75,
+            "traverse": 0.75
+          },
+          "classification": 1,
+          "easy": 0.6000000000000001,
+          "elevation": 0.6000000000000001,
+          "gain": 0.6000000000000001,
+          "length": 0.6000000000000001,
+          "province": {
+            "batangas": 0.85,
+            "cavite": 0.15,
+            "laguna": 0.85,
+            "quezon": 0.85,
+            "rizal": 0.85
+          },
+          "slope": 0.6000000000000001,
+          "terrain": {
+            "grassland": 0.6000000000000001,
+            "muddy": 0.6000000000000001,
+            "ridges": 0.6000000000000001,
+            "rocky": 0.6000000000000001
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.4,
+            "lake": 0.4,
+            "monument": 0.4,
+            "network_connection": 0.4,
+            "resting": 0.4,
+            "river": 0.4,
+            "shelter": 0.4,
+            "viewpoint": 0.4,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.75,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E1-M-P3",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.2,
+          "elevation": 0.2,
+          "gain": 0.2,
+          "length": 0.2,
+          "province": {
+            "batangas": 0.15,
+            "cavite": 0.85,
+            "laguna": 0.15,
+            "quezon": 0.15,
+            "rizal": 0.15
+          },
+          "slope": 0.2,
+          "terrain": {
+            "grassland": 0.2,
+            "muddy": 0.2,
+            "ridges": 0.2,
+            "rocky": 0.2
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.2,
+            "lake": 0.2,
+            "monument": 0.2,
+            "network_connection": 0.2,
+            "resting": 0.2,
+            "river": 0.2,
+            "shelter": 0.2,
+            "viewpoint": 0.2,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E1-M-P3",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P3",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E1",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.663,
+        "easy": 0.6455,
+        "elevation": 0.5327,
+        "gain": 0.5995,
+        "grassland": 0.4308,
+        "length": 0.447,
+        "muddy": 0.6149,
+        "ridges": 0.4035,
+        "rocky": 0.5852,
+        "slope": 0.6242
+      },
+      "easy": {
+        "classification": 0.0459,
+        "easy": 0.1246,
+        "elevation": 0.269,
+        "gain": 0.1704,
+        "grassland": 0.1832,
+        "length": 0.2559,
+        "muddy": 0.3488,
+        "ridges": 0.0901,
+        "rocky": 0.0989,
+        "slope": 0.2208
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": null,
+      "seed": [
+        42,
+        1507111389
+      ]
+    },
+    "id": "E1-N-P1",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.75,
+            "traverse": 0.75
+          },
+          "classification": 1,
+          "easy": 0.75,
+          "elevation": 0.75,
+          "gain": 0.75,
+          "length": 0.75,
+          "province": {
+            "batangas": 0.85,
+            "cavite": 0.85,
+            "laguna": 0.85,
+            "quezon": 0.85,
+            "rizal": 0.15
+          },
+          "slope": 0.75,
+          "terrain": {
+            "grassland": 0.75,
+            "muddy": 0.75,
+            "ridges": 0.75,
+            "rocky": 0.75
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.4,
+            "lake": 0.4,
+            "monument": 0.4,
+            "network_connection": 0.4,
+            "resting": 0.4,
+            "river": 0.4,
+            "shelter": 0.4,
+            "viewpoint": 0.4,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.75,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E1-N-P1",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.25,
+          "elevation": 0.25,
+          "gain": 0.25,
+          "length": 0.25,
+          "province": {
+            "batangas": 0.15,
+            "cavite": 0.15,
+            "laguna": 0.15,
+            "quezon": 0.15,
+            "rizal": 0.85
+          },
+          "slope": 0.25,
+          "terrain": {
+            "grassland": 0.25,
+            "muddy": 0.25,
+            "ridges": 0.25,
+            "rocky": 0.25
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.2,
+            "lake": 0.2,
+            "monument": 0.2,
+            "network_connection": 0.2,
+            "resting": 0.2,
+            "river": 0.2,
+            "shelter": 0.2,
+            "viewpoint": 0.2,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E1-N-P1",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P1",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E1",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.5478,
+        "easy": 0.5838,
+        "elevation": 0.617,
+        "gain": 0.5995,
+        "grassland": 0.6299,
+        "length": 0.601,
+        "muddy": 0.4486,
+        "ridges": 0.4818,
+        "rocky": 0.4465,
+        "slope": 0.4121
+      },
+      "easy": {
+        "classification": 0.1665,
+        "easy": 0.0598,
+        "elevation": 0.1268,
+        "gain": 0.1359,
+        "grassland": 0.0668,
+        "length": 0.2581,
+        "muddy": 0.3212,
+        "ridges": 0.2517,
+        "rocky": 0.1229,
+        "slope": 0.1226
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": null,
+      "seed": [
+        42,
+        3407789166
+      ]
+    },
+    "id": "E1-N-P2",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.75,
+            "traverse": 0.75
+          },
+          "classification": 1,
+          "easy": 0.75,
+          "elevation": 0.75,
+          "gain": 0.75,
+          "length": 0.75,
+          "province": {
+            "batangas": 0.15,
+            "cavite": 0.85,
+            "laguna": 0.15,
+            "quezon": 0.85,
+            "rizal": 0.85
+          },
+          "slope": 0.75,
+          "terrain": {
+            "grassland": 0.75,
+            "muddy": 0.75,
+            "ridges": 0.75,
+            "rocky": 0.75
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.4,
+            "lake": 0.4,
+            "monument": 0.4,
+            "network_connection": 0.4,
+            "resting": 0.4,
+            "river": 0.4,
+            "shelter": 0.4,
+            "viewpoint": 0.4,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.75,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E1-N-P2",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.25,
+          "elevation": 0.25,
+          "gain": 0.25,
+          "length": 0.25,
+          "province": {
+            "batangas": 0.85,
+            "cavite": 0.15,
+            "laguna": 0.85,
+            "quezon": 0.15,
+            "rizal": 0.15
+          },
+          "slope": 0.25,
+          "terrain": {
+            "grassland": 0.25,
+            "muddy": 0.25,
+            "ridges": 0.25,
+            "rocky": 0.25
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.2,
+            "lake": 0.2,
+            "monument": 0.2,
+            "network_connection": 0.2,
+            "resting": 0.2,
+            "river": 0.2,
+            "shelter": 0.2,
+            "viewpoint": 0.2,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E1-N-P2",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P2",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E1",
+    "groundTruth": {
+      "attempts": 2,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.6017,
+        "easy": 0.6403,
+        "elevation": 0.5698,
+        "gain": 0.411,
+        "grassland": 0.5135,
+        "length": 0.5545,
+        "muddy": 0.5509,
+        "ridges": 0.4685,
+        "rocky": 0.4574,
+        "slope": 0.4805
+      },
+      "easy": {
+        "classification": 0.1519,
+        "easy": 0.1429,
+        "elevation": 0.1445,
+        "gain": 0.0795,
+        "grassland": 0.2476,
+        "length": 0.09,
+        "muddy": 0.3499,
+        "ridges": 0.1718,
+        "rocky": 0.2784,
+        "slope": 0.1063
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": null,
+      "seed": [
+        42,
+        861460608
+      ]
+    },
+    "id": "E1-N-P3",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.75,
+            "traverse": 0.75
+          },
+          "classification": 1,
+          "easy": 0.75,
+          "elevation": 0.75,
+          "gain": 0.75,
+          "length": 0.75,
+          "province": {
+            "batangas": 0.85,
+            "cavite": 0.15,
+            "laguna": 0.85,
+            "quezon": 0.85,
+            "rizal": 0.85
+          },
+          "slope": 0.75,
+          "terrain": {
+            "grassland": 0.75,
+            "muddy": 0.75,
+            "ridges": 0.75,
+            "rocky": 0.75
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.4,
+            "lake": 0.4,
+            "monument": 0.4,
+            "network_connection": 0.4,
+            "resting": 0.4,
+            "river": 0.4,
+            "shelter": 0.4,
+            "viewpoint": 0.4,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.75,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E1-N-P3",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.25,
+          "elevation": 0.25,
+          "gain": 0.25,
+          "length": 0.25,
+          "province": {
+            "batangas": 0.15,
+            "cavite": 0.85,
+            "laguna": 0.15,
+            "quezon": 0.15,
+            "rizal": 0.15
+          },
+          "slope": 0.25,
+          "terrain": {
+            "grassland": 0.25,
+            "muddy": 0.25,
+            "ridges": 0.25,
+            "rocky": 0.25
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.2,
+            "lake": 0.2,
+            "monument": 0.2,
+            "network_connection": 0.2,
+            "resting": 0.2,
+            "river": 0.2,
+            "shelter": 0.2,
+            "viewpoint": 0.2,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E1-N-P3",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P3",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E2",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.4034,
+        "easy": 0.333,
+        "elevation": 0.4313,
+        "gain": 0.3581,
+        "grassland": 0.3289,
+        "length": 0.3172,
+        "muddy": 0.3383,
+        "ridges": 0.2962,
+        "rocky": 0.4057,
+        "slope": 0.3962
+      },
+      "easy": {
+        "classification": 0.0116,
+        "easy": 0.16,
+        "elevation": 0.0722,
+        "gain": 0.0454,
+        "grassland": 0.2285,
+        "length": 0.1351,
+        "muddy": 0.1019,
+        "ridges": 0.2256,
+        "rocky": 0.1992,
+        "slope": 0.0638
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": 0.7736,
+      "seed": [
+        42,
+        554531999
+      ]
+    },
+    "id": "E2-M-P1",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mt. Kulis - Sambong Trail",
+        "Mt. Tagapo"
+      ],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.675,
+            "out_and_back": 0.675,
+            "traverse": 0.75
+          },
+          "classification": 1,
+          "easy": 0.30000000000000004,
+          "elevation": 0.1507361963190184,
+          "gain": 0.2099282296650718,
+          "length": 0.12272727272727271,
+          "province": {
+            "batangas": 0.85,
+            "cavite": 0.85,
+            "laguna": 0.85,
+            "quezon": 0.85,
+            "rizal": 1
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.6000000000000001,
+            "muddy": 0.27,
+            "ridges": 0.54,
+            "rocky": 0.54
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.4,
+            "lake": 1,
+            "monument": 0.4,
+            "network_connection": 0.675,
+            "resting": 1,
+            "river": 0.675,
+            "shelter": 1,
+            "viewpoint": 0.675,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 1,
+            "river": 0.675
+          }
+        },
+        "metadata": {
+          "id": "E2-M-P1",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.11111111111111112,
+          "elevation": 0.05582822085889571,
+          "gain": 0.07775119617224881,
+          "length": 0.04545454545454545,
+          "province": {
+            "batangas": 0.15,
+            "cavite": 0.15,
+            "laguna": 0.15,
+            "quezon": 0.15,
+            "rizal": 1
+          },
+          "slope": 0.37777777777777777,
+          "terrain": {
+            "grassland": 0.2,
+            "muddy": 0.1,
+            "ridges": 0.2,
+            "rocky": 0.2
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.2,
+            "lake": 0.5,
+            "monument": 0.2,
+            "network_connection": 0.25,
+            "resting": 0.5,
+            "river": 0.25,
+            "shelter": 0.5,
+            "viewpoint": 0.25,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.5,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E2-M-P1",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P1",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E2",
+    "groundTruth": {
+      "attempts": 4,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.5635,
+        "easy": 0.3571,
+        "elevation": 0.3949,
+        "gain": 0.4431,
+        "grassland": 0.2778,
+        "length": 0.3374,
+        "muddy": 0.3867,
+        "ridges": 0.4477,
+        "rocky": 0.4098,
+        "slope": 0.3033
+      },
+      "easy": {
+        "classification": 0.0008,
+        "easy": 0.0772,
+        "elevation": 0.0406,
+        "gain": 0.2233,
+        "grassland": 0.0394,
+        "length": 0.1369,
+        "muddy": 0.0461,
+        "ridges": 0.1027,
+        "rocky": 0.1478,
+        "slope": 0.0919
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": 0.7709,
+      "seed": [
+        42,
+        229036949
+      ]
+    },
+    "id": "E2-M-P2",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mt. Kulis - Sambong Trail",
+        "Mt. Tagapo"
+      ],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.675,
+            "out_and_back": 0.675,
+            "traverse": 0.75
+          },
+          "classification": 1,
+          "easy": 0.30000000000000004,
+          "elevation": 0.1507361963190184,
+          "gain": 0.2099282296650718,
+          "length": 0.12272727272727271,
+          "province": {
+            "batangas": 0.15,
+            "cavite": 0.85,
+            "laguna": 0.15,
+            "quezon": 0.85,
+            "rizal": 1
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.6000000000000001,
+            "muddy": 0.27,
+            "ridges": 0.54,
+            "rocky": 0.54
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.4,
+            "lake": 1,
+            "monument": 0.4,
+            "network_connection": 0.675,
+            "resting": 1,
+            "river": 0.675,
+            "shelter": 1,
+            "viewpoint": 0.675,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 1,
+            "river": 0.675
+          }
+        },
+        "metadata": {
+          "id": "E2-M-P2",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.11111111111111112,
+          "elevation": 0.05582822085889571,
+          "gain": 0.07775119617224881,
+          "length": 0.04545454545454545,
+          "province": {
+            "batangas": 0.85,
+            "cavite": 0.15,
+            "laguna": 0.85,
+            "quezon": 0.15,
+            "rizal": 1
+          },
+          "slope": 0.37777777777777777,
+          "terrain": {
+            "grassland": 0.2,
+            "muddy": 0.1,
+            "ridges": 0.2,
+            "rocky": 0.2
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.2,
+            "lake": 0.5,
+            "monument": 0.2,
+            "network_connection": 0.25,
+            "resting": 0.5,
+            "river": 0.25,
+            "shelter": 0.5,
+            "viewpoint": 0.25,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.5,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E2-M-P2",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P2",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E2",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.5997,
+        "easy": 0.3438,
+        "elevation": 0.4851,
+        "gain": 0.2952,
+        "grassland": 0.4062,
+        "length": 0.4436,
+        "muddy": 0.4204,
+        "ridges": 0.4113,
+        "rocky": 0.4492,
+        "slope": 0.3102
+      },
+      "easy": {
+        "classification": 0.1055,
+        "easy": 0.0964,
+        "elevation": 0.1857,
+        "gain": 0.0594,
+        "grassland": 0.1788,
+        "length": 0.1506,
+        "muddy": 0.0633,
+        "ridges": 0.0987,
+        "rocky": 0.1031,
+        "slope": 0.1064
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": 0.8089,
+      "seed": [
+        42,
+        1053643031
+      ]
+    },
+    "id": "E2-M-P3",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mt. Kulis - Sambong Trail",
+        "Mt. Tagapo"
+      ],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.675,
+            "out_and_back": 0.675,
+            "traverse": 0.75
+          },
+          "classification": 1,
+          "easy": 0.30000000000000004,
+          "elevation": 0.1507361963190184,
+          "gain": 0.2099282296650718,
+          "length": 0.12272727272727271,
+          "province": {
+            "batangas": 0.85,
+            "cavite": 0.15,
+            "laguna": 0.85,
+            "quezon": 0.85,
+            "rizal": 1
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.6000000000000001,
+            "muddy": 0.27,
+            "ridges": 0.54,
+            "rocky": 0.54
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.4,
+            "lake": 1,
+            "monument": 0.4,
+            "network_connection": 0.675,
+            "resting": 1,
+            "river": 0.675,
+            "shelter": 1,
+            "viewpoint": 0.675,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 1,
+            "river": 0.675
+          }
+        },
+        "metadata": {
+          "id": "E2-M-P3",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.11111111111111112,
+          "elevation": 0.05582822085889571,
+          "gain": 0.07775119617224881,
+          "length": 0.04545454545454545,
+          "province": {
+            "batangas": 0.15,
+            "cavite": 0.85,
+            "laguna": 0.15,
+            "quezon": 0.15,
+            "rizal": 1
+          },
+          "slope": 0.37777777777777777,
+          "terrain": {
+            "grassland": 0.2,
+            "muddy": 0.1,
+            "ridges": 0.2,
+            "rocky": 0.2
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.2,
+            "lake": 0.5,
+            "monument": 0.2,
+            "network_connection": 0.25,
+            "resting": 0.5,
+            "river": 0.25,
+            "shelter": 0.5,
+            "viewpoint": 0.25,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.5,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E2-M-P3",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P3",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E2",
+    "groundTruth": {
+      "attempts": 2,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.5055,
+        "easy": 0.5332,
+        "elevation": 0.4088,
+        "gain": 0.554,
+        "grassland": 0.4992,
+        "length": 0.4663,
+        "muddy": 0.3659,
+        "ridges": 0.4244,
+        "rocky": 0.4824,
+        "slope": 0.5433
+      },
+      "easy": {
+        "classification": 0.1045,
+        "easy": 0.2509,
+        "elevation": 0.0684,
+        "gain": 0.1833,
+        "grassland": 0.2906,
+        "length": 0.1767,
+        "muddy": 0.282,
+        "ridges": 0.1237,
+        "rocky": 0.164,
+        "slope": 0.2631
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": null,
+      "seed": [
+        42,
+        3735140477
+      ]
+    },
+    "id": "E2-N-P1",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mt. Kulis - Sambong Trail",
+        "Mt. Tagapo"
+      ],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.675,
+            "out_and_back": 0.675,
+            "traverse": 0.75
+          },
+          "classification": 1,
+          "easy": 0.37500000000000006,
+          "elevation": 0.18842024539877303,
+          "gain": 0.26241028708133973,
+          "length": 0.15340909090909088,
+          "province": {
+            "batangas": 0.85,
+            "cavite": 0.85,
+            "laguna": 0.85,
+            "quezon": 0.85,
+            "rizal": 1
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.75,
+            "muddy": 0.3375,
+            "ridges": 0.675,
+            "rocky": 0.675
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.4,
+            "lake": 1,
+            "monument": 0.4,
+            "network_connection": 0.675,
+            "resting": 1,
+            "river": 0.675,
+            "shelter": 1,
+            "viewpoint": 0.675,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 1,
+            "river": 0.675
+          }
+        },
+        "metadata": {
+          "id": "E2-N-P1",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.1388888888888889,
+          "elevation": 0.06978527607361963,
+          "gain": 0.097188995215311,
+          "length": 0.05681818181818181,
+          "province": {
+            "batangas": 0.15,
+            "cavite": 0.15,
+            "laguna": 0.15,
+            "quezon": 0.15,
+            "rizal": 1
+          },
+          "slope": 0.4722222222222222,
+          "terrain": {
+            "grassland": 0.25,
+            "muddy": 0.125,
+            "ridges": 0.25,
+            "rocky": 0.25
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.2,
+            "lake": 0.5,
+            "monument": 0.2,
+            "network_connection": 0.25,
+            "resting": 0.5,
+            "river": 0.25,
+            "shelter": 0.5,
+            "viewpoint": 0.25,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.5,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E2-N-P1",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P1",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E2",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.4241,
+        "easy": 0.58,
+        "elevation": 0.4679,
+        "gain": 0.4876,
+        "grassland": 0.4644,
+        "length": 0.4587,
+        "muddy": 0.4815,
+        "ridges": 0.3652,
+        "rocky": 0.5422,
+        "slope": 0.5292
+      },
+      "easy": {
+        "classification": 0.0719,
+        "easy": 0.0889,
+        "elevation": 0.1972,
+        "gain": 0.1587,
+        "grassland": 0.148,
+        "length": 0.1582,
+        "muddy": 0.2246,
+        "ridges": 0.0702,
+        "rocky": 0.1056,
+        "slope": 0.1129
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": null,
+      "seed": [
+        42,
+        1980452257
+      ]
+    },
+    "id": "E2-N-P2",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mt. Kulis - Sambong Trail",
+        "Mt. Tagapo"
+      ],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.675,
+            "out_and_back": 0.675,
+            "traverse": 0.75
+          },
+          "classification": 1,
+          "easy": 0.37500000000000006,
+          "elevation": 0.18842024539877303,
+          "gain": 0.26241028708133973,
+          "length": 0.15340909090909088,
+          "province": {
+            "batangas": 0.15,
+            "cavite": 0.85,
+            "laguna": 0.15,
+            "quezon": 0.85,
+            "rizal": 1
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.75,
+            "muddy": 0.3375,
+            "ridges": 0.675,
+            "rocky": 0.675
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.4,
+            "lake": 1,
+            "monument": 0.4,
+            "network_connection": 0.675,
+            "resting": 1,
+            "river": 0.675,
+            "shelter": 1,
+            "viewpoint": 0.675,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 1,
+            "river": 0.675
+          }
+        },
+        "metadata": {
+          "id": "E2-N-P2",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.1388888888888889,
+          "elevation": 0.06978527607361963,
+          "gain": 0.097188995215311,
+          "length": 0.05681818181818181,
+          "province": {
+            "batangas": 0.85,
+            "cavite": 0.15,
+            "laguna": 0.85,
+            "quezon": 0.15,
+            "rizal": 1
+          },
+          "slope": 0.4722222222222222,
+          "terrain": {
+            "grassland": 0.25,
+            "muddy": 0.125,
+            "ridges": 0.25,
+            "rocky": 0.25
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.2,
+            "lake": 0.5,
+            "monument": 0.2,
+            "network_connection": 0.25,
+            "resting": 0.5,
+            "river": 0.25,
+            "shelter": 0.5,
+            "viewpoint": 0.25,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.5,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E2-N-P2",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P2",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E2",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.7497,
+        "easy": 0.3554,
+        "elevation": 0.3993,
+        "gain": 0.5458,
+        "grassland": 0.3893,
+        "length": 0.4639,
+        "muddy": 0.4079,
+        "ridges": 0.4313,
+        "rocky": 0.4872,
+        "slope": 0.4067
+      },
+      "easy": {
+        "classification": 0.0098,
+        "easy": 0.052,
+        "elevation": 0.065,
+        "gain": 0.2079,
+        "grassland": 0.237,
+        "length": 0.2814,
+        "muddy": 0.1024,
+        "ridges": 0.1267,
+        "rocky": 0.2077,
+        "slope": 0.1086
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": null,
+      "seed": [
+        42,
+        331909761
+      ]
+    },
+    "id": "E2-N-P3",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mt. Kulis - Sambong Trail",
+        "Mt. Tagapo"
+      ],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.675,
+            "out_and_back": 0.675,
+            "traverse": 0.75
+          },
+          "classification": 1,
+          "easy": 0.37500000000000006,
+          "elevation": 0.18842024539877303,
+          "gain": 0.26241028708133973,
+          "length": 0.15340909090909088,
+          "province": {
+            "batangas": 0.85,
+            "cavite": 0.15,
+            "laguna": 0.85,
+            "quezon": 0.85,
+            "rizal": 1
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.75,
+            "muddy": 0.3375,
+            "ridges": 0.675,
+            "rocky": 0.675
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.4,
+            "lake": 1,
+            "monument": 0.4,
+            "network_connection": 0.675,
+            "resting": 1,
+            "river": 0.675,
+            "shelter": 1,
+            "viewpoint": 0.675,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 1,
+            "river": 0.675
+          }
+        },
+        "metadata": {
+          "id": "E2-N-P3",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.1388888888888889,
+          "elevation": 0.06978527607361963,
+          "gain": 0.097188995215311,
+          "length": 0.05681818181818181,
+          "province": {
+            "batangas": 0.15,
+            "cavite": 0.85,
+            "laguna": 0.15,
+            "quezon": 0.15,
+            "rizal": 1
+          },
+          "slope": 0.4722222222222222,
+          "terrain": {
+            "grassland": 0.25,
+            "muddy": 0.125,
+            "ridges": 0.25,
+            "rocky": 0.25
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.2,
+            "lake": 0.5,
+            "monument": 0.2,
+            "network_connection": 0.25,
+            "resting": 0.5,
+            "river": 0.25,
+            "shelter": 0.5,
+            "viewpoint": 0.25,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.5,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E2-N-P3",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P3",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E3",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.6036,
+        "easy": 0.502,
+        "elevation": 0.4581,
+        "gain": 0.5025,
+        "grassland": 0.4301,
+        "length": 0.3952,
+        "muddy": 0.4099,
+        "ridges": 0.3967,
+        "rocky": 0.4382,
+        "slope": 0.4884
+      },
+      "easy": {
+        "classification": 0.0889,
+        "easy": 0.2173,
+        "elevation": 0.2303,
+        "gain": 0.1909,
+        "grassland": 0.2584,
+        "length": 0.1404,
+        "muddy": 0.2344,
+        "ridges": 0.1118,
+        "rocky": 0.1188,
+        "slope": 0.1669
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": 0.6916,
+      "seed": [
+        42,
+        318457206
+      ]
+    },
+    "id": "E3-M-P1",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mt. Tagapo",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.675,
+            "traverse": 0.675
+          },
+          "classification": 1,
+          "easy": 0.48,
+          "elevation": 0.54,
+          "gain": 0.6827511961722488,
+          "length": 0.6627272727272728,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.85,
+            "laguna": 0.5,
+            "quezon": 0.85,
+            "rizal": 0.5
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.6000000000000001,
+            "muddy": 0.162,
+            "ridges": 0.54,
+            "rocky": 0.54
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.675,
+            "lake": 0.675,
+            "monument": 0.4,
+            "network_connection": 0.675,
+            "resting": 1,
+            "river": 0.4,
+            "shelter": 1,
+            "viewpoint": 1,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.675,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E3-M-P1",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.17777777777777778,
+          "elevation": 0.2,
+          "gain": 0.2528708133971292,
+          "length": 0.24545454545454548,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.15,
+            "laguna": 0.5,
+            "quezon": 0.15,
+            "rizal": 0.5
+          },
+          "slope": 0.3866666666666667,
+          "terrain": {
+            "grassland": 0.2,
+            "muddy": 0.06,
+            "ridges": 0.2,
+            "rocky": 0.2
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.25,
+            "lake": 0.25,
+            "monument": 0.2,
+            "network_connection": 0.25,
+            "resting": 0.5,
+            "river": 0.2,
+            "shelter": 0.5,
+            "viewpoint": 0.5,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E3-M-P1",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P1",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E3",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.4606,
+        "easy": 0.3892,
+        "elevation": 0.5193,
+        "gain": 0.4648,
+        "grassland": 0.4141,
+        "length": 0.4649,
+        "muddy": 0.4349,
+        "ridges": 0.4197,
+        "rocky": 0.4678,
+        "slope": 0.4363
+      },
+      "easy": {
+        "classification": 0.0614,
+        "easy": 0.1406,
+        "elevation": 0.1454,
+        "gain": 0.2753,
+        "grassland": 0.184,
+        "length": 0.2072,
+        "muddy": 0.238,
+        "ridges": 0.1583,
+        "rocky": 0.1271,
+        "slope": 0.1396
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": 0.7676,
+      "seed": [
+        42,
+        2645814692
+      ]
+    },
+    "id": "E3-M-P2",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mt. Tagapo",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.675,
+            "traverse": 0.675
+          },
+          "classification": 1,
+          "easy": 0.48,
+          "elevation": 0.54,
+          "gain": 0.6827511961722488,
+          "length": 0.6627272727272728,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.85,
+            "laguna": 0.5,
+            "quezon": 0.85,
+            "rizal": 0.5
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.6000000000000001,
+            "muddy": 0.162,
+            "ridges": 0.54,
+            "rocky": 0.54
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.675,
+            "lake": 0.675,
+            "monument": 0.4,
+            "network_connection": 0.675,
+            "resting": 1,
+            "river": 0.4,
+            "shelter": 1,
+            "viewpoint": 1,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.675,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E3-M-P2",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.17777777777777778,
+          "elevation": 0.2,
+          "gain": 0.2528708133971292,
+          "length": 0.24545454545454548,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.15,
+            "laguna": 0.5,
+            "quezon": 0.15,
+            "rizal": 0.5
+          },
+          "slope": 0.3866666666666667,
+          "terrain": {
+            "grassland": 0.2,
+            "muddy": 0.06,
+            "ridges": 0.2,
+            "rocky": 0.2
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.25,
+            "lake": 0.25,
+            "monument": 0.2,
+            "network_connection": 0.25,
+            "resting": 0.5,
+            "river": 0.2,
+            "shelter": 0.5,
+            "viewpoint": 0.5,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E3-M-P2",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P2",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E3",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.4281,
+        "easy": 0.5386,
+        "elevation": 0.5288,
+        "gain": 0.4665,
+        "grassland": 0.4241,
+        "length": 0.4022,
+        "muddy": 0.51,
+        "ridges": 0.5451,
+        "rocky": 0.4468,
+        "slope": 0.4306
+      },
+      "easy": {
+        "classification": 0.1433,
+        "easy": 0.294,
+        "elevation": 0.19,
+        "gain": 0.2081,
+        "grassland": 0.2758,
+        "length": 0.2276,
+        "muddy": 0.1948,
+        "ridges": 0.2538,
+        "rocky": 0.2353,
+        "slope": 0.1157
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": 0.7497,
+      "seed": [
+        42,
+        264295522
+      ]
+    },
+    "id": "E3-M-P3",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mt. Tagapo",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.675,
+            "traverse": 0.675
+          },
+          "classification": 1,
+          "easy": 0.48,
+          "elevation": 0.54,
+          "gain": 0.6827511961722488,
+          "length": 0.6627272727272728,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.15,
+            "laguna": 0.5,
+            "quezon": 0.85,
+            "rizal": 0.5
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.6000000000000001,
+            "muddy": 0.162,
+            "ridges": 0.54,
+            "rocky": 0.54
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.675,
+            "lake": 0.675,
+            "monument": 0.4,
+            "network_connection": 0.675,
+            "resting": 1,
+            "river": 0.4,
+            "shelter": 1,
+            "viewpoint": 1,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.675,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E3-M-P3",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.17777777777777778,
+          "elevation": 0.2,
+          "gain": 0.2528708133971292,
+          "length": 0.24545454545454548,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.85,
+            "laguna": 0.5,
+            "quezon": 0.15,
+            "rizal": 0.5
+          },
+          "slope": 0.3866666666666667,
+          "terrain": {
+            "grassland": 0.2,
+            "muddy": 0.06,
+            "ridges": 0.2,
+            "rocky": 0.2
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.25,
+            "lake": 0.25,
+            "monument": 0.2,
+            "network_connection": 0.25,
+            "resting": 0.5,
+            "river": 0.2,
+            "shelter": 0.5,
+            "viewpoint": 0.5,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E3-M-P3",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P3",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E3",
+    "groundTruth": {
+      "attempts": 2,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.5014,
+        "easy": 0.6381,
+        "elevation": 0.5256,
+        "gain": 0.5125,
+        "grassland": 0.7165,
+        "length": 0.571,
+        "muddy": 0.5364,
+        "ridges": 0.6958,
+        "rocky": 0.7303,
+        "slope": 0.7375
+      },
+      "easy": {
+        "classification": 0.0434,
+        "easy": 0.36,
+        "elevation": 0.372,
+        "gain": 0.3471,
+        "grassland": 0.3853,
+        "length": 0.3537,
+        "muddy": 0.3167,
+        "ridges": 0.2832,
+        "rocky": 0.2867,
+        "slope": 0.3411
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": null,
+      "seed": [
+        42,
+        1130389290
+      ]
+    },
+    "id": "E3-N-P1",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mt. Tagapo",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.675,
+            "traverse": 0.675
+          },
+          "classification": 1,
+          "easy": 0.6,
+          "elevation": 0.675,
+          "gain": 0.8534389952153111,
+          "length": 0.828409090909091,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.85,
+            "laguna": 0.5,
+            "quezon": 0.85,
+            "rizal": 0.5
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.75,
+            "muddy": 0.2025,
+            "ridges": 0.675,
+            "rocky": 0.675
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.675,
+            "lake": 0.675,
+            "monument": 0.4,
+            "network_connection": 0.675,
+            "resting": 1,
+            "river": 0.4,
+            "shelter": 1,
+            "viewpoint": 1,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.675,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E3-N-P1",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.2222222222222222,
+          "elevation": 0.25,
+          "gain": 0.3160885167464115,
+          "length": 0.3068181818181818,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.15,
+            "laguna": 0.5,
+            "quezon": 0.15,
+            "rizal": 0.5
+          },
+          "slope": 0.48333333333333334,
+          "terrain": {
+            "grassland": 0.25,
+            "muddy": 0.075,
+            "ridges": 0.25,
+            "rocky": 0.25
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.25,
+            "lake": 0.25,
+            "monument": 0.2,
+            "network_connection": 0.25,
+            "resting": 0.5,
+            "river": 0.2,
+            "shelter": 0.5,
+            "viewpoint": 0.5,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E3-N-P1",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P1",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E3",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.669,
+        "easy": 0.5107,
+        "elevation": 0.7325,
+        "gain": 0.5606,
+        "grassland": 0.5376,
+        "length": 0.702,
+        "muddy": 0.6228,
+        "ridges": 0.582,
+        "rocky": 0.5167,
+        "slope": 0.7414
+      },
+      "easy": {
+        "classification": 0.191,
+        "easy": 0.171,
+        "elevation": 0.2644,
+        "gain": 0.2581,
+        "grassland": 0.3017,
+        "length": 0.3902,
+        "muddy": 0.3889,
+        "ridges": 0.1895,
+        "rocky": 0.229,
+        "slope": 0.2575
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": null,
+      "seed": [
+        42,
+        1075653816
+      ]
+    },
+    "id": "E3-N-P2",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mt. Tagapo",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.675,
+            "traverse": 0.675
+          },
+          "classification": 1,
+          "easy": 0.6,
+          "elevation": 0.675,
+          "gain": 0.8534389952153111,
+          "length": 0.828409090909091,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.85,
+            "laguna": 0.5,
+            "quezon": 0.85,
+            "rizal": 0.5
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.75,
+            "muddy": 0.2025,
+            "ridges": 0.675,
+            "rocky": 0.675
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.675,
+            "lake": 0.675,
+            "monument": 0.4,
+            "network_connection": 0.675,
+            "resting": 1,
+            "river": 0.4,
+            "shelter": 1,
+            "viewpoint": 1,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.675,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E3-N-P2",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.2222222222222222,
+          "elevation": 0.25,
+          "gain": 0.3160885167464115,
+          "length": 0.3068181818181818,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.15,
+            "laguna": 0.5,
+            "quezon": 0.15,
+            "rizal": 0.5
+          },
+          "slope": 0.48333333333333334,
+          "terrain": {
+            "grassland": 0.25,
+            "muddy": 0.075,
+            "ridges": 0.25,
+            "rocky": 0.25
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.25,
+            "lake": 0.25,
+            "monument": 0.2,
+            "network_connection": 0.25,
+            "resting": 0.5,
+            "river": 0.2,
+            "shelter": 0.5,
+            "viewpoint": 0.5,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E3-N-P2",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P2",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E3",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.7681,
+        "easy": 0.5016,
+        "elevation": 0.5181,
+        "gain": 0.5744,
+        "grassland": 0.5555,
+        "length": 0.6412,
+        "muddy": 0.5918,
+        "ridges": 0.5825,
+        "rocky": 0.529,
+        "slope": 0.6778
+      },
+      "easy": {
+        "classification": 0.023,
+        "easy": 0.1587,
+        "elevation": 0.1685,
+        "gain": 0.1561,
+        "grassland": 0.3112,
+        "length": 0.3559,
+        "muddy": 0.3707,
+        "ridges": 0.2199,
+        "rocky": 0.1758,
+        "slope": 0.235
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": null,
+      "seed": [
+        42,
+        3184287837
+      ]
+    },
+    "id": "E3-N-P3",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mt. Tagapo",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.675,
+            "traverse": 0.675
+          },
+          "classification": 1,
+          "easy": 0.6,
+          "elevation": 0.675,
+          "gain": 0.8534389952153111,
+          "length": 0.828409090909091,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.15,
+            "laguna": 0.5,
+            "quezon": 0.85,
+            "rizal": 0.5
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.75,
+            "muddy": 0.2025,
+            "ridges": 0.675,
+            "rocky": 0.675
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 0.675,
+            "lake": 0.675,
+            "monument": 0.4,
+            "network_connection": 0.675,
+            "resting": 1,
+            "river": 0.4,
+            "shelter": 1,
+            "viewpoint": 1,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.675,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E3-N-P3",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.2222222222222222,
+          "elevation": 0.25,
+          "gain": 0.3160885167464115,
+          "length": 0.3068181818181818,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.85,
+            "laguna": 0.5,
+            "quezon": 0.15,
+            "rizal": 0.5
+          },
+          "slope": 0.48333333333333334,
+          "terrain": {
+            "grassland": 0.25,
+            "muddy": 0.075,
+            "ridges": 0.25,
+            "rocky": 0.25
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.25,
+            "lake": 0.25,
+            "monument": 0.2,
+            "network_connection": 0.25,
+            "resting": 0.5,
+            "river": 0.2,
+            "shelter": 0.5,
+            "viewpoint": 0.5,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E3-N-P3",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P3",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E4",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.6556,
+        "easy": 0.582,
+        "elevation": 0.5385,
+        "gain": 0.6055,
+        "grassland": 0.6811,
+        "length": 0.6366,
+        "muddy": 0.6125,
+        "ridges": 0.5319,
+        "rocky": 0.5701,
+        "slope": 0.5811
+      },
+      "easy": {
+        "classification": 0.1518,
+        "easy": 0.2845,
+        "elevation": 0.298,
+        "gain": 0.261,
+        "grassland": 0.3001,
+        "length": 0.2352,
+        "muddy": 0.3089,
+        "ridges": 0.3334,
+        "rocky": 0.2484,
+        "slope": 0.1967
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": 0.782,
+      "seed": [
+        42,
+        2116580870
+      ]
+    },
+    "id": "E4-M-P1",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mariang Makiling Trail (MMT)",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.675,
+            "traverse": 0.675
+          },
+          "classification": 1,
+          "easy": 0.6000000000000001,
+          "elevation": 1,
+          "gain": 1,
+          "length": 0.8222727272727273,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.85,
+            "laguna": 1,
+            "quezon": 0.85,
+            "rizal": 0.15
+          },
+          "slope": 0.8076000000000002,
+          "terrain": {
+            "grassland": 0.6000000000000001,
+            "muddy": 0.324,
+            "ridges": 0.54,
+            "rocky": 0.54
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 1,
+            "lake": 0.4,
+            "monument": 0.4,
+            "network_connection": 0.4,
+            "resting": 1,
+            "river": 0.4,
+            "shelter": 1,
+            "viewpoint": 1,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.75,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E4-M-P1",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.22222222222222224,
+          "elevation": 0.4,
+          "gain": 0.3751196172248804,
+          "length": 0.30454545454545456,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.15,
+            "laguna": 1,
+            "quezon": 0.15,
+            "rizal": 0.85
+          },
+          "slope": 0.29911111111111116,
+          "terrain": {
+            "grassland": 0.2,
+            "muddy": 0.12,
+            "ridges": 0.2,
+            "rocky": 0.2
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.5,
+            "lake": 0.2,
+            "monument": 0.2,
+            "network_connection": 0.2,
+            "resting": 0.5,
+            "river": 0.2,
+            "shelter": 0.5,
+            "viewpoint": 0.5,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E4-M-P1",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P1",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E4",
+    "groundTruth": {
+      "attempts": 4,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.7656,
+        "easy": 0.5896,
+        "elevation": 0.6016,
+        "gain": 0.7283,
+        "grassland": 0.5232,
+        "length": 0.5791,
+        "muddy": 0.6997,
+        "ridges": 0.618,
+        "rocky": 0.6769,
+        "slope": 0.6141
+      },
+      "easy": {
+        "classification": 0.1794,
+        "easy": 0.2625,
+        "elevation": 0.2121,
+        "gain": 0.32,
+        "grassland": 0.2279,
+        "length": 0.2612,
+        "muddy": 0.3547,
+        "ridges": 0.4069,
+        "rocky": 0.3967,
+        "slope": 0.228
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": 0.8387,
+      "seed": [
+        42,
+        578707725
+      ]
+    },
+    "id": "E4-M-P2",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mariang Makiling Trail (MMT)",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.675,
+            "traverse": 0.675
+          },
+          "classification": 1,
+          "easy": 0.6000000000000001,
+          "elevation": 1,
+          "gain": 1,
+          "length": 0.8222727272727273,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.85,
+            "laguna": 1,
+            "quezon": 0.85,
+            "rizal": 0.85
+          },
+          "slope": 0.8076000000000002,
+          "terrain": {
+            "grassland": 0.6000000000000001,
+            "muddy": 0.324,
+            "ridges": 0.54,
+            "rocky": 0.54
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 1,
+            "lake": 0.4,
+            "monument": 0.4,
+            "network_connection": 0.4,
+            "resting": 1,
+            "river": 0.4,
+            "shelter": 1,
+            "viewpoint": 1,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.75,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E4-M-P2",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.22222222222222224,
+          "elevation": 0.4,
+          "gain": 0.3751196172248804,
+          "length": 0.30454545454545456,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.15,
+            "laguna": 1,
+            "quezon": 0.15,
+            "rizal": 0.15
+          },
+          "slope": 0.29911111111111116,
+          "terrain": {
+            "grassland": 0.2,
+            "muddy": 0.12,
+            "ridges": 0.2,
+            "rocky": 0.2
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.5,
+            "lake": 0.2,
+            "monument": 0.2,
+            "network_connection": 0.2,
+            "resting": 0.5,
+            "river": 0.2,
+            "shelter": 0.5,
+            "viewpoint": 0.5,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E4-M-P2",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P2",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E4",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.5368,
+        "easy": 0.4403,
+        "elevation": 0.5383,
+        "gain": 0.5767,
+        "grassland": 0.6326,
+        "length": 0.474,
+        "muddy": 0.5742,
+        "ridges": 0.6331,
+        "rocky": 0.4438,
+        "slope": 0.5791
+      },
+      "easy": {
+        "classification": 0.1909,
+        "easy": 0.1826,
+        "elevation": 0.3222,
+        "gain": 0.2552,
+        "grassland": 0.2981,
+        "length": 0.3195,
+        "muddy": 0.1933,
+        "ridges": 0.3281,
+        "rocky": 0.2924,
+        "slope": 0.3357
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": 0.7261,
+      "seed": [
+        42,
+        1249393051
+      ]
+    },
+    "id": "E4-M-P3",
+    "medical": "M",
+    "medicalProfile": {
+      "hasCondition": true
+    },
+    "preferences": {
+      "location": [
+        "Mariang Makiling Trail (MMT)",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.675,
+            "traverse": 0.675
+          },
+          "classification": 1,
+          "easy": 0.6000000000000001,
+          "elevation": 1,
+          "gain": 1,
+          "length": 0.8222727272727273,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.15,
+            "laguna": 1,
+            "quezon": 0.85,
+            "rizal": 0.85
+          },
+          "slope": 0.8076000000000002,
+          "terrain": {
+            "grassland": 0.6000000000000001,
+            "muddy": 0.324,
+            "ridges": 0.54,
+            "rocky": 0.54
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 1,
+            "lake": 0.4,
+            "monument": 0.4,
+            "network_connection": 0.4,
+            "resting": 1,
+            "river": 0.4,
+            "shelter": 1,
+            "viewpoint": 1,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.75,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E4-M-P3",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.22222222222222224,
+          "elevation": 0.4,
+          "gain": 0.3751196172248804,
+          "length": 0.30454545454545456,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.85,
+            "laguna": 1,
+            "quezon": 0.15,
+            "rizal": 0.15
+          },
+          "slope": 0.29911111111111116,
+          "terrain": {
+            "grassland": 0.2,
+            "muddy": 0.12,
+            "ridges": 0.2,
+            "rocky": 0.2
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.5,
+            "lake": 0.2,
+            "monument": 0.2,
+            "network_connection": 0.2,
+            "resting": 0.5,
+            "river": 0.2,
+            "shelter": 0.5,
+            "viewpoint": 0.5,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E4-M-P3",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P3",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E4",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.4224,
+        "easy": 0.8143,
+        "elevation": 0.6691,
+        "gain": 0.6585,
+        "grassland": 0.8128,
+        "length": 0.8887,
+        "muddy": 0.8444,
+        "ridges": 0.7815,
+        "rocky": 0.7953,
+        "slope": 0.6691
+      },
+      "easy": {
+        "classification": 0.005,
+        "easy": 0.3287,
+        "elevation": 0.4872,
+        "gain": 0.3398,
+        "grassland": 0.274,
+        "length": 0.3571,
+        "muddy": 0.4664,
+        "ridges": 0.4557,
+        "rocky": 0.4509,
+        "slope": 0.4147
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": null,
+      "seed": [
+        42,
+        889717066
+      ]
+    },
+    "id": "E4-N-P1",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mariang Makiling Trail (MMT)",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Rizal"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.675,
+            "traverse": 0.675
+          },
+          "classification": 1,
+          "easy": 0.7500000000000001,
+          "elevation": 1,
+          "gain": 1,
+          "length": 1,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.85,
+            "laguna": 1,
+            "quezon": 0.85,
+            "rizal": 0.15
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.75,
+            "muddy": 0.405,
+            "ridges": 0.675,
+            "rocky": 0.675
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 1,
+            "lake": 0.4,
+            "monument": 0.4,
+            "network_connection": 0.4,
+            "resting": 1,
+            "river": 0.4,
+            "shelter": 1,
+            "viewpoint": 1,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.75,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E4-N-P1",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.2777777777777778,
+          "elevation": 0.5,
+          "gain": 0.4688995215311005,
+          "length": 0.3806818181818182,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.15,
+            "laguna": 1,
+            "quezon": 0.15,
+            "rizal": 0.85
+          },
+          "slope": 0.37388888888888894,
+          "terrain": {
+            "grassland": 0.25,
+            "muddy": 0.15,
+            "ridges": 0.25,
+            "rocky": 0.25
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.5,
+            "lake": 0.2,
+            "monument": 0.2,
+            "network_connection": 0.2,
+            "resting": 0.5,
+            "river": 0.2,
+            "shelter": 0.5,
+            "viewpoint": 0.5,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E4-N-P1",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P1",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E4",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.6155,
+        "easy": 0.8418,
+        "elevation": 0.652,
+        "gain": 0.734,
+        "grassland": 0.7355,
+        "length": 0.8529,
+        "muddy": 0.7749,
+        "ridges": 0.6668,
+        "rocky": 0.7659,
+        "slope": 0.7264
+      },
+      "easy": {
+        "classification": 0.1343,
+        "easy": 0.3874,
+        "elevation": 0.4546,
+        "gain": 0.3357,
+        "grassland": 0.3553,
+        "length": 0.487,
+        "muddy": 0.2725,
+        "ridges": 0.4464,
+        "rocky": 0.3559,
+        "slope": 0.2614
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": null,
+      "seed": [
+        42,
+        3256643609
+      ]
+    },
+    "id": "E4-N-P2",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mariang Makiling Trail (MMT)",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Batangas",
+        "Laguna"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.675,
+            "traverse": 0.675
+          },
+          "classification": 1,
+          "easy": 0.7500000000000001,
+          "elevation": 1,
+          "gain": 1,
+          "length": 1,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.85,
+            "laguna": 1,
+            "quezon": 0.85,
+            "rizal": 0.85
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.75,
+            "muddy": 0.405,
+            "ridges": 0.675,
+            "rocky": 0.675
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 1,
+            "lake": 0.4,
+            "monument": 0.4,
+            "network_connection": 0.4,
+            "resting": 1,
+            "river": 0.4,
+            "shelter": 1,
+            "viewpoint": 1,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.75,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E4-N-P2",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.2777777777777778,
+          "elevation": 0.5,
+          "gain": 0.4688995215311005,
+          "length": 0.3806818181818182,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.15,
+            "laguna": 1,
+            "quezon": 0.15,
+            "rizal": 0.15
+          },
+          "slope": 0.37388888888888894,
+          "terrain": {
+            "grassland": 0.25,
+            "muddy": 0.15,
+            "ridges": 0.25,
+            "rocky": 0.25
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.5,
+            "lake": 0.2,
+            "monument": 0.2,
+            "network_connection": 0.2,
+            "resting": 0.5,
+            "river": 0.2,
+            "shelter": 0.5,
+            "viewpoint": 0.5,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E4-N-P2",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P2",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  },
+  {
+    "experience": "E4",
+    "groundTruth": {
+      "attempts": 1,
+      "covered_features": [
+        "classification",
+        "length",
+        "elevation",
+        "gain",
+        "slope",
+        "easy",
+        "muddy",
+        "rocky",
+        "grassland",
+        "ridges"
+      ],
+      "difficult": {
+        "classification": 0.4786,
+        "easy": 0.7815,
+        "elevation": 0.7721,
+        "gain": 0.7872,
+        "grassland": 0.6254,
+        "length": 0.6515,
+        "muddy": 0.826,
+        "ridges": 0.7563,
+        "rocky": 0.8398,
+        "slope": 0.7349
+      },
+      "easy": {
+        "classification": 0.1197,
+        "easy": 0.4397,
+        "elevation": 0.4172,
+        "gain": 0.3492,
+        "grassland": 0.3412,
+        "length": 0.3739,
+        "muddy": 0.3885,
+        "ridges": 0.266,
+        "rocky": 0.331,
+        "slope": 0.3304
+      },
+      "feature_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        11,
+        12,
+        13,
+        14
+      ],
+      "medical_scale_factor": null,
+      "seed": [
+        42,
+        3569581631
+      ]
+    },
+    "id": "E4-N-P3",
+    "medical": "N",
+    "medicalProfile": {
+      "hasCondition": false
+    },
+    "preferences": {
+      "location": [
+        "Mariang Makiling Trail (MMT)",
+        "Mt. Makiling Traverse (MakTrav)"
+      ],
+      "province": [
+        "Cavite"
+      ]
+    },
+    "profile": {
+      "difficult": {
+        "features": {
+          "circularity": {
+            "circular": 0.75,
+            "out_and_back": 0.675,
+            "traverse": 0.675
+          },
+          "classification": 1,
+          "easy": 0.7500000000000001,
+          "elevation": 1,
+          "gain": 1,
+          "length": 1,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.15,
+            "laguna": 1,
+            "quezon": 0.85,
+            "rizal": 0.85
+          },
+          "slope": 1,
+          "terrain": {
+            "grassland": 0.75,
+            "muddy": 0.405,
+            "ridges": 0.675,
+            "rocky": 0.675
+          },
+          "tourism": {
+            "clean_water": 0.4,
+            "community": 0.4,
+            "information_board": 1,
+            "lake": 0.4,
+            "monument": 0.4,
+            "network_connection": 0.4,
+            "resting": 1,
+            "river": 0.4,
+            "shelter": 1,
+            "viewpoint": 1,
+            "waterfall": 0.4
+          },
+          "waterforms": {
+            "fall": 0.75,
+            "lake": 0.75,
+            "river": 0.75
+          }
+        },
+        "metadata": {
+          "id": "E4-N-P3",
+          "profile": "difficult",
+          "type": "user"
+        }
+      },
+      "easy": {
+        "features": {
+          "circularity": {
+            "circular": 0.25,
+            "out_and_back": 0.25,
+            "traverse": 0.25
+          },
+          "classification": 0,
+          "easy": 0.2777777777777778,
+          "elevation": 0.5,
+          "gain": 0.4688995215311005,
+          "length": 0.3806818181818182,
+          "province": {
+            "batangas": 0.5,
+            "cavite": 0.85,
+            "laguna": 1,
+            "quezon": 0.15,
+            "rizal": 0.15
+          },
+          "slope": 0.37388888888888894,
+          "terrain": {
+            "grassland": 0.25,
+            "muddy": 0.15,
+            "ridges": 0.25,
+            "rocky": 0.25
+          },
+          "tourism": {
+            "clean_water": 0.2,
+            "community": 0.2,
+            "information_board": 0.5,
+            "lake": 0.2,
+            "monument": 0.2,
+            "network_connection": 0.2,
+            "resting": 0.5,
+            "river": 0.2,
+            "shelter": 0.5,
+            "viewpoint": 0.5,
+            "waterfall": 0.2
+          },
+          "waterforms": {
+            "fall": 0.25,
+            "lake": 0.25,
+            "river": 0.25
+          }
+        },
+        "metadata": {
+          "id": "E4-N-P3",
+          "profile": "easy",
+          "type": "user"
+        }
+      }
+    },
+    "province_pattern": "P3",
+    "versions": {
+      "commit": "8007798bd4b9e2df0f1d3fa64108bb0797ee1709",
+      "normalization_bounds": {
+        "elevation": [
+          438,
+          1090
+        ],
+        "gain": [
+          112,
+          948
+        ],
+        "lasco": [
+          1,
+          9
+        ],
+        "length": [
+          3.1,
+          14.1
+        ],
+        "slope": [
+          5.0,
+          14.0
+        ]
+      },
+      "trail_export_hash": "780f30ba30df9c48ce7ba6776bf965b022285e147244d00f9df9c658c5340818"
+    }
+  }
+]

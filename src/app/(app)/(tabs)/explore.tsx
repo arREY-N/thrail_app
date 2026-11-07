@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 
 import { RecalculateTrailRating } from '@/src/core/flows/RecalculateTrailRating';
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
@@ -6,7 +7,6 @@ import { useTrailViewNavigation } from "@/src/core/hook/navigation/useTrailViewN
 import { useOfferList } from '@/src/core/models/Offer/Offer';
 import { useTrailList } from '@/src/core/models/Trail/Trail';
 import ExploreScreen from '@/src/features/Explore/screens/ExploreScreen';
-import React, { useCallback } from 'react';
 
 /**
  * Controller component for the Explore tab.
@@ -18,6 +18,7 @@ export default function Explore() {
     const {
         trails,
         trailLoading,
+        onRefreshTrails,
     } = useTrailList();
 
     const { toTrailView } = useTrailViewNavigation();
@@ -35,19 +36,26 @@ export default function Explore() {
     } = RecalculateTrailRating();
 
     const {
-        offers
+        offers,
+        onRefreshOffers,
     } = useOfferList();
 
+    const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+    const handleRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        try {
+            await Promise.all([
+                onRefreshTrails(),
+                onRefreshOffers(),
+            ]);
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [onRefreshTrails, onRefreshOffers]);
 
     // Map query parameter filters to actual Explore tab category labels
-    let initialCategory = "All";
-    if (filter === 'recommendations') {
-        initialCategory = "Recommended";
-    } else if (filter === 'trending') {
-        initialCategory = "Discover";
-    } else if (filter === 'offers') {
-        initialCategory = "Offers";
-    }
+    const initialCategory = filter === 'offers' ? "Offers" : "All";
 
     return (
         <ExploreScreen
@@ -58,6 +66,8 @@ export default function Explore() {
             isLoading={trailLoading}
             initialCategory={initialCategory}
             offers={offers}
+            isRefreshing={isRefreshing}
+            onRefresh={handleRefresh}
         />
     );
 }

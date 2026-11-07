@@ -12,6 +12,7 @@ import * as Clipboard from 'expo-clipboard';
 import ConfirmationModal from '@/src/components/ConfirmationModal';
 import CustomButton from '@/src/components/CustomButton';
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomStatusBadge from '@/src/components/CustomStatusBadge';
 import CustomText from '@/src/components/CustomText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { useToast } from '@/src/components/Toast/Toast';
@@ -23,6 +24,7 @@ import { SelectedFile } from '@/src/core/repositories/fileRepository';
 import { formatDateTime } from '@/src/core/utility/date';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { AdminEditPaymentModal } from '../components/AdminEditPaymentModal';
+import { AdminOverpaymentRefundCard } from '../components/AdminOverpaymentRefundCard';
 import { AdminRevertPaymentModal } from '../components/AdminRevertPaymentModal';
 import { ManualQRVerificationCard } from '../components/ManualQRVerificationCard';
 import { getDisplayReferenceCode } from '@/src/features/Admin/utils/paymentUtils';
@@ -56,6 +58,7 @@ export interface PaymentTabProps {
     onSettleRemainingBalance?: (options?: { method?: 'cash' | 'manual_qr'; referenceCode?: string; adminNote?: string }) => Promise<void>;
     onUploadOverpaymentProof?: (file: SelectedFile) => Promise<void | string>;
     isProcessing?: boolean;
+    decisionRef?: React.RefObject<View | null>;
 }
 
 /**
@@ -74,6 +77,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     onSettleRemainingBalance,
     onUploadOverpaymentProof,
     isProcessing = false,
+    decisionRef,
 }) => {
     const { isMobile, width } = useBreakpoints();
     const isNarrow = isMobile && width < 380;
@@ -81,6 +85,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
 
     const [previewReceiptUrl, setPreviewReceiptUrl] = useState<string | null>(null);
     const [showPaidCashModal, setShowPaidCashModal] = useState<boolean>(false);
+    const [isSettlingCash, setIsSettlingCash] = useState<boolean>(false);
     const [expandedIndices, setExpandedIndices] = useState<Record<number, boolean>>({});
 
     // Edit and Revert modal state
@@ -104,10 +109,12 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
     const isLockedStatus = ['reservation-rejected', 'cancelled', 'cancellation-rejected', 'refund', 'refunded', 'reschedule-rejected', 'rescheduled', 'expired', 'for-cancellation', 'for-reschedule'].includes(currentStatus);
 
     const getLockedMessage = () => {
-        if (hasRefundedPayment || currentStatus === 'refunded' || currentStatus === 'refund') {
+        if (hasRefundedPayment || currentStatus === 'refunded') {
             return "Payment actions are locked because this booking has been explicitly Refunded.";
         }
         switch (currentStatus) {
+            case 'refund':
+                return "Payment actions are locked while a Refund is in progress.";
             case 'expired':
                 return "Payment actions are locked because this booking has Expired.";
             case 'rescheduled':
@@ -141,30 +148,25 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
 
     const renderGatewayBadge = (gatewayName: string) => {
         const name = (gatewayName || 'PayMongo').toLowerCase();
-        let bgColor = Colors.GRAY_ULTRALIGHT;
         let textColor = Colors.TEXT_SECONDARY;
         let iconName = 'credit-card';
         let displayName = gatewayName;
         const isCash = name.includes('cash');
 
         if (name.includes('manual_qr') || name.includes('manual')) {
-            bgColor = Colors.PRIMARY_LIGHT;
             textColor = Colors.PRIMARY;
             iconName = 'check-circle';
             displayName = 'Manual QR';
         } else if (name.includes('gcash')) {
-            bgColor = Colors.STATUS_PENDING_BG;
             textColor = Colors.STATUS_PENDING_TEXT;
             iconName = 'smartphone';
             displayName = 'GCash';
         } else if (name.includes('maya') || name.includes('paymaya')) {
-            bgColor = Colors.STATUS_APPROVED_BG;
             textColor = Colors.STATUS_APPROVED_TEXT;
             iconName = 'activity';
             displayName = 'Maya';
         } else if (isCash) {
-            bgColor = '#D1FAE5';
-            textColor = '#065F46';
+            textColor = Colors.PRIMARY;
             iconName = 'check-circle';
             displayName = 'Onsite Cash';
         } else {
@@ -172,13 +174,13 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
         }
 
         return (
-            <View style={[styles.gatewayBadge, { backgroundColor: bgColor }]}>
+            <View style={styles.channelTextGroup}>
                 {isCash ? (
-                    <CustomText style={[styles.badgePesoSign, { color: textColor }]}>₱</CustomText>
+                    <CustomText style={[styles.channelPesoSign, { color: textColor }]}>₱</CustomText>
                 ) : (
-                    <CustomIcon library="Feather" name={iconName} size={11} color={textColor} />
+                    <CustomIcon library="Feather" name={iconName} size={13} color={textColor} />
                 )}
-                <CustomText style={[styles.gatewayText, { color: textColor }]}>
+                <CustomText style={[styles.channelText, { color: textColor }]}>
                     {displayName}
                 </CustomText>
             </View>
@@ -196,29 +198,32 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
 
     const allPayments = (booking?.payment || []).filter((p: IPayment<Date>) => p.status !== 'abandoned');
     const hasPendingPayment = allPayments.some((p: IPayment<Date>) => p.status === 'pending');
+    const hasCapturedManual = allPayments.some((p: IPayment<Date>) => (p.gateway === 'manual_qr' || Boolean(p.receiptUrl)) && p.status === 'captured');
     // Receipts history only shows verified/captured or refunded payments
     const verifiedPaymentsList = allPayments.filter((p: IPayment<Date>) => p.status === 'captured' || p.status === 'refunded');
 
-    const showVerificationCard = hasManualPayment && onVerifyManualPayment && (
+    const showVerificationCard = hasManualPayment && Boolean(onVerifyManualPayment) && !isLockedStatus && (
         hasPendingPayment || 
         booking.paymentVerificationStatus === 'pending_verification' || 
-        currentStatus === 'for-payment' || 
-        booking.paymentVerificationStatus === 'rejected' ||
-        Boolean(booking.overpayment)
+        (currentStatus === 'for-payment' && !hasCapturedManual) || 
+        booking.paymentVerificationStatus === 'rejected'
     );
 
     const handleConfirmCashSettlement = async () => {
         if (!onSettleRemainingBalance) return;
-        setShowPaidCashModal(false);
+        setIsSettlingCash(true);
         try {
             await onSettleRemainingBalance({
                 method: 'cash',
                 referenceCode: `CASH-${Date.now()}`,
                 adminNote: 'Settled via Onsite Cash',
             });
+            setShowPaidCashModal(false);
             showToast.success('Remaining balance settled in cash.');
         } catch {
             showToast.error('Failed to settle balance in cash.');
+        } finally {
+            setIsSettlingCash(false);
         }
     };
 
@@ -252,22 +257,57 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                     />
                 </View>
 
-                {/* Balance Row (Right-aligned under progress bar) */}
-                <View style={styles.balanceRow}>
-                    <View style={styles.balanceInfo}>
-                        <CustomText style={styles.balanceLabel}>Balance: </CustomText>
-                        <CustomText style={[
-                            styles.balanceAmount, 
-                            remainingBalance > 0 ? styles.balanceUnpaid : styles.balanceSettled
+                {/* Balance & Refund Due Row */}
+                {(() => {
+                    const isOverpaymentCompleted = booking?.overpayment?.status === 'completed';
+                    const hasExcess = Boolean(booking?.overpayment && (booking.overpayment.excessAmount || 0) > 0);
+
+                    return (
+                        <View style={[
+                            styles.balanceRow, 
+                            hasExcess && styles.balanceRowWithRefund
                         ]}>
-                            ₱{remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </CustomText>
-                    </View>
-                </View>
+                            {hasExcess ? (
+                                <View style={styles.refundDueInfo}>
+                                    <CustomText style={[
+                                        styles.refundDueLabel,
+                                        isOverpaymentCompleted && styles.refundSettledLabel
+                                    ]}>
+                                        {isOverpaymentCompleted ? 'Excess Refunded: ' : 'Refund Due: '}
+                                    </CustomText>
+                                    <CustomText style={[
+                                        styles.refundDueAmount,
+                                        isOverpaymentCompleted && styles.refundSettledAmount
+                                    ]}>
+                                        ₱{(booking.overpayment?.excessAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </CustomText>
+                                </View>
+                            ) : null}
+                            <View style={styles.balanceInfo}>
+                                <CustomText style={styles.balanceLabel}>Balance: </CustomText>
+                                <CustomText style={[
+                                    styles.balanceAmount, 
+                                    remainingBalance > 0 ? styles.balanceUnpaid : styles.balanceSettled
+                                ]}>
+                                    ₱{remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </CustomText>
+                            </View>
+                        </View>
+                    );
+                })()}
             </View>
 
-            {/* ─── 2. PENDING REVIEW & VERIFICATION CARD ──────────────── */}
-            {showVerificationCard && (
+            {/* ─── 2. DEDICATED EXCESS PAYMENT REFUND CARD ─────────────── */}
+            {Boolean(booking?.overpayment && (booking.overpayment.excessAmount || 0) > 0) && (
+                <AdminOverpaymentRefundCard
+                    booking={booking}
+                    onUploadOverpaymentProof={onUploadOverpaymentProof}
+                    isProcessing={isProcessing}
+                />
+            )}
+
+            {/* ─── 3. PENDING REVIEW & VERIFICATION CARD ──────────────── */}
+            {showVerificationCard && onVerifyManualPayment && (
                 <ManualQRVerificationCard
                     booking={booking}
                     onVerifyPayment={onVerifyManualPayment}
@@ -312,14 +352,15 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
 
                     {/* Paid Cash Button — Clean 'Paid Cash' only, no dollar icon */}
                     {remainingBalance > 0 && !isLockedStatus && onSettleRemainingBalance && (
-                        <CustomButton
-                            title="Paid Cash"
-                            variant="outline"
-                            size="sm"
-                            autoWidth={true}
-                            onPress={() => setShowPaidCashModal(true)}
-                            isLoading={isProcessing}
-                        />
+                        <View ref={decisionRef} collapsable={false}>
+                            <CustomButton
+                                title="Paid Cash"
+                                variant="outline"
+                                size="sm"
+                                autoWidth={true}
+                                onPress={() => setShowPaidCashModal(true)}
+                            />
+                        </View>
                     )}
                 </View>
 
@@ -328,8 +369,19 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                 {/* Accordion Item Cards */}
                 {verifiedPaymentsList.length > 0 ? (
                     <View style={styles.receiptsListContainer}>
-                        {verifiedPaymentsList.map((paymentRecord: IPayment<Date>, idx: number) => {
-                            const isExpanded = Boolean(expandedIndices[idx]);
+                        {(() => {
+                            const overpaymentPaymentIndex = verifiedPaymentsList.findLastIndex(
+                                (p: IPayment<Date>) =>
+                                    Boolean(p.receiptUrl) &&
+                                    (p.amount === booking?.overpayment?.hikeAmountCaptured || p.classification === 'full')
+                            );
+
+                            return verifiedPaymentsList.map((paymentRecord: IPayment<Date>, idx: number) => {
+                                const isThisOverpaymentRecord = Boolean(
+                                    booking?.overpayment &&
+                                    idx === (overpaymentPaymentIndex >= 0 ? overpaymentPaymentIndex : verifiedPaymentsList.length - 1)
+                                );
+                                const isExpanded = Boolean(expandedIndices[idx]);
                             const { refCode, note } = getDisplayReferenceCode(paymentRecord);
                             const isRefunded = paymentRecord.status === 'refunded' || ((paymentRecord.refundedAmount || 0) > 0);
                             const isCashMethod = paymentRecord.method === 'cash' || 
@@ -396,8 +448,15 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                             </View>
                                         </View>
 
-                                        {/* Right: Dropdown Chevron */}
+                                        {/* Right: Status Badge & Dropdown Chevron (Optically Aligned) */}
                                         <View style={styles.accordionHeaderRight}>
+                                            {paymentRecord.classification && (
+                                                <CustomStatusBadge
+                                                    status={paymentRecord.classification === 'downpayment' ? 'downpayment' : 'completed'}
+                                                    label={paymentRecord.classification === 'downpayment' ? 'DOWNPAYMENT' : 'FULL PAYMENT'}
+                                                    size="sm"
+                                                />
+                                            )}
                                             <CustomIcon 
                                                 library="Feather" 
                                                 name={isExpanded ? "chevron-up" : "chevron-down"} 
@@ -412,9 +471,33 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                         <View style={styles.accordionBody}>
                                             <View style={styles.accordionDivider} />
 
+                                            {/* Overpayment Breakdown Details */}
+                                            {isThisOverpaymentRecord && (
+                                                <View style={styles.overpaymentBreakdownCard}>
+                                                    <View style={styles.detailRow}>
+                                                        <CustomText style={styles.detailLabel}>Applied to Hike</CustomText>
+                                                        <CustomText style={styles.detailValueBold}>
+                                                            ₱{paymentRecord.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        </CustomText>
+                                                    </View>
+                                                    <View style={styles.detailRow}>
+                                                        <CustomText style={styles.detailLabel}>Excess to Refund via GCash</CustomText>
+                                                        <CustomText style={[styles.detailValueBold, { color: Colors.WARNING }]}>
+                                                            ₱{(booking.overpayment?.excessAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        </CustomText>
+                                                    </View>
+                                                    <View style={styles.detailRow}>
+                                                        <CustomText style={styles.detailLabel}>Total Sent on Screenshot</CustomText>
+                                                        <CustomText style={styles.detailValue}>
+                                                            ₱{(paymentRecord.amount + (booking.overpayment?.excessAmount || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        </CustomText>
+                                                    </View>
+                                                </View>
+                                            )}
+
                                             {/* Admin-Verified Reference Code Row */}
                                             <View style={styles.detailRow}>
-                                                <CustomText style={styles.detailLabel}>Reference Code</CustomText>
+                                                <CustomText style={styles.detailLabel}>Reference Number</CustomText>
                                                 <View style={styles.refCodeValueGroup}>
                                                     <CustomText style={styles.refCodeText} selectable={true}>
                                                         {refCode}
@@ -444,25 +527,11 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                             {paymentRecord.classification && (
                                                 <View style={styles.detailRow}>
                                                     <CustomText style={styles.detailLabel}>Payment Type</CustomText>
-                                                    <View style={[
-                                                        styles.classificationPill,
-                                                        paymentRecord.classification === 'downpayment'
-                                                            ? styles.classificationDownpayment
-                                                            : styles.classificationFull
-                                                    ]}>
-                                                        <CustomIcon
-                                                            library="Feather"
-                                                            name={paymentRecord.classification === 'downpayment' ? 'pie-chart' : 'check-circle'}
-                                                            size={11}
-                                                            color={paymentRecord.classification === 'downpayment' ? Colors.STATUS_DOWNPAYMENT_TEXT : Colors.SUCCESS}
-                                                        />
-                                                        <CustomText style={[
-                                                            styles.classificationText,
-                                                            { color: paymentRecord.classification === 'downpayment' ? Colors.STATUS_DOWNPAYMENT_TEXT : Colors.SUCCESS }
-                                                        ]}>
-                                                            {paymentRecord.classification === 'downpayment' ? 'DOWNPAYMENT' : 'FULL PAYMENT'}
-                                                        </CustomText>
-                                                    </View>
+                                                    <CustomStatusBadge
+                                                        status={paymentRecord.classification === 'downpayment' ? 'downpayment' : 'completed'}
+                                                        label={paymentRecord.classification === 'downpayment' ? 'DOWNPAYMENT' : 'FULL PAYMENT'}
+                                                        size="sm"
+                                                    />
                                                 </View>
                                             )}
 
@@ -541,7 +610,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                                         <CustomButton
                                                             title="Edit Details"
                                                             variant="outline"
-                                                            size="sm"
+                                                            size="md"
                                                             icon="edit-3"
                                                             iconLibrary="Feather"
                                                             onPress={() => {
@@ -551,18 +620,18 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                                                 setShowEditModal(true);
                                                             }}
                                                             disabled={isProcessing}
-                                                            style={styles.receiptActionBtn}
+                                                            style={styles.receiptEditBtn}
                                                         />
                                                     )}
                                                     {onRevertManualPayment && (
                                                         <CustomButton
                                                             title="Revert"
                                                             variant="outline"
-                                                            size="sm"
+                                                            size="md"
                                                             icon="rotate-ccw"
                                                             iconLibrary="Feather"
-                                                            iconColor="#D97706"
-                                                            textStyle={{ color: '#D97706' }}
+                                                            iconColor={Colors.WARNING}
+                                                            textStyle={{ color: Colors.WARNING }}
                                                             onPress={() => {
                                                                 const actualIndex = (booking.payment || []).indexOf(paymentRecord);
                                                                 setSelectedPaymentForRevert(paymentRecord);
@@ -571,7 +640,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                                                 setShowRevertModal(true);
                                                             }}
                                                             disabled={isProcessing}
-                                                            style={styles.receiptActionBtn}
+                                                            style={styles.receiptRevertBtn}
                                                         />
                                                     )}
                                                 </View>
@@ -580,7 +649,8 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                                     )}
                                 </View>
                             );
-                        })}
+                        });
+                        })()}
                     </View>
                 ) : (
                     <View style={styles.emptyReceiptsBox}>
@@ -592,7 +662,14 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
             </View>
 
             {/* Lock / Completion Banners */}
-            {currentStatus === 'completed' ? (
+            {booking?.overpayment && booking.overpayment.status !== 'completed' ? (
+                <View style={[styles.lockBanner, styles.lockBannerWarning]}>
+                    <CustomIcon library="Feather" name="alert-circle" size={16} color={Colors.STATUS_WARNING_TEXT} />
+                    <CustomText style={[styles.lockBannerText, { color: Colors.STATUS_WARNING_TEXT }]}>
+                        Hike payment captured. Excess refund payout is currently in progress.
+                    </CustomText>
+                </View>
+            ) : currentStatus === 'completed' ? (
                 <View style={[styles.lockBanner, styles.lockBannerSuccess]}>
                     <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
                     <CustomText style={[styles.lockBannerText, { color: Colors.SUCCESS }]}>
@@ -627,7 +704,7 @@ const PaymentTab: React.FC<PaymentTabProps> = ({
                 confirmText="Confirm Paid Cash"
                 cancelText="Cancel"
                 isDestructive={false}
-                isLoading={isProcessing}
+                isLoading={isSettlingCash}
                 iconName="check-circle"
                 iconLibrary="Feather"
                 onClose={() => setShowPaidCashModal(false)}
@@ -726,7 +803,7 @@ const styles = StyleSheet.create({
     summaryCardTitle: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#374151',
+        color: Colors.TEXT_PRIMARY,
         marginBottom: 0,
         includeFontPadding: false,
     },
@@ -746,7 +823,7 @@ const styles = StyleSheet.create({
     paidTotalDenominator: {
         fontSize: 13,
         fontWeight: '500',
-        color: '#6B7280',
+        color: Colors.TEXT_SECONDARY,
         includeFontPadding: false,
     },
     progressContainer: {
@@ -767,6 +844,47 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: '100%',
     },
+    balanceRowWithRefund: {
+        justifyContent: 'space-between',
+    },
+    refundDueInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    refundDueLabel: {
+        fontSize: 12.5,
+        fontWeight: '500',
+        color: Colors.WARNING,
+        includeFontPadding: false,
+    },
+    refundDueAmount: {
+        fontSize: 13.5,
+        fontWeight: '700',
+        color: Colors.WARNING,
+        includeFontPadding: false,
+    },
+    refundSettledLabel: {
+        color: Colors.SUCCESS,
+    },
+    refundSettledAmount: {
+        color: Colors.SUCCESS,
+    },
+    overpaymentBreakdownCard: {
+        backgroundColor: Colors.STATUS_WARNING_BG,
+        borderRadius: 8,
+        padding: 10,
+        gap: 6,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_WARNING_BORDER,
+    },
+    detailValueBold: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+        includeFontPadding: false,
+    },
     balanceInfo: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -775,7 +893,7 @@ const styles = StyleSheet.create({
     balanceLabel: {
         fontSize: 12.5,
         fontWeight: '500',
-        color: '#4B5563',
+        color: Colors.TEXT_SECONDARY,
         includeFontPadding: false,
     },
     balanceAmount: {
@@ -816,7 +934,7 @@ const styles = StyleSheet.create({
     receiptsCardTitle: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#374151',
+        color: Colors.TEXT_PRIMARY,
         letterSpacing: 0.5,
         marginBottom: 0,
         includeFontPadding: false,
@@ -924,6 +1042,9 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
     },
     accordionHeaderRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
         paddingLeft: 8,
     },
 
@@ -971,42 +1092,19 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.PRIMARY_LIGHT,
         borderRadius: 4,
     },
-    gatewayBadge: {
+    channelTextGroup: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 5,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 6,
     },
-    badgePesoSign: {
-        fontSize: 11,
+    channelPesoSign: {
+        fontSize: 13,
         fontWeight: 'bold',
         includeFontPadding: false,
-        lineHeight: 14,
     },
-    gatewayText: {
-        fontSize: 11,
+    channelText: {
+        fontSize: 12.5,
         fontWeight: '600',
-    },
-    classificationPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 6,
-    },
-    classificationFull: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-    },
-    classificationDownpayment: {
-        backgroundColor: Colors.STATUS_DOWNPAYMENT_BG,
-    },
-    classificationText: {
-        fontSize: 10,
-        fontWeight: '700',
-        letterSpacing: 0.3,
     },
     noteBox: {
         backgroundColor: Colors.GRAY_ULTRALIGHT,
@@ -1096,6 +1194,9 @@ const styles = StyleSheet.create({
     lockBannerSuccess: {
         backgroundColor: Colors.STATUS_APPROVED_BG,
     },
+    lockBannerWarning: {
+        backgroundColor: Colors.STATUS_WARNING_BG,
+    },
     lockBannerError: {
         backgroundColor: Colors.STATUS_CANCELLED_BG,
     },
@@ -1110,10 +1211,20 @@ const styles = StyleSheet.create({
         marginTop: 10,
         paddingTop: 10,
         borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
+        borderTopColor: Colors.GRAY_ULTRALIGHT,
     },
-    receiptActionBtn: {
+    receiptEditBtn: {
         flex: 1,
+        minHeight: 48,
+        borderRadius: 12,
+        justifyContent: 'center',
+    },
+    receiptRevertBtn: {
+        flex: 1,
+        minHeight: 48,
+        borderRadius: 12,
+        borderColor: Colors.GRAY_LIGHT,
+        justifyContent: 'center',
     },
 });
 

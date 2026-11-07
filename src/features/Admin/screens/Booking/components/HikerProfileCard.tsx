@@ -60,6 +60,10 @@ export interface HikerProfileCardProps {
     isMinor: boolean;
     isEditable?: boolean;
     onLockedVerifyPress?: (status: 'verified' | 'expired' | 'unverified') => void;
+    hikerCardRef?: React.RefObject<View | null>;
+    contactsCardRef?: React.RefObject<View | null>;
+    onHikerCardLayout?: () => void;
+    onContactsCardLayout?: (y: number) => void;
 }
 
 /**
@@ -83,6 +87,10 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
     isMinor,
     isEditable = true,
     onLockedVerifyPress,
+    hikerCardRef,
+    contactsCardRef,
+    onHikerCardLayout,
+    onContactsCardLayout,
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -262,7 +270,7 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
     return (
         <View style={styles.container}>
             {/* CARD 1: HIKER PROFILE (Merged block containing initials row & full details when expanded) */}
-            <View style={styles.card}>
+            <View ref={hikerCardRef} collapsable={false} onLayout={onHikerCardLayout} style={styles.card}>
                 <View style={styles.cardHeader}>
                     <CustomIcon library="Feather" name="user" size={18} color={Colors.PRIMARY} />
                     <CustomText variant="h3" style={styles.cardTitle}>Hiker Profile</CustomText>
@@ -430,7 +438,7 @@ const HikerProfileCard: React.FC<HikerProfileCardProps> = ({
             </View>
 
             {/* CARD 2: VERIFICATION CONTACTS (Separate Block) */}
-            <View style={styles.card}>
+            <View ref={contactsCardRef} collapsable={false} onLayout={(e) => onContactsCardLayout?.(e.nativeEvent.layout.y)} style={styles.card}>
                 <View style={styles.cardHeader}>
                     <CustomIcon library="Feather" name="phone" size={18} color={Colors.PRIMARY} />
                     <CustomText variant="h3" style={styles.cardTitle}>Verification Contacts</CustomText>

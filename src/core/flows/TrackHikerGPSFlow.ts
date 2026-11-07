@@ -11,9 +11,10 @@ import {
 } from "react-native";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { newLocation } from "@/src/core/models/Location/Location";
-import { sharedGpsKalmanFilter, smoothCompassHeading } from "@/src/core/utility/gpsKalmanFilter";
+import { sharedGpsKalmanFilter, smoothCompassHeading } from "@/src/core/utility/gps";
 import { exportHikeData } from "@/src/core/utility/hikeStorage";
-import { LOCATION_TASK } from "@/src/core/utility/locationTask";
+
+export const LOCATION_TASK = "background-location-task";
 
 let globalActiveInstances = 0;
 let globalAppStateSub: NativeEventSubscription | null = null;
@@ -46,14 +47,14 @@ const ensureNetInfoMonitoring = (): void => {
 
     NetInfo.fetch()
         .then((state) => {
-            const reach = state.isInternetReachable === null ? (state.isConnected ?? true) : !!state.isInternetReachable;
+            const reach = Boolean(state.isConnected);
             globalLastReach = reach;
             onlineListeners.forEach((fn) => fn(reach));
         })
         .catch(() => {});
 
     globalNetInfoSub = NetInfo.addEventListener((state) => {
-        const reach = state.isInternetReachable === null ? (state.isConnected ?? true) : !!state.isInternetReachable;
+        const reach = Boolean(state.isConnected);
         const wasOffline = !globalLastReach;
         globalLastReach = reach;
         onlineListeners.forEach((fn) => fn(reach));
@@ -277,7 +278,9 @@ export const TrackHikerGPSFlow = () => {
                     longitude: lon,
                     altitude: alt ?? undefined,
                     accuracy: filtered.accuracy,
+                    rawAccuracy: filtered.rawAccuracy,
                     speed: filtered.speed,
+                    isStationary: filtered.isStationary,
                     timestamp: new Date(timestamp),
                     status: 'GPS_SIGNAL_RESTORED',
                 }));
@@ -302,7 +305,9 @@ export const TrackHikerGPSFlow = () => {
                         longitude: lon,
                         altitude: alt ?? undefined,
                         accuracy: filtered.accuracy,
+                        rawAccuracy: filtered.rawAccuracy,
                         speed: filtered.speed,
+                        isStationary: filtered.isStationary,
                         timestamp: new Date(),
                         status: 'GPS_SIGNAL_LOST',
                     }));
@@ -318,13 +323,23 @@ export const TrackHikerGPSFlow = () => {
             longitude: lon,
             altitude: alt ?? undefined,
             accuracy: filtered.accuracy,
+            rawAccuracy: filtered.rawAccuracy,
             speed: filtered.speed,
+            isStationary: filtered.isStationary,
             timestamp: new Date(timestamp),
             status: 'ACTIVE',
         });
 
-        // Continuous Pre-Hike GPS Availability: update currentLocation when coordinates change or on initial fix
-        if (hasCoordChanged || !useHikeStore.getState().currentLocation) {
+        const prevLocation = useHikeStore.getState().currentLocation;
+        const prevAlt = prevLocation?.altitude;
+        const hasValidPrevAlt = typeof prevAlt === "number" && !isNaN(prevAlt) && prevAlt !== 0;
+        const hasValidNewAlt = typeof alt === "number" && !isNaN(alt) && alt !== 0;
+        const hasAltChanged =
+            hasValidNewAlt &&
+            (!hasValidPrevAlt || Math.abs(alt - prevAlt) >= 0.5);
+
+        // Continuous Pre-Hike GPS Availability: update currentLocation when horizontal coordinates or 3D altitude change
+        if (hasCoordChanged || hasAltChanged || !prevLocation) {
             useHikeStore.getState().setCurrentLocation(latestCoord);
         }
 
@@ -360,6 +375,9 @@ export const TrackHikerGPSFlow = () => {
         const runInit = async () => {
             try {
                 let isGpsEnabled = await Location.hasServicesEnabledAsync();
+                if (globalActiveInstances <= 0) {
+                    return;
+                }
                 if (!isGpsEnabled) {
                     if (Platform.OS === "android") {
                         try {
@@ -369,6 +387,9 @@ export const TrackHikerGPSFlow = () => {
                             console.warn("Failed to enable network provider:", e);
                         }
                     }
+                }
+                if (globalActiveInstances <= 0) {
+                    return;
                 }
 
                 if (!isGpsEnabled) {
@@ -394,6 +415,9 @@ export const TrackHikerGPSFlow = () => {
                 }
 
                 const { status } = await Location.requestForegroundPermissionsAsync();
+                if (globalActiveInstances <= 0) {
+                    return;
+                }
                 if (status !== "granted") {
                     Alert.alert("Location Required", "Please enable GPS in settings.", [
                         { text: "Cancel", style: "cancel" },

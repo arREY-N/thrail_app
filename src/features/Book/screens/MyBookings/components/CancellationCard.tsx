@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
@@ -9,21 +10,28 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 
 import ConfirmationModal from '@/src/components/ConfirmationModal';
+import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomTextInput from '@/src/components/CustomTextInput';
-import { useToast } from '@/src/components/Toast/Toast';
 import ExpandableText from '@/src/components/ExpandableText';
 import ImagePreviewModal from '@/src/components/ImagePreviewModal';
+import { useToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { PAYMENT_CONFIG } from '@/src/core/config/paymentConfig';
 import { Booking } from '@/src/core/models/Booking/Booking';
 import { Cancellation, useCancellationUser } from '@/src/core/models/Cancellation/Cancellation';
+import { IconLibrary } from '@/src/types/ui.types';
 import { formatDateToStandard } from '@/src/utils/dateFormatter';
+
+const DISPUTE_SUGGESTIONS = [
+    'No incoming transfer received',
+    'Transfer amount does not match',
+    'Sent to wrong e-wallet account',
+    'Transaction reference not found',
+];
 
 export interface CancellationCardProps {
     /** The active booking */
@@ -238,7 +246,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                 ) : isHandshakeCompleted ? (
                     <View style={styles.payoutCompletedBox}>
                         <View style={styles.payoutCompletedHeader}>
-                            <CustomIcon library="Feather" name="check-circle" size={16} color={Colors.SUCCESS} />
+                            <CustomIcon library="FontAwesome6" name="peso-sign" size={14} color={Colors.SUCCESS} />
                             <CustomText style={styles.payoutCompletedTitle}>
                                 Refund Completed & Received
                             </CustomText>
@@ -460,6 +468,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                     keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
                 >
                     <ScrollView
+                        style={styles.modalScrollView}
                         contentContainerStyle={styles.modalScrollContent}
                         keyboardShouldPersistTaps="handled"
                         showsVerticalScrollIndicator={false}
@@ -483,14 +492,14 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                                 If you checked your e-wallet and haven&apos;t received the funds, or if there is an issue with the organizer&apos;s receipt proof, describe it below. The organizer will be notified immediately to re-verify the payout.
                             </CustomText>
 
-                            <CustomTextInput
-                                multiline
-                                numberOfLines={3}
+                            <CustomFeedbackInput
                                 placeholder="e.g. Checked GCash transaction history at 2:30 PM, no incoming transfer of ₱500 found..."
                                 value={disputeReasonInput}
                                 onChangeText={setDisputeReasonInput}
+                                suggestions={DISPUTE_SUGGESTIONS}
+                                variant="danger"
+                                fadeColor="white"
                                 style={{ marginBottom: 4 }}
-                                containerStyle={{ minHeight: 96 }}
                             />
 
                             <View style={styles.disputeModalChatNotice}>
@@ -777,25 +786,27 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
         const headerIcon = isNoRefund
             ? 'check-circle'
             : (isPaid
-                ? (isRefundComplete ? 'check-circle' : (isDisputed ? 'alert-triangle' : 'clock'))
+                ? (isRefundComplete ? 'peso-sign' : (isDisputed ? 'alert-triangle' : 'clock'))
                 : 'check-circle');
+
+        const headerIconLibrary: IconLibrary = !isNoRefund && isPaid && isRefundComplete ? 'FontAwesome6' : 'Feather';
 
         const headerIconColor = isNoRefund
             ? Colors.PRIMARY
             : (isPaid
-                ? (isRefundComplete ? Colors.PRIMARY : (isDisputed ? Colors.ERROR : '#D97706'))
+                ? (isRefundComplete ? Colors.ERROR : (isDisputed ? Colors.ERROR : '#D97706'))
                 : Colors.PRIMARY);
 
         const iconBgStyle = isNoRefund
             ? styles.iconCircleSuccess
             : (isPaid
-                ? (isRefundComplete ? styles.iconCircleSuccess : (isDisputed ? styles.iconCircleError : styles.iconCircleWarning))
+                ? (isRefundComplete ? styles.iconCircleError : (isDisputed ? styles.iconCircleError : styles.iconCircleWarning))
                 : styles.iconCircleSuccess);
 
         const headerTitleStyle = isNoRefund
             ? styles.titleSuccess
             : (isPaid
-                ? (isRefundComplete ? styles.titleSuccess : (isDisputed ? styles.titleError : styles.titleWarning))
+                ? (isRefundComplete ? styles.titleError : (isDisputed ? styles.titleError : styles.titleWarning))
                 : styles.titleSuccess);
 
         return (
@@ -809,7 +820,7 @@ const CancellationCard: React.FC<CancellationCardProps> = ({
                     <View style={styles.headerLeftGroup}>
                         <View style={iconBgStyle}>
                             <CustomIcon
-                                library="Feather"
+                                library={headerIconLibrary}
                                 name={headerIcon}
                                 size={18}
                                 color={headerIconColor}
@@ -1599,18 +1610,24 @@ const styles = StyleSheet.create({
     },
     modalBackdrop: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: Colors.MODAL_OVERLAY,
         justifyContent: 'center',
+    },
+    modalScrollView: {
+        flex: 1,
+        width: '100%',
     },
     modalScrollContent: {
         flexGrow: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 24,
+        width: '100%',
     },
     disputeModalCard: {
         backgroundColor: Colors.WHITE,
-        borderRadius: 16,
+        borderRadius: 20,
         padding: 20,
         width: '100%',
         maxWidth: 420,
@@ -1645,14 +1662,11 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         lineHeight: 17,
     },
-    disputeTextInput: {
-        minHeight: 96,
-    },
     disputeModalChatNotice: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        backgroundColor: Colors.PRIMARY_LIGHT,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
         padding: 10,
         borderRadius: 8,
     },

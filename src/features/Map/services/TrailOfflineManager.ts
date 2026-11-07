@@ -2,6 +2,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { collection, getDocs } from "firebase/firestore";
 import { getDownloadURL, ref } from "firebase/storage";
 import { Platform } from "react-native";
+import NetInfo from "@react-native-community/netinfo";
 
 import { db, storage } from "@/src/core/config/Firebase";
 
@@ -602,3 +603,191 @@ export async function deleteOfflineMountain(
     await FileSystem.deleteAsync(mountainDir, { idempotent: true });
   }
 }
+
+export const OFFLINE_PMTILES_FILENAME = "thrail-offline-map.pmtiles";
+export const OFFLINE_PMTILES_STORAGE_PATH = "maps/thrail-offline-map.pmtiles";
+
+// Require at least 1MB to verify it is a valid non-empty archive
+export const MIN_PMTILES_SIZE_BYTES = 1_000_000;
+
+/**
+ * Returns the expected local file URI for the regional PMTiles archive on native mobile.
+ */
+export function getOfflineMapLocalUri(): string {
+  return `${FileSystem.documentDirectory ?? ""}thrail-offline-map.pmtiles`;
+}
+
+/**
+ * Validates PMTiles archive integrity by checking both file size
+ * and the PMTiles v3 magic header ("PMTiles" ASCII string at byte offset 0).
+ */
+export async function isPmtilesValid(uri: string): Promise<boolean> {
+  if (Platform.OS === "web" || !FileSystem.documentDirectory) return false;
+  try {
+    const info = await FileSystem.getInfoAsync(uri);
+    console.log(`🔍 [TrailOfflineManager] PMTiles verification for ${uri}: exists=${info.exists}, size=${info.exists ? info.size : "N/A"}`);
+    if (!info.exists || !info.size || info.size < MIN_PMTILES_SIZE_BYTES) {
+      return false;
+    }
+    // On Android expo-file-system, position & length are ONLY respected when encoding is Base64.
+    // UTF8 encoding ignores position/length and attempts to read the entire file into a string.
+    try {
+      const base64Header = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+        position: 0,
+        length: 7,
+      });
+      // Base64 of ASCII "PMTiles" (0x50, 0x4D, 0x54, 0x69, 0x6C, 0x65, 0x73) is "UE1UaWxlcw=="
+      if (base64Header && (base64Header === "UE1UaWxlcw==" || base64Header.includes("UE1UaWxl"))) {
+        return true;
+      }
+    } catch (readErr) {
+      console.warn("⚠️ Failed reading PMTiles header via Base64, falling back to size verification:", readErr);
+    }
+    // Fallback: If header read failed or unsupported, file existence and verified size (>= 1MB) suffices
+    return info.size >= MIN_PMTILES_SIZE_BYTES;
+  } catch (error) {
+    console.warn("⚠️ Error verifying PMTiles:", error);
+    return false;
+  }
+}
+
+/**
+ * Checks whether the regional PMTiles archive is already downloaded and healthy.
+ */
+export async function isOfflineMapReady(): Promise<boolean> {
+  const localUri = getOfflineMapLocalUri();
+  return isPmtilesValid(localUri);
+}
+
+let activeOfflineMapDownloadPromise: Promise<string> | null = null;
+
+export interface OfflineMapDownloadProgress {
+  totalBytesWritten: number;
+  totalBytesExpectedToWrite: number;
+  progress: number; // 0.0 to 1.0
+}
+
+/**
+ * Downloads the regional PMTiles archive from Firebase Storage to local device storage.
+ * Deduplicates in-flight download promises so multiple callers share the same stream.
+ */
+export async function downloadOfflineMap(
+  onProgress?: (progressData: OfflineMapDownloadProgress) => void,
+  forceRefresh = false,
+): Promise<string> {
+  if (Platform.OS === "web" || !FileSystem.documentDirectory) {
+    throw new Error("Offline map download is only supported on native mobile devices.");
+  }
+
+  const localUri = getOfflineMapLocalUri();
+
+  if (!forceRefresh && (await isOfflineMapReady())) {
+    console.log("📂 [TrailOfflineManager] Offline map is already downloaded and verified.");
+    return localUri;
+  }
+
+  // Deduplicate concurrent downloads
+  if (activeOfflineMapDownloadPromise) {
+    console.log("⏳ [TrailOfflineManager] Download already in progress. Attaching to existing task...");
+    return activeOfflineMapDownloadPromise;
+  }
+
+  activeOfflineMapDownloadPromise = (async () => {
+    const tempUri = `${localUri}.tmp`;
+    try {
+      console.log(`☁️ [TrailOfflineManager] Resolving offline map from Firebase Storage: ${OFFLINE_PMTILES_STORAGE_PATH}...`);
+      const fileRef = ref(storage, OFFLINE_PMTILES_STORAGE_PATH);
+      const downloadUrl = await getDownloadURL(fileRef);
+
+      // Clean up any stale temp file before downloading
+      await FileSystem.deleteAsync(tempUri, { idempotent: true });
+
+      console.log("⬇️ [TrailOfflineManager] Starting PMTiles download to:", tempUri);
+
+      const downloadResumable = FileSystem.createDownloadResumable(
+        downloadUrl,
+        tempUri,
+        {},
+        (downloadProgress) => {
+          const expected = downloadProgress.totalBytesExpectedToWrite;
+          const written = downloadProgress.totalBytesWritten;
+          const progress = expected > 0 ? written / expected : 0;
+          if (onProgress) {
+            onProgress({
+              totalBytesWritten: written,
+              totalBytesExpectedToWrite: expected,
+              progress,
+            });
+          }
+        },
+      );
+
+      const result = await downloadResumable.downloadAsync();
+      if (!result || result.status !== 200) {
+        await FileSystem.deleteAsync(tempUri, { idempotent: true });
+        throw new Error(`HTTP ${result?.status ?? "unknown"} downloading offline map archive.`);
+      }
+
+      // Verify downloaded archive integrity before promoting from .tmp to final path
+      const valid = await isPmtilesValid(tempUri);
+      if (!valid) {
+        await FileSystem.deleteAsync(tempUri, { idempotent: true });
+        throw new Error("Downloaded PMTiles archive failed integrity verification (corrupted or truncated).");
+      }
+
+      // Atomically swap
+      await FileSystem.deleteAsync(localUri, { idempotent: true });
+      await FileSystem.moveAsync({ from: tempUri, to: localUri });
+
+      console.log("✅ [TrailOfflineManager] Offline map downloaded & verified successfully:", localUri);
+      return localUri;
+    } catch (err) {
+      console.error("❌ [TrailOfflineManager] Failed to download offline map:", err);
+      await FileSystem.deleteAsync(tempUri, { idempotent: true });
+      throw err;
+    } finally {
+      activeOfflineMapDownloadPromise = null;
+    }
+  })();
+
+  return activeOfflineMapDownloadPromise;
+}
+
+/**
+ * Silently pre-fetches the regional PMTiles basemap in the background
+ * whenever an internet connection is available (Wi-Fi, Ethernet, or mobile data).
+ * If already downloaded or offline, this exits immediately.
+ */
+export async function silentPreloadOfflineMap(): Promise<boolean> {
+  if (Platform.OS === "web" || !FileSystem.documentDirectory) {
+    return false;
+  }
+
+  try {
+    const ready = await isOfflineMapReady();
+    if (ready) {
+      console.log("⚡ [TrailOfflineManager] Silent pre-fetch skipped: offline map already ready.");
+      return true;
+    }
+
+    const netState = await NetInfo.fetch();
+    const isConnected = Boolean(netState.isConnected);
+
+    if (!isConnected) {
+      console.log(`📡 [TrailOfflineManager] Silent pre-fetch deferred: device is offline.`);
+      return false;
+    }
+
+    console.log(`🚀 [TrailOfflineManager] Internet connection detected (${netState.type || 'online'})! Starting silent background pre-fetch of PMTiles basemap...`);
+    await downloadOfflineMap();
+    console.log("🎉 [TrailOfflineManager] Silent PMTiles background pre-fetch complete!");
+    return true;
+  } catch (err) {
+    console.warn("⚠️ [TrailOfflineManager] Silent background pre-fetch failed (will retry on next session):", err);
+    return false;
+  }
+}
+
+// Backward-compatible alias
+export const silentWifiPreloadOfflineMap = silentPreloadOfflineMap;

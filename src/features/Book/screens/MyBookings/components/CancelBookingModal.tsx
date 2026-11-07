@@ -17,9 +17,9 @@ import CustomButton from '@/src/components/CustomButton';
 import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import CustomTextInput from '@/src/components/CustomTextInput';
-import { CustomToast } from '@/src/components/Toast/Toast';
+import CustomTextInput, { cleanPhoneNumber } from '@/src/components/CustomTextInput';
 import ExpandableText from '@/src/components/ExpandableText';
+import { CustomToast } from '@/src/components/Toast/Toast';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { IUserWalletDetails } from '@/src/core/models/Cancellation/Cancellation';
@@ -35,7 +35,7 @@ export interface CancelBookingModalProps {
     /** Callback when user confirms reason and optional refund wallet details */
     onConfirm: (reason: string, userWallet?: IUserWalletDetails<Date>) => Promise<void> | void;
     /** Type of action being performed */
-    actionType: 'cancel' | 'refund' | 'update' | null | string;
+    actionType: 'cancel' | 'refund' | 'update' | 'overpayment' | null | string;
     /** Pre-filled reason if editing or appealing */
     initialReason?: string;
     /** Previous reason submitted by user (shown as read-only card in update/appeal mode) */
@@ -46,6 +46,8 @@ export interface CancelBookingModalProps {
     errorMessage?: string | null;
     /** Whether the booking has captured payments (requires wallet details for refund) */
     isPaidBooking?: boolean;
+    /** Optional excess overpayment amount for overpayment refund mode */
+    excessAmount?: number;
 }
 
 /**
@@ -63,6 +65,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     isSubmitting = false,
     errorMessage = null,
     isPaidBooking = false,
+    excessAmount,
 }) => {
     const insets = useSafeAreaInsets();
     const { isDesktop, isTablet } = useBreakpoints();
@@ -189,6 +192,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     }, [visible, handleClose]);
 
     const isRefund = actionType === 'refund';
+    const isOverpayment = actionType === 'overpayment';
 
     let title = 'Cancel Booking';
     let warningText = 'Once submitted, your cancellation request will be reviewed by the organizer. Refunds (if applicable) take 3–5 business days to process after approval.';
@@ -202,7 +206,11 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
         'Change of plans',
     ];
 
-    if (isRefund) {
+    if (isOverpayment) {
+        title = 'Excess Payment Refund Details';
+        warningText = '';
+        confirmLabel = 'Submit Refund Wallet';
+    } else if (isRefund) {
         title = 'Request Refund';
         warningText = 'Refund requests are subject to organizer approval based on cancellation policy deadlines. Approved refunds are credited back via your original payment method.';
         confirmLabel = 'Submit Request';
@@ -225,9 +233,9 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
         ];
     }
 
-    const isReasonValid = reason.trim().length >= 5;
-    const shouldPromptWallet = (isPaidBooking || actionType === 'refund') && !isUpdate;
-    const cleanedNumber = accountNumber.replace(/\D/g, '');
+    const isReasonValid = isOverpayment || reason.trim().length >= 5;
+    const shouldPromptWallet = isOverpayment || ((isPaidBooking || actionType === 'refund') && !isUpdate);
+    const cleanedNumber = cleanPhoneNumber(accountNumber);
     const isWalletValid = !shouldPromptWallet || (
         cleanedNumber.length === 11 &&
         cleanedNumber.startsWith('09') &&
@@ -238,7 +246,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
     const handleConfirm = async () => {
         if (isSubmittingRef.current || isSubmitting) return;
 
-        if (!isReasonValid) {
+        if (!isReasonValid && !isOverpayment) {
             setHasAttemptedSubmit(true);
             showModalToast('Please provide a reason with at least 5 characters.', 'error');
             return;
@@ -367,53 +375,69 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                         contentContainerStyle={[styles.scrollBody, { paddingBottom: keyboardHeight > 0 ? 90 : 16 }]}
                         keyboardShouldPersistTaps="handled"
                     >
-                        <View style={styles.warningBox}>
-                            <CustomIcon
-                                library="Feather"
-                                name="alert-triangle"
-                                size={18}
-                                color={Colors.ERROR}
-                            />
-                            <CustomText variant="caption" style={styles.warningText}>
-                                {warningText}
-                            </CustomText>
-                        </View>
-
-                        {isUpdate && Boolean(previousReason) ? (
-                            <View style={styles.previousReasonBox}>
-                                <CustomText variant="caption" style={styles.previousReasonLabel}>
-                                    PREVIOUS SUBMITTED REASON
-                                </CustomText>
-                                <ExpandableText
-                                    text={previousReason || ''}
-                                    quote={true}
-                                    textStyle={styles.previousReasonText}
-                                    characterLimit={150}
-                                    arrowColor={Colors.TEXT_PRIMARY}
+                        {isOverpayment ? (
+                            <View style={styles.overpaymentNoticeBox}>
+                                <CustomIcon
+                                    library="Feather"
+                                    name="check-circle"
+                                    size={18}
+                                    color={Colors.PRIMARY}
                                 />
+                                <CustomText variant="caption" style={styles.overpaymentNoticeText}>
+                                    Your reservation is 100% confirmed! Please enter your GCash or Maya details where the organizer will send the ₱{excessAmount ? excessAmount.toFixed(2) : '0.00'} excess refund.
+                                </CustomText>
                             </View>
-                        ) : null}
+                        ) : (
+                            <>
+                                <View style={styles.warningBox}>
+                                    <CustomIcon
+                                        library="Feather"
+                                        name="alert-triangle"
+                                        size={18}
+                                        color={Colors.ERROR}
+                                    />
+                                    <CustomText variant="caption" style={styles.warningText}>
+                                        {warningText}
+                                    </CustomText>
+                                </View>
 
-                        <CustomFeedbackInput
-                            label={isUpdate ? 'Updated Reason / Context' : `Reason for ${isRefund ? 'Refund' : 'Cancellation'}`}
-                            placeholder={isUpdate ? 'Explain additional context or documents for your appeal...' : `Please tell us why you are ${isRefund ? 'requesting a refund' : 'canceling'}...`}
-                            helperText="Tap a suggestion above or type your own detailed reason."
-                            value={reason}
-                            onChangeText={setReason}
-                            suggestions={suggestions}
-                            variant="danger"
-                        />
+                                {isUpdate && Boolean(previousReason) ? (
+                                    <View style={styles.previousReasonBox}>
+                                        <CustomText variant="caption" style={styles.previousReasonLabel}>
+                                            PREVIOUS SUBMITTED REASON
+                                        </CustomText>
+                                        <ExpandableText
+                                            text={previousReason || ''}
+                                            quote={true}
+                                            textStyle={styles.previousReasonText}
+                                            characterLimit={150}
+                                            arrowColor={Colors.TEXT_PRIMARY}
+                                        />
+                                    </View>
+                                ) : null}
 
-                        <View style={styles.counterRow}>
-                            <CustomText variant="caption" style={styles.counterText}>
-                                {reason.length} / 300 characters
-                            </CustomText>
-                        </View>
+                                <CustomFeedbackInput
+                                    label={isUpdate ? 'Updated Reason / Context' : `Reason for ${isRefund ? 'Refund' : 'Cancellation'}`}
+                                    placeholder={isUpdate ? 'Explain additional context or documents for your appeal...' : `Please tell us why you are ${isRefund ? 'requesting a refund' : 'canceling'}...`}
+                                    helperText="Tap a suggestion above or type your own detailed reason."
+                                    value={reason}
+                                    onChangeText={setReason}
+                                    suggestions={suggestions}
+                                    variant="primary"
+                                />
+
+                                <View style={styles.counterRow}>
+                                    <CustomText variant="caption" style={styles.counterText}>
+                                        {reason.length} / 300 characters
+                                    </CustomText>
+                                </View>
+                            </>
+                        )}
 
                         {shouldPromptWallet && (
                             <View style={styles.walletSection}>
                                 <View style={styles.walletHeader}>
-                                    <CustomIcon library="Feather" name="credit-card" size={16} color={Colors.PRIMARY} />
+
                                     <CustomText style={styles.walletHeaderTitle}>Refund E-Wallet Details</CustomText>
                                 </View>
                                 <CustomText variant="caption" style={styles.walletHeaderSubtitle}>
@@ -424,21 +448,21 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                                     <TouchableOpacity
                                         style={[
                                             styles.walletTypeBtn,
-                                            walletType === 'GCash' && styles.walletTypeBtnActive,
+                                            walletType === 'GCash' && styles.walletTypeBtnGCashActive,
                                         ]}
                                         onPress={() => setWalletType('GCash')}
                                         activeOpacity={0.8}
                                     >
                                         <CustomIcon
-                                            library="Feather"
-                                            name="smartphone"
+                                            library="Ionicons"
+                                            name="wallet-outline"
                                             size={16}
-                                            color={walletType === 'GCash' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
+                                            color={walletType === 'GCash' ? Colors.STATUS_PENDING_TEXT : Colors.TEXT_SECONDARY}
                                         />
                                         <CustomText
                                             style={[
                                                 styles.walletTypeText,
-                                                walletType === 'GCash' && styles.walletTypeTextActive,
+                                                walletType === 'GCash' && styles.walletTypeTextGCashActive,
                                             ]}
                                         >
                                             GCash
@@ -448,21 +472,21 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                                     <TouchableOpacity
                                         style={[
                                             styles.walletTypeBtn,
-                                            walletType === 'Maya' && styles.walletTypeBtnActive,
+                                            walletType === 'Maya' && styles.walletTypeBtnMayaActive,
                                         ]}
                                         onPress={() => setWalletType('Maya')}
                                         activeOpacity={0.8}
                                     >
                                         <CustomIcon
-                                            library="Feather"
-                                            name="activity"
+                                            library="Ionicons"
+                                            name="wallet-outline"
                                             size={16}
                                             color={walletType === 'Maya' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
                                         />
                                         <CustomText
                                             style={[
                                                 styles.walletTypeText,
-                                                walletType === 'Maya' && styles.walletTypeTextActive,
+                                                walletType === 'Maya' && styles.walletTypeTextMayaActive,
                                             ]}
                                         >
                                             Maya
@@ -471,20 +495,20 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                                 </View>
 
                                 <CustomTextInput
-                                    label="Mobile Number (11-Digits) *"
-                                    placeholder="0917 123 4567"
-                                    keyboardType="phone-pad"
-                                    maxLength={11}
+                                    label="Mobile Number *"
+                                    placeholder="9XX XXX XXXX"
+                                    prefix="+63"
+                                    type="phone"
+                                    maxLength={12}
                                     value={accountNumber}
-                                    onChangeText={(t: string) => setAccountNumber(t.replace(/\D/g, '').slice(0, 11))}
+                                    onChangeText={setAccountNumber}
+                                    keyboardType="number-pad"
+                                    containerStyle={{ marginBottom: 12 }}
                                     onFocus={() => {
                                         setTimeout(() => {
                                             scrollViewRef.current?.scrollToEnd({ animated: true });
                                         }, Platform.OS === 'android' ? 200 : 100);
                                     }}
-                                    icon="phone"
-                                    iconLibrary="Feather"
-                                    containerStyle={{ marginBottom: 12 }}
                                 />
 
                                 <CustomTextInput
@@ -505,19 +529,19 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                         )}
                     </ScrollView>
 
-                    <View style={styles.footer}>
+                    <View style={[styles.footer, !isWideScreen && styles.footerMobile]}>
                         <CustomButton
-                            title={isUpdate ? 'Cancel' : 'Keep Booking'}
+                            title={isUpdate || isOverpayment ? 'Cancel' : 'Keep Booking'}
                             onPress={handleClose}
                             variant="outline"
                             disabled={isSubmitting}
-                            style={styles.cancelBtn}
+                            style={[styles.cancelBtn, !isWideScreen && styles.fullWidthBtn]}
                         />
 
                         <CustomButton
                             title={confirmLabel}
                             onPress={handleConfirm}
-                            variant={isUpdate ? 'primary' : 'destructive'}
+                            variant={isUpdate || isOverpayment ? 'primary' : 'destructive'}
                             isLoading={isSubmitting}
                             disabled={isSubmitting}
                             validationState={
@@ -526,7 +550,7 @@ const CancelBookingModal: React.FC<CancelBookingModalProps> = ({
                                     : (hasAttemptedSubmit ? 'error' : 'idle')
                             }
                             isIdleDisabled={false}
-                            style={styles.confirmBtn}
+                            style={[styles.confirmBtn, !isWideScreen && styles.fullWidthBtn]}
                         />
                     </View>
 
@@ -602,7 +626,8 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 18,
-        color: Colors.ERROR,
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: 'bold',
         marginBottom: 0,
         textAlign: 'center',
         flex: 1,
@@ -636,6 +661,23 @@ const styles = StyleSheet.create({
     warningText: {
         flex: 1,
         color: Colors.ERROR,
+        lineHeight: 18,
+        fontSize: 13,
+    },
+    overpaymentNoticeBox: {
+        flexDirection: 'row',
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        padding: 14,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_APPROVED_BORDER,
+        gap: 12,
+        marginBottom: 20,
+        alignItems: 'flex-start',
+    },
+    overpaymentNoticeText: {
+        flex: 1,
+        color: Colors.STATUS_APPROVED_TEXT,
         lineHeight: 18,
         fontSize: 13,
     },
@@ -715,6 +757,22 @@ const styles = StyleSheet.create({
         borderColor: Colors.PRIMARY,
         backgroundColor: Colors.PRIMARY_LIGHT,
     },
+    walletTypeBtnGCashActive: {
+        borderColor: Colors.STATUS_PENDING_TEXT,
+        backgroundColor: Colors.STATUS_PENDING_BG,
+    },
+    walletTypeTextGCashActive: {
+        color: Colors.STATUS_PENDING_TEXT,
+        fontWeight: 'bold',
+    },
+    walletTypeBtnMayaActive: {
+        borderColor: Colors.PRIMARY,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+    },
+    walletTypeTextMayaActive: {
+        color: Colors.PRIMARY,
+        fontWeight: 'bold',
+    },
     walletTypeText: {
         fontSize: 13,
         fontWeight: '600',
@@ -730,6 +788,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingTop: 16,
     },
+    footerMobile: {
+        flexDirection: 'column-reverse',
+        gap: 10,
+        paddingHorizontal: 20,
+    },
     cancelBtn: {
         flex: 1,
         borderRadius: 14,
@@ -737,6 +800,10 @@ const styles = StyleSheet.create({
     confirmBtn: {
         flex: 1.25,
         borderRadius: 14,
+    },
+    fullWidthBtn: {
+        width: '100%',
+        flex: 0,
     },
 });
 
