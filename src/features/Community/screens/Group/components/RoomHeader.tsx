@@ -24,6 +24,8 @@ export interface RoomHeaderProps {
     title: string;
     /** Subtitle text (e.g. date, emergency contact, business name) */
     subtitle?: string;
+    /** Conversation type ('group' | 'chat') */
+    type?: 'group' | 'chat' | string;
     /** Raw date object, string, or Firestore Timestamp to format if subtitle is omitted */
     offerDate?: unknown;
     /** Callback when back chevron is pressed */
@@ -78,6 +80,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
     title,
     subtitle,
     offerDate,
+    type,
     onBackPress,
     onOpenMembers,
     onOpenLiveMonitor,
@@ -87,7 +90,9 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 }) => {
     const displaySubtitle = subtitle || formatOfferDate(offerDate);
     const shouldShowMembersButton = (showMembersButton ?? true) && Boolean(onOpenMembers);
-    const hasMultipleRightActions = (Boolean(onOpenLiveMonitor) || Boolean(rightAction)) && shouldShowMembersButton;
+    const isChat = type === 'chat';
+    const shouldShowLiveMonitor = !isChat && Boolean(onOpenLiveMonitor);
+    const hasMultipleRightActions = (shouldShowLiveMonitor || Boolean(rightAction)) && shouldShowMembersButton;
 
     return (
         <View style={styles.outerContainer}>
@@ -149,7 +154,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
                     {/* === RIGHT: Live Monitor & Group / Members Buttons === */}
                     <View style={styles.rightBox} pointerEvents="box-none">
-                        {onOpenLiveMonitor && (
+                        {shouldShowLiveMonitor && onOpenLiveMonitor && (
                             <TouchableOpacity
                                 onPress={onOpenLiveMonitor}
                                 style={styles.actionIcon}
