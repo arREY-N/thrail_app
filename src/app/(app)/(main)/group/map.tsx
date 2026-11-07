@@ -6,12 +6,12 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-import CustomHeader from "@/src/components/CustomHeader";
 import CustomText from "@/src/components/CustomText";
 import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import getSearchParam from "@/src/core/utility/getSearchParam";
+import { RoomHeader } from "@/src/features/Community/screens/Group/components/RoomHeader";
 import { LocationPinMap } from "@/src/features/Map/components/LocationPinMap";
 
 export default function GroupLocationMapScreen() {
@@ -29,10 +29,10 @@ export default function GroupLocationMapScreen() {
     return (
         <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
             <Stack.Screen options={{ headerShown: false }} />
-            <CustomHeader
+            <RoomHeader
                 title={title}
+                subtitle={hasValidCoordinates ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` : undefined}
                 onBackPress={onBackPress}
-                showDefaultIcons={false}
             />
             <View style={styles.container}>
                 {hasValidCoordinates ? (
