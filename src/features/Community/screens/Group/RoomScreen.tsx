@@ -47,8 +47,7 @@ import { Colors } from '@/src/constants/colors';
 import { BUBBLE_H_PAD, styles } from '@/src/features/Community/screens/Group/Styles/RoomStyles';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-import { IMessage } from '@/src/core/models/Message/Message';
-import { LocationMessage } from '@/src/core/models/Message/interfaces/Message.types';
+import { IMessage, LocationMessage } from '@/src/core/models/Message/Message';
 import { IUser } from '@/src/core/models/User/User';
 import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/ListScreen';
 import { useRoomScreen } from './hooks/useRoomScreen';
@@ -672,10 +671,10 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                 onBackPress={onBackPress}
                 onOpenMembers={handleOpenMembers}
                 onOpenLiveMonitor={
-                    Platform.OS === 'web' && currentGroup?.id
+                    currentGroup?.id
                         ? () => router.push({
                             pathname: '/(app)/(main)/hike/view',
-                            params: { groupId: currentGroup.id }
+                            params: { groupId: currentGroup.id, mode: 'monitor' }
                         })
                         : undefined
                 }
