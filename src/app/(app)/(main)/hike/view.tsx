@@ -20,17 +20,140 @@ import { useBookingsStore } from "@/src/core/models/Booking/Booking";
 import { useHikeStore } from "@/src/core/models/Hike/Hike";
 import { useAuthHook } from "@/src/core/models/User/User";
 import HikeRecordingScreen from "@/src/features/Navigation/screens/HikeRecordingScreen";
+import HikeRecordingScreenWeb from "@/src/features/Navigation/screens/HikeRecordingScreen.web";
 import { useEffect, useState } from "react";
 
 const SCREEN_OPTIONS = { headerShown: false };
 
+function HikeLiveMonitorView({
+    groupId,
+    paramLon,
+    paramLat,
+}: {
+    groupId: string;
+    paramLon?: string | string[];
+    paramLat?: string | string[];
+}) {
+    const { onBackPress } = useAppNavigation();
+    const { profile, isLoading: authLoading } = useAuthHook();
+
+    const { group: fetchedGroup, isLoading: isGroupLoading, error: groupError } = useGroupItem(groupId);
+    const [cachedGroup, setCachedGroup] = useState<Group | null>(null);
+
+    if (fetchedGroup && fetchedGroup !== cachedGroup) {
+        setCachedGroup(fetchedGroup);
+    }
+
+    useEffect(() => {
+        if (groupId && !fetchedGroup && cachedGroup) {
+            useGroupStore.getState().fetchGroupById(groupId);
+        }
+    }, [groupId, fetchedGroup, cachedGroup]);
+
+    const currentGroup = fetchedGroup || cachedGroup;
+    const { location: groupLocations, error: locationError } = useGroupLocation(groupId);
+
+    if (authLoading) {
+        return (
+            <ScreenWrapper style={undefined}>
+                <CustomHeader title="Live Monitor" onBackPress={onBackPress} rightActions={undefined} style={undefined} />
+                <View style={styles.centerContainer}>
+                    <CustomLoading visible={true} message="Authenticating spectator access..." />
+                </View>
+            </ScreenWrapper>
+        );
+    }
+
+    if (!profile) return <Unauthorized />;
+
+    if (isGroupLoading && !currentGroup) {
+        return (
+            <ScreenWrapper style={undefined}>
+                <CustomHeader title="Live Monitor" onBackPress={onBackPress} rightActions={undefined} style={undefined} />
+                <View style={styles.centerContainer}>
+                    <CustomLoading visible={true} message="Connecting to live trail telemetry..." />
+                </View>
+            </ScreenWrapper>
+        );
+    }
+
+    if (groupError && !currentGroup) {
+        return (
+            <ScreenWrapper style={undefined}>
+                <CustomHeader title="Live Monitor" onBackPress={onBackPress} rightActions={undefined} style={undefined} />
+                <View style={styles.mismatchContainer}>
+                    <View style={styles.mismatchIconBox}>
+                        <CustomIcon library="Feather" name="shield-off" size={48} color={Colors.ERROR} />
+                    </View>
+                    <CustomText variant="h2" style={styles.mismatchTitle}>Access Denied or Not Found</CustomText>
+                    <CustomText style={styles.mismatchDesc}>
+                        {groupError || "You do not have permission to spectate this group, or this session does not exist."}
+                    </CustomText>
+                    <CustomButton title="Return to Chat" onPress={onBackPress} style={{ marginTop: 32 }} textStyle={undefined} disabled={undefined} />
+                </View>
+            </ScreenWrapper>
+        );
+    }
+
+    return (
+        <>
+            <Stack.Screen options={SCREEN_OPTIONS} />
+            <HikeRecordingScreenWeb
+                groupId={groupId}
+                currentGroup={currentGroup}
+                hikerLocations={groupLocations || []}
+                error={locationError}
+                onBackPress={onBackPress}
+                lon={paramLon}
+                lat={paramLat}
+                profile={profile}
+            />
+        </>
+    );
+}
+
 export default function HikeView() {
-    const { hikeId: rawId, trailId: rawTrail, groupId: rawGroup, bookingId: rawBooking, lon: paramLon, lat: paramLat } = useLocalSearchParams();
+    const { hikeId: rawId, trailId: rawTrail, groupId: rawGroup, bookingId: rawBooking, mode: rawMode, lon: paramLon, lat: paramLat } = useLocalSearchParams();
 
     const hikeId = getSearchParam(rawId);
     const trailId = getSearchParam(rawTrail);
     const groupId = getSearchParam(rawGroup);
     const bookingId = getSearchParam(rawBooking);
+    const mode = getSearchParam(rawMode);
+
+    const isMonitorMode = mode === 'monitor' || Boolean(groupId && !hikeId && !trailId && !bookingId);
+
+    if (isMonitorMode && groupId) {
+        return <HikeLiveMonitorView groupId={groupId} paramLon={paramLon} paramLat={paramLat} />;
+    }
+
+    return (
+        <HikeRecorderView
+            hikeId={hikeId}
+            trailId={trailId}
+            groupId={groupId}
+            bookingId={bookingId}
+            paramLon={paramLon}
+            paramLat={paramLat}
+        />
+    );
+}
+
+function HikeRecorderView({
+    hikeId,
+    trailId,
+    groupId,
+    bookingId,
+    paramLon,
+    paramLat,
+}: {
+    hikeId?: string;
+    trailId?: string;
+    groupId?: string;
+    bookingId?: string;
+    paramLon?: string | string[];
+    paramLat?: string | string[];
+}) {
 
     const { onBackPress } = useAppNavigation();
     const { profile } = useAuthHook();
@@ -42,13 +165,9 @@ export default function HikeView() {
     const userBookings = useBookingsStore((s) => s.userBookings);
     const activeBooking = resolvedBookingId ? userBookings.find(b => b.id === resolvedBookingId) : null;
 
-    // Gated DIY emergency chat fallback: only for the current user's own active/recording hike session
-    const isUserRecordingSession = !groupId && (
-        storedHike?.user?.id === profile?.id ||
-        (isHikeActive && (storedHike?.status === 'started' || storedHike?.status === 'paused')) ||
-        storedHike?.trail?.id === 'diy'
-    );
-    const diyEmergencyChatId = isUserRecordingSession ? (profile?.emergencyContact?.chatId || undefined) : undefined;
+    // DIY emergency chat fallback: automatically resolve for non-booked hikes without an explicit group
+    const isDiySession = !groupId && !resolvedBookingId && !bookingId;
+    const diyEmergencyChatId = isDiySession ? (profile?.emergencyContact?.chatId || undefined) : undefined;
 
     const resolvedGroupId =
         groupId ||
