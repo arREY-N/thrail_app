@@ -24,6 +24,7 @@ import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
     Image,
+    Keyboard,
     Linking,
     Platform,
     StyleSheet,
@@ -414,6 +415,7 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                         ]}
                         onPress={() => {
                             if (props.currentMessage?.coordinates) {
+                                Keyboard.dismiss();
                                 router.push({
                                     pathname: '/(app)/(main)/group/map',
                                     params: {
