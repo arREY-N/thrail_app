@@ -31,36 +31,10 @@ import { SelectedFile } from '@/src/core/repositories/fileRepository';
 import { formatDateTime } from '@/src/core/utility/date';
 import { AdminEditPaymentModal } from '@/src/features/Admin/screens/Booking/components/AdminEditPaymentModal';
 import { AdminRevertPaymentModal } from '@/src/features/Admin/screens/Booking/components/AdminRevertPaymentModal';
-import { getDisplayReferenceCode } from '@/src/features/Admin/utils/paymentUtils';
+import { getDisplayReferenceCode, sanitizeCurrencyInput } from '@/src/features/Admin/utils/paymentUtils';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-/**
- * Sanitizes currency input:
- * 1. Strips all characters except digits and decimal point.
- * 2. Preserves only the first decimal point.
- * 3. Strips leading zeros before whole numbers (e.g. 005 -> 5, preserving 0.).
- * 4. Caps decimal precision to 2 decimal places and whole digits to max 7 digits (max 9999999.99).
- */
-export const sanitizeCurrencyInput = (text: string, maxWholeDigits = 7): string => {
-    let cleaned = text.replace(/[^0-9.]/g, '');
-    const dotIndex = cleaned.indexOf('.');
-    if (dotIndex !== -1) {
-        cleaned = cleaned.slice(0, dotIndex + 1) + cleaned.slice(dotIndex + 1).replace(/\./g, '');
-    }
-    const parts = cleaned.split('.');
-    let integerPart = parts[0];
-    if (integerPart.length > 1 && integerPart.startsWith('0')) {
-        integerPart = integerPart.replace(/^0+/, '');
-        if (integerPart === '') integerPart = '0';
-    }
-    if (maxWholeDigits > 0) {
-        integerPart = integerPart.slice(0, maxWholeDigits);
-    }
-    if (parts.length > 1) {
-        return `${integerPart}.${parts[1].slice(0, 2)}`;
-    }
-    return dotIndex !== -1 ? `${integerPart}.` : integerPart;
-};
+export { sanitizeCurrencyInput } from '@/src/features/Admin/utils/paymentUtils';
 
 export interface ManualQRVerificationCardProps {
     booking: Booking;

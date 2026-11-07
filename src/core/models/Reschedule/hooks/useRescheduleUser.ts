@@ -1,4 +1,5 @@
-import { Booking, useBookingsStore } from "@/src/core/models/Booking/Booking";
+import type { Booking } from "@/src/core/models/Booking/interfaces/Booking.types";
+import { useBookingsStore } from "@/src/core/models/Booking/stores/bookingStore";
 import { Offer } from "@/src/core/models/Offer/Offer";
 import { useRescheduleStore } from "@/src/core/models/Reschedule/stores/rescheduleStore";
 import { newReschedule } from "@/src/core/models/Reschedule/utils/RescheduleFactory";
@@ -41,9 +42,9 @@ export const useRescheduleUser = () => {
             // Check if user already has an active booking for this new offer
             const existingBookings = useBookingsStore.getState().userBookings || [];
             const hasExistingActiveBooking = existingBookings.some(
-                b => b.id !== bookingToReschedule.id && 
-                     b.offer?.id === newOffer.id && 
-                     !['cancelled', 'refunded', 'expired', 'rescheduled'].includes(b.status)
+                b => b.id !== bookingToReschedule.id &&
+                    b.offer?.id === newOffer.id &&
+                    !['cancelled', 'refunded', 'expired', 'rescheduled'].includes(b.status)
             );
 
             if (hasExistingActiveBooking) {
