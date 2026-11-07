@@ -3,6 +3,11 @@ import { FieldValue, Timestamp } from "firebase/firestore";
 
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'error';
 
+export interface LocationMessage {
+    lat: number,
+    long: number,
+}
+
 export interface IMessageBase<T> {
     id: string;
     content: string;
@@ -11,6 +16,7 @@ export interface IMessageBase<T> {
     timesent: T;
     status: MessageStatus;
     readBy: IUserSummary[];
+    coordinates?: LocationMessage
 }
 
 export type IMessageDB = IMessageBase<Timestamp | FieldValue>;
