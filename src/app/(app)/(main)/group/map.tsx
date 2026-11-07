@@ -4,10 +4,11 @@
  */
 
 import { Stack, useLocalSearchParams } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import React, { useEffect } from "react";
+import { Keyboard, StatusBar, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import CustomText from "@/src/components/CustomText";
-import ScreenWrapper from "@/src/components/ScreenWrapper";
 import { Colors } from "@/src/constants/colors";
 import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import getSearchParam from "@/src/core/utility/getSearchParam";
@@ -15,8 +16,14 @@ import { RoomHeader } from "@/src/features/Community/screens/Group/components/Ro
 import { LocationPinMap } from "@/src/features/Map/components/LocationPinMap";
 
 export default function GroupLocationMapScreen() {
+    const insets = useSafeAreaInsets();
     const params = useLocalSearchParams<{ lat?: string; long?: string; title?: string }>();
     const { onBackPress } = useAppNavigation();
+
+    useEffect(() => {
+        // Ensure keyboard from the originating chat room is dismissed
+        Keyboard.dismiss();
+    }, []);
 
     const rawLat = getSearchParam(params.lat);
     const rawLong = getSearchParam(params.long);
@@ -27,7 +34,8 @@ export default function GroupLocationMapScreen() {
     const hasValidCoordinates = !isNaN(latitude) && !isNaN(longitude) && rawLat !== "" && rawLong !== "";
 
     return (
-        <ScreenWrapper backgroundColor={Colors.BACKGROUND}>
+        <View style={[styles.screen, { paddingTop: insets.top }]}>
+            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
             <Stack.Screen options={{ headerShown: false }} />
             <RoomHeader
                 title={title}
@@ -49,11 +57,15 @@ export default function GroupLocationMapScreen() {
                     </View>
                 )}
             </View>
-        </ScreenWrapper>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    screen: {
+        flex: 1,
+        backgroundColor: Colors.BACKGROUND,
+    },
     container: {
         flex: 1,
     },
@@ -68,4 +80,3 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
 });
-
