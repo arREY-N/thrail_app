@@ -149,6 +149,7 @@ export const MembersScreen: React.FC<MembersScreenProps> = ({
             <RoomHeader
                 title={mainTitle}
                 subtitle={subtitle}
+                type={group?.type}
                 offerDate={activeOffer?.date || (group?.offer as any)?.endDate || (group?.offer as any)?.date}
                 onBackPress={onBackPress}
             />
