@@ -11,10 +11,10 @@ import {
     View,
 } from 'react-native';
 
-import RoomHeader from './components/RoomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
+import { RoomHeader } from './components/RoomHeader';
 
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
@@ -149,6 +149,7 @@ export const MembersScreen: React.FC<MembersScreenProps> = ({
             <RoomHeader
                 title={mainTitle}
                 subtitle={subtitle}
+                type={group?.type}
                 offerDate={activeOffer?.date || (group?.offer as any)?.endDate || (group?.offer as any)?.date}
                 onBackPress={onBackPress}
             />

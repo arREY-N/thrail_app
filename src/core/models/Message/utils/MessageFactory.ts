@@ -25,13 +25,14 @@ const messageFromFirestore = (id: string, data: IMessageDB): Message => {
         timesent: toDate(data.timesent),
         status: data.status ?? 'sending',
         readBy: data.readBy ?? [],
+        coordinates: data.coordinates
     };
 };
 
 const messageToFirestore = (message: Message): IMessageDB => {
     const isNew = message.id === '';
 
-    return {
+    const obj: IMessageDB = {
         id: message.id,
         content: message.content,
         senderId: message.senderId,
@@ -40,6 +41,10 @@ const messageToFirestore = (message: Message): IMessageDB => {
         status: message.status,
         timesent: isNew ? serverTimestamp() : Timestamp.fromDate(toDate(message.timesent)),
     };
+
+    if (message.coordinates && message.coordinates.lat && message.coordinates.long) obj.coordinates = message.coordinates
+
+    return obj;
 };
 
 export const messageConverter: FirestoreDataConverter<Message> = {

@@ -175,6 +175,47 @@ export const styles = StyleSheet.create({
     attachmentSubtitleLeft: { 
         color: Colors.TEXT_SECONDARY 
     },
+    locationButtonBelow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.WHITE,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        marginTop: 4,
+        marginBottom: 2,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
+        gap: 8,
+        ...GlobalStyles.dropShadow(2),
+    },
+    locationButtonBelowEmergency: {
+        backgroundColor: Colors.CHAT_EMERGENCY_BG,
+        borderColor: Colors.CHAT_EMERGENCY_BORDER,
+    },
+    locationIconBoxBelow: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: Colors.PRIMARY,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    locationIconBoxBelowEmergency: {
+        backgroundColor: Colors.ERROR,
+    },
+    locationTextGroupBelow: {
+        flexShrink: 1,
+    },
+    locationTitleBelow: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+    },
+    locationSubtitleBelow: {
+        fontSize: 11,
+        color: Colors.TEXT_SECONDARY,
+    },
     timeContainerRight: { 
         alignSelf: 'flex-end', 
         marginRight: 12, 

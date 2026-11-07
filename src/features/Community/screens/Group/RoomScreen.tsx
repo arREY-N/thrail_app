@@ -48,6 +48,7 @@ import { BUBBLE_H_PAD, styles } from '@/src/features/Community/screens/Group/Sty
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
 import { IMessage } from '@/src/core/models/Message/Message';
+import { LocationMessage } from '@/src/core/models/Message/interfaces/Message.types';
 import { IUser } from '@/src/core/models/User/User';
 import { GroupWithLegacyName } from '@/src/features/Community/screens/Group/ListScreen';
 import { useRoomScreen } from './hooks/useRoomScreen';
@@ -61,6 +62,7 @@ export interface CustomMessage extends IChatMessage {
     fileUrl?: string;
     isEmergency?: boolean;
     isError?: boolean;
+    coordinates?: LocationMessage;
 }
 
 /**
@@ -372,6 +374,19 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
         if (isPending && !isError) rightBubbleStyle.push({ opacity: 0.7 });
         if (isError) rightBubbleStyle.push({ borderWidth: 1, borderColor: Colors.ERROR });
 
+        const hasCoordinates = Boolean(
+            props.currentMessage?.coordinates &&
+            typeof props.currentMessage.coordinates.lat === 'number' &&
+            typeof props.currentMessage.coordinates.long === 'number'
+        );
+
+        const formattedLat = hasCoordinates && props.currentMessage?.coordinates?.lat !== undefined
+            ? props.currentMessage.coordinates.lat.toFixed(6)
+            : '';
+        const formattedLong = hasCoordinates && props.currentMessage?.coordinates?.long !== undefined
+            ? props.currentMessage.coordinates.long.toFixed(6)
+            : '';
+
         return (
             <View style={[styles.bubbleWrapper, isRight ? styles.bubbleWrapperRight : styles.bubbleWrapperLeft]}>
                 {showNameHeader && (
@@ -391,6 +406,50 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                         left: props.currentMessage?.isEmergency ? styles.emergencyText : styles.textLeft,
                     }}
                 />
+
+                {hasCoordinates && (
+                    <TouchableOpacity
+                        style={[
+                            styles.locationButtonBelow,
+                            props.currentMessage?.isEmergency && styles.locationButtonBelowEmergency
+                        ]}
+                        onPress={() => {
+                            if (props.currentMessage?.coordinates) {
+                                router.push({
+                                    pathname: '/(app)/(main)/group/map',
+                                    params: {
+                                        lat: String(props.currentMessage.coordinates.lat),
+                                        long: String(props.currentMessage.coordinates.long),
+                                        title: props.currentMessage.user?.name
+                                            ? `${props.currentMessage.user.name}'s Location`
+                                            : 'Shared Location',
+                                    },
+                                });
+                            }
+                        }}
+                        activeOpacity={0.8}
+                    >
+                        <View style={[
+                            styles.locationIconBoxBelow,
+                            props.currentMessage?.isEmergency && styles.locationIconBoxBelowEmergency
+                        ]}>
+                            <CustomIcon
+                                library="Ionicons"
+                                name="location-sharp"
+                                size={16}
+                                color={Colors.WHITE}
+                            />
+                        </View>
+                        <View style={styles.locationTextGroupBelow}>
+                            <CustomText style={styles.locationTitleBelow}>
+                                View in maps
+                            </CustomText>
+                            <CustomText style={styles.locationSubtitleBelow} numberOfLines={1}>
+                                {`${formattedLat}, ${formattedLong}`}
+                            </CustomText>
+                        </View>
+                    </TouchableOpacity>
+                )}
 
                 {isError && isRight && props.currentMessage ? (
                     <TouchableOpacity onPress={() => retrySend(props.currentMessage!)} style={styles.readReceiptContainer}>
@@ -608,6 +667,7 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
             <RoomHeader
                 title={mainTitle}
                 subtitle={subtitle}
+                type={currentGroup?.type}
                 offerDate={currentGroup?.offer?.endDate || currentGroup?.offer?.date}
                 onBackPress={onBackPress}
                 onOpenMembers={handleOpenMembers}

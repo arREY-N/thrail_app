@@ -130,7 +130,8 @@ export const useRoomScreen = ({
                 image: image,
                 isDocument: isDocument,
                 fileUrl: fileUrl,
-                isEmergency: isEmergency
+                isEmergency: isEmergency,
+                coordinates: m.coordinates,
             } as CustomMessage;
         }).sort((a, b) => new Date(b.createdAt as Date).getTime() - new Date(a.createdAt as Date).getTime());
     }, [messages]);
