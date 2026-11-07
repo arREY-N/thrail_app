@@ -173,14 +173,16 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                 lastname: profile.lastname
             }
         );
-        if (groupId) {
+        const effectiveGroupId = groupId || (!bookingId ? profile?.emergencyContact?.chatId : undefined);
+        if (effectiveGroupId) {
             updateHikeStore({
-                activeGroupId: groupId,
+                activeGroupId: effectiveGroupId,
+                lastShareTime: 0,
             });
             const isSharingAllowed = useHikeStore.getState().shareLocationEnabled !== false;
             if (isSharingAllowed) {
                 try {
-                    await shareLocation(groupId);
+                    await shareLocation(effectiveGroupId);
                 } catch (shareErr) {
                     console.warn("[onStartHike] Background location share initialization warning:", shareErr);
                 }
@@ -233,7 +235,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         });
 
         // Ensure live location sharing is active if group exists and sharing is enabled
-        const targetGroupId = groupId || useHikeStore.getState().activeGroupId;
+        const targetGroupId = groupId || (!bookingId ? profile?.emergencyContact?.chatId : undefined) || useHikeStore.getState().activeGroupId;
         if (targetGroupId && useHikeStore.getState().shareLocationEnabled !== false) {
             updateHikeStore({
                 activeGroupId: targetGroupId,
@@ -366,9 +368,10 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
 
     const onStartSharingLocation = async () => {
         try {
-            if (!groupId) throw new Error("Group ID is required to share location");
+            const targetGroupId = groupId || (!bookingId ? profile?.emergencyContact?.chatId : undefined) || useHikeStore.getState().activeGroupId;
+            if (!targetGroupId) throw new Error("Group ID is required to share location");
 
-            await shareLocation(groupId);
+            await shareLocation(targetGroupId);
         } catch (error) {
             catchError(error as Error)
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while sharing location.");
@@ -377,8 +380,9 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
 
     const onStopSharingLocation = () => {
         try {
-            if (!groupId) throw new Error("Group ID is required to share location");
-            stopSharingLocation(groupId);
+            const targetGroupId = groupId || (!bookingId ? profile?.emergencyContact?.chatId : undefined) || useHikeStore.getState().activeGroupId;
+            if (!targetGroupId) throw new Error("Group ID is required to share location");
+            stopSharingLocation(targetGroupId);
         } catch (error) {
             catchError(error as Error);
             setLocalError(error instanceof Error ? error.message : "An unexpected error occurred while stopping location sharing.");
@@ -486,7 +490,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         setShareLocationEnabled: async (enabled: boolean) => {
             try {
                 await useHikeStore.getState().setShareLocationEnabled(enabled);
-                const targetGroup = groupId || useHikeStore.getState().activeGroupId;
+                const targetGroup = groupId || (!bookingId ? profile?.emergencyContact?.chatId : undefined) || useHikeStore.getState().activeGroupId;
                 if (enabled && targetGroup && !useHikeStore.getState().live) {
                     await shareLocation(targetGroup);
                 }
