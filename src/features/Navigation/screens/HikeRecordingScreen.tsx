@@ -110,7 +110,7 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
         setLocalError(error);
     }
 
-    const isGuidedHike = !!booking;
+    const isGuidedHike = Boolean(booking || hike?.mode === 'booked' || (currentGroup && currentGroup.type !== 'chat'));
     const hasLinkedEmergencyContact = Boolean(!isGuidedHike && profile?.emergencyContact?.userId);
     const emergencyChatRoomId = profile?.emergencyContact?.chatId || (
         profile?.id && profile?.emergencyContact?.userId
@@ -923,7 +923,17 @@ const HikeRecordingScreen: React.FC<HikeRecordingScreenProps> = ({
                             </TouchableOpacity>
                         </View>
                         <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: Math.max(260, screenHeight * 0.55) }}>
-                            {sortedMembers.map((member, index) => {
+                            {sortedMembers.length === 0 ? (
+                                <View style={styles.emptyTeamState}>
+                                    <CustomIcon library="Feather" name="users" size={32} color={Colors.GRAY_MEDIUM} />
+                                    <CustomText variant="label" style={styles.emptyTeamTitle}>
+                                        Waiting for Hikers
+                                    </CustomText>
+                                    <CustomText variant="caption" style={styles.emptyTeamSubtitle}>
+                                        Group members will appear here once the group roster or live GPS telemetry loads.
+                                    </CustomText>
+                                </View>
+                            ) : sortedMembers.map((member, index) => {
                                 const locData = member.locData;
                                 const status = member.status;
                                 const isLive = status === 'live';
@@ -1260,6 +1270,23 @@ const styles = StyleSheet.create({
     },
     textEmerald: {
         color: Palette.Green900,
+    },
+    emptyTeamState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+        paddingHorizontal: 24,
+        gap: 8,
+    },
+    emptyTeamTitle: {
+        color: Colors.TEXT_PRIMARY,
+        fontWeight: 'bold',
+        marginTop: 4,
+    },
+    emptyTeamSubtitle: {
+        color: Colors.TEXT_SECONDARY,
+        textAlign: 'center',
+        lineHeight: 18,
     },
 });
 

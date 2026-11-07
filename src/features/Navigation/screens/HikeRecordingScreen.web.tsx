@@ -65,7 +65,7 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
     profile,
 }) => {
     const insets = useSafeAreaInsets();
-    const { width: windowWidth } = useWindowDimensions();
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
     const [clientInnerWidth, setClientInnerWidth] = useState(() =>
         Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.innerWidth === 'number'
             ? window.innerWidth
@@ -332,7 +332,14 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
 
             {/* Responsive Active Hikers Panel (Light Theme Desktop Sidebar / Mobile Bottom Sheet) */}
             {showRoster && (
-                <View style={[styles.rosterPanel, isMobile && [styles.rosterPanelMobile, { bottom: mobileBottomOffset }]]}>
+                <View
+                    style={[
+                        styles.rosterPanel,
+                        isMobile
+                            ? [styles.rosterPanelMobile, { bottom: mobileBottomOffset }]
+                            : styles.rosterPanelDesktop,
+                    ]}
+                >
                     {isMobile && (
                         <View style={styles.grabBarContainer}>
                             <View style={styles.grabBar} />
@@ -355,7 +362,17 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView style={styles.rosterList} contentContainerStyle={styles.rosterListContent}>
+                    <ScrollView
+                        style={
+                            isMobile
+                                ? [
+                                    styles.rosterListMobile,
+                                    { maxHeight: Math.max(200, Math.round(windowHeight * 0.40)) },
+                                ]
+                                : styles.rosterList
+                        }
+                        contentContainerStyle={styles.rosterListContent}
+                    >
                         {sortedMembers.length === 0 ? (
                             <View style={styles.emptyRoster}>
                                 <MaterialIcons name="location-searching" size={28} color={Palette.Slate400} />
@@ -582,6 +599,7 @@ const styles = StyleSheet.create({
         borderRadius: 17,
     },
     titleColumn: {
+        flex: 1,
         gap: 2,
         flexShrink: 1,
         minWidth: 0,
@@ -594,7 +612,6 @@ const styles = StyleSheet.create({
     },
     trailTitleMobile: {
         fontSize: 14,
-        maxWidth: 135,
     },
     subtitleText: {
         color: Palette.Slate500,
@@ -766,10 +783,6 @@ const styles = StyleSheet.create({
     },
     rosterPanel: {
         position: "absolute",
-        top: 84,
-        right: 16,
-        bottom: 24,
-        width: 360,
         zIndex: 40,
         borderRadius: 20,
         backgroundColor: Colors.WHITE,
@@ -779,13 +792,16 @@ const styles = StyleSheet.create({
         flexDirection: "column",
         overflow: "hidden",
     },
+    rosterPanelDesktop: {
+        top: 84,
+        right: 16,
+        bottom: 24,
+        width: 360,
+    },
     rosterPanelMobile: {
-        position: "absolute",
-        top: "auto",
         left: 10,
         right: 10,
         bottom: 10,
-        width: "auto",
         maxHeight: "52%",
         borderRadius: 24,
         backgroundColor: Colors.WHITE,
@@ -825,6 +841,9 @@ const styles = StyleSheet.create({
     },
     rosterList: {
         flex: 1,
+    },
+    rosterListMobile: {
+        flexGrow: 0,
     },
     rosterListContent: {
         padding: 12,
