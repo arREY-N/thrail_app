@@ -672,7 +672,7 @@ const RoomScreen: React.FC<RoomScreenProps> = ({
                 onBackPress={onBackPress}
                 onOpenMembers={handleOpenMembers}
                 onOpenLiveMonitor={
-                    Platform.OS === 'web' && currentGroup?.id
+                    Platform.OS === 'web' && currentGroup?.id && currentGroup?.type !== 'chat'
                         ? () => router.push({
                             pathname: '/(app)/(main)/hike/view',
                             params: { groupId: currentGroup.id }
