@@ -10,6 +10,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -41,6 +42,7 @@ import { getDetailedWeatherSafety } from "@/src/core/utility/weatherHelpers";
 import TrailOfTheMonthCard from "@/src/features/Home/components/TrailOfTheMonthCard";
 import WeatherSection from "@/src/features/Home/components/WeatherSection";
 
+import { useBusinessList } from "@/src/core/models/Business/Business";
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import { Recommendation } from '@/src/core/models/Recommendation/Recommendation';
 import { ITrail } from '@/src/core/models/Trail/Trail';
@@ -331,6 +333,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   const isWideScreen = isDesktop || isTablet;
   const tutorial = useHomeTutorial({ isReady: !isLoading });
 
+  const { businesses } = useBusinessList();
+
   const MAX_CONTAINER_WIDTH = 860;
   const effectiveWidth = Math.min(width, MAX_CONTAINER_WIDTH);
   const cardWidth = Math.min(width * 0.85, 360);
@@ -355,21 +359,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
     ) ||
     discoverTrails.length > 0 ||
     trailsWithOffers.length > 0;
-
-  // const reloadMountainWeatherBadges = useCallback(() => {
-  //     const allVisibleTrails = [...recommendedTrails, ...discoverTrails, ...trailsWithOffers];
-  //     if (allVisibleTrails.length === 0) return;
-
-  //     const uniqueTrails = Array.from(new Set(allVisibleTrails.map(t => t.id)))
-  //         .map(id => allVisibleTrails.find(t => t.id === id))
-  //         .filter((t): t is ITrail => t !== undefined);
-
-  //     fetchTrailWeatherBadges(uniqueTrails).then(setMountainWeatherMap);
-  // }, [recommendedTrails, discoverTrails, trailsWithOffers]);
-
-  // useEffect(() => {
-  //     reloadMountainWeatherBadges();
-  // }, [reloadMountainWeatherBadges]);
 
   // Helper to calculate active offers count for each card
   const getTrailOffersCountForCard = (trailId: string) => {
@@ -476,6 +465,25 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
             getTrailOffersCount={getTrailOffersCountForCard}
           />
         )}
+
+        <Text>Businesses</Text>
+
+        {businesses.length > 0 && businesses.map(b => {
+          return (
+            <TouchableOpacity
+              onPress={() => {
+                router.push({
+                  pathname: '/(app)/(main)/business/view',
+                  params: { businessId: b.id }
+                })
+              }}
+              key={b.id}
+              style={{ padding: 20, borderWidth: 1, borderColor: Colors.TRAIL_STATS_GREEN }}>
+              <Text>{b.name}</Text>
+            </TouchableOpacity>
+          )
+        })}
+
       </ResponsiveScrollView>
 
       <CustomFAB onPress={onGroupPress} />
