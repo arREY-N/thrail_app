@@ -145,6 +145,14 @@ export function useAppNavigation() {
         router.push('/(app)/(main)/settings/legal/policies');
     };
 
+    const onBusinessViewPress = (id?: string) => {
+        if (!id) return;
+        router.push({
+            pathname: '/(app)/(main)/business/view',
+            params: { businessId: id },
+        });
+    };
+
     return {
         onTrailPress,
         onBackPress,
@@ -168,6 +176,7 @@ export function useAppNavigation() {
         onTermsSettingsPress,
         onPrivacyPolicySettingsPress,
         onPoliciesSettingsPress,
-        onUserViewPress
+        onUserViewPress,
+        onBusinessViewPress
     }
 }
