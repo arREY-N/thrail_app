@@ -56,6 +56,7 @@ export interface OffersScreenProps {
     error?: string | null;
     onContinue: (offerId: string | null) => void;
     onViewBookingDetails?: (bookingId?: string) => void;
+    onViewBusinessPress?: (businessId: string) => void;
     activeTutorialStep?: string;
     isTutorialVisible?: boolean;
 }
@@ -166,6 +167,7 @@ const OffersScreen = ({
     error,
     onContinue,
     onViewBookingDetails,
+    onViewBusinessPress,
     activeTutorialStep,
     isTutorialVisible,
 }: OffersScreenProps): React.JSX.Element => {
@@ -624,6 +626,7 @@ const OffersScreen = ({
                                         isWithinAdvanceCutoff={status.isWithinAdvanceCutoff}
                                         isToday={status.isToday}
                                         onSelect={() => handleOfferSelect(offer.id)}
+                                        onViewBusinessPress={onViewBusinessPress}
                                     />
                                 );
 
