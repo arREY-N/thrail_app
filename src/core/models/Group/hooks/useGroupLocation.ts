@@ -144,13 +144,12 @@ export function useGroupLocation(groupId: string) {
             return { success: false, reason: 'NO_LOCATION' };
         }
 
-        const mapLink = `https://www.google.com/maps/search/?api=1&query=${currentLocation.latitude},${currentLocation.longitude}`;
-
         const msg = newMessage({
-            content: `Send help! \n\nLast known location: ${mapLink} \n\nTime: ${currentLocation.timestamp}`,
+            content: `Send help! \n\nTime: ${currentLocation.timestamp}`,
             senderId: profile.id,
             senderName: profile.firstname,
             timesent: new Date(),
+            coordinates: { lat: currentLocation.latitude, long: currentLocation.longitude }
         });
 
         if (groupId) {

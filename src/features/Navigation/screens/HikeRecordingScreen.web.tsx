@@ -14,6 +14,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
+    Linking,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -22,6 +24,7 @@ import {
     View,
     useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export interface HikeRecordingScreenWebProps extends Partial<HikeRecordingScreenProps> {
     groupId?: string;
@@ -61,14 +64,21 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
     lat,
     profile,
 }) => {
-    const { width: windowWidth } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
     const [clientInnerWidth, setClientInnerWidth] = useState(() =>
-        typeof window !== 'undefined' ? window.innerWidth : windowWidth
+        Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.innerWidth === 'number'
+            ? window.innerWidth
+            : windowWidth
     );
 
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const updateWidth = () => setClientInnerWidth(window.innerWidth);
+        if (Platform.OS !== 'web' || typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+        const updateWidth = () => {
+            if (typeof window.innerWidth === 'number') {
+                setClientInnerWidth(window.innerWidth);
+            }
+        };
         window.addEventListener('resize', updateWidth);
         window.addEventListener('orientationchange', updateWidth);
         updateWidth();
@@ -79,8 +89,10 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
     }, []);
 
     // Active width considers both React Native Dimensions and native DOM innerWidth
-    const activeWidth = Math.min(windowWidth, clientInnerWidth);
-    const isMobile = activeWidth < 768;
+    const activeWidth = Platform.OS === 'web' ? Math.min(windowWidth, clientInnerWidth) : windowWidth;
+    const isMobile = Platform.OS !== 'web' || activeWidth < 768;
+    const mobileTopOffset = Platform.OS !== 'web' ? Math.max(insets.top + 8, 12) : 10;
+    const mobileBottomOffset = Platform.OS !== 'web' ? Math.max(insets.bottom + 8, 12) : 10;
 
     const mapRef = useRef<TrailMapRef | null>(null);
     const [currentTime, setCurrentTime] = useState(() => Date.now());
@@ -109,14 +121,14 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
             setCurrentTime(Date.now());
         };
 
-        if (typeof window !== 'undefined') {
+        if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
             window.addEventListener('focus', handleFocus);
             window.addEventListener('visibilitychange', handleFocus);
         }
 
         return () => {
             clearInterval(interval);
-            if (typeof window !== 'undefined') {
+            if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
                 window.removeEventListener('focus', handleFocus);
                 window.removeEventListener('visibilitychange', handleFocus);
             }
@@ -129,6 +141,20 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
         hikerLocations,
         currentTime
     );
+
+    // Latch first valid hiker coordinate once so mobile spectators center on the active hiker on mount
+    const [initialHikerCoord, setInitialHikerCoord] = useState<{ lon: number; lat: number } | null>(null);
+    useEffect(() => {
+        if (!initialHikerCoord && enrichedHikerLocations.length > 0) {
+            const firstValid = enrichedHikerLocations.find((h) => isValidCoord(h.latitude, h.longitude));
+            if (firstValid) {
+                setInitialHikerCoord({ lon: firstValid.longitude, lat: firstValid.latitude });
+            }
+        }
+    }, [initialHikerCoord, enrichedHikerLocations]);
+
+    const effectiveInitialLon = lon ?? (initialHikerCoord ? String(initialHikerCoord.lon) : undefined);
+    const effectiveInitialLat = lat ?? (initialHikerCoord ? String(initialHikerCoord.lat) : undefined);
 
     // Synchronize selected member with newest telemetry updates
     const liveSelectedMember = selectedMember
@@ -168,8 +194,10 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
         const latVal = liveSelectedMember.locData.latitude;
         const lonVal = liveSelectedMember.locData.longitude;
         const url = `https://www.google.com/maps/search/?api=1&query=${latVal},${lonVal}`;
-        if (typeof window !== 'undefined') {
+        if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.open === 'function') {
             window.open(url, '_blank');
+        } else {
+            Linking.openURL(url).catch(() => {});
         }
     }, [liveSelectedMember]);
 
@@ -181,17 +209,17 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
             {/* Fullscreen MapLibre Map */}
             <TrailMap
                 ref={mapRef}
-                initialLon={lon}
-                initialLat={lat}
+                initialLon={effectiveInitialLon}
+                initialLat={effectiveInitialLat}
                 bottomInset={isMobile ? (liveSelectedMember ? 220 : 20) : 24}
                 showControls={false}
                 hikerLocations={enrichedHikerLocations}
-                currentUserId={profile?.id}
+                currentUserId={undefined}
                 mountainId={currentGroup?.trail?.name || hike?.trail?.name || (currentGroup?.trail?.id !== 'diy' ? currentGroup?.trail?.id : undefined)}
             />
 
             {/* Top Responsive Clean Light Glassmorphic Header */}
-            <View style={[styles.topHeader, isMobile && styles.topHeaderMobile]}>
+            <View style={[styles.topHeader, isMobile && [styles.topHeaderMobile, { top: mobileTopOffset }]]}>
                 <View style={[styles.headerLeft, isMobile && styles.headerLeftMobile]}>
                     <TouchableOpacity
                         style={[styles.iconBtn, isMobile && styles.iconBtnMobile]}
@@ -296,7 +324,7 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
 
             {/* Error Notification Banner */}
             {error && (
-                <View style={[styles.errorBanner, isMobile && styles.errorBannerMobile]}>
+                <View style={[styles.errorBanner, isMobile && [styles.errorBannerMobile, { top: mobileTopOffset + 56 }]]}>
                     <MaterialIcons name="warning" size={16} color={Palette.Red600} />
                     <Text style={styles.errorBannerText}>{error}</Text>
                 </View>
@@ -304,7 +332,14 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
 
             {/* Responsive Active Hikers Panel (Light Theme Desktop Sidebar / Mobile Bottom Sheet) */}
             {showRoster && (
-                <View style={[styles.rosterPanel, isMobile && styles.rosterPanelMobile]}>
+                <View
+                    style={[
+                        styles.rosterPanel,
+                        isMobile
+                            ? [styles.rosterPanelMobile, { bottom: mobileBottomOffset }]
+                            : styles.rosterPanelDesktop,
+                    ]}
+                >
                     {isMobile && (
                         <View style={styles.grabBarContainer}>
                             <View style={styles.grabBar} />
@@ -327,7 +362,17 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView style={styles.rosterList} contentContainerStyle={styles.rosterListContent}>
+                    <ScrollView
+                        style={
+                            isMobile
+                                ? [
+                                    styles.rosterListMobile,
+                                    { maxHeight: Math.max(200, Math.round(windowHeight * 0.40)) },
+                                ]
+                                : styles.rosterList
+                        }
+                        contentContainerStyle={styles.rosterListContent}
+                    >
                         {sortedMembers.length === 0 ? (
                             <View style={styles.emptyRoster}>
                                 <MaterialIcons name="location-searching" size={28} color={Palette.Slate400} />
@@ -422,7 +467,7 @@ const HikeRecordingScreenWeb: React.FC<HikeRecordingScreenWebProps> = memo(({
 
             {/* Selected Hiker Live Data / Emergency Target Card (Clean Light Aesthetic) */}
             {liveSelectedMember && liveSelectedMember.locData && isValidCoord(liveSelectedMember.locData.latitude, liveSelectedMember.locData.longitude) && (
-                <View style={[styles.sarCard, isMobile && styles.sarCardMobile]}>
+                <View style={[styles.sarCard, isMobile && [styles.sarCardMobile, { bottom: mobileBottomOffset }]]}>
                     <View style={styles.sarHeader}>
                         <View style={styles.sarHeaderLeft}>
                             <MaterialIcons
@@ -554,6 +599,7 @@ const styles = StyleSheet.create({
         borderRadius: 17,
     },
     titleColumn: {
+        flex: 1,
         gap: 2,
         flexShrink: 1,
         minWidth: 0,
@@ -566,7 +612,6 @@ const styles = StyleSheet.create({
     },
     trailTitleMobile: {
         fontSize: 14,
-        maxWidth: 135,
     },
     subtitleText: {
         color: Palette.Slate500,
@@ -738,10 +783,6 @@ const styles = StyleSheet.create({
     },
     rosterPanel: {
         position: "absolute",
-        top: 84,
-        right: 16,
-        bottom: 24,
-        width: 360,
         zIndex: 40,
         borderRadius: 20,
         backgroundColor: Colors.WHITE,
@@ -751,13 +792,16 @@ const styles = StyleSheet.create({
         flexDirection: "column",
         overflow: "hidden",
     },
+    rosterPanelDesktop: {
+        top: 84,
+        right: 16,
+        bottom: 24,
+        width: 360,
+    },
     rosterPanelMobile: {
-        position: "absolute",
-        top: "auto",
         left: 10,
         right: 10,
         bottom: 10,
-        width: "auto",
         maxHeight: "52%",
         borderRadius: 24,
         backgroundColor: Colors.WHITE,
@@ -797,6 +841,9 @@ const styles = StyleSheet.create({
     },
     rosterList: {
         flex: 1,
+    },
+    rosterListMobile: {
+        flexGrow: 0,
     },
     rosterListContent: {
         padding: 12,
