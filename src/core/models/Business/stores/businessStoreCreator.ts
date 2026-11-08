@@ -136,7 +136,7 @@ export const businessStoreCreator: StateCreator<
 
                 return {
                     current: business,
-                    data: [...updated, business!],
+                    data: [...updated, business],
                     isLoading: false,
                     isFetching: false,
                 };
