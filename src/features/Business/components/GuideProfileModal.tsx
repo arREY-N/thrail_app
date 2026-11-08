@@ -6,8 +6,10 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+    Animated,
     Image,
     Modal,
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View,
@@ -60,9 +62,80 @@ const GuideProfileModal: React.FC<GuideProfileModalProps> = ({
     initialData,
 }) => {
     const [fetchedData, setFetchedData] = useState<{ id: string; user: User | null } | null>(null);
+    const [renderModal, setRenderModal] = useState<boolean>(visible);
+    if (visible && !renderModal) {
+        setRenderModal(true);
+    }
+    const [animValue] = useState(() => new Animated.Value(0));
 
-    const user = (fetchedData && fetchedData.id === userId) ? fetchedData.user : null;
-    const isLoading = Boolean(visible && userId && (!fetchedData || fetchedData.id !== userId));
+    const [prevVisible, setPrevVisible] = useState(visible);
+    if (visible !== prevVisible) {
+        setPrevVisible(visible);
+        if (visible) {
+            setRenderModal(true);
+        }
+    }
+
+    useEffect(() => {
+        if (visible) {
+            animValue.setValue(0);
+            Animated.timing(animValue, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: Platform.OS !== 'web',
+            }).start();
+        } else {
+            Animated.timing(animValue, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: Platform.OS !== 'web',
+            }).start(() => setRenderModal(false));
+        }
+    }, [visible, animValue]);
+
+    // Physical Escape key dismissal on Web
+    useEffect(() => {
+        if (Platform.OS !== 'web' || !visible) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [visible, onClose]);
+
+    // Retain last-known member profile data so during exit animation (when parent clears selectedMember),
+    // the modal preserves the current profile rather than flashing empty/default fallback states.
+    const [lastKnown, setLastKnown] = useState<{
+        userId?: string;
+        roleBadge: 'OWNER' | 'COORDINATOR';
+        initialData?: GuideProfileModalProps['initialData'];
+    }>({
+        userId,
+        roleBadge,
+        initialData,
+    });
+
+    if (
+        visible &&
+        (userId !== lastKnown.userId ||
+            roleBadge !== lastKnown.roleBadge ||
+            initialData !== lastKnown.initialData)
+    ) {
+        setLastKnown({
+            userId,
+            roleBadge,
+            initialData,
+        });
+    }
+
+    const effectiveUserId = visible ? userId : lastKnown.userId;
+    const effectiveRoleBadge = visible ? roleBadge : lastKnown.roleBadge;
+    const effectiveInitialData = visible ? initialData : lastKnown.initialData;
+
+    const user = (fetchedData && fetchedData.id === effectiveUserId) ? fetchedData.user : null;
+    const isLoading = Boolean(visible && effectiveUserId && (!fetchedData || fetchedData.id !== effectiveUserId));
 
     const { isDesktop, isTablet } = useBreakpoints();
     const isWide = isDesktop || isTablet;
@@ -89,16 +162,16 @@ const GuideProfileModal: React.FC<GuideProfileModalProps> = ({
         };
     }, [visible, userId]);
 
-    if (!visible) return null;
+    if (!renderModal) return null;
 
     // Derived identity values
     const rawFullName = user
         ? `${user.firstname || ''} ${user.lastname || ''}`.trim()
-        : initialData?.name || 'Tour Coordinator';
+        : effectiveInitialData?.name || 'Tour Coordinator';
     const fullName = rawFullName || 'Tour Coordinator';
 
-    const username = user?.username || initialData?.username || '';
-    const email = user?.email || initialData?.email || '';
+    const username = user?.username || effectiveInitialData?.username || '';
+    const email = user?.email || effectiveInitialData?.email || '';
     const profileImage = user?.profileImage;
     const initials = getInitials(fullName);
 
@@ -116,27 +189,41 @@ const GuideProfileModal: React.FC<GuideProfileModalProps> = ({
             ? [user.preferences.province]
             : [];
 
-    const isOwner = roleBadge === 'OWNER';
+    const isOwner = effectiveRoleBadge === 'OWNER';
 
     return (
         <Modal
             transparent={true}
-            visible={visible}
-            animationType="fade"
+            visible={renderModal}
+            animationType="none"
             onRequestClose={onClose}
         >
-            <TouchableOpacity
-                style={styles.modalOverlay}
-                activeOpacity={1}
-                onPress={onClose}
-                accessibilityLabel="Close profile modal backdrop"
-            >
-                <TouchableOpacity
-                    style={[styles.modalCard, isWide && styles.modalCardWide]}
-                    activeOpacity={1}
-                    onPress={(e) => {
-                        e.stopPropagation?.();
-                    }}
+            <View style={styles.modalOverlay}>
+                <Animated.View style={[styles.backdropAnimated, { opacity: animValue }]}>
+                    <TouchableOpacity
+                        style={styles.backdropTouch}
+                        activeOpacity={1}
+                        onPress={onClose}
+                        accessibilityLabel="Close profile modal backdrop"
+                    />
+                </Animated.View>
+
+                <Animated.View
+                    style={[
+                        styles.modalCard,
+                        isWide && styles.modalCardWide,
+                        {
+                            opacity: animValue,
+                            transform: [
+                                {
+                                    translateY: animValue.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [40, 0],
+                                    }),
+                                },
+                            ],
+                        },
+                    ]}
                 >
                     {/* TOP-RIGHT CLOSE BUTTON */}
                     <TouchableOpacity
@@ -349,8 +436,8 @@ const GuideProfileModal: React.FC<GuideProfileModalProps> = ({
                             </>
                         )}
                     </View>
-                </TouchableOpacity>
-            </TouchableOpacity>
+                </Animated.View>
+            </View>
         </Modal>
     );
 };
@@ -358,10 +445,16 @@ const GuideProfileModal: React.FC<GuideProfileModalProps> = ({
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
-        backgroundColor: Colors.MODAL_OVERLAY,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
+    },
+    backdropAnimated: {
+        ...StyleSheet.absoluteFill,
+        backgroundColor: Colors.MODAL_OVERLAY,
+    },
+    backdropTouch: {
+        flex: 1,
     },
     modalCard: {
         backgroundColor: Colors.WHITE,
