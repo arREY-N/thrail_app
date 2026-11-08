@@ -66,6 +66,7 @@ export interface BookingScreenProps {
     }) => Promise<boolean>;
     onUpdatePress?: (params: TEdit<Booking>) => void;
     onViewBookingDetails?: (bookingId?: string) => void;
+    onViewBusinessPress?: (businessId: string) => void;
     onSearchUser?: (email: string) => Promise<UserSearchResult[]>;
 }
 
@@ -93,6 +94,7 @@ const BookingScreen = ({
     onCompleteOffer,
     onUpdatePress,
     onViewBookingDetails,
+    onViewBusinessPress,
     onSearchUser,
 }: BookingScreenProps): React.JSX.Element => {
 
@@ -460,6 +462,7 @@ const BookingScreen = ({
                         activeTutorialStep={activeSpotlight}
                         isTutorialVisible={tutorial.isVisible}
                         onViewBookingDetails={onViewBookingDetails}
+                        onViewBusinessPress={onViewBusinessPress}
                         onContinue={(offerId) => {
                             const selectedOffer = safeOffers.find(
                                 (o) => o.id === offerId
