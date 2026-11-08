@@ -15,7 +15,7 @@ export default function ListOffer() {
     const { trailId: rawId } = useLocalSearchParams();
     const trailId = getSearchParam(rawId);
 
-    const { onBackPress } = useAppNavigation();
+    const { onBackPress, onBusinessViewPress } = useAppNavigation();
 
     const {
         trailOffers,
@@ -62,6 +62,7 @@ export default function ListOffer() {
             onUpdatePress={onUpdatePress}
             onCompleteOffer={onCompleteBook}
             onViewBookingDetails={handleViewBookingDetails}
+            onViewBusinessPress={onBusinessViewPress}
             onSearchUser={findUser}
         />
     );

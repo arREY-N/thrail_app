@@ -10,7 +10,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -39,10 +38,11 @@ import {
 } from '@/src/components/Tutorial/Tutorial';
 
 import { getDetailedWeatherSafety } from "@/src/core/utility/weatherHelpers";
+import BusinessSpotlightCard from "@/src/features/Home/components/BusinessSpotlightCard";
 import TrailOfTheMonthCard from "@/src/features/Home/components/TrailOfTheMonthCard";
 import WeatherSection from "@/src/features/Home/components/WeatherSection";
 
-import { useBusinessList } from "@/src/core/models/Business/Business";
+import { Business } from "@/src/core/models/Business/Business";
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import { Recommendation } from '@/src/core/models/Recommendation/Recommendation';
 import { ITrail } from '@/src/core/models/Trail/Trail';
@@ -91,6 +91,9 @@ export interface HomeScreenProps {
   getItemRating: (id: string) => number;
   isLoading: boolean;
   offers?: IOffer[];
+  businesses?: Business[];
+  isBusinessesLoading?: boolean;
+  onBusinessPress?: (businessId: string) => void;
   recommendationsError?: string | null;
   isRecommendationsLoading?: boolean;
   isNewAccount?: boolean;
@@ -315,6 +318,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   getItemRating,
   isLoading,
   offers = [],
+  businesses = [],
+  isBusinessesLoading = false,
+  onBusinessPress,
   recommendationsError = null,
   isRecommendationsLoading = false,
   isNewAccount = false,
@@ -332,8 +338,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   const { isDesktop, isTablet } = useBreakpoints();
   const isWideScreen = isDesktop || isTablet;
   const tutorial = useHomeTutorial({ isReady: !isLoading });
-
-  const { businesses } = useBusinessList();
 
   const MAX_CONTAINER_WIDTH = 860;
   const effectiveWidth = Math.min(width, MAX_CONTAINER_WIDTH);
@@ -466,23 +470,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           />
         )}
 
-        <Text>Businesses</Text>
-
-        {businesses.length > 0 && businesses.map(b => {
-          return (
-            <TouchableOpacity
-              onPress={() => {
-                router.push({
-                  pathname: '/(app)/(main)/business/view',
-                  params: { businessId: b.id }
-                })
-              }}
-              key={b.id}
-              style={{ padding: 20, borderWidth: 1, borderColor: Colors.TRAIL_STATS_GREEN }}>
-              <Text>{b.name}</Text>
-            </TouchableOpacity>
-          )
-        })}
+        <BusinessSpotlightCard
+          businesses={businesses}
+          offers={offers}
+          onBusinessPress={(id) => {
+            if (onBusinessPress) {
+              onBusinessPress(id);
+            } else {
+              router.push({
+                pathname: '/(app)/(main)/business/view',
+                params: { businessId: id },
+              });
+            }
+          }}
+          cardWidth={cardWidth}
+        />
 
       </ResponsiveScrollView>
 
@@ -509,7 +511,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.BACKGROUND,
   },
   scrollContent: {
-    paddingBottom: 32,
+    paddingBottom: 100,
     gap: 16,
   },
   scrollContentWide: {

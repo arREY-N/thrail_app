@@ -5,6 +5,8 @@
 
 
 import { HomeFlow } from '@/src/core/flows/HomeFlow';
+import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
+import { useBusinessList } from '@/src/core/models/Business/Business';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 
 /**
@@ -14,6 +16,8 @@ import HomeScreen from '@/src/features/Home/screens/HomeScreen';
  * @returns React.JSX.Element rendering the Home tab controller.
  */
 export default function Home() {
+    const { onBusinessViewPress } = useAppNavigation();
+    const { businesses, isLoading: isBusinessesLoading } = useBusinessList();
     const {
         getItemRating,
         onDownloadPress,
@@ -59,6 +63,9 @@ export default function Home() {
             getItemRating={getItemRating}
             isLoading={trailLoading}
             offers={offers}
+            businesses={businesses}
+            isBusinessesLoading={isBusinessesLoading}
+            onBusinessPress={onBusinessViewPress}
             isRefreshing={isRefreshing}
             onRefreshPress={onRefreshPress}
         />

@@ -21,7 +21,7 @@ import { formatActivityTime } from '@/src/utils/dateFormatter';
 
 export interface OfferData {
     id?: string;
-    business?: { name?: string };
+    business?: { id?: string; name?: string };
     duration?: string;
     price?: number;
     minPax?: number;
@@ -39,6 +39,7 @@ export interface OfferCardProps {
     offer: Offer | OfferData;
     isSelected: boolean;
     onSelect: () => void;
+    onViewBusinessPress?: (businessId: string) => void;
     isBooked?: boolean;
     bookedStatusText?: string;
     isDateConflict?: boolean;
@@ -58,6 +59,7 @@ const OfferCard: React.FC<OfferCardProps> = ({
     offer, 
     isSelected, 
     onSelect,
+    onViewBusinessPress,
     isBooked = false,
     bookedStatusText,
     isDateConflict = false,
@@ -116,24 +118,72 @@ const OfferCard: React.FC<OfferCardProps> = ({
             onPress={onSelect}
         >
             <View style={styles.cardHeader}>
-                <View style={styles.guideAvatar}>
-                    <CustomIcon 
-                        library="FontAwesome5" 
-                        name="user-circle" 
-                        size={24} 
-                        color={Colors.WHITE} 
-                    />
-                </View>
+                {offer.business?.id && onViewBusinessPress ? (
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={(e) => {
+                            e.stopPropagation?.();
+                            if (offer.business?.id && onViewBusinessPress) {
+                                onViewBusinessPress(offer.business.id);
+                            }
+                        }}
+                        style={styles.guideAvatar}
+                    >
+                        <CustomIcon 
+                            library="FontAwesome5" 
+                            name="user-circle" 
+                            size={24} 
+                            color={Colors.WHITE} 
+                        />
+                    </TouchableOpacity>
+                ) : (
+                    <View style={styles.guideAvatar}>
+                        <CustomIcon 
+                            library="FontAwesome5" 
+                            name="user-circle" 
+                            size={24} 
+                            color={Colors.WHITE} 
+                        />
+                    </View>
+                )}
                 
                 <View style={styles.guideInfo}>
-                    <CustomText 
-                        variant="body" 
-                        style={styles.guideName}
-                        numberOfLines={2} 
-                    >
-                        {offer.business?.name || "Independent Guide"}
-                    </CustomText>
+                    {offer.business?.id && onViewBusinessPress ? (
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={(e) => {
+                                e.stopPropagation?.();
+                                if (offer.business?.id && onViewBusinessPress) {
+                                    onViewBusinessPress(offer.business.id);
+                                }
+                            }}
+                            style={styles.guideNameWithChevron}
+                        >
+                            <CustomText 
+                                variant="body" 
+                                style={styles.guideName}
+                                numberOfLines={2} 
+                            >
+                                {offer.business?.name || "Independent Guide"}
+                            </CustomText>
+                            <CustomIcon
+                                library="Feather"
+                                name="chevron-right"
+                                size={14}
+                                color={Colors.PRIMARY}
+                            />
+                        </TouchableOpacity>
+                    ) : (
+                        <CustomText 
+                            variant="body" 
+                            style={styles.guideName}
+                            numberOfLines={2} 
+                        >
+                            {offer.business?.name || "Independent Guide"}
+                        </CustomText>
+                    )}
                     
+                    {/* NOTE(backend): Placeholder rating & review count for tour operators. Wire to real aggregate ratings once Review subcollection/API is implemented. */}
                     <View style={styles.ratingRow}>
                         <CustomIcon 
                             library="AntDesign" 
@@ -529,8 +579,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingRight: 12,
     },
-    guideName: { 
+    guideNameWithChevron: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        gap: 4,
+        flexWrap: 'wrap',
         marginBottom: 4,
+    },
+    guideName: { 
+        marginBottom: 0,
         fontWeight: 'bold',
         lineHeight: 20, 
     },
