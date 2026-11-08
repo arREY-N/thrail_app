@@ -1,10 +1,14 @@
 import { HomeFlow } from "@/src/core/flows/HomeFlow";
+import { useAppNavigation } from "@/src/core/hook/navigation/useAppNavigation";
 import { useTrailViewNavigation } from "@/src/core/hook/navigation/useTrailViewNavigation";
+import { useBusinessList } from "@/src/core/models/Business/Business";
 import { useCallback } from "react";
 
 import HomeScreen from "@/src/features/Home/screens/HomeScreen";
 
 const HomePage = () => {
+  const { onBusinessViewPress } = useAppNavigation();
+  const { businesses, isLoading: isBusinessesLoading } = useBusinessList();
   const {
     trailError,
     getItemRating,
@@ -56,6 +60,9 @@ const HomePage = () => {
       getItemRating={getItemRating}
       isLoading={trailLoading}
       offers={offers}
+      businesses={businesses}
+      isBusinessesLoading={isBusinessesLoading}
+      onBusinessPress={onBusinessViewPress}
       isRefreshing={isRefreshing}
       onRefreshPress={onRefreshPress}
     />
