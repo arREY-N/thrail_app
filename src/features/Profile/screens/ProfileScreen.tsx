@@ -45,7 +45,7 @@ import {
 } from '@/src/features/Settings/screens/ProfileInfoScreen';
 import { styles as infoStyles } from '@/src/features/Settings/styles/ProfileInfoStyles';
 
-import { IUser, newUser, useAuthStore, UserRepo } from '@/src/core/models/User/User';
+import { IUser, newUser, Role, useAuthStore, UserRepo } from '@/src/core/models/User/User';
 import HikeLogTab from '@/src/features/Profile/tabs/HikeLogTab';
 import MilestonesTab from '@/src/features/Profile/tabs/MilestonesTab';
 
@@ -145,7 +145,6 @@ const ProfileScreen = ({
             return;
         }
         setActiveTab(tab);
-        scrollYRef.current = 0;
         scrollViewRef.current?.scrollTo({ y: 0, animated: false });
         requestAnimationFrame(() => {
             scrollViewRef.current?.scrollTo({ y: 0, animated: false });
@@ -154,7 +153,6 @@ const ProfileScreen = ({
 
     // Stable refs so the scroll handler always reads fresh values
     // without causing re-renders. Synced in useEffect after each commit.
-    const scrollYRef = useRef(0);
     const contentHeightRef = useRef(0);
     const layoutHeightRef = useRef(0);
     const activeTabRef = useRef(activeTab);
@@ -179,9 +177,9 @@ const ProfileScreen = ({
     // sees the latest tab/hasMore state without needing to be recreated.
     const handleScroll = useCallback(
         (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-            scrollYRef.current = e.nativeEvent.contentOffset.y;
+            const scrollY = e.nativeEvent.contentOffset.y;
             const nearBottom =
-                scrollYRef.current + layoutHeightRef.current >=
+                scrollY + layoutHeightRef.current >=
                 contentHeightRef.current - 200;
             if (
                 nearBottom &&
@@ -203,14 +201,14 @@ const ProfileScreen = ({
     const contentMaxWidth: number | `${number}%` = isDesktop ? 800 : (isTablet ? 650 : '100%');
     const responsiveAlignStyle = { maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' as const };
 
+    const [prevProfile, setPrevProfile] = useState<IUser | undefined>(profile);
     const [freshUser, setFreshUser] = useState<IUser | null>(null);
     const effectiveUser = freshUser || profile;
 
-    useEffect(() => {
-        if (profile) {
-            setFreshUser(profile);
-        }
-    }, [profile]);
+    if (profile !== prevProfile) {
+        setPrevProfile(profile);
+        setFreshUser(profile ?? null);
+    }
 
     useEffect(() => {
         let isMounted = true;
