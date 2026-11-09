@@ -7,6 +7,7 @@
 import { HomeFlow } from '@/src/core/flows/HomeFlow';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useBusinessList } from '@/src/core/models/Business/Business';
+import { useReviewStore } from '@/src/core/models/Review/Review';
 import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 
 /**
@@ -18,6 +19,7 @@ import HomeScreen from '@/src/features/Home/screens/HomeScreen';
 export default function Home() {
     const { onBusinessViewPress } = useAppNavigation();
     const { businesses, isLoading: isBusinessesLoading } = useBusinessList();
+    const reviews = useReviewStore((s) => s.reviews);
     const {
         getItemRating,
         onDownloadPress,
@@ -63,6 +65,7 @@ export default function Home() {
             getItemRating={getItemRating}
             isLoading={trailLoading}
             offers={offers}
+            reviews={reviews}
             businesses={businesses}
             isBusinessesLoading={isBusinessesLoading}
             onBusinessPress={onBusinessViewPress}
