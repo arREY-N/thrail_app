@@ -1,8 +1,8 @@
 /**
  * @file BusinessScreen.tsx
  * @description Pure presentation screen for the Tour Business profile.
- * Matches ProfileScreen's sticky open identity banner and segmented pill 3-tab switcher
- * (Offers | Permits & About | Team & Guides).
+ * Features a Recommendation-style scenic cover banner + 4-column key specs bar (BusinessHeroCard),
+ * followed by a sticky segmented pill 3-tab switcher (Offers | About | Reviews).
  */
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
@@ -24,14 +24,17 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Admin } from '@/src/core/models/Admin/Admin';
 import { Business } from '@/src/core/models/Business/Business';
+import { IReview } from '@/src/core/models/Review/Review';
 import { ITrail } from '@/src/core/models/Trail/Trail';
 import BusinessHeroCard from '@/src/features/Business/components/BusinessHeroCard';
 import BusinessOffersTab from '@/src/features/Business/tabs/BusinessOffersTab';
-import BusinessPermitsAboutTab from '@/src/features/Business/tabs/BusinessPermitsAboutTab';
-import BusinessTeamTab from '@/src/features/Business/tabs/BusinessTeamTab';
+import BusinessPermitsAboutTab, {
+    LOCAL_BUSINESS_PERMIT_ASSETS,
+} from '@/src/features/Business/tabs/BusinessPermitsAboutTab';
+import BusinessReviewsTab from '@/src/features/Business/tabs/BusinessReviewsTab';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-export type BusinessTabType = 'Offers' | 'About' | 'Team';
+export type BusinessTabType = 'Offers' | 'About' | 'Reviews';
 
 /**
  * Props for the BusinessScreen component.
@@ -41,8 +44,13 @@ export type BusinessTabType = 'Offers' | 'About' | 'Team';
  * @param featuredTrails - Top 3 soonest upcoming bookable trail packages.
  * @param allTrails - All unique trails with active offers from this business.
  * @param packageCount - Count of active upcoming packages/offers for this business.
- * @param rating - Optional public review rating score.
- * @param reviewsCount - Optional total count of public reviews.
+ * @param reviews - Collected hiker reviews from booked hikes and offers of this business.
+ * @param rating - Dynamically calculated review rating score.
+ * @param reviewsCount - Dynamically calculated total count of business reviews.
+ * @param isReviewsLoading - Loading state for business reviews.
+ * @param likeReview - Callback to toggle like on a review post.
+ * @param isLiked - Predicate checking if the logged-in user liked a review post.
+ * @param onWriteReviewPress - Callback to edit an owned review post.
  * @param isLoading - Global loading state boolean.
  * @param isRefreshing - Pull-to-refresh active boolean.
  * @param onRefresh - Callback triggered on pull-to-refresh.
@@ -58,8 +66,13 @@ export interface BusinessScreenProps {
     featuredTrails?: ITrail[];
     allTrails?: ITrail[];
     packageCount?: number;
+    reviews?: IReview[];
     rating?: number;
     reviewsCount?: number;
+    isReviewsLoading?: boolean;
+    likeReview?: (review: IReview) => void;
+    isLiked?: (review: IReview) => boolean;
+    onWriteReviewPress?: (review: IReview) => void;
     isLoading?: boolean;
     isRefreshing?: boolean;
     onRefresh?: () => Promise<void> | void;
@@ -71,7 +84,8 @@ export interface BusinessScreenProps {
 }
 
 /**
- * BusinessScreen — Presentation view displaying a tour organizer's profile, credentials, and package offerings.
+ * BusinessScreen — Presentation view displaying a tour organizer's cover banner, key specs,
+ * active trail offers, consolidated About/Teams/Permits info, and verified hiker reviews.
  *
  * @param props - BusinessScreenProps
  * @returns React.JSX.Element rendering the business profile screen
@@ -82,8 +96,13 @@ const BusinessScreen = ({
     featuredTrails = [],
     allTrails = [],
     packageCount = 0,
-    rating,
-    reviewsCount,
+    reviews = [],
+    rating = 0,
+    reviewsCount = 0,
+    isReviewsLoading = false,
+    likeReview,
+    isLiked,
+    onWriteReviewPress,
     isLoading = false,
     isRefreshing = false,
     onRefresh,
@@ -98,7 +117,7 @@ const BusinessScreen = ({
     const scrollViewRef = useRef<ScrollView>(null);
 
     const { width, isDesktop, isTablet } = useBreakpoints();
-    const contentMaxWidth: number | `${number}%` = isDesktop ? 800 : (isTablet ? 650 : '100%');
+    const contentMaxWidth: number | `${number}%` = isDesktop ? 860 : (isTablet ? 680 : '100%');
     const responsiveAlignStyle = {
         maxWidth: contentMaxWidth,
         alignSelf: 'center' as const,
@@ -117,20 +136,12 @@ const BusinessScreen = ({
                 return;
             }
             setActiveTab(tab);
-            scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-            requestAnimationFrame(() => {
-                scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-            });
         },
         [activeTab]
     );
 
-    // Calculate verified permits count
-    const permitsCount = [
-        business?.permits?.denr,
-        business?.permits?.dti,
-        business?.permits?.bir,
-    ].filter(Boolean).length;
+    // Count verified local permits wired in LOCAL_BUSINESS_PERMIT_ASSETS (DENR, DTI, BIR)
+    const permitsCount = Object.keys(LOCAL_BUSINESS_PERMIT_ASSETS).length;
 
     // Calculate unique active team members count (owner + deduplicated active admins)
     const uniqueTeamCount = useMemo(() => {
@@ -192,7 +203,7 @@ const BusinessScreen = ({
             <ResponsiveScrollView
                 ref={scrollViewRef}
                 contentContainerStyle={styles.scrollContent}
-                stickyHeaderIndices={[0]}
+                stickyHeaderIndices={[1]}
                 showsVerticalScrollIndicator={false}
                 bounces={true}
                 overScrollMode="always"
@@ -207,19 +218,19 @@ const BusinessScreen = ({
                     ) : undefined
                 }
             >
-                {/* 1. STICKY HEADER SECTION (Open Banner + Segmented Pill Tabs matching ProfileScreen) */}
-                <View style={styles.stickyHeaderSection}>
-                    <View style={responsiveAlignStyle}>
-                        <BusinessHeroCard
-                            business={business}
-                            packageCount={packageCount}
-                            guidesCount={uniqueTeamCount}
-                            permitsCount={permitsCount}
-                            rating={rating}
-                            reviewsCount={reviewsCount}
-                        />
-                    </View>
+                {/* 1. SCENIC COVER BANNER & 4-COLUMN SPECS CARD (Matching Recommendation Screen) */}
+                <BusinessHeroCard
+                    business={business}
+                    packageCount={packageCount}
+                    guidesCount={uniqueTeamCount}
+                    permitsCount={permitsCount}
+                    rating={rating}
+                    reviewsCount={reviewsCount}
+                    contentMaxWidth={contentMaxWidth}
+                />
 
+                {/* 2. STICKY SEGMENTED PILL TABS (Offers | About | Reviews) */}
+                <View style={styles.stickyTabsBar}>
                     <View style={[styles.floatingTabsContainer, responsiveAlignStyle]}>
                         <TouchableOpacity
                             style={[
@@ -256,7 +267,7 @@ const BusinessScreen = ({
                         >
                             <CustomIcon
                                 library="Feather"
-                                name="shield"
+                                name="info"
                                 size={activeTab === 'About' ? 18 : 16}
                                 color={activeTab === 'About' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
                             />
@@ -274,31 +285,31 @@ const BusinessScreen = ({
                         <TouchableOpacity
                             style={[
                                 styles.tabButton,
-                                activeTab === 'Team' && styles.tabButtonActive,
+                                activeTab === 'Reviews' && styles.tabButtonActive,
                             ]}
-                            onPress={() => handleTabChange('Team')}
+                            onPress={() => handleTabChange('Reviews')}
                             activeOpacity={0.9}
                         >
                             <CustomIcon
                                 library="Feather"
-                                name="users"
-                                size={activeTab === 'Team' ? 18 : 16}
-                                color={activeTab === 'Team' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
+                                name="star"
+                                size={activeTab === 'Reviews' ? 18 : 16}
+                                color={activeTab === 'Reviews' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
                             />
                             <CustomText
                                 style={[
                                     styles.tabText,
-                                    activeTab === 'Team' && styles.tabTextActive,
+                                    activeTab === 'Reviews' && styles.tabTextActive,
                                 ]}
                                 numberOfLines={1}
                             >
-                                Team
+                                {reviewsCount > 0 ? `Reviews (${reviewsCount})` : 'Reviews'}
                             </CustomText>
                         </TouchableOpacity>
                     </View>
                 </View>
 
-                {/* 2. TAB CONTENT CONTAINER */}
+                {/* 3. TAB CONTENT CONTAINER */}
                 <View style={[styles.tabContentContainer, responsiveAlignStyle]}>
                     {activeTab === 'Offers' && (
                         <BusinessOffersTab
@@ -314,14 +325,21 @@ const BusinessScreen = ({
                     )}
 
                     {activeTab === 'About' && (
-                        <BusinessPermitsAboutTab business={business} />
+                        <BusinessPermitsAboutTab
+                            business={business}
+                            admins={admins}
+                        />
                     )}
 
-                    {activeTab === 'Team' && (
-                        <BusinessTeamTab
-                            owner={business.owner}
-                            admins={admins}
-                            businessName={business.name}
+                    {activeTab === 'Reviews' && (
+                        <BusinessReviewsTab
+                            reviews={reviews}
+                            rating={rating}
+                            reviewsCount={reviewsCount}
+                            isLoading={isReviewsLoading}
+                            likeReview={likeReview}
+                            isLiked={isLiked}
+                            onWriteReviewPress={onWriteReviewPress}
                         />
                     )}
                 </View>
@@ -334,10 +352,10 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingBottom: 32,
     },
-    stickyHeaderSection: {
+    stickyTabsBar: {
         backgroundColor: Colors.BACKGROUND,
         paddingHorizontal: 16,
-        paddingTop: 12,
+        paddingTop: 14,
         paddingBottom: 12,
         zIndex: 10,
     },
@@ -373,7 +391,7 @@ const styles = StyleSheet.create({
     },
     tabContentContainer: {
         flex: 1,
-        paddingTop: 16,
+        paddingTop: 8,
         marginBottom: 24,
     },
     errorContainer: {
