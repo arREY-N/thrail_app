@@ -1,12 +1,14 @@
 /**
  * @file BusinessSpotlightCard.tsx
- * @description Adaptive spotlight component for featuring verified tour organizer partners on the Home screen.
- * Displays a full-width featured card when one business exists and seamlessly adapts to a horizontal carousel
- * if multiple businesses exist.
+ * @description Scenic hero spotlight component for featuring verified tour organizer partners on the Home screen.
+ * Uses Banner.jpg with a dark LinearGradient overlay, floating status pills, and a clean bottom-left
+ * title + metadata stack (matching TrailOfTheMonthCard) across both Mobile and Web.
  */
 
-import React, { useRef } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useRef } from 'react';
 import {
+    ImageSourcePropType,
     Platform,
     ScrollView,
     StyleSheet,
@@ -15,32 +17,40 @@ import {
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
-import { Colors } from '@/src/constants/colors';
+import { Colors, Palette } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { useBookingsStore } from '@/src/core/models/Booking/Booking';
 import { Business } from '@/src/core/models/Business/Business';
 import { IOffer } from '@/src/core/models/Offer/Offer';
+import { Review } from '@/src/core/models/Review/Review';
+import { getBusinessReviewsAndMetrics } from '@/src/features/Business/utils/businessReviewHelpers';
+import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
-import { getInitials } from '@/src/utils/dateFormatter';
 import { isAliveOffer } from '@/src/utils/offerHelpers';
+
+const BANNER_IMAGE_SOURCE: ImageSourcePropType = require('@/src/assets/images/Banner.jpg');
 
 /**
  * Props for the BusinessSpotlightCard component.
  *
  * @param businesses - List of active tour businesses.
  * @param offers - List of hike offers used to calculate active upcoming packages count.
- * @param onBusinessPress - Callback when a business card or "View Profile" CTA is pressed.
+ * @param reviews - Optional list of community reviews used to calculate the business rating.
+ * @param onBusinessPress - Callback when a business spotlight card is pressed.
  * @param cardWidth - Optional custom card width for carousel view.
  */
 interface Props {
     businesses?: Business[];
     offers?: IOffer[];
+    reviews?: Review[];
     onBusinessPress: (businessId: string) => void;
     cardWidth?: number;
 }
 
 /**
- * BusinessSpotlightCard — Adaptive spotlight card or carousel displaying verified tour organizers.
+ * BusinessSpotlightCard — Scenic hero spotlight card or carousel displaying verified tour organizers.
  *
  * @param props - Component props
  * @returns React.JSX.Element rendering the featured tour partner card or carousel
@@ -48,18 +58,36 @@ interface Props {
 const BusinessSpotlightCard = ({
     businesses = [],
     offers = [],
+    reviews = [],
     onBusinessPress,
     cardWidth,
 }: Props): React.JSX.Element | null => {
     const scrollRef = useRef<ScrollView>(null);
+    const { isDesktop, isTablet } = useBreakpoints();
+    const isWide = isDesktop || isTablet;
+
     const hasMultiple = Boolean(businesses && businesses.length > 1);
     useWebDragScroll(scrollRef, hasMultiple, businesses);
+
+    const businessBookings = useBookingsStore((s) => s.businessBookings);
+    const primaryBusinessId = businesses[0]?.id;
+
+    useEffect(() => {
+        if (primaryBusinessId) {
+            useBookingsStore.getState().fetchAllBusinessBookings(primaryBusinessId);
+        }
+    }, [primaryBusinessId]);
 
     if (!businesses || businesses.length === 0) {
         return null;
     }
 
-    // Helper to calculate active upcoming package count for a given business
+    /**
+     * Calculates active upcoming package count for a given business.
+     *
+     * @param business - Target business entity.
+     * @returns Number of active upcoming offers.
+     */
     const getActivePackageCount = (business: Business): number => {
         return offers.filter((o) => {
             if (!isAliveOffer(o)) return false;
@@ -73,39 +101,168 @@ const BusinessSpotlightCard = ({
         }).length;
     };
 
-    // Helper to count real verified permits on file
-    const getVerifiedPermitsCount = (business: Business): number => {
-        return [
-            business.permits?.denr,
-            business.permits?.dti,
-            business.permits?.bir,
-        ].filter(Boolean).length;
-    };
-
-    // Helper to format established year and experience
+    /**
+     * Formats established year and years of guiding experience.
+     *
+     * @param date - Date the business was established.
+     * @returns Human-readable established string.
+     */
     const formatEstablishedText = (date?: Date): string => {
-        if (!date) return 'Registered Local Partner';
+        if (!date) return 'Registered Tour Partner';
         try {
             const year = date instanceof Date ? date.getFullYear() : new Date(date).getFullYear();
             const currentYear = new Date().getFullYear();
             const diff = Math.max(0, currentYear - year);
-            return diff > 0 ? `Guiding since ${year} • ${diff}+ yrs` : `Guiding since ${year}`;
+            return diff > 0 ? `Est. ${year} (${diff}+ yrs)` : `Est. ${year}`;
         } catch {
-            return 'Registered Local Partner';
+            return 'Registered Tour Partner';
         }
     };
 
-    // Single Business: Render prominent, full-width featured card
-    if (businesses.length === 1) {
-        const business = businesses[0];
+    const renderSpotlightBanner = (business: Business, isCarouselItem: boolean): React.JSX.Element => {
         const packageCount = getActivePackageCount(business);
-        const permitsCount = getVerifiedPermitsCount(business);
         const establishedText = formatEstablishedText(business.establishedOn);
-        const serviced = business.servicedLocation || [];
-        const visibleLocations = serviced.slice(0, 3);
-        const extraLocationsCount = Math.max(0, serviced.length - 3);
-        const initials = getInitials(business.name);
+        const { rating, reviewsCount } = getBusinessReviewsAndMetrics(
+            business,
+            offers,
+            reviews,
+            businessBookings
+        );
+        const ratingLabel = reviewsCount > 0
+            ? `${rating.toFixed(1)} (${reviewsCount} ${reviewsCount === 1 ? 'review' : 'reviews'})`
+            : 'New Partner';
 
+        return (
+            <TouchableOpacity
+                key={business.id}
+                style={[
+                    styles.fullCard,
+                    isCarouselItem && styles.carouselCard,
+                    Boolean(isCarouselItem && cardWidth) && { width: cardWidth },
+                ]}
+                activeOpacity={0.88}
+                onPress={() => onBusinessPress(business.id)}
+            >
+                <View style={[styles.imageContainer, isWide && styles.imageContainerWide]}>
+                    <CustomImage
+                        source={BANNER_IMAGE_SOURCE}
+                        style={styles.cardImage}
+                        resizeMode="cover"
+                    />
+
+                    <LinearGradient
+                        colors={['rgba(0, 0, 0, 0.12)', 'rgba(0, 0, 0, 0.38)', `${Colors.BLACK}E6`]}
+                        style={[styles.gradientOverlay, isWide && styles.gradientOverlayWide]}
+                    >
+                        {/* Top Floating Badges Row */}
+                        <View style={styles.topBadgeRow}>
+                            <View style={styles.featuredBadge}>
+                                <CustomIcon
+                                    library="AntDesign"
+                                    name="star"
+                                    size={12}
+                                    color={Colors.YELLOW}
+                                />
+                                <CustomText style={styles.featuredBadgeText}>
+                                    Featured Tour Partner
+                                </CustomText>
+                            </View>
+
+                            <View style={styles.packagePill}>
+                                <CustomIcon
+                                    library="Feather"
+                                    name="compass"
+                                    size={12}
+                                    color={Colors.WHITE}
+                                />
+                                <CustomText style={styles.packagePillText}>
+                                    {`${packageCount} Active ${packageCount === 1 ? 'Package' : 'Packages'}`}
+                                </CustomText>
+                            </View>
+                        </View>
+
+                        {/* Bottom-Left Content Stack (Flush Left, Matching TrailOfTheMonthCard) */}
+                        <View style={styles.contentContainer}>
+                            <View style={styles.nameBadgeRow}>
+                                <CustomText
+                                    variant="body"
+                                    style={[
+                                        styles.businessName,
+                                        isWide && styles.businessNameWide,
+                                    ]}
+                                    numberOfLines={1}
+                                >
+                                    {business.name}
+                                </CustomText>
+
+                                <View style={styles.verifiedBadge}>
+                                    <CustomIcon
+                                        library="Feather"
+                                        name="check-circle"
+                                        size={11}
+                                        color={Colors.WHITE}
+                                    />
+                                    <CustomText style={styles.verifiedBadgeText}>
+                                        Verified
+                                    </CustomText>
+                                </View>
+                            </View>
+
+                            <View style={styles.metaRow}>
+                                <View style={styles.metaItem}>
+                                    <CustomIcon
+                                        library="AntDesign"
+                                        name="star"
+                                        size={12}
+                                        color={Colors.YELLOW}
+                                    />
+                                    <CustomText variant="caption" style={styles.metaText}>
+                                        {ratingLabel}
+                                    </CustomText>
+                                </View>
+
+                                {Boolean(business.address) && (
+                                    <View style={styles.metaItem}>
+                                        <CustomIcon
+                                            library="Feather"
+                                            name="map-pin"
+                                            size={12}
+                                            color={Colors.YELLOW}
+                                        />
+                                        <CustomText
+                                            variant="caption"
+                                            style={styles.metaText}
+                                            numberOfLines={1}
+                                        >
+                                            {business.address}
+                                        </CustomText>
+                                    </View>
+                                )}
+
+                                <View style={styles.metaItem}>
+                                    <CustomIcon
+                                        library="Feather"
+                                        name="calendar"
+                                        size={12}
+                                        color={Colors.YELLOW}
+                                    />
+                                    <CustomText
+                                        variant="caption"
+                                        style={styles.metaText}
+                                        numberOfLines={1}
+                                    >
+                                        {establishedText}
+                                    </CustomText>
+                                </View>
+                            </View>
+                        </View>
+                    </LinearGradient>
+                </View>
+            </TouchableOpacity>
+        );
+    };
+
+    if (businesses.length === 1) {
         return (
             <View style={styles.sectionContainer}>
                 <View style={styles.sectionHeader}>
@@ -115,119 +272,12 @@ const BusinessSpotlightCard = ({
                 </View>
 
                 <View style={styles.cardWrapper}>
-                    <TouchableOpacity
-                        style={styles.spotlightCard}
-                        activeOpacity={0.85}
-                        onPress={() => onBusinessPress(business.id)}
-                    >
-                        {/* Organizer Identity Row */}
-                        <View style={styles.identityRow}>
-                            <View style={styles.avatarContainer}>
-                                <CustomText style={styles.avatarInitials}>
-                                    {initials}
-                                </CustomText>
-                            </View>
-
-                            <View style={styles.identityTextGroup}>
-                                <View style={styles.nameBadgeRow}>
-                                    <CustomText
-                                        variant="h3"
-                                        style={styles.businessName}
-                                        numberOfLines={1}
-                                    >
-                                        {business.name}
-                                    </CustomText>
-
-                                    {permitsCount > 0 && (
-                                        <View style={styles.verifiedBadge}>
-                                            <CustomIcon
-                                                library="Feather"
-                                                name="check-circle"
-                                                size={11}
-                                                color={Colors.SUCCESS}
-                                            />
-                                            <CustomText
-                                                variant="caption"
-                                                style={styles.verifiedBadgeText}
-                                            >
-                                                Verified
-                                            </CustomText>
-                                        </View>
-                                    )}
-                                </View>
-
-                                <CustomText
-                                    variant="caption"
-                                    style={styles.experienceSubtitle}
-                                    numberOfLines={1}
-                                >
-                                    {business.address
-                                        ? `${establishedText} • ${business.address}`
-                                        : establishedText}
-                                </CustomText>
-                            </View>
-                        </View>
-
-                        {/* Coverage Tags */}
-                        {visibleLocations.length > 0 && (
-                            <View style={styles.coverageRow}>
-                                <CustomText variant="caption" style={styles.coverageLabel}>
-                                    Coverage:
-                                </CustomText>
-                                <View style={styles.tagCloud}>
-                                    {visibleLocations.map((loc, idx) => (
-                                        <View key={`${loc}-${idx}`} style={styles.tagChip}>
-                                            <CustomText variant="caption" style={styles.tagChipText}>
-                                                {loc}
-                                            </CustomText>
-                                        </View>
-                                    ))}
-                                    {extraLocationsCount > 0 && (
-                                        <View style={styles.extraTagChip}>
-                                            <CustomText variant="caption" style={styles.extraTagText}>
-                                                {`+${extraLocationsCount} more`}
-                                            </CustomText>
-                                        </View>
-                                    )}
-                                </View>
-                            </View>
-                        )}
-
-                        <View style={styles.divider} />
-
-                        {/* Bottom Row with Colored Text CTA */}
-                        <View style={styles.footerRow}>
-                            <View style={styles.packageCountGroup}>
-                                <CustomIcon
-                                    library="Feather"
-                                    name="compass"
-                                    size={14}
-                                    color={Colors.PRIMARY}
-                                />
-                                <CustomText variant="caption" style={styles.packageCountText}>
-                                    {`${packageCount} Active ${packageCount === 1 ? 'Package' : 'Packages'}${permitsCount > 0 ? ` • ${permitsCount}/3 Permits` : ''}`}
-                                </CustomText>
-                            </View>
-
-                            <View style={styles.viewProfileLink}>
-                                <CustomText variant="caption" style={styles.viewProfileText}>
-                                    View Profile
-                                </CustomText>
-                                <CustomIcon
-                                    library="Feather"
-                                    name="arrow-right"
-                                    size={14}
-                                    color={Colors.PRIMARY}
-                                />
-                            </View>
-                        </View>
-                    </TouchableOpacity>
+                    {renderSpotlightBanner(businesses[0], false)}
                 </View>
             </View>
         );
     }
 
-    // Multiple Businesses: Render horizontal carousel
     return (
         <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
@@ -243,90 +293,7 @@ const BusinessSpotlightCard = ({
                 contentContainerStyle={styles.horizontalList}
                 style={styles.scrollViewStyle}
             >
-                {businesses.map((business) => {
-                    const packageCount = getActivePackageCount(business);
-                    const permitsCount = getVerifiedPermitsCount(business);
-                    const establishedText = formatEstablishedText(business.establishedOn);
-                    const initials = getInitials(business.name);
-
-                    return (
-                        <TouchableOpacity
-                            key={business.id}
-                            style={[
-                                styles.spotlightCard,
-                                styles.carouselCard,
-                                Boolean(cardWidth) && { width: cardWidth },
-                            ]}
-                            activeOpacity={0.85}
-                            onPress={() => onBusinessPress(business.id)}
-                        >
-                            <View style={styles.identityRow}>
-                                <View style={styles.avatarContainer}>
-                                    <CustomText style={styles.avatarInitials}>
-                                        {initials}
-                                    </CustomText>
-                                </View>
-
-                                <View style={styles.identityTextGroup}>
-                                    <View style={styles.nameBadgeRow}>
-                                        <CustomText
-                                            variant="h3"
-                                            style={styles.businessName}
-                                            numberOfLines={1}
-                                        >
-                                            {business.name}
-                                        </CustomText>
-
-                                        {permitsCount > 0 && (
-                                            <View style={styles.verifiedBadge}>
-                                                <CustomIcon
-                                                    library="Feather"
-                                                    name="check-circle"
-                                                    size={11}
-                                                    color={Colors.SUCCESS}
-                                                />
-                                                <CustomText
-                                                    variant="caption"
-                                                    style={styles.verifiedBadgeText}
-                                                >
-                                                    Verified
-                                                </CustomText>
-                                            </View>
-                                        )}
-                                    </View>
-
-                                    <CustomText
-                                        variant="caption"
-                                        style={styles.experienceSubtitle}
-                                        numberOfLines={1}
-                                    >
-                                        {establishedText}
-                                    </CustomText>
-                                </View>
-                            </View>
-
-                            <View style={styles.divider} />
-
-                            <View style={styles.footerRow}>
-                                <CustomText variant="caption" style={styles.packageCountText}>
-                                    {`${packageCount} Active ${packageCount === 1 ? 'Package' : 'Packages'}`}
-                                </CustomText>
-
-                                <View style={styles.viewProfileLink}>
-                                    <CustomText variant="caption" style={styles.viewProfileText}>
-                                        View Profile
-                                    </CustomText>
-                                    <CustomIcon
-                                        library="Feather"
-                                        name="arrow-right"
-                                        size={13}
-                                        color={Colors.PRIMARY}
-                                    />
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    );
-                })}
+                {businesses.map((business) => renderSpotlightBanner(business, true))}
             </ScrollView>
         </View>
     );
@@ -346,25 +313,29 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 20,
-        marginBottom: 8,
+        marginBottom: 4,
     },
     cardWrapper: {
         paddingHorizontal: 16,
     },
-    spotlightCard: {
+    fullCard: {
         backgroundColor: Colors.WHITE,
-        borderRadius: 24,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
+        borderRadius: 16,
+        overflow: 'hidden',
         ...GlobalStyles.dropShadow(3),
+        marginVertical: 4,
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     carouselCard: {
-        width: 320,
+        width: 340,
         marginRight: 16,
     },
     horizontalList: {
-        paddingTop: 12,
+        paddingTop: 8,
         paddingBottom: 16,
         paddingHorizontal: 16,
     },
@@ -377,33 +348,72 @@ const styles = StyleSheet.create({
             },
         }),
     },
-    identityRow: {
+    imageContainer: {
+        height: 210,
+        width: '100%',
+        position: 'relative',
+        backgroundColor: Colors.GRAY_LIGHT,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    imageContainerWide: {
+        height: 230,
+    },
+    cardImage: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: Colors.GRAY_LIGHT,
+    },
+    gradientOverlay: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: '100%',
+        justifyContent: 'space-between',
+        padding: 16,
+    },
+    gradientOverlayWide: {
+        padding: 20,
+    },
+    topBadgeRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 14,
+        justifyContent: 'space-between',
+        gap: 8,
+        flexWrap: 'wrap',
     },
-    avatarContainer: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-        backgroundColor: Colors.PRIMARY,
-        justifyContent: 'center',
+    featuredBadge: {
+        flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 2,
-        borderColor: Colors.WHITE,
-        flexShrink: 0,
+        gap: 5,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 12,
     },
-    avatarInitials: {
+    featuredBadgeText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: Palette.Slate900,
+    },
+    packagePill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        backgroundColor: Palette.Green600,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 12,
+    },
+    packagePillText: {
+        fontSize: 12,
+        fontWeight: '700',
         color: Colors.WHITE,
-        fontSize: 18,
-        fontWeight: 'bold',
-        letterSpacing: 0.8,
     },
-    identityTextGroup: {
-        flex: 1,
-        minWidth: 0,
-        justifyContent: 'center',
-        gap: 2,
+    contentContainer: {
+        width: '100%',
+        gap: 6,
     },
     nameBadgeRow: {
         flexDirection: 'row',
@@ -412,105 +422,77 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     businessName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
-        marginBottom: 0,
+        fontSize: 24,
+        fontWeight: '800',
+        color: Colors.TEXT_INVERSE,
+        lineHeight: 30,
+        letterSpacing: 0.2,
         flexShrink: 1,
+        ...Platform.select({
+            ios: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            android: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            web: {
+                textShadow: `0px 1px 4px ${Colors.BLACK}80`,
+            },
+        }),
+    },
+    businessNameWide: {
+        fontSize: 26,
+        lineHeight: 32,
     },
     verifiedBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: Colors.STATUS_APPROVED_BG,
+        backgroundColor: Palette.Green600,
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 999,
-        borderWidth: 1,
-        borderColor: Colors.STATUS_APPROVED_BORDER,
     },
     verifiedBadgeText: {
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: '700',
-        color: Colors.STATUS_APPROVED_TEXT,
+        color: Colors.WHITE,
     },
-    experienceSubtitle: {
-        fontSize: 12,
-        color: Colors.TEXT_SECONDARY,
-    },
-    coverageRow: {
+    metaRow: {
         flexDirection: 'row',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: 8,
-        marginTop: 12,
+        columnGap: 14,
+        rowGap: 4,
     },
-    coverageLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: Colors.TEXT_SECONDARY,
-    },
-    tagCloud: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: 6,
-    },
-    tagChip: {
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_LIGHT,
-    },
-    tagChipText: {
-        fontSize: 11,
-        color: Colors.TEXT_PRIMARY,
-        fontWeight: '500',
-    },
-    extraTagChip: {
-        backgroundColor: Colors.BACKGROUND,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 8,
-    },
-    extraTagText: {
-        fontSize: 11,
-        color: Colors.PRIMARY,
-        fontWeight: '600',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: Colors.GRAY_LIGHT,
-        marginVertical: 14,
-    },
-    footerRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    packageCountGroup: {
+    metaItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        flex: 1,
-        marginRight: 12,
+        gap: 5,
     },
-    packageCountText: {
+    metaText: {
         fontSize: 13,
         fontWeight: '600',
-        color: Colors.TEXT_PRIMARY,
-    },
-    viewProfileLink: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    viewProfileText: {
-        color: Colors.PRIMARY,
-        fontSize: 13,
-        fontWeight: 'bold',
+        color: Colors.TEXT_INVERSE,
+        ...Platform.select({
+            ios: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            android: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            web: {
+                textShadow: `0px 1px 4px ${Colors.BLACK}80`,
+            },
+        }),
     },
 });
 
