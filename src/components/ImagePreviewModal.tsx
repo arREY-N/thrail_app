@@ -3,7 +3,9 @@ import {
     ActivityIndicator,
     Image,
     ImageSourcePropType,
+    ImageStyle,
     Modal,
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View,
@@ -30,6 +32,8 @@ interface ImagePreviewModalProps {
     images?: (string | { uri: string } | ImageSourcePropType)[];
     /** Optional initial image index to display when opening the modal (defaults to 0) */
     initialIndex?: number;
+    /** Optional blur radius applied when previewing sensitive documents (e.g. business permits) */
+    blurRadius?: number;
     /** Callback fired when the modal is closed */
     onClose: () => void;
     /** Callback fired when the delete button is pressed */
@@ -45,6 +49,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     imageUrl, 
     images, 
     initialIndex = 0,
+    blurRadius,
     onClose, 
     onDelete 
 }) => {
@@ -246,9 +251,13 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                             <Image 
                                 key={`preview-image-${currentIndex}-${currentImageKey}`}
                                 source={memoizedSource ?? { uri: '' }} 
+                                blurRadius={blurRadius}
                                 style={[
                                     styles.previewImage,
-                                    { width: windowWidth, height: cropHeight, opacity: isImageLoading ? 0 : 1 }
+                                    { width: windowWidth, height: cropHeight, opacity: isImageLoading ? 0 : 1 },
+                                    Boolean(blurRadius && blurRadius > 0 && Platform.OS === 'web') && ({
+                                        filter: `blur(${blurRadius}px)`,
+                                    } as unknown as ImageStyle),
                                 ]} 
                                 resizeMode="contain" 
                                 onLoad={(e) => {
