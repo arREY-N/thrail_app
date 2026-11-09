@@ -1,13 +1,14 @@
 /**
  * @file GuideProfileModal.tsx
- * @description Card modal presenting public credentials, role badges, and outdoor experience
- * for tour organizers and mountain guides. Dismissible via backdrop tap or top-right close icon.
+ * @description Card modal presenting public credentials, role badges, verified Government Valid ID,
+ * and outdoor experience for tour organizers and mountain guides. Dismissible via backdrop tap or top-right close icon.
  */
 
 import React, { useEffect, useState } from 'react';
 import {
     Animated,
     Image,
+    ImageSourcePropType,
     Modal,
     Platform,
     StyleSheet,
@@ -17,12 +18,19 @@ import {
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import SkeletonEffect from '@/src/components/SkeletonEffect';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { User, UserRepo } from '@/src/core/models/User/User';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { getInitials } from '@/src/utils/dateFormatter';
+
+/**
+ * Configurable blur intensity when previewing Owner and Admin Valid ID images in ImagePreviewModal.
+ * Set to 0 for no blur, 5–8 for moderate privacy blur, or 12+ for heavy blur.
+ */
+export const VALID_ID_PREVIEW_BLUR_RADIUS = 6;
 
 /**
  * Props for the GuideProfileModal component.
@@ -33,6 +41,8 @@ import { getInitials } from '@/src/utils/dateFormatter';
  * @param businessName - Name of the affiliated tour business.
  * @param roleBadge - Role distinction: 'OWNER' or 'COORDINATOR'.
  * @param initialData - Fallback profile data to display while loading.
+ * @param validIdTitle - Title of the verified government ID on file (e.g., Postal ID, Multi-Purpose ID, National ID).
+ * @param validIdSource - Local image source for the verified government ID.
  */
 export interface GuideProfileModalProps {
     visible: boolean;
@@ -45,6 +55,8 @@ export interface GuideProfileModalProps {
         username?: string;
         email?: string;
     };
+    validIdTitle?: string;
+    validIdSource?: ImageSourcePropType;
 }
 
 /**
@@ -60,8 +72,11 @@ const GuideProfileModal: React.FC<GuideProfileModalProps> = ({
     businessName,
     roleBadge = 'COORDINATOR',
     initialData,
+    validIdTitle,
+    validIdSource,
 }) => {
     const [fetchedData, setFetchedData] = useState<{ id: string; user: User | null } | null>(null);
+    const [previewIdSource, setPreviewIdSource] = useState<ImageSourcePropType | null>(null);
     const [renderModal, setRenderModal] = useState<boolean>(visible);
     if (visible && !renderModal) {
         setRenderModal(true);
@@ -73,6 +88,8 @@ const GuideProfileModal: React.FC<GuideProfileModalProps> = ({
         setPrevVisible(visible);
         if (visible) {
             setRenderModal(true);
+        } else {
+            setPreviewIdSource(null);
         }
     }
 
@@ -111,28 +128,38 @@ const GuideProfileModal: React.FC<GuideProfileModalProps> = ({
         userId?: string;
         roleBadge: 'OWNER' | 'COORDINATOR';
         initialData?: GuideProfileModalProps['initialData'];
+        validIdTitle?: string;
+        validIdSource?: ImageSourcePropType;
     }>({
         userId,
         roleBadge,
         initialData,
+        validIdTitle,
+        validIdSource,
     });
 
     if (
         visible &&
         (userId !== lastKnown.userId ||
             roleBadge !== lastKnown.roleBadge ||
-            initialData !== lastKnown.initialData)
+            initialData !== lastKnown.initialData ||
+            validIdTitle !== lastKnown.validIdTitle ||
+            validIdSource !== lastKnown.validIdSource)
     ) {
         setLastKnown({
             userId,
             roleBadge,
             initialData,
+            validIdTitle,
+            validIdSource,
         });
     }
 
     const effectiveUserId = visible ? userId : lastKnown.userId;
     const effectiveRoleBadge = visible ? roleBadge : lastKnown.roleBadge;
     const effectiveInitialData = visible ? initialData : lastKnown.initialData;
+    const effectiveValidIdTitle = visible ? validIdTitle : lastKnown.validIdTitle;
+    const effectiveValidIdSource = visible ? validIdSource : lastKnown.validIdSource;
 
     const user = (fetchedData && fetchedData.id === effectiveUserId) ? fetchedData.user : null;
     const isLoading = Boolean(visible && effectiveUserId && (!fetchedData || fetchedData.id !== effectiveUserId));
@@ -358,6 +385,58 @@ const GuideProfileModal: React.FC<GuideProfileModalProps> = ({
                                 </CustomText>
                             </View>
                         )}
+
+                        {Boolean(effectiveValidIdSource) && (
+                            <View style={styles.validIdRow}>
+                                <View style={styles.validIdLeft}>
+                                    <View style={styles.validIdTitleWrap}>
+                                        <CustomText
+                                            variant="caption"
+                                            style={styles.dataLabel}
+                                        >
+                                            Valid ID
+                                        </CustomText>
+                                        <View style={styles.verifiedIdChip}>
+                                            <CustomIcon
+                                                library="Feather"
+                                                name="check"
+                                                size={10}
+                                                color={Colors.SUCCESS}
+                                            />
+                                            <CustomText
+                                                variant="caption"
+                                                style={styles.verifiedIdChipText}
+                                            >
+                                                Verified
+                                            </CustomText>
+                                        </View>
+                                    </View>
+                                    <CustomText
+                                        variant="label"
+                                        style={styles.validIdTypeText}
+                                    >
+                                        {effectiveValidIdTitle || 'Government Valid ID'}
+                                    </CustomText>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.viewIdButton}
+                                    activeOpacity={0.7}
+                                    onPress={() => {
+                                        if (effectiveValidIdSource) {
+                                            setPreviewIdSource(effectiveValidIdSource);
+                                        }
+                                    }}
+                                >
+                                    <CustomText
+                                        variant="caption"
+                                        style={styles.viewIdButtonText}
+                                    >
+                                        View ID
+                                    </CustomText>
+                                </TouchableOpacity>
+                            </View>
+                        )}
                     </View>
 
                     <View style={styles.sectionDivider} />
@@ -437,6 +516,15 @@ const GuideProfileModal: React.FC<GuideProfileModalProps> = ({
                         )}
                     </View>
                 </Animated.View>
+
+                {/* Blurred Valid ID Full-Screen Image Preview Modal */}
+                <ImagePreviewModal
+                    visible={Boolean(previewIdSource)}
+                    images={previewIdSource ? [previewIdSource] : []}
+                    initialIndex={0}
+                    blurRadius={VALID_ID_PREVIEW_BLUR_RADIUS}
+                    onClose={() => setPreviewIdSource(null)}
+                />
             </View>
         </Modal>
     );
@@ -609,6 +697,62 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         textAlign: 'right',
         flex: 1,
+    },
+    validIdRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 4,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: Colors.GRAY_ULTRALIGHT,
+        gap: 12,
+    },
+    validIdLeft: {
+        flex: 1,
+        gap: 2,
+    },
+    validIdTitleWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    verifiedIdChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    verifiedIdChipText: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: Colors.SUCCESS,
+    },
+    validIdTypeText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+    },
+    viewIdButton: {
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        borderWidth: 1,
+        borderColor: Colors.SUCCESS,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 16,
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
+    },
+    viewIdButtonText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: Colors.SUCCESS,
     },
     provincesBlock: {
         marginTop: 4,
