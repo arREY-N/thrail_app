@@ -45,6 +45,7 @@ import WeatherSection from "@/src/features/Home/components/WeatherSection";
 import { Business } from "@/src/core/models/Business/Business";
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import { Recommendation } from '@/src/core/models/Recommendation/Recommendation';
+import { Review } from '@/src/core/models/Review/Review';
 import { ITrail } from '@/src/core/models/Trail/Trail';
 import { getTrailOffersCount } from '@/src/utils/offerHelpers';
 
@@ -91,6 +92,7 @@ export interface HomeScreenProps {
   getItemRating: (id: string) => number;
   isLoading: boolean;
   offers?: IOffer[];
+  reviews?: Review[];
   businesses?: Business[];
   isBusinessesLoading?: boolean;
   onBusinessPress?: (businessId: string) => void;
@@ -318,6 +320,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   getItemRating,
   isLoading,
   offers = [],
+  reviews = [],
   businesses = [],
   isBusinessesLoading = false,
   onBusinessPress,
@@ -473,6 +476,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
         <BusinessSpotlightCard
           businesses={businesses}
           offers={offers}
+          reviews={reviews}
           onBusinessPress={(id) => {
             if (onBusinessPress) {
               onBusinessPress(id);
