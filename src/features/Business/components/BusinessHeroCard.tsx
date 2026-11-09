@@ -1,19 +1,29 @@
 /**
  * @file BusinessHeroCard.tsx
- * @description Open identity banner component for the tour business profile screen,
- * styled after ProfileScreen's userBanner without an outer box container.
- * Displays organizer avatar initials, business name, verified badge, established year, address,
- * and concise real metric summary.
+ * @description Recommendation-style scenic hero cover banner and 4-column key specs bar
+ * for the Tour Business profile screen. Uses Banner.jpg with a LinearGradient overlay,
+ * floating glass pills, and dynamically calculated review metrics.
  */
 
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import {
+    DimensionValue,
+    ImageSourcePropType,
+    Platform,
+    StyleSheet,
+    View,
+} from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
+import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
-import { Colors } from '@/src/constants/colors';
+import { Colors, Palette } from '@/src/constants/colors';
+import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Business } from '@/src/core/models/Business/Business';
 import { getInitials } from '@/src/utils/dateFormatter';
+
+const BANNER_IMAGE_SOURCE: ImageSourcePropType = require('@/src/assets/images/Banner.jpg');
 
 /**
  * Props for the BusinessHeroCard component.
@@ -22,31 +32,33 @@ import { getInitials } from '@/src/utils/dateFormatter';
  * @param packageCount - Count of active upcoming packages/offers for this business.
  * @param guidesCount - Count of team members (owner + active coordinators).
  * @param permitsCount - Count of verified legal permits on file (max 3: DENR, DTI, BIR).
- * @param rating - Optional public review rating score.
- * @param reviewsCount - Optional total count of public reviews.
+ * @param rating - Dynamically calculated review rating score.
+ * @param reviewsCount - Dynamically calculated total count of business reviews.
+ * @param contentMaxWidth - Responsive max-width token for aligning overlay content and specs card.
  */
 interface Props {
     business: Business;
     packageCount: number;
     guidesCount: number;
-    permitsCount: number;
+    permitsCount?: number;
     rating?: number;
     reviewsCount?: number;
+    contentMaxWidth?: DimensionValue;
 }
 
 /**
- * BusinessHeroCard — Open ProfileScreen-style organizer identity banner.
+ * BusinessHeroCard — Recommendation-style scenic cover banner and 3-column key specs card.
  *
  * @param props - Component props
- * @returns React.JSX.Element rendering the identity banner
+ * @returns React.JSX.Element rendering the hero cover banner and key specs bar
  */
 const BusinessHeroCard = ({
     business,
     packageCount,
     guidesCount,
-    permitsCount,
-    rating = 4.9,
-    reviewsCount = 60,
+    rating = 0,
+    reviewsCount = 0,
+    contentMaxWidth = '100%',
 }: Props): React.JSX.Element => {
     const initials = getInitials(business.name);
 
@@ -59,92 +71,186 @@ const BusinessHeroCard = ({
             const currentYear = new Date().getFullYear();
             const diff = Math.max(0, currentYear - year);
             return diff > 0
-                ? `Est. ${year} (${diff}+ yrs)`
+                ? `Est. ${year} • ${diff}+ yrs`
                 : `Est. ${year}`;
         } catch {
             return 'Registered Tour Partner';
         }
     })();
 
-    const subtitleLine = business.address
-        ? `${establishedText} • ${business.address}`
-        : establishedText;
-
-    const metricsSummary = [
-        `${packageCount} Active ${packageCount === 1 ? 'Package' : 'Packages'}`,
-        `${permitsCount}/3 Permits`,
-        `${guidesCount} ${guidesCount === 1 ? 'Member' : 'Members'}`,
-    ].join('  •  ');
+    const hasReviews = reviewsCount > 0 && rating > 0;
+    const bannerRatingLabel = hasReviews
+        ? `${rating.toFixed(1)} (${reviewsCount} ${reviewsCount === 1 ? 'review' : 'reviews'})`
+        : 'No reviews yet';
+    const specsRatingLabel = hasReviews
+        ? `${rating.toFixed(1)} (${reviewsCount})`
+        : 'N/A (0)';
 
     return (
-        <View style={styles.bannerContainer}>
-            <View style={styles.infoLeft}>
-                <View style={styles.avatarPlaceholder}>
-                    <CustomText style={styles.initialsText}>
-                        {initials}
-                    </CustomText>
-                </View>
+        <View style={styles.heroWrapper}>
+            {/* 1. Full-Width Scenic Cover Banner (Matching Recommendation Screen) */}
+            <View style={styles.imageContainer}>
+                <CustomImage
+                    source={BANNER_IMAGE_SOURCE}
+                    style={styles.cardImage}
+                    resizeMode="cover"
+                />
 
-                <View style={styles.identityTextGroup}>
-                    <View style={styles.titleBadgeRow}>
-                        <CustomText
-                            variant="h2"
-                            style={styles.businessNameText}
-                            numberOfLines={1}
-                            ellipsizeMode="tail"
-                        >
-                            {business.name}
-                        </CustomText>
+                <LinearGradient
+                    colors={['transparent', 'rgba(0, 0, 0, 0.25)', `${Colors.BLACK}E6`]}
+                    style={styles.gradientOverlay}
+                >
+                    <View
+                        style={[
+                            styles.contentContainer,
+                            {
+                                maxWidth: contentMaxWidth,
+                                alignSelf: 'center',
+                                width: '100%',
+                            },
+                        ]}
+                    >
+                        {/* Top Floating Badges Row */}
+                        <View style={styles.heroBadgeRow}>
+                            <View style={styles.establishedBadge}>
+                                <CustomIcon
+                                    library="Feather"
+                                    name="star"
+                                    size={13}
+                                    color={Colors.YELLOW}
+                                />
+                                <CustomText style={styles.establishedBadgeText}>
+                                    {establishedText}
+                                </CustomText>
+                            </View>
 
-                        {permitsCount > 0 && (
-                            <View style={styles.verifiedBadge}>
+                            <View style={styles.verifiedPill}>
                                 <CustomIcon
                                     library="Feather"
                                     name="check-circle"
-                                    size={11}
-                                    color={Colors.SUCCESS}
+                                    size={13}
+                                    color={Colors.WHITE}
                                 />
-                                <CustomText
-                                    variant="caption"
-                                    style={styles.verifiedBadgeText}
-                                >
-                                    Verified
+                                <CustomText style={styles.verifiedPillText}>
+                                    Verified Tour Partner
                                 </CustomText>
                             </View>
-                        )}
+                        </View>
+
+                        {/* Main Organizer Identity Row */}
+                        <View style={styles.identityRow}>
+                            <View style={styles.avatarCircle}>
+                                <CustomText style={styles.initialsText}>
+                                    {initials}
+                                </CustomText>
+                            </View>
+
+                            <View style={styles.identityTextGroup}>
+                                <CustomText
+                                    variant="body"
+                                    style={styles.businessNameTitle}
+                                    numberOfLines={2}
+                                >
+                                    {business.name}
+                                </CustomText>
+
+                                <View style={styles.heroMetaRow}>
+                                    <View style={styles.metaItem}>
+                                        <CustomIcon
+                                            library="AntDesign"
+                                            name="star"
+                                            size={13}
+                                            color={Colors.YELLOW}
+                                        />
+                                        <CustomText variant="caption" style={styles.metaText}>
+                                            {bannerRatingLabel}
+                                        </CustomText>
+                                    </View>
+
+                                    {Boolean(business.address) && (
+                                        <View style={styles.metaItem}>
+                                            <CustomIcon
+                                                library="Feather"
+                                                name="map-pin"
+                                                size={13}
+                                                color={Colors.WHITE}
+                                            />
+                                            <CustomText
+                                                variant="caption"
+                                                style={styles.metaText}
+                                                numberOfLines={1}
+                                            >
+                                                {business.address}
+                                            </CustomText>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                </LinearGradient>
+            </View>
+
+            {/* 2. Key Specs Bar Below Banner (Matching Recommendation Screen specsCard) */}
+            <View
+                style={[
+                    styles.specsContainer,
+                    {
+                        maxWidth: contentMaxWidth,
+                        alignSelf: 'center',
+                        width: '100%',
+                    },
+                ]}
+            >
+                <View style={styles.specsCard}>
+                    <View style={styles.specItem}>
+                        <CustomIcon
+                            library="Feather"
+                            name="compass"
+                            size={16}
+                            color={Colors.PRIMARY}
+                        />
+                        <CustomText style={styles.specItemLabel}>
+                            Packages
+                        </CustomText>
+                        <CustomText style={styles.specItemVal}>
+                            {`${packageCount} Active`}
+                        </CustomText>
                     </View>
 
-                    {rating !== undefined && (
-                        <View style={styles.ratingRow}>
-                            <CustomIcon
-                                library="AntDesign"
-                                name="star"
-                                size={13}
-                                color={Colors.YELLOW}
-                            />
-                            <CustomText variant="caption" style={styles.ratingText}>
-                                {`${rating.toFixed(1)}${reviewsCount !== undefined ? ` (${reviewsCount} reviews)` : ''}`}
-                            </CustomText>
-                        </View>
-                    )}
+                    <View style={styles.specDivider} />
 
-                    <CustomText
-                        variant="caption"
-                        style={styles.subtitleText}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {subtitleLine}
-                    </CustomText>
+                    <View style={styles.specItem}>
+                        <CustomIcon
+                            library="Feather"
+                            name="users"
+                            size={16}
+                            color={Colors.PRIMARY}
+                        />
+                        <CustomText style={styles.specItemLabel}>
+                            Team
+                        </CustomText>
+                        <CustomText style={styles.specItemVal}>
+                            {`${guidesCount} ${guidesCount === 1 ? 'Member' : 'Members'}`}
+                        </CustomText>
+                    </View>
 
-                    <CustomText
-                        variant="caption"
-                        style={styles.metricsSummaryText}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {metricsSummary}
-                    </CustomText>
+                    <View style={styles.specDivider} />
+
+                    <View style={styles.specItem}>
+                        <CustomIcon
+                            library="Feather"
+                            name="star"
+                            size={16}
+                            color={Colors.PRIMARY}
+                        />
+                        <CustomText style={styles.specItemLabel}>
+                            Rating
+                        </CustomText>
+                        <CustomText style={styles.specItemVal}>
+                            {specsRatingLabel}
+                        </CustomText>
+                    </View>
                 </View>
             </View>
         </View>
@@ -152,23 +258,79 @@ const BusinessHeroCard = ({
 };
 
 const styles = StyleSheet.create({
-    bannerContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 14,
-    },
-    infoLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    heroWrapper: {
+        width: '100%',
         gap: 16,
-        flex: 1,
-        minWidth: 0,
     },
-    avatarPlaceholder: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+    imageContainer: {
+        height: 260,
+        width: '100%',
+        position: 'relative',
+        backgroundColor: Colors.GRAY_LIGHT,
+        overflow: 'hidden',
+    },
+    cardImage: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: Colors.GRAY_LIGHT,
+    },
+    gradientOverlay: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: '100%',
+        justifyContent: 'flex-end',
+        padding: 16,
+    },
+    contentContainer: {
+        gap: 8,
+    },
+    heroBadgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+        gap: 8,
+        flexWrap: 'wrap',
+    },
+    establishedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        paddingHorizontal: 9,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    establishedBadgeText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: Palette.Slate900,
+    },
+    verifiedPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        backgroundColor: Palette.Green600,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    verifiedPillText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: Colors.WHITE,
+    },
+    identityRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+    },
+    avatarCircle: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         backgroundColor: Colors.PRIMARY,
         justifyContent: 'center',
         alignItems: 'center',
@@ -178,66 +340,103 @@ const styles = StyleSheet.create({
     },
     initialsText: {
         color: Colors.WHITE,
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: 'bold',
         letterSpacing: 1,
     },
     identityTextGroup: {
         flex: 1,
         minWidth: 0,
-        justifyContent: 'center',
-        gap: 2,
+        gap: 4,
     },
-    titleBadgeRow: {
+    businessNameTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: Colors.TEXT_INVERSE,
+        textAlign: 'left',
+        lineHeight: 30,
+        letterSpacing: 0.2,
+        ...Platform.select({
+            ios: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            android: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            web: {
+                textShadow: `0px 1px 4px ${Colors.BLACK}80`,
+            },
+        }),
+    },
+    heroMetaRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
         flexWrap: 'wrap',
+        gap: 12,
     },
-    businessNameText: {
-        marginBottom: 0,
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
-        letterSpacing: -0.5,
-        flexShrink: 1,
-    },
-    verifiedBadge: {
+    metaItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: Colors.STATUS_APPROVED_BORDER,
+        gap: 5,
     },
-    verifiedBadgeText: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: Colors.STATUS_APPROVED_TEXT,
-    },
-    ratingRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        marginTop: 1,
-        marginBottom: 1,
-    },
-    ratingText: {
-        color: Colors.TEXT_PRIMARY,
+    metaText: {
+        fontSize: 13,
         fontWeight: '600',
-        fontSize: 12,
+        color: Colors.TEXT_INVERSE,
+        ...Platform.select({
+            ios: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            android: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            web: {
+                textShadow: `0px 1px 4px ${Colors.BLACK}80`,
+            },
+        }),
     },
-    subtitleText: {
+    specsContainer: {
+        paddingHorizontal: 16,
+    },
+    specsCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: Colors.WHITE,
+        borderRadius: 12,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: Palette.Slate200,
+        elevation: 1,
+        ...GlobalStyles.dropShadow(1, 0.05),
+    },
+    specItem: {
+        flex: 1,
+        alignItems: 'center',
+        gap: 3,
+    },
+    specItemLabel: {
+        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
         fontWeight: '500',
     },
-    metricsSummaryText: {
-        color: Colors.TEXT_PLACEHOLDER,
-        fontSize: 12,
-        marginTop: 2,
-        fontWeight: '500',
+    specItemVal: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: Colors.TEXT_PRIMARY,
+    },
+    specDivider: {
+        width: 1,
+        height: 28,
+        backgroundColor: Palette.Slate200,
     },
 });
 
