@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Platform,
     ScrollView,
@@ -24,6 +24,7 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import SelectionChip from '@/src/features/Auth/components/SelectionChip';
 
+import { BusinessReviewData } from '@/src/core/flows/CreateReviewFlow';
 import { DIFFICULTY_FACTOR_MAPPINGS, DifficultyFactorOption } from '@/src/recommendation/utilities/FactorWeightsMapper';
 
 const DIFFICULTY_CARDS = [
@@ -55,24 +56,29 @@ export interface DraftReview {
     review?: string;
     image?: string[];
     trail?: { name?: string };
+    bookingId?: string | null;
 }
 
 export interface WriteReviewScreenProps {
     review: DraftReview;
+    existingBusinessReview?: BusinessReviewData | null;
     isLoading: boolean;
     error: string | null;
     onUpdatePress: (payload: { section: string; id: string; value: unknown }) => void;
     onSaveReview: () => void;
     onBackPress?: () => void;
+    createBusinessReview?: (data: BusinessReviewData) => Promise<void>;
 }
 
 const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     review,
+    existingBusinessReview,
     isLoading,
     error,
     onUpdatePress,
     onSaveReview,
     onBackPress,
+    createBusinessReview,
 }) => {
     const isEditMode = Boolean(review?.id);
 
@@ -80,6 +86,15 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
     const [showDiscardConfirmation, setShowDiscardConfirmation] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
+    const [businessRating, setBusinessRating] = useState(existingBusinessReview?.rating || 0);
+    const [businessReview, setBusinessReview] = useState(existingBusinessReview?.review || '');
+
+    useEffect(() => {
+        if (existingBusinessReview && !isDirty) {
+            setBusinessRating(existingBusinessReview.rating || 0);
+            setBusinessReview(existingBusinessReview.review || '');
+        }
+    }, [existingBusinessReview, isDirty]);
 
     const {
         tutorial,
@@ -110,7 +125,9 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     if (currentStep === 'ratings') {
         hasAnswer = review.overallRating > 0 && !!normalizedDifficulty;
     } else if (currentStep === 'details') {
-        hasAnswer = true;
+        hasAnswer = review?.bookingId != null
+            ? businessRating > 0 && businessReview.trim().length > 0
+            : true;
     }
 
     const handleNext = () => {
@@ -141,8 +158,18 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
         onBackPress?.();
     };
 
-    const handleConfirmSubmit = () => {
+    const handleConfirmSubmit = async () => {
         setShowSaveConfirmation(false);
+        if (review?.bookingId != null && createBusinessReview) {
+            try {
+                await createBusinessReview({
+                    rating: businessRating,
+                    review: businessReview,
+                });
+            } catch (err) {
+                console.error("Failed to submit business review:", err);
+            }
+        }
         onSaveReview();
     };
 
@@ -365,6 +392,51 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                                 />
                             </View>
                         </View>
+
+                        {review?.bookingId != null && (
+                            <View>
+                                <View style={styles.sectionContainer}>
+                                    <CustomText variant="subtitle" style={styles.question}>
+                                        Rate the organizers
+                                    </CustomText>
+                                    <View style={styles.starContainer}>
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <TouchableOpacity
+                                                key={star}
+                                                onPress={() => {
+                                                    setIsDirty(true);
+                                                    setBusinessRating(star);
+                                                }}
+                                                activeOpacity={0.7}
+                                                style={styles.starWrapper}
+                                            >
+                                                <CustomIcon
+                                                    library="Ionicons"
+                                                    name={star <= businessRating ? "star" : "star-outline"}
+                                                    size={48}
+                                                    color={Colors.YELLOW}
+                                                />
+                                                <CustomText style={styles.starLabel}>{star}</CustomText>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+
+                                <View style={styles.sectionContainer}>
+                                    <CustomText variant="subtitle" style={styles.question}>
+                                        Give us a glimpse of your experience with the organizers
+                                    </CustomText>
+                                    <CustomFeedbackInput
+                                        placeholder="Type your review here..."
+                                        value={businessReview}
+                                        onChangeText={(val) => {
+                                            setIsDirty(true);
+                                            setBusinessReview(val);
+                                        }}
+                                    />
+                                </View>
+                            </View>
+                        )}
                     </View>
                 );
         }
