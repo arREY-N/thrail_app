@@ -1,5 +1,5 @@
-import { FieldValue, Timestamp } from "firebase/firestore";
 import { IApplicationBase } from "@/src/core/models/Application/Application";
+import { FieldValue, Timestamp } from "firebase/firestore";
 
 export interface IBusinessPaymentConfig<T = Date> {
     qrCodeUrl: string;
@@ -13,6 +13,8 @@ export interface IBusinessPaymentConfig<T = Date> {
 export interface IBusinessBase<T> extends Omit<IApplicationBase<T>, 'status' | 'message'> {
     active: boolean;
     paymentConfig?: IBusinessPaymentConfig<T>;
+    rating: number;
+    reviewCount: number;
 }
 
 export type IBusinessDB = IBusinessBase<Timestamp | FieldValue>;

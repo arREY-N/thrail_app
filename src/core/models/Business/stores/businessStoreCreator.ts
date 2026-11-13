@@ -33,6 +33,7 @@ export interface BusinessState {
     loadBusinessAdmins: (providedBusinessId: string | null) => Promise<void>;
     reloadBusinessAdmins: (providedBusinessId: string | null) => Promise<void>;
     updatePaymentConfig: (businessId: string, paymentConfig: IBusinessPaymentConfig<Date> | null) => Promise<boolean>;
+    applyRatingDelta: (businessId: string, oldRating: number | null, newRating: number | null) => void;
 }
 
 const init = {
@@ -225,6 +226,52 @@ export const businessStoreCreator: StateCreator<
     },
 
     reset: () => set(init),
+
+    applyRatingDelta: (businessId: string, oldRating: number | null, newRating: number | null) => {
+        if (!businessId) return;
+
+        const computeNext = (currentRating = 0, currentCount = 0) => {
+            const safeCount = Math.max(0, Number(currentCount) || 0);
+            const safeRating = Math.max(0, Number(currentRating) || 0);
+            const hasOld = oldRating !== null && oldRating !== undefined;
+            const hasNew = newRating !== null && newRating !== undefined;
+
+            if (!hasOld && hasNew) {
+                const nextCount = safeCount + 1;
+                const raw = ((safeCount * safeRating) + Number(newRating)) / nextCount;
+                return { rating: Math.min(5, Math.max(0, raw)), reviewCount: nextCount };
+            }
+            if (hasOld && hasNew) {
+                if (Number(oldRating) === Number(newRating)) {
+                    return { rating: safeRating, reviewCount: safeCount };
+                }
+                const nextCount = Math.max(1, safeCount);
+                const raw = ((nextCount * safeRating) - Number(oldRating) + Number(newRating)) / nextCount;
+                return { rating: Math.min(5, Math.max(0, raw)), reviewCount: nextCount };
+            }
+            if (hasOld && !hasNew) {
+                const nextCount = Math.max(0, safeCount - 1);
+                if (nextCount === 0) return { rating: 0, reviewCount: 0 };
+                const raw = ((safeCount * safeRating) - Number(oldRating)) / nextCount;
+                return { rating: Math.min(5, Math.max(0, raw)), reviewCount: nextCount };
+            }
+            return { rating: safeRating, reviewCount: safeCount };
+        };
+
+        set((state) => {
+            if (state.current && state.current.id === businessId) {
+                const next = computeNext(state.current.rating, state.current.reviewCount);
+                state.current.rating = next.rating;
+                state.current.reviewCount = next.reviewCount;
+            }
+            const idx = state.data.findIndex(b => b.id === businessId);
+            if (idx !== -1) {
+                const next = computeNext(state.data[idx].rating, state.data[idx].reviewCount);
+                state.data[idx].rating = next.rating;
+                state.data[idx].reviewCount = next.reviewCount;
+            }
+        });
+    },
 
     loadBusinessAdmins: async (providedBusinessId: string | null = null) => {
         const targetID = providedBusinessId || get().current?.id;

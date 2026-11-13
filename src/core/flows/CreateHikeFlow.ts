@@ -1,6 +1,6 @@
 import { startBackgroundLocationTracking, stopBackgroundLocationTracking } from "@/src/core/flows/TrackHikerGPSFlow";
 import { useBookingUserItem } from "@/src/core/models/Booking/Booking";
-import { newHike, useHikesStore, useHikeState, useHikeStore, HikeRepo } from "@/src/core/models/Hike/Hike";
+import { HikeRepo, newHike, useHikesStore, useHikeState, useHikeStore } from "@/src/core/models/Hike/Hike";
 import { getReverseGeocode, newLocation } from "@/src/core/models/Location/Location";
 import { useOfferItem } from "@/src/core/models/Offer/Offer";
 import { ITrailSummary, newTrail, TrailLogic, useTrailItem } from "@/src/core/models/Trail/Trail";
@@ -117,7 +117,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                         }));
                     }
                 })
-                .catch(() => {});
+                .catch(() => { });
         }
     }, []);
 
@@ -296,7 +296,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
         const targetGroup = groupId || useHikeStore.getState().activeGroupId;
         if (targetGroup) {
             if (profile?.id) {
-                HikeRepo.deleteLocation(profile.id, targetGroup).catch(() => {});
+                HikeRepo.deleteLocation(profile.id, targetGroup).catch(() => { });
             }
             stopSharingLocation(targetGroup);
         }
@@ -317,7 +317,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
             const targetGroup = groupId || useHikeStore.getState().activeGroupId;
             if (targetGroup) {
                 if (profile?.id) {
-                    HikeRepo.deleteLocation(profile.id, targetGroup).catch(() => {});
+                    HikeRepo.deleteLocation(profile.id, targetGroup).catch(() => { });
                 }
                 stopSharingLocation(targetGroup);
             }
@@ -358,6 +358,7 @@ export function CreateHikeFlow(params: IUseWriteHikeParams = {}) {
                 pathname: '/(app)/(main)/review/write',
                 params: {
                     trailId: currentHike.trail.id,
+                    bookingId: currentHike.bookingId,
                 }
             });
         } catch (error) {

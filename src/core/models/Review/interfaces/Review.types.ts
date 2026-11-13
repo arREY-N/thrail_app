@@ -22,6 +22,10 @@ export interface IHikeSurvey<T, TRating> extends ReviewInformation<T, TRating> {
     likes: IUserSummary[];
 }
 
+export interface ReviewSummary {
+    id: string;
+    review: string;
+}
 
 export type IReviewDB = IHikeSurvey<Timestamp | FieldValue, number>;
 export type Review = IHikeSurvey<Date, DifficultyRating>;

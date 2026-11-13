@@ -1,34 +1,37 @@
+import { db } from "@/src/core/config/Firebase";
 import { RecalculateTrailRating } from "@/src/core/flows/RecalculateTrailRating";
+import { useBookingUserItem } from "@/src/core/models/Booking/Booking";
+import { newBusinessReview } from "@/src/core/models/BusinessReview/factory/BusinessReviewFactory";
+import { BusinessReview } from "@/src/core/models/BusinessReview/interfaces/BusinessReview";
+import { useBusinessReviewsStore } from "@/src/core/models/BusinessReview/stores/businessReviewStore.native";
 import { HikeRepo, useHikesStore, useHikeStore } from "@/src/core/models/Hike/Hike";
 import { getReverseGeocode } from "@/src/core/models/Location/Location";
 import { newReview, Review, ReviewLogic, useReviewStore } from "@/src/core/models/Review/Review";
 import { ITrailSummary, newTrail, useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
 import { router } from "expo-router";
+import { collection, doc } from "firebase/firestore";
 import { produce } from "immer";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-export interface IReviewWrite {
-    review: Review;
-    isLoading: boolean;
-    error: string | null;
-
-    onUpdatePress: (payload: { section: string; id: string; value: unknown }) => void;
-    onSaveReview: () => void;
+export interface BusinessReviewData {
+    review: string;
+    rating: number;
 }
 
 export type UseReviewWriteParams = {
     reviewId?: string;
     trailId?: string;
     hikeId?: string;
+    bookingId?: string,
 
     distance?: number;
     duration?: number;
     elevation?: number;
 }
 
-export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
-    const { reviewId, trailId, hikeId, distance, duration, elevation } = params;
+export function CreateReviewFlow(params: UseReviewWriteParams) {
+    const { reviewId, trailId, hikeId, distance, duration, elevation, bookingId } = params;
     const { profile } = useAuthHook();
 
     const isLoading = useReviewStore(s => s.isLoading);
@@ -42,10 +45,13 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
     const elapsedTime = useHikeStore(s => s.elapsedTime);
     const totalDistance = useHikeStore(s => s.totalDistance);
     const totalElevationGain = useHikeStore(s => s.totalElevationGain);
+    const writeBusinessReview = useBusinessReviewsStore(s => s.write);
 
     const { updateTrailRating, trailLoading } = RecalculateTrailRating();
 
     const [localError, setLocalError] = useState<string | null>(null);
+    const [existingBusinessReview, setExistingBusinessReview] = useState<BusinessReview | null>(null);
+    const pendingReviewIdRef = useRef<string>(reviewId || '');
 
     const [review, setReview] = useState<Review>(() => {
         if (reviewId) {
@@ -81,6 +87,8 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
             newReviewItem.duration = elapsedTime || 0;
             newReviewItem.elevation = totalElevationGain || 0;
 
+            if (bookingId) newReviewItem.bookingId = bookingId;
+
             return ReviewLogic.setReviewObject({
                 user: profile,
                 trail,
@@ -88,6 +96,20 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
             })
         }
     });
+
+    const effectiveBookingId = bookingId || review.bookingId;
+    const { booking } = useBookingUserItem(effectiveBookingId);
+
+    useEffect(() => {
+        if (review.id && booking?.business?.id) {
+            useBusinessReviewsStore
+                .getState()
+                .fetchByReviewId(review.id, booking.business.id)
+                .then((found) => {
+                    if (found) setExistingBusinessReview(found);
+                });
+        }
+    }, [review.id, booking?.business?.id]);
 
     useEffect(() => {
         const init = async () => {
@@ -112,6 +134,7 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
                                 draft.duration = fetchedHike.duration || 0;
                                 draft.elevation = fetchedHike.elevation || 0;
                                 draft.hikeDate = fetchedHike.startTime || new Date();
+                                if (bookingId) draft.bookingId = bookingId;
                             }));
                         }
                     } catch (e) {
@@ -123,12 +146,14 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
                         draft.duration = finalDur;
                         draft.elevation = finalElev;
                         if (completedHike?.startTime) draft.hikeDate = completedHike.startTime;
+                        if (bookingId) draft.bookingId = bookingId;
                     }));
                 }
+
             }
         }
         init();
-    }, [reviewId, hikeId, profile?.id, load, distance, duration, elevation, profile, review.id, hikes]);
+    }, [reviewId, hikeId, profile?.id, load, distance, duration, elevation, profile, review.id, hikes, bookingId]);
 
     const onUpdatePress = (payload: { section: string; id: string; value: unknown }) => {
         try {
@@ -177,9 +202,15 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
                 }
             }
 
+            const targetReviewId =
+                review.id ||
+                pendingReviewIdRef.current ||
+                (pendingReviewIdRef.current = doc(collection(db, 'reviews')).id);
+
             const finalReviewToSave = produce(review, draft => {
+                draft.id = targetReviewId;
                 draft.user = UserLogic.toSummary(profile);
-                draft.trail = location
+                draft.trail = location;
             });
 
             await Promise.all([
@@ -193,11 +224,44 @@ export function CreateReviewFlow(params: UseReviewWriteParams): IReviewWrite {
         }
     }
 
+    const createBusinessReview = async (data: BusinessReviewData) => {
+        if (!effectiveBookingId) return;
+        if (!profile) throw new Error('No user profile found. Log in again');
+        if (!booking) throw new Error('Booking data not found');
+        if (data.review.trim() === '') throw new Error('Review cannot be empty.')
+        if (data.rating < 1 || data.rating > 5) throw new Error('Rating must be within 1 to 5 only')
+        if (!review) throw new Error('Review data not found');
+
+        const targetReviewId =
+            review.id ||
+            pendingReviewIdRef.current ||
+            (pendingReviewIdRef.current = doc(collection(db, 'reviews')).id);
+
+        const businessReview: BusinessReview = newBusinessReview({
+            id: targetReviewId,
+            user: UserLogic.toSummary(profile),
+            business: booking.business,
+            trail: booking.trail,
+            offerId: booking.offer.id,
+            hikeReview: {
+                id: targetReviewId,
+                review: review.review,
+            },
+            hikeDate: review.hikeDate,
+            review: data.review,
+            rating: data.rating,
+        })
+
+        await writeBusinessReview(businessReview);
+    }
+
     return {
         review,
+        existingBusinessReview,
         isLoading: isLoading || trailLoading,
         error: error || localError,
         onUpdatePress,
         onSaveReview,
+        createBusinessReview,
     }
 }   
