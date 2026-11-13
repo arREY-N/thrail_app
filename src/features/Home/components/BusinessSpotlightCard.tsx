@@ -21,11 +21,9 @@ import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
 import { Colors, Palette } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { useBookingsStore } from '@/src/core/models/Booking/Booking';
 import { Business } from '@/src/core/models/Business/Business';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import { Review } from '@/src/core/models/Review/Review';
-import { getBusinessReviewsAndMetrics } from '@/src/features/Business/utils/businessReviewHelpers';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import { isAliveOffer } from '@/src/utils/offerHelpers';
@@ -68,15 +66,6 @@ const BusinessSpotlightCard = ({
 
     const hasMultiple = Boolean(businesses && businesses.length > 1);
     useWebDragScroll(scrollRef, hasMultiple, businesses);
-
-    const businessBookings = useBookingsStore((s) => s.businessBookings);
-    const primaryBusinessId = businesses[0]?.id;
-
-    useEffect(() => {
-        if (primaryBusinessId) {
-            useBookingsStore.getState().fetchAllBusinessBookings(primaryBusinessId);
-        }
-    }, [primaryBusinessId]);
 
     if (!businesses || businesses.length === 0) {
         return null;
@@ -122,12 +111,8 @@ const BusinessSpotlightCard = ({
     const renderSpotlightBanner = (business: Business, isCarouselItem: boolean): React.JSX.Element => {
         const packageCount = getActivePackageCount(business);
         const establishedText = formatEstablishedText(business.establishedOn);
-        const { rating, reviewsCount } = getBusinessReviewsAndMetrics(
-            business,
-            offers,
-            reviews,
-            businessBookings
-        );
+        const rating = business.rating ?? 0;
+        const reviewsCount = business.reviewCount ?? 0;
         const ratingLabel = reviewsCount > 0
             ? `${rating.toFixed(1)} (${reviewsCount} ${reviewsCount === 1 ? 'review' : 'reviews'})`
             : 'New Partner';
