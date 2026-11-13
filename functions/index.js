@@ -31,6 +31,7 @@ const {
     onDeleteBooking,
 } = require('./services/GroupChatManager');
 const { auditTrails } = require('./services/audit');
+const { onBusinessReviewWritten } = require('./services/BusinessReviewManager');
 
 admin.initializeApp();
 
@@ -4617,3 +4618,4 @@ exports.removeUserFromGroupOnCancellation = removeUserFromGroupOnCancellation;
 exports.onDeleteBooking = onDeleteBooking;
 exports.auditTrails = auditTrails;
 exports.adminUpdateOffer = adminUpdateOffer;
+exports.onBusinessReviewWritten = onBusinessReviewWritten;
