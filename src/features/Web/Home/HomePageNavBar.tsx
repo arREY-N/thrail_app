@@ -163,6 +163,18 @@ const SUPERADMIN_NAV_SECTIONS: NavSection[] = [
       },
     ],
   },
+  {
+    title: "PLAYGROUND",
+    items: [
+      {
+        id: "test-screens",
+        label: "Feature Test",
+        icon: "x-circle",
+        library: "Feather",
+        route: "/(app)/(main)/businessReview/write",
+      },
+    ]
+  }
 ];
 
 // â”€â”€ Admin (Business Admin) Navigation Sections â”€â”€

@@ -6,14 +6,14 @@
  */
 
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import PostCard from '@/src/components/PostCard';
 import PostCardSkeleton from '@/src/components/PostCardSkeleton';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
+import { BusinessReview } from '@/src/core/models/BusinessReview/interfaces/BusinessReview';
 import { IReview } from '@/src/core/models/Review/Review';
 
 /**
@@ -28,7 +28,7 @@ import { IReview } from '@/src/core/models/Review/Review';
  * @param onWriteReviewPress - Callback to edit an owned review post.
  */
 interface Props {
-    reviews?: IReview[];
+    reviews?: BusinessReview[];
     rating?: number;
     reviewsCount?: number;
     isLoading?: boolean;
@@ -56,38 +56,6 @@ const BusinessReviewsTab = ({
 
     return (
         <View style={styles.container}>
-            {/* Calculated Business Rating Summary Header */}
-            <View style={styles.summaryCard}>
-                <View style={styles.summaryLeft}>
-                    <View style={styles.iconCircle}>
-                        <CustomIcon
-                            library="AntDesign"
-                            name="star"
-                            size={18}
-                            color={Colors.YELLOW}
-                        />
-                    </View>
-
-                    <View style={styles.summaryTextGroup}>
-                        <CustomText style={styles.summaryTitle}>
-                            Hiker Review Rating
-                        </CustomText>
-                        <CustomText variant="caption" style={styles.summarySubtitle}>
-                            Calculated from verified hike reviews on packages offered by this organizer
-                        </CustomText>
-                    </View>
-                </View>
-
-                <View style={styles.scoreBadge}>
-                    <CustomText style={styles.scoreValue}>
-                        {hasReviews ? rating.toFixed(1) : 'N/A'}
-                    </CustomText>
-                    <CustomText variant="caption" style={styles.scoreCountText}>
-                        {`${reviewsCount} ${reviewsCount === 1 ? 'review' : 'reviews'}`}
-                    </CustomText>
-                </View>
-            </View>
-
             {/* Loading State (Skeleton Over Spinner — Doherty Threshold) */}
             {isLoading && !hasReviews && (
                 <View style={styles.feedList}>
@@ -100,14 +68,10 @@ const BusinessReviewsTab = ({
             {hasReviews && (
                 <View style={styles.feedList}>
                     {reviews.map((item) => (
-                        <PostCard
-                            key={item.id}
-                            review={item}
-                            variant="community"
-                            onLike={likeReview ? () => likeReview(item) : undefined}
-                            isLiked={isLiked}
-                            onEdit={onWriteReviewPress ? () => onWriteReviewPress(item) : undefined}
-                        />
+                        <View key={item.id}>
+                            <Text>{item.user.username}</Text>
+                            <Text>{item.review}</Text>
+                        </View>
                     ))}
                 </View>
             )}

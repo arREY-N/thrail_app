@@ -24,6 +24,8 @@ export const newBusiness = (init?: Partial<Business>): Business => {
             denr: '',
             dti: '',
         },
+        reviewCount: 0,
+        rating: 0,
         ...init,
     };
 };
@@ -55,6 +57,8 @@ const businessFromFirestore = (id: string, data: IBusinessDB): Business => {
         permits: data.permits || { bir: '', denr: '', dti: '' },
         name: data.name || '',
         address: data.address || '',
+        reviewCount: data.reviewCount ?? 0,
+        rating: data.rating ?? 0,
         paymentConfig: data.paymentConfig ? {
             qrCodeUrl: data.paymentConfig.qrCodeUrl || '',
             accountName: data.paymentConfig.accountName,
@@ -80,6 +84,8 @@ const businessToFirestore = (business: Business): IBusinessDB => {
         servicedLocation: business.servicedLocation || [],
         owner: business.owner,
         permits: business.permits,
+        rating: business.rating,
+        reviewCount: business.reviewCount,
     };
 
     if (business.paymentConfig) {
@@ -88,8 +94,8 @@ const businessToFirestore = (business: Business): IBusinessDB => {
             accountName: business.paymentConfig.accountName,
             accountNumber: business.paymentConfig.accountNumber,
             providerName: business.paymentConfig.providerName,
-            updatedAt: business.paymentConfig.updatedAt instanceof Date 
-                ? Timestamp.fromDate(business.paymentConfig.updatedAt) 
+            updatedAt: business.paymentConfig.updatedAt instanceof Date
+                ? Timestamp.fromDate(business.paymentConfig.updatedAt)
                 : serverTimestamp(),
             updatedBy: business.paymentConfig.updatedBy,
         };

@@ -64,6 +64,7 @@ const reviewFromFirestore = (id: string, data: IReviewDB): Review => {
         elevation: data.elevation || 0,
         status: data.status || 'unhiked',
         mode: data.mode || 'direct',
+        ...(data.bookingId ? { bookingId: data.bookingId } : {}),
     };
 };
 
@@ -91,6 +92,7 @@ const reviewToFirestore = (review: Review): IReviewDB => {
         elevation: review.elevation || 0,
         status: review.status || 'unhiked',
         mode: review.mode || 'direct',
+        ...(review.bookingId ? { bookingId: review.bookingId } : {}),
     };
 };
 

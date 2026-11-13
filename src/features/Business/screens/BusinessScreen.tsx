@@ -24,6 +24,7 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Admin } from '@/src/core/models/Admin/Admin';
 import { Business } from '@/src/core/models/Business/Business';
+import { BusinessReview } from '@/src/core/models/BusinessReview/interfaces/BusinessReview';
 import { IReview } from '@/src/core/models/Review/Review';
 import { ITrail } from '@/src/core/models/Trail/Trail';
 import BusinessHeroCard from '@/src/features/Business/components/BusinessHeroCard';
@@ -66,7 +67,7 @@ export interface BusinessScreenProps {
     featuredTrails?: ITrail[];
     allTrails?: ITrail[];
     packageCount?: number;
-    reviews?: IReview[];
+    reviews?: BusinessReview[];
     rating?: number;
     reviewsCount?: number;
     isReviewsLoading?: boolean;

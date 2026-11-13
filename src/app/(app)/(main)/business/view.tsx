@@ -12,14 +12,14 @@ import LoadingScreen from '@/src/app/loading';
 import { RecalculateTrailRating } from '@/src/core/flows/RecalculateTrailRating';
 import { useAppNavigation } from '@/src/core/hook/navigation/useAppNavigation';
 import { useTrailViewNavigation } from '@/src/core/hook/navigation/useTrailViewNavigation';
-import { useBookingsStore } from '@/src/core/models/Booking/Booking';
 import { useBusinessItem, useBusinessesStore } from '@/src/core/models/Business/Business';
+import { useBusinessReviewList } from '@/src/core/models/BusinessReview/hooks/useBusinessReviewList';
+import { useBusinessReviewsStore } from '@/src/core/models/BusinessReview/stores/businessReviewStore';
 import { useOfferList } from '@/src/core/models/Offer/Offer';
-import { IReview, useReview, useReviewList } from '@/src/core/models/Review/Review';
+import { IReview, useReview } from '@/src/core/models/Review/Review';
 import { ITrail, useTrailList } from '@/src/core/models/Trail/Trail';
 import getSearchParam from '@/src/core/utility/getSearchParam';
 import BusinessScreen from '@/src/features/Business/screens/BusinessScreen';
-import { getBusinessReviewsAndMetrics } from '@/src/features/Business/utils/businessReviewHelpers';
 import {
     getTrailOffersCount,
     getTrailsWithAliveOffers,
@@ -43,14 +43,12 @@ export default function BusinessView(): React.JSX.Element {
     // 1. Business entity data
     const { business, isFetching } = useBusinessItem(businessId);
 
-    // 2. Load business admin personnel (guides / staff) and business bookings
+    // 2. Load business admin personnel (guides / staff)
     const businessAdmins = useBusinessesStore((s) => s.businessAdmins);
-    const businessBookings = useBookingsStore((s) => s.businessBookings);
 
     useEffect(() => {
         if (businessId) {
             useBusinessesStore.getState().loadBusinessAdmins(businessId);
-            useBookingsStore.getState().fetchAllBusinessBookings(businessId);
         }
     }, [businessId]);
 
@@ -58,11 +56,6 @@ export default function BusinessView(): React.JSX.Element {
     const { offers, isFetching: isOffersLoading, onRefreshOffers } = useOfferList();
     const { trails, trailLoading } = useTrailList();
     const { getItemRating } = RecalculateTrailRating();
-    const {
-        reviews,
-        reviewIsLoading,
-        refresh: refreshReviews,
-    } = useReviewList();
     const {
         likeReview,
         isLiked,
@@ -87,14 +80,14 @@ export default function BusinessView(): React.JSX.Element {
         });
     }, [business, offers]);
 
-    // 5. Collect booked hike & offer reviews for this business and calculate dynamic rating & review count
+    // 5. Read precomputed business rating & review count and load business reviews
+    const businessRating = business?.rating ?? 0;
+    const businessReviewsCount = business?.reviewCount ?? 0;
+
     const {
-        businessReviews,
-        rating: businessRating,
-        reviewsCount: businessReviewsCount,
-    } = useMemo(() => {
-        return getBusinessReviewsAndMetrics(business, offers, reviews, businessBookings);
-    }, [business, offers, reviews, businessBookings]);
+        data: businessReviews,
+        isFetching: isBusinessReviewsLoading,
+    } = useBusinessReviewList(businessId);
 
     // 6. Top 3 soonest bookable upcoming packages
     const featuredTrails = useMemo(() => {
@@ -146,14 +139,13 @@ export default function BusinessView(): React.JSX.Element {
             await Promise.all([
                 useBusinessesStore.getState().load(businessId),
                 useBusinessesStore.getState().reloadBusinessAdmins(businessId),
-                useBookingsStore.getState().fetchAllBusinessBookings(businessId),
+                useBusinessReviewsStore.getState().refreshBusiness(businessId),
                 onRefreshOffers(),
-                refreshReviews(),
             ]);
         } finally {
             setIsRefreshing(false);
         }
-    }, [businessId, onRefreshOffers, refreshReviews]);
+    }, [businessId, onRefreshOffers]);
 
     const handleMountainPress = useCallback(
         (trailId: string) => {
@@ -183,7 +175,7 @@ export default function BusinessView(): React.JSX.Element {
             reviews={businessReviews}
             rating={businessRating}
             reviewsCount={businessReviewsCount}
-            isReviewsLoading={reviewIsLoading}
+            isReviewsLoading={isBusinessReviewsLoading}
             likeReview={likeReview}
             isLiked={isLiked}
             onWriteReviewPress={handleEditReviewPress}
