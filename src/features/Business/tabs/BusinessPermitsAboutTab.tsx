@@ -22,6 +22,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Admin } from '@/src/core/models/Admin/Admin';
 import { Business } from '@/src/core/models/Business/Business';
 import GuideProfileModal from '@/src/features/Business/components/GuideProfileModal';
+import { resolveBusinessPersonnel } from '@/src/features/Business/utils/businessHelpers';
 import { formatDateToStandard, getInitials } from '@/src/utils/dateFormatter';
 
 /**
@@ -105,29 +106,10 @@ const BusinessPermitsAboutTab = ({
 
     const owner = business.owner;
 
-    // Find matching admin record for owner to enrich with real @username
-    const ownerAdminRecord = useMemo(() => {
-        if (!owner) return undefined;
-        const ownerId = owner.id?.trim();
-        const ownerEmail = owner.email?.trim().toLowerCase();
-        return admins.find((a) => {
-            if (ownerId && a.id?.trim() === ownerId) return true;
-            if (ownerEmail && a.email?.trim().toLowerCase() === ownerEmail) return true;
-            return false;
-        });
-    }, [owner, admins]);
-
-    // Filter active admins and deduplicate the business owner
-    const teamMembers = useMemo(() => {
-        const ownerId = owner?.id?.trim();
-        const ownerEmail = owner?.email?.trim().toLowerCase();
-        return admins.filter((a) => {
-            if (a.status === 'removed') return false;
-            if (ownerId && a.id?.trim() === ownerId) return false;
-            if (ownerEmail && a.email?.trim().toLowerCase() === ownerEmail) return false;
-            return true;
-        });
-    }, [owner, admins]);
+    const { ownerAdminRecord, teamMembers } = useMemo(
+        () => resolveBusinessPersonnel(owner, admins),
+        [owner, admins]
+    );
 
     const permitsList: {
         key: 'denr' | 'dti' | 'bir';
