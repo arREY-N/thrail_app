@@ -1,77 +1,68 @@
 /**
  * @file BusinessReviewsTab.tsx
  * @description Renders Tab 3 (Reviews) of the Business Profile screen.
- * Displays the dynamically calculated rating summary and lists community reviews
- * from hikes booked with or offered by the tour business using PostCard.
+ * Displays the server-aggregated rating summary header and lists verified organizer reviews
+ * submitted by hikers from booked hikes using BusinessReviewCard.
  */
 
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
-import PostCardSkeleton from '@/src/components/PostCardSkeleton';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { BusinessReview } from '@/src/core/models/BusinessReview/interfaces/BusinessReview';
-import { IReview } from '@/src/core/models/Review/Review';
+import BusinessReviewCard from '@/src/features/Business/components/BusinessReviewCard';
+import BusinessReviewCardSkeleton from '@/src/features/Business/components/BusinessReviewCardSkeleton';
+import { sortBusinessReviewsByLatest } from '@/src/features/Business/utils/businessHelpers';
 
 /**
  * Props for the BusinessReviewsTab component.
  *
- * @param reviews - Filtered array of reviews associated with this business's booked hikes and offers.
- * @param rating - Dynamically calculated average rating score from the collected reviews.
- * @param reviewsCount - Total count of collected reviews for this business.
- * @param isLoading - Whether review data is actively loading.
- * @param likeReview - Callback to toggle like on a review post.
- * @param isLiked - Predicate checking if the logged-in user liked a review post.
- * @param onWriteReviewPress - Callback to edit an owned review post.
+ * @param reviews - Array of BusinessReview items associated with this tour organizer.
+ * @param isLoading - Whether business review data is actively loading.
  */
 interface Props {
     reviews?: BusinessReview[];
-    rating?: number;
-    reviewsCount?: number;
     isLoading?: boolean;
-    likeReview?: (review: IReview) => void;
-    isLiked?: (review: IReview) => boolean;
-    onWriteReviewPress?: (review: IReview) => void;
 }
 
 /**
- * BusinessReviewsTab — Displays the calculated rating summary and PostCard feed for a tour business.
+ * BusinessReviewsTab — Displays the verified BusinessReviewCard feed.
  *
  * @param props - Component props
  * @returns React.JSX.Element rendering the business reviews tab
  */
 const BusinessReviewsTab = ({
     reviews = [],
-    rating = 0,
-    reviewsCount = 0,
     isLoading = false,
-    likeReview,
-    isLiked,
-    onWriteReviewPress,
 }: Props): React.JSX.Element => {
-    const hasReviews = reviews.length > 0;
+    const sortedReviews = useMemo(
+        () => sortBusinessReviewsByLatest(reviews),
+        [reviews]
+    );
+    const hasReviews = sortedReviews.length > 0;
 
     return (
         <View style={styles.container}>
             {/* Loading State (Skeleton Over Spinner — Doherty Threshold) */}
             {isLoading && !hasReviews && (
                 <View style={styles.feedList}>
-                    <PostCardSkeleton />
-                    <PostCardSkeleton />
+                    <BusinessReviewCardSkeleton />
+                    <BusinessReviewCardSkeleton />
+                    <BusinessReviewCardSkeleton />
                 </View>
             )}
 
-            {/* Populated Review Posts Feed */}
+            {/* Populated Organizer Reviews Feed */}
             {hasReviews && (
                 <View style={styles.feedList}>
-                    {reviews.map((item) => (
-                        <View key={item.id}>
-                            <Text>{item.user.username}</Text>
-                            <Text>{item.review}</Text>
-                        </View>
+                    {sortedReviews.map((item) => (
+                        <BusinessReviewCard
+                            key={item.id}
+                            review={item}
+                        />
                     ))}
                 </View>
             )}
@@ -86,10 +77,10 @@ const BusinessReviewsTab = ({
                         color={Colors.GRAY_MEDIUM}
                     />
                     <CustomText style={styles.emptyTitle}>
-                        No Hike Reviews Yet
+                        No Organizer Reviews Yet
                     </CustomText>
                     <CustomText variant="caption" style={styles.emptySubtitle}>
-                        Community reviews from hikers who booked and completed trails with this tour partner will appear here.
+                        Reviews from hikers who booked and completed trips with this tour partner will appear here.
                     </CustomText>
                 </View>
             )}
@@ -103,60 +94,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 24,
         gap: 16,
-    },
-    summaryCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: Colors.WHITE,
-        borderRadius: 24,
-        padding: 18,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_ULTRALIGHT,
-        gap: 12,
-        ...GlobalStyles.dropShadow(2),
-    },
-    summaryLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        flex: 1,
-    },
-    iconCircle: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: Colors.STATUS_WARNING_BG,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    summaryTextGroup: {
-        flex: 1,
-        gap: 2,
-    },
-    summaryTitle: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
-    },
-    summarySubtitle: {
-        fontSize: 12,
-        color: Colors.TEXT_SECONDARY,
-    },
-    scoreBadge: {
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        paddingLeft: 8,
-    },
-    scoreValue: {
-        fontSize: 22,
-        fontWeight: '800',
-        color: Colors.PRIMARY,
-    },
-    scoreCountText: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: Colors.TEXT_SECONDARY,
     },
     feedList: {
         gap: 20,
