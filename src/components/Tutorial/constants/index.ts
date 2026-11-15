@@ -43,7 +43,10 @@ import {
     recordingDiyTourSteps,
 } from '@/src/components/Tutorial/constants/recordingTour';
 import {
+    getReviewDetailsTourSteps,
+    getReviewRatingsTourSteps,
     reviewDetailsTourSteps,
+    reviewOrganizerTourSteps,
     reviewRatingsTourSteps,
 } from '@/src/components/Tutorial/constants/reviewTour';
 import { tabsTourSteps } from '@/src/components/Tutorial/constants/tabsTour';
@@ -53,11 +56,14 @@ export {
     adminBookingReviewPaymentSteps,
     emergencyModalOnlySteps,
     emergencyModalUnifiedSteps,
+    getReviewDetailsTourSteps,
+    getReviewRatingsTourSteps,
     navigationBookedTourSteps,
     navigationDiyTourSteps,
     recordingBookedTourSteps,
     recordingDiyTourSteps,
     reviewDetailsTourSteps,
+    reviewOrganizerTourSteps,
     reviewRatingsTourSteps,
 };
 
@@ -219,5 +225,11 @@ export const TUTORIAL_TOURS: Record<TutorialTourId, TutorialTourConfig> = {
         tourTitle: 'Review Guide — Tips & Photos',
         roleScope: 'user',
         steps: [...reviewDetailsTourSteps],
+    },
+    review_organizer: {
+        tourId: 'review_organizer',
+        tourTitle: 'Review Guide — Organizer Feedback',
+        roleScope: 'user',
+        steps: [...reviewOrganizerTourSteps],
     },
 };

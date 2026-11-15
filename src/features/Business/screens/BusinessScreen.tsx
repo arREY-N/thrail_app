@@ -7,16 +7,18 @@
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    Platform,
+    Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
-    TouchableOpacity,
     View,
 } from 'react-native';
 
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
-import CustomLoading from '@/src/components/CustomLoading';
 import CustomText from '@/src/components/CustomText';
 import ResponsiveScrollView from '@/src/components/ResponsiveScrollView';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -25,36 +27,38 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Admin } from '@/src/core/models/Admin/Admin';
 import { Business } from '@/src/core/models/Business/Business';
 import { BusinessReview } from '@/src/core/models/BusinessReview/interfaces/BusinessReview';
-import { IReview } from '@/src/core/models/Review/Review';
 import { ITrail } from '@/src/core/models/Trail/Trail';
 import BusinessHeroCard from '@/src/features/Business/components/BusinessHeroCard';
+import BusinessProfileSkeleton from '@/src/features/Business/components/BusinessProfileSkeleton';
 import BusinessOffersTab from '@/src/features/Business/tabs/BusinessOffersTab';
 import BusinessPermitsAboutTab, {
     LOCAL_BUSINESS_PERMIT_ASSETS,
 } from '@/src/features/Business/tabs/BusinessPermitsAboutTab';
 import BusinessReviewsTab from '@/src/features/Business/tabs/BusinessReviewsTab';
+import {
+    BusinessTabType,
+    resolveBusinessPersonnel,
+} from '@/src/features/Business/utils/businessHelpers';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 
-export type BusinessTabType = 'Offers' | 'About' | 'Reviews';
+export type { BusinessTabType };
 
 /**
  * Props for the BusinessScreen component.
  *
  * @param business - The tour business model data.
  * @param admins - Guide / coordinator personnel under this business.
- * @param featuredTrails - Top 3 soonest upcoming bookable trail packages.
+ * @param featuredTrails - Top 3 soonest upcoming bookable trail offers.
  * @param allTrails - All unique trails with active offers from this business.
- * @param packageCount - Count of active upcoming packages/offers for this business.
+ * @param packageCount - Count of active upcoming offers for this business.
  * @param reviews - Collected hiker reviews from booked hikes and offers of this business.
- * @param rating - Dynamically calculated review rating score.
- * @param reviewsCount - Dynamically calculated total count of business reviews.
+ * @param rating - Server-aggregated review rating score.
+ * @param reviewsCount - Server-aggregated total count of business reviews.
+ * @param isOffersLoading - Loading state for offers and trails tab.
  * @param isReviewsLoading - Loading state for business reviews.
- * @param likeReview - Callback to toggle like on a review post.
- * @param isLiked - Predicate checking if the logged-in user liked a review post.
- * @param onWriteReviewPress - Callback to edit an owned review post.
  * @param isLoading - Global loading state boolean.
  * @param isRefreshing - Pull-to-refresh active boolean.
- * @param onRefresh - Callback triggered on pull-to-refresh.
+ * @param onRefresh - Callback triggered on pull-to-refresh, scoped by active tab.
  * @param onBackPress - Callback for the back navigation button.
  * @param onMountainPress - Callback when a mountain card is clicked (navigates to TrailScreen).
  * @param onDownloadPress - Callback when a mountain card download button is clicked.
@@ -70,13 +74,11 @@ export interface BusinessScreenProps {
     reviews?: BusinessReview[];
     rating?: number;
     reviewsCount?: number;
+    isOffersLoading?: boolean;
     isReviewsLoading?: boolean;
-    likeReview?: (review: IReview) => void;
-    isLiked?: (review: IReview) => boolean;
-    onWriteReviewPress?: (review: IReview) => void;
     isLoading?: boolean;
     isRefreshing?: boolean;
-    onRefresh?: () => Promise<void> | void;
+    onRefresh?: (activeTab?: BusinessTabType) => Promise<void> | void;
     onBackPress: () => void;
     onMountainPress: (trailId: string) => void;
     onDownloadPress: (trailId: string) => void;
@@ -100,10 +102,8 @@ const BusinessScreen = ({
     reviews = [],
     rating = 0,
     reviewsCount = 0,
+    isOffersLoading = false,
     isReviewsLoading = false,
-    likeReview,
-    isLiked,
-    onWriteReviewPress,
     isLoading = false,
     isRefreshing = false,
     onRefresh,
@@ -116,6 +116,7 @@ const BusinessScreen = ({
     const [activeTab, setActiveTab] = useState<BusinessTabType>('Offers');
 
     const scrollViewRef = useRef<ScrollView>(null);
+    const lastOffsetY = useRef<number>(0);
 
     const { width, isDesktop, isTablet } = useBreakpoints();
     const contentMaxWidth: number | `${number}%` = isDesktop ? 860 : (isTablet ? 680 : '100%');
@@ -130,13 +131,18 @@ const BusinessScreen = ({
         : width;
     const cardWidth = Math.min(width * 0.85, 360);
 
+    const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        lastOffsetY.current = event.nativeEvent.contentOffset.y;
+    }, []);
+
     const handleTabChange = useCallback(
         (tab: BusinessTabType) => {
-            if (tab === activeTab) {
-                scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-                return;
+            const isSwitching = tab !== activeTab;
+            if (isSwitching) {
+                setActiveTab(tab);
             }
-            setActiveTab(tab);
+            const shouldAnimate = !isSwitching && lastOffsetY.current < 2500;
+            scrollViewRef.current?.scrollTo({ y: 0, animated: shouldAnimate });
         },
         [activeTab]
     );
@@ -145,17 +151,10 @@ const BusinessScreen = ({
     const permitsCount = Object.keys(LOCAL_BUSINESS_PERMIT_ASSETS).length;
 
     // Calculate unique active team members count (owner + deduplicated active admins)
-    const uniqueTeamCount = useMemo(() => {
-        const ownerId = business?.owner?.id?.trim();
-        const ownerEmail = business?.owner?.email?.trim().toLowerCase();
-        const activeNonOwnerAdmins = admins.filter((a) => {
-            if (a.status === 'removed') return false;
-            if (ownerId && a.id?.trim() === ownerId) return false;
-            if (ownerEmail && a.email?.trim().toLowerCase() === ownerEmail) return false;
-            return true;
-        });
-        return (business?.owner ? 1 : 0) + activeNonOwnerAdmins.length;
-    }, [business?.owner, admins]);
+    const uniqueTeamCount = useMemo(
+        () => resolveBusinessPersonnel(business?.owner, admins).uniqueTeamCount,
+        [business?.owner, admins]
+    );
 
     if (isLoading && !business) {
         return (
@@ -165,7 +164,11 @@ const BusinessScreen = ({
                     centerTitle={true}
                     onBackPress={onBackPress}
                 />
-                <CustomLoading />
+                <BusinessProfileSkeleton
+                    contentMaxWidth={contentMaxWidth}
+                    effectiveContentWidth={effectiveContentWidth}
+                    cardWidth={cardWidth}
+                />
             </ScreenWrapper>
         );
     }
@@ -208,11 +211,13 @@ const BusinessScreen = ({
                 showsVerticalScrollIndicator={false}
                 bounces={true}
                 overScrollMode="always"
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
                 refreshControl={
                     onRefresh ? (
                         <RefreshControl
                             refreshing={Boolean(isRefreshing)}
-                            onRefresh={onRefresh}
+                            onRefresh={() => onRefresh(activeTab)}
                             colors={[Colors.PRIMARY]}
                             tintColor={Colors.PRIMARY}
                         />
@@ -233,80 +238,50 @@ const BusinessScreen = ({
                 {/* 2. STICKY SEGMENTED PILL TABS (Offers | About | Reviews) */}
                 <View style={styles.stickyTabsBar}>
                     <View style={[styles.floatingTabsContainer, responsiveAlignStyle]}>
-                        <TouchableOpacity
-                            style={[
-                                styles.tabButton,
-                                activeTab === 'Offers' && styles.tabButtonActive,
-                            ]}
-                            onPress={() => handleTabChange('Offers')}
-                            activeOpacity={0.9}
-                        >
-                            <CustomIcon
-                                library="Feather"
-                                name="compass"
-                                size={activeTab === 'Offers' ? 18 : 16}
-                                color={activeTab === 'Offers' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
-                            />
-                            <CustomText
-                                style={[
-                                    styles.tabText,
-                                    activeTab === 'Offers' && styles.tabTextActive,
-                                ]}
-                                numberOfLines={1}
-                            >
-                                Offers
-                            </CustomText>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[
-                                styles.tabButton,
-                                activeTab === 'About' && styles.tabButtonActive,
-                            ]}
-                            onPress={() => handleTabChange('About')}
-                            activeOpacity={0.9}
-                        >
-                            <CustomIcon
-                                library="Feather"
-                                name="info"
-                                size={activeTab === 'About' ? 18 : 16}
-                                color={activeTab === 'About' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
-                            />
-                            <CustomText
-                                style={[
-                                    styles.tabText,
-                                    activeTab === 'About' && styles.tabTextActive,
-                                ]}
-                                numberOfLines={1}
-                            >
-                                About
-                            </CustomText>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[
-                                styles.tabButton,
-                                activeTab === 'Reviews' && styles.tabButtonActive,
-                            ]}
-                            onPress={() => handleTabChange('Reviews')}
-                            activeOpacity={0.9}
-                        >
-                            <CustomIcon
-                                library="Feather"
-                                name="star"
-                                size={activeTab === 'Reviews' ? 18 : 16}
-                                color={activeTab === 'Reviews' ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
-                            />
-                            <CustomText
-                                style={[
-                                    styles.tabText,
-                                    activeTab === 'Reviews' && styles.tabTextActive,
-                                ]}
-                                numberOfLines={1}
-                            >
-                                {reviewsCount > 0 ? `Reviews (${reviewsCount})` : 'Reviews'}
-                            </CustomText>
-                        </TouchableOpacity>
+                        {(
+                            [
+                                { key: 'Offers', icon: 'compass', label: 'Offers' },
+                                { key: 'About', icon: 'info', label: 'About' },
+                                {
+                                    key: 'Reviews',
+                                    icon: 'star',
+                                    label: reviewsCount > 0 ? `Reviews (${reviewsCount})` : 'Reviews',
+                                },
+                            ] as const
+                        ).map((tab) => {
+                            const isActive = activeTab === tab.key;
+                            return (
+                                <Pressable
+                                    key={tab.key}
+                                    style={styles.tabPressable}
+                                    onPress={() => handleTabChange(tab.key)}
+                                >
+                                    <View
+                                        key={isActive ? `${tab.key}-active` : tab.key}
+                                        style={[
+                                            styles.tabButton,
+                                            isActive && styles.tabButtonActive,
+                                        ]}
+                                    >
+                                        <CustomIcon
+                                            library="Feather"
+                                            name={tab.icon}
+                                            size={isActive ? 18 : 16}
+                                            color={isActive ? Colors.PRIMARY : Colors.TEXT_SECONDARY}
+                                        />
+                                        <CustomText
+                                            style={[
+                                                styles.tabText,
+                                                isActive && styles.tabTextActive,
+                                            ]}
+                                            numberOfLines={1}
+                                        >
+                                            {tab.label}
+                                        </CustomText>
+                                    </View>
+                                </Pressable>
+                            );
+                        })}
                     </View>
                 </View>
 
@@ -322,6 +297,7 @@ const BusinessScreen = ({
                             getTrailOffersCount={getTrailOffersCount}
                             cardWidth={cardWidth}
                             contentWidth={effectiveContentWidth}
+                            isLoading={isOffersLoading}
                         />
                     )}
 
@@ -335,12 +311,7 @@ const BusinessScreen = ({
                     {activeTab === 'Reviews' && (
                         <BusinessReviewsTab
                             reviews={reviews}
-                            rating={rating}
-                            reviewsCount={reviewsCount}
                             isLoading={isReviewsLoading}
-                            likeReview={likeReview}
-                            isLiked={isLiked}
-                            onWriteReviewPress={onWriteReviewPress}
                         />
                     )}
                 </View>
@@ -366,8 +337,15 @@ const styles = StyleSheet.create({
         padding: 3,
         borderRadius: 20,
     },
-    tabButton: {
+    tabPressable: {
         flex: 1,
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
+    },
+    tabButton: {
         flexDirection: 'row',
         paddingVertical: 8,
         paddingHorizontal: 10,
@@ -375,10 +353,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderRadius: 16,
         backgroundColor: 'transparent',
+        elevation: 0,
         gap: 6,
     },
     tabButtonActive: {
         backgroundColor: Colors.WHITE,
+        zIndex: 2,
         ...GlobalStyles.dropShadow(4, 0.1, Colors.SHADOW, { radius: 8 }),
     },
     tabText: {

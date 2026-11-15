@@ -30,7 +30,8 @@ export type TutorialTourId =
     | 'recording_booked'
     | 'recording_diy'
     | 'review_ratings'
-    | 'review_details';
+    | 'review_details'
+    | 'review_organizer';
 
 /**
  * Visual style variant for the simulated UI target inside the coded callout preview banner.
@@ -180,7 +181,9 @@ export type TargetSpotlightType =
     | 'review_next_btn'
     | 'review_feedback_input'
     | 'review_photo_upload'
-    | 'review_submit_btn';
+    | 'review_submit_btn'
+    | 'review_organizer_rating'
+    | 'review_organizer_feedback';
 
 export type TooltipPlacement = 'auto' | 'top' | 'bottom' | 'center' | 'right';
 

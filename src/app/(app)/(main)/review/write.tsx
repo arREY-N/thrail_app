@@ -26,6 +26,8 @@ export default function WriteReview() {
     const {
         review,
         existingBusinessReview,
+        organizerName,
+        canReviewOrganizer,
         isLoading,
         error,
         onUpdatePress,
@@ -45,6 +47,8 @@ export default function WriteReview() {
         <WriteReviewScreen
             review={review}
             existingBusinessReview={existingBusinessReview}
+            organizerName={organizerName}
+            canReviewOrganizer={canReviewOrganizer}
             error={error}
             isLoading={isLoading}
             onUpdatePress={onUpdatePress}

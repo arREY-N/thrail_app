@@ -476,7 +476,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
         <BusinessSpotlightCard
           businesses={businesses}
           offers={offers}
-          reviews={reviews}
           onBusinessPress={(id) => {
             if (onBusinessPress) {
               onBusinessPress(id);

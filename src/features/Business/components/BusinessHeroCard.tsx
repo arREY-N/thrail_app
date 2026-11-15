@@ -18,7 +18,7 @@ import {
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
-import { Colors, Palette } from '@/src/constants/colors';
+import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Business } from '@/src/core/models/Business/Business';
 import { getInitials } from '@/src/utils/dateFormatter';
@@ -29,7 +29,7 @@ const BANNER_IMAGE_SOURCE: ImageSourcePropType = require('@/src/assets/images/Ba
  * Props for the BusinessHeroCard component.
  *
  * @param business - The tour business model data.
- * @param packageCount - Count of active upcoming packages/offers for this business.
+ * @param packageCount - Count of active upcoming offers for this business.
  * @param guidesCount - Count of team members (owner + active coordinators).
  * @param permitsCount - Count of verified legal permits on file (max 3: DENR, DTI, BIR).
  * @param rating - Dynamically calculated review rating score.
@@ -79,9 +79,6 @@ const BusinessHeroCard = ({
     })();
 
     const hasReviews = reviewsCount > 0 && rating > 0;
-    const bannerRatingLabel = hasReviews
-        ? `${rating.toFixed(1)} (${reviewsCount} ${reviewsCount === 1 ? 'review' : 'reviews'})`
-        : 'No reviews yet';
     const specsRatingLabel = hasReviews
         ? `${rating.toFixed(1)} (${reviewsCount})`
         : 'N/A (0)';
@@ -97,7 +94,7 @@ const BusinessHeroCard = ({
                 />
 
                 <LinearGradient
-                    colors={['transparent', 'rgba(0, 0, 0, 0.25)', `${Colors.BLACK}E6`]}
+                    colors={['transparent', `${Colors.BLACK}40`, `${Colors.BLACK}E6`]}
                     style={styles.gradientOverlay}
                 >
                     <View
@@ -110,33 +107,6 @@ const BusinessHeroCard = ({
                             },
                         ]}
                     >
-                        {/* Top Floating Badges Row */}
-                        <View style={styles.heroBadgeRow}>
-                            <View style={styles.establishedBadge}>
-                                <CustomIcon
-                                    library="Feather"
-                                    name="star"
-                                    size={13}
-                                    color={Colors.YELLOW}
-                                />
-                                <CustomText style={styles.establishedBadgeText}>
-                                    {establishedText}
-                                </CustomText>
-                            </View>
-
-                            <View style={styles.verifiedPill}>
-                                <CustomIcon
-                                    library="Feather"
-                                    name="check-circle"
-                                    size={13}
-                                    color={Colors.WHITE}
-                                />
-                                <CustomText style={styles.verifiedPillText}>
-                                    Verified Tour Partner
-                                </CustomText>
-                            </View>
-                        </View>
-
                         {/* Main Organizer Identity Row */}
                         <View style={styles.identityRow}>
                             <View style={styles.avatarCircle}>
@@ -146,34 +116,36 @@ const BusinessHeroCard = ({
                             </View>
 
                             <View style={styles.identityTextGroup}>
-                                <CustomText
-                                    variant="body"
-                                    style={styles.businessNameTitle}
-                                    numberOfLines={2}
-                                >
-                                    {business.name}
-                                </CustomText>
+                                <View style={styles.nameBadgeRow}>
+                                    <CustomText
+                                        variant="body"
+                                        style={styles.businessNameTitle}
+                                        numberOfLines={2}
+                                    >
+                                        {business.name}
+                                    </CustomText>
 
-                                <View style={styles.heroMetaRow}>
-                                    <View style={styles.metaItem}>
+                                    <View style={styles.verifiedBadge}>
                                         <CustomIcon
-                                            library="AntDesign"
-                                            name="star"
-                                            size={13}
-                                            color={Colors.YELLOW}
+                                            library="Feather"
+                                            name="check-circle"
+                                            size={11}
+                                            color={Colors.WHITE}
                                         />
-                                        <CustomText variant="caption" style={styles.metaText}>
-                                            {bannerRatingLabel}
+                                        <CustomText style={styles.verifiedBadgeText}>
+                                            Verified
                                         </CustomText>
                                     </View>
+                                </View>
 
+                                <View style={styles.heroMetaRow}>
                                     {Boolean(business.address) && (
                                         <View style={styles.metaItem}>
                                             <CustomIcon
                                                 library="Feather"
                                                 name="map-pin"
-                                                size={13}
-                                                color={Colors.WHITE}
+                                                size={12}
+                                                color={Colors.YELLOW}
                                             />
                                             <CustomText
                                                 variant="caption"
@@ -184,6 +156,22 @@ const BusinessHeroCard = ({
                                             </CustomText>
                                         </View>
                                     )}
+
+                                    <View style={styles.metaItem}>
+                                        <CustomIcon
+                                            library="Feather"
+                                            name="calendar"
+                                            size={12}
+                                            color={Colors.YELLOW}
+                                        />
+                                        <CustomText
+                                            variant="caption"
+                                            style={styles.metaText}
+                                            numberOfLines={1}
+                                        >
+                                            {establishedText}
+                                        </CustomText>
+                                    </View>
                                 </View>
                             </View>
                         </View>
@@ -211,7 +199,7 @@ const BusinessHeroCard = ({
                             color={Colors.PRIMARY}
                         />
                         <CustomText style={styles.specItemLabel}>
-                            Packages
+                            Offers
                         </CustomText>
                         <CustomText style={styles.specItemVal}>
                             {`${packageCount} Active`}
@@ -286,39 +274,23 @@ const styles = StyleSheet.create({
     contentContainer: {
         gap: 8,
     },
-    heroBadgeRow: {
+    nameBadgeRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 4,
         gap: 8,
         flexWrap: 'wrap',
     },
-    establishedBadge: {
+    verifiedBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 5,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        paddingHorizontal: 9,
-        paddingVertical: 4,
-        borderRadius: 12,
+        gap: 4,
+        backgroundColor: Colors.PRIMARY,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
     },
-    establishedBadgeText: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: Palette.Slate900,
-    },
-    verifiedPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        backgroundColor: Palette.Green600,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    verifiedPillText: {
-        fontSize: 12,
+    verifiedBadgeText: {
+        fontSize: 11,
         fontWeight: '700',
         color: Colors.WHITE,
     },
@@ -414,7 +386,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 14,
         borderWidth: 1,
-        borderColor: Palette.Slate200,
+        borderColor: Colors.GRAY_LIGHT,
         elevation: 1,
         ...GlobalStyles.dropShadow(1, 0.05),
     },
@@ -436,7 +408,7 @@ const styles = StyleSheet.create({
     specDivider: {
         width: 1,
         height: 28,
-        backgroundColor: Palette.Slate200,
+        backgroundColor: Colors.GRAY_LIGHT,
     },
 });
 

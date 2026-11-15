@@ -1,3 +1,4 @@
+import { useToast } from "@/src/components/Toast/Toast";
 import { db } from "@/src/core/config/Firebase";
 import { RecalculateTrailRating } from "@/src/core/flows/RecalculateTrailRating";
 import { useBookingUserItem } from "@/src/core/models/Booking/Booking";
@@ -32,7 +33,8 @@ export type UseReviewWriteParams = {
 
 export function CreateReviewFlow(params: UseReviewWriteParams) {
     const { reviewId, trailId, hikeId, distance, duration, elevation, bookingId } = params;
-    const { profile } = useAuthHook();
+    const { profile, role, businessId: userBusinessId } = useAuthHook();
+    const { showToast } = useToast();
 
     const isLoading = useReviewStore(s => s.isLoading);
     const error = useReviewStore(s => s.error);
@@ -99,6 +101,18 @@ export function CreateReviewFlow(params: UseReviewWriteParams) {
 
     const effectiveBookingId = bookingId || review.bookingId;
     const { booking } = useBookingUserItem(effectiveBookingId);
+
+    // 0ms synchronous in-memory check using already-loaded auth role/businessId and booking.business.id.
+    // Superadmins are treated as hikers and can review any business; business admins/owners cannot review their own business.
+    const resolvedUserBusinessId = userBusinessId || profile?.businessId || '';
+    const targetBusinessId = booking?.business?.id || '';
+    const isBusinessStaff = role === 'admin' || role === 'owner';
+    const isOwnBusiness =
+        isBusinessStaff &&
+        Boolean(targetBusinessId) &&
+        (targetBusinessId === resolvedUserBusinessId || targetBusinessId === profile?.id);
+
+    const canReviewOrganizer = Boolean(effectiveBookingId && targetBusinessId) && !isOwnBusiness;
 
     useEffect(() => {
         if (review.id && booking?.business?.id) {
@@ -177,7 +191,7 @@ export function CreateReviewFlow(params: UseReviewWriteParams) {
         }
     }
 
-    const onSaveReview = async () => {
+    const onSaveReview = async (): Promise<boolean> => {
         try {
             if (!profile)
                 throw new Error('User must be logged in');
@@ -189,16 +203,14 @@ export function CreateReviewFlow(params: UseReviewWriteParams) {
             if (isNew && (review.trail.id === 'diy' || review.trail.id === 'diy_session' || review.trail.id === '')) {
                 const coor = coordinates[0];
 
-                if (!coor.latitude || !coor.longitude) {
-                    return;
-                };
+                if (coor?.latitude && coor?.longitude) {
+                    const locationName = await getReverseGeocode(coor.latitude, coor.longitude);
 
-                const locationName = await getReverseGeocode(coor.latitude, coor.longitude);
-
-                location = {
-                    id: review.trail.id,
-                    location: locationName?.location || 'Location Unknown',
-                    name: locationName?.name || 'Location Unknown',
+                    location = {
+                        id: review.trail.id,
+                        location: locationName?.location || 'Location Unknown',
+                        name: locationName?.name || 'Location Unknown',
+                    };
                 }
             }
 
@@ -218,9 +230,17 @@ export function CreateReviewFlow(params: UseReviewWriteParams) {
                 create(finalReviewToSave)
             ]);
 
+            const storeError = useReviewStore.getState().error;
+            if (storeError) {
+                throw new Error(storeError);
+            }
+
+            showToast.success(isNew ? 'Review submitted successfully!' : 'Review updated successfully!');
             router.replace('/');
+            return true;
         } catch (error) {
-            setLocalError((error as Error).message)
+            setLocalError((error as Error).message);
+            return false;
         }
     }
 
@@ -228,6 +248,7 @@ export function CreateReviewFlow(params: UseReviewWriteParams) {
         if (!effectiveBookingId) return;
         if (!profile) throw new Error('No user profile found. Log in again');
         if (!booking) throw new Error('Booking data not found');
+        if (isOwnBusiness) throw new Error('You cannot review your own business.');
         if (data.review.trim() === '') throw new Error('Review cannot be empty.')
         if (data.rating < 1 || data.rating > 5) throw new Error('Rating must be within 1 to 5 only')
         if (!review) throw new Error('Review data not found');
@@ -258,6 +279,8 @@ export function CreateReviewFlow(params: UseReviewWriteParams) {
     return {
         review,
         existingBusinessReview,
+        organizerName: booking?.business?.name,
+        canReviewOrganizer,
         isLoading: isLoading || trailLoading,
         error: error || localError,
         onUpdatePress,

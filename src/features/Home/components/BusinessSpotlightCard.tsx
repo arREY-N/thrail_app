@@ -6,24 +6,23 @@
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import {
     ImageSourcePropType,
     Platform,
+    Pressable,
     ScrollView,
     StyleSheet,
-    TouchableOpacity,
     View,
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
-import { Colors, Palette } from '@/src/constants/colors';
+import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Business } from '@/src/core/models/Business/Business';
 import { IOffer } from '@/src/core/models/Offer/Offer';
-import { Review } from '@/src/core/models/Review/Review';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 import { isAliveOffer } from '@/src/utils/offerHelpers';
@@ -34,15 +33,13 @@ const BANNER_IMAGE_SOURCE: ImageSourcePropType = require('@/src/assets/images/Ba
  * Props for the BusinessSpotlightCard component.
  *
  * @param businesses - List of active tour businesses.
- * @param offers - List of hike offers used to calculate active upcoming packages count.
- * @param reviews - Optional list of community reviews used to calculate the business rating.
+ * @param offers - List of hike offers used to calculate active upcoming offers count.
  * @param onBusinessPress - Callback when a business spotlight card is pressed.
  * @param cardWidth - Optional custom card width for carousel view.
  */
 interface Props {
     businesses?: Business[];
     offers?: IOffer[];
-    reviews?: Review[];
     onBusinessPress: (businessId: string) => void;
     cardWidth?: number;
 }
@@ -56,7 +53,6 @@ interface Props {
 const BusinessSpotlightCard = ({
     businesses = [],
     offers = [],
-    reviews = [],
     onBusinessPress,
     cardWidth,
 }: Props): React.JSX.Element | null => {
@@ -109,23 +105,24 @@ const BusinessSpotlightCard = ({
     };
 
     const renderSpotlightBanner = (business: Business, isCarouselItem: boolean): React.JSX.Element => {
-        const packageCount = getActivePackageCount(business);
+        const offerCount = getActivePackageCount(business);
         const establishedText = formatEstablishedText(business.establishedOn);
         const rating = business.rating ?? 0;
         const reviewsCount = business.reviewCount ?? 0;
-        const ratingLabel = reviewsCount > 0
-            ? `${rating.toFixed(1)} (${reviewsCount} ${reviewsCount === 1 ? 'review' : 'reviews'})`
-            : 'New Partner';
+        const ratingBadgeLabel = reviewsCount > 0 && rating > 0
+            ? `${rating.toFixed(1)} (${reviewsCount})`
+            : 'N/A';
 
         return (
-            <TouchableOpacity
+            <Pressable
                 key={business.id}
-                style={[
+                style={({ pressed, hovered }) => [
                     styles.fullCard,
                     isCarouselItem && styles.carouselCard,
                     Boolean(isCarouselItem && cardWidth) && { width: cardWidth },
+                    hovered && styles.fullCardHovered,
+                    pressed && styles.fullCardPressed,
                 ]}
-                activeOpacity={0.88}
                 onPress={() => onBusinessPress(business.id)}
             >
                 <View style={[styles.imageContainer, isWide && styles.imageContainerWide]}>
@@ -135,37 +132,37 @@ const BusinessSpotlightCard = ({
                         resizeMode="cover"
                     />
 
-                    <LinearGradient
-                        colors={['rgba(0, 0, 0, 0.12)', 'rgba(0, 0, 0, 0.38)', `${Colors.BLACK}E6`]}
-                        style={[styles.gradientOverlay, isWide && styles.gradientOverlayWide]}
-                    >
-                        {/* Top Floating Badges Row */}
-                        <View style={styles.topBadgeRow}>
-                            <View style={styles.featuredBadge}>
-                                <CustomIcon
-                                    library="AntDesign"
-                                    name="star"
-                                    size={12}
-                                    color={Colors.YELLOW}
-                                />
-                                <CustomText style={styles.featuredBadgeText}>
-                                    Featured Tour Partner
-                                </CustomText>
-                            </View>
-
-                            <View style={styles.packagePill}>
-                                <CustomIcon
-                                    library="Feather"
-                                    name="compass"
-                                    size={12}
-                                    color={Colors.WHITE}
-                                />
-                                <CustomText style={styles.packagePillText}>
-                                    {`${packageCount} Active ${packageCount === 1 ? 'Package' : 'Packages'}`}
-                                </CustomText>
-                            </View>
+                    {/* Top Floating Badges Row (Aligned with MountainCard 12px inset) */}
+                    <View style={styles.topBadgeRow}>
+                        <View style={styles.glassPill}>
+                            <CustomIcon
+                                library="Ionicons"
+                                name="star"
+                                size={13}
+                                color={Colors.YELLOW}
+                            />
+                            <CustomText variant="caption" style={styles.glassPillText}>
+                                {ratingBadgeLabel}
+                            </CustomText>
                         </View>
 
+                        <View style={[styles.glassPill, styles.offerPill]}>
+                            <CustomIcon
+                                library="Ionicons"
+                                name="pricetag"
+                                size={12}
+                                color={Colors.WHITE}
+                            />
+                            <CustomText variant="caption" style={styles.offerPillText}>
+                                {`${offerCount} Active ${offerCount === 1 ? 'Offer' : 'Offers'}`}
+                            </CustomText>
+                        </View>
+                    </View>
+
+                    <LinearGradient
+                        colors={['transparent', `${Colors.BLACK}61`, `${Colors.BLACK}E6`]}
+                        style={[styles.gradientOverlay, isWide && styles.gradientOverlayWide]}
+                    >
                         {/* Bottom-Left Content Stack (Flush Left, Matching TrailOfTheMonthCard) */}
                         <View style={styles.contentContainer}>
                             <View style={styles.nameBadgeRow}>
@@ -194,18 +191,6 @@ const BusinessSpotlightCard = ({
                             </View>
 
                             <View style={styles.metaRow}>
-                                <View style={styles.metaItem}>
-                                    <CustomIcon
-                                        library="AntDesign"
-                                        name="star"
-                                        size={12}
-                                        color={Colors.YELLOW}
-                                    />
-                                    <CustomText variant="caption" style={styles.metaText}>
-                                        {ratingLabel}
-                                    </CustomText>
-                                </View>
-
                                 {Boolean(business.address) && (
                                     <View style={styles.metaItem}>
                                         <CustomIcon
@@ -243,7 +228,7 @@ const BusinessSpotlightCard = ({
                         </View>
                     </LinearGradient>
                 </View>
-            </TouchableOpacity>
+            </Pressable>
         );
     };
 
@@ -294,19 +279,20 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
-        marginBottom: 8,
+        marginBottom: 12,
     },
     sectionTitle: {
         fontSize: 20,
-        marginBottom: 4,
     },
     cardWrapper: {
         paddingHorizontal: 16,
     },
     fullCard: {
         backgroundColor: Colors.WHITE,
-        borderRadius: 16,
+        borderRadius: 24,
         overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: Colors.GRAY_LIGHT,
         ...GlobalStyles.dropShadow(3),
         marginVertical: 4,
         ...Platform.select({
@@ -314,6 +300,18 @@ const styles = StyleSheet.create({
                 cursor: 'pointer',
             },
         }),
+    },
+    fullCardHovered: {
+        ...Platform.select({
+            web: {
+                borderColor: Colors.PRIMARY,
+                transform: [{ translateY: -4 }, { scale: 1.01 }],
+                ...GlobalStyles.dropShadow(6, 0.15, Colors.SHADOW, { radius: 10 }),
+            },
+        }),
+    },
+    fullCardPressed: {
+        opacity: 0.88,
     },
     carouselCard: {
         width: 340,
@@ -334,15 +332,15 @@ const styles = StyleSheet.create({
         }),
     },
     imageContainer: {
-        height: 210,
+        height: 224,
         width: '100%',
         position: 'relative',
         backgroundColor: Colors.GRAY_LIGHT,
-        borderRadius: 16,
+        borderRadius: 24,
         overflow: 'hidden',
     },
     imageContainerWide: {
-        height: 230,
+        height: 272,
     },
     cardImage: {
         width: '100%',
@@ -355,50 +353,50 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         height: '100%',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         padding: 16,
     },
     gradientOverlayWide: {
         padding: 20,
     },
     topBadgeRow: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        right: 12,
+        zIndex: 2,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 8,
         flexWrap: 'wrap',
     },
-    featuredBadge: {
+    glassPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 5,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 12,
+        gap: 4,
+        backgroundColor: `${Colors.BLACK}99`,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: `${Colors.WHITE}33`,
     },
-    featuredBadgeText: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: Palette.Slate900,
-    },
-    packagePill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        backgroundColor: Palette.Green600,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 12,
-    },
-    packagePillText: {
-        fontSize: 12,
-        fontWeight: '700',
+    glassPillText: {
         color: Colors.WHITE,
+        fontWeight: 'bold',
+    },
+    offerPill: {
+        backgroundColor: Colors.PRIMARY,
+        borderColor: Colors.PRIMARY,
+    },
+    offerPillText: {
+        color: Colors.WHITE,
+        fontWeight: 'bold',
     },
     contentContainer: {
         width: '100%',
-        gap: 6,
+        gap: 8,
     },
     nameBadgeRow: {
         flexDirection: 'row',
@@ -437,9 +435,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: Palette.Green600,
+        backgroundColor: Colors.PRIMARY,
         paddingHorizontal: 8,
-        paddingVertical: 3,
+        paddingVertical: 2,
         borderRadius: 999,
     },
     verifiedBadgeText: {
@@ -451,13 +449,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         flexWrap: 'wrap',
-        columnGap: 14,
+        columnGap: 16,
         rowGap: 4,
     },
     metaItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 5,
+        gap: 4,
     },
     metaText: {
         fontSize: 13,
