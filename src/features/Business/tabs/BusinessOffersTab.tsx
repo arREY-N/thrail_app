@@ -1,7 +1,7 @@
 /**
  * @file BusinessOffersTab.tsx
  * @description Renders Tab 1 (Offers) of the Business Profile screen.
- * Displays Top 3 Featured Upcoming trail packages (with web drag scroll and scroll fades)
+ * Displays Top 3 Featured Upcoming trail offers (with web drag scroll and scroll fades)
  * followed by a province-filterable catalog using CustomFilterTabs.
  */
 
@@ -13,19 +13,25 @@ import {
     View,
 } from 'react-native';
 
-import CustomFilterTabs, { FilterTabItem } from '@/src/components/CustomFilterTabs';
+import CustomFilterTabs from '@/src/components/CustomFilterTabs';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
 import MountainCard from '@/src/components/MountainCard';
+import MountainCardSkeleton from '@/src/components/MountainCardSkeleton';
+import SkeletonEffect from '@/src/components/SkeletonEffect';
 import { Colors } from '@/src/constants/colors';
 import { ITrail } from '@/src/core/models/Trail/Trail';
+import {
+    buildProvinceFilterTabs,
+    filterTrailsByProvince,
+} from '@/src/features/Business/utils/businessHelpers';
 import { useBreakpoints } from '@/src/hooks/useBreakpoints';
 import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
 
 /**
  * Props for the BusinessOffersTab component.
  *
- * @param featuredTrails - Top 3 soonest bookable upcoming trail packages.
+ * @param featuredTrails - Top 3 soonest bookable upcoming trail offers.
  * @param allTrails - All unique trails with active offers from this business.
  * @param onMountainPress - Callback when a mountain card is tapped (opens TrailScreen).
  * @param onDownloadPress - Callback to download offline trail assets.
@@ -33,6 +39,7 @@ import { useWebDragScroll } from '@/src/hooks/useWebDragScroll';
  * @param getTrailOffersCount - Function returning active offers count for a trail ID.
  * @param cardWidth - Dynamic card width for horizontal carousel.
  * @param contentWidth - Constrained container width for grid calculation.
+ * @param isLoading - Whether offers or trails are currently loading.
  */
 interface Props {
     featuredTrails: ITrail[];
@@ -43,10 +50,11 @@ interface Props {
     getTrailOffersCount: (trailId: string) => number;
     cardWidth: number;
     contentWidth: number;
+    isLoading?: boolean;
 }
 
 /**
- * BusinessOffersTab — Tab content presenting featured upcoming tours and province-filtered packages.
+ * BusinessOffersTab — Tab content presenting featured upcoming tours and province-filtered offers.
  *
  * @param props - Component props
  * @returns React.JSX.Element rendering the offers tab content
@@ -60,6 +68,7 @@ const BusinessOffersTab = ({
     getTrailOffersCount,
     cardWidth,
     contentWidth,
+    isLoading = false,
 }: Props): React.JSX.Element => {
     const { isDesktop, isTablet } = useBreakpoints();
     const isWide = isDesktop || isTablet;
@@ -70,64 +79,18 @@ const BusinessOffersTab = ({
     const hasFeatured = featuredTrails.length > 0;
     useWebDragScroll(featuredScrollRef, hasFeatured, featuredTrails);
 
-    // Extract dynamic unique province list from all active trails
-    const uniqueProvinces = useMemo(() => {
-        const provinces = new Set<string>();
-        allTrails.forEach((t) => {
-            const provs = t.general?.province;
-            if (Array.isArray(provs)) {
-                provs.forEach((p: string) => {
-                    if (typeof p === 'string' && p.trim()) {
-                        provinces.add(p.trim());
-                    }
-                });
-            } else if (typeof provs === 'string' && (provs as string).trim()) {
-                provinces.add((provs as string).trim());
-            }
-        });
-        return Array.from(provinces);
-    }, [allTrails]);
+    // Build sorted province filter tab options with dynamic counters for CustomFilterTabs
+    const filterTabs = useMemo(() => buildProvinceFilterTabs(allTrails), [allTrails]);
 
-    // Build province-only filter tab options with dynamic counters for CustomFilterTabs
-    const filterTabs = useMemo((): FilterTabItem[] => {
-        const tabs: FilterTabItem[] = [
-            {
-                id: 'All',
-                label: 'All',
-                count: allTrails.length,
-            },
-        ];
-
-        uniqueProvinces.forEach((prov) => {
-            const provCount = allTrails.filter((t) => {
-                if (Array.isArray(t.general?.province)) {
-                    return t.general.province.includes(prov);
-                }
-                return t.general?.province === prov;
-            }).length;
-
-            tabs.push({
-                id: prov,
-                label: prov,
-                count: provCount,
-            });
-        });
-
-        return tabs;
-    }, [allTrails, uniqueProvinces]);
+    const activeCategory = useMemo(() => {
+        return filterTabs.some((t) => t.id === selectedCategory) ? selectedCategory : 'All';
+    }, [filterTabs, selectedCategory]);
 
     // Filter trails according to active province tab
-    const filteredTrails = useMemo(() => {
-        if (selectedCategory === 'All') {
-            return allTrails;
-        }
-        return allTrails.filter((t) => {
-            if (Array.isArray(t.general?.province)) {
-                return t.general.province.includes(selectedCategory);
-            }
-            return t.general?.province === selectedCategory;
-        });
-    }, [allTrails, selectedCategory]);
+    const filteredTrails = useMemo(
+        () => filterTrailsByProvince(allTrails, activeCategory),
+        [allTrails, activeCategory]
+    );
 
     // Exact responsive 2-column grid calculation on wide screens
     const availableWidth = Math.max(280, contentWidth - 32);
@@ -137,6 +100,53 @@ const BusinessOffersTab = ({
         ? Math.floor((availableWidth - gap) / 2)
         : undefined;
 
+    if (isLoading && allTrails.length === 0) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.sectionBlock}>
+                    <View style={styles.sectionHeader}>
+                        <SkeletonEffect style={styles.sectionTitleSkeleton} />
+                        <SkeletonEffect style={styles.sectionSubtitleSkeleton} />
+                    </View>
+
+                    <View style={styles.horizontalSkeletonRow}>
+                        <MountainCardSkeleton
+                            style={{
+                                width: cardWidth,
+                                marginRight: 16,
+                            }}
+                        />
+                        <MountainCardSkeleton
+                            style={{
+                                width: cardWidth,
+                            }}
+                        />
+                    </View>
+                </View>
+
+                <View style={styles.sectionBlock}>
+                    <View style={styles.sectionHeader}>
+                        <SkeletonEffect style={styles.sectionTitleSkeleton} />
+                        <SkeletonEffect style={styles.sectionSubtitleSkeleton} />
+                    </View>
+
+                    <View style={useTwoColumnGrid ? styles.catalogGrid : styles.catalogList}>
+                        {[0, 1].map((index) => (
+                            <MountainCardSkeleton
+                                key={`offer-skel-${index}`}
+                                style={
+                                    useTwoColumnGrid && gridCardWidth
+                                        ? { width: gridCardWidth }
+                                        : styles.listCard
+                                }
+                            />
+                        ))}
+                    </View>
+                </View>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             {/* 1. TOP 3 FEATURED UPCOMING SECTION */}
@@ -144,7 +154,7 @@ const BusinessOffersTab = ({
                 <View style={styles.sectionBlock}>
                     <View style={styles.sectionHeader}>
                         <CustomText variant="subtitle" style={styles.sectionTitle}>
-                            Featured Upcoming Packages
+                            Featured Upcoming Offers
                         </CustomText>
                         <CustomText variant="caption" style={styles.sectionSubtitle}>
                             Soonest departures with available hiker slots
@@ -178,7 +188,7 @@ const BusinessOffersTab = ({
                 </View>
             )}
 
-            {/* 2. ALL PACKAGES WITH PROVINCE FILTER TABS */}
+            {/* 2.OFFERS ALL  WITH PROVINCE FILTER TABS */}
             <View style={styles.sectionBlock}>
                 <View style={styles.sectionHeader}>
                     <CustomText variant="subtitle" style={styles.sectionTitle}>
@@ -192,7 +202,7 @@ const BusinessOffersTab = ({
                 {/* Shared CustomFilterTabs (Provinces Only) */}
                 <CustomFilterTabs
                     tabs={filterTabs}
-                    activeTab={selectedCategory}
+                    activeTab={activeCategory}
                     onTabSelect={setSelectedCategory}
                     variant="pill"
                     fadeBackgroundColor={Colors.BACKGROUND}
@@ -228,7 +238,7 @@ const BusinessOffersTab = ({
                             color={Colors.GRAY_MEDIUM}
                         />
                         <CustomText variant="caption" style={styles.emptyText}>
-                            No active hiking packages scheduled under this location.
+                            No active hiking offers scheduled under this location.
                         </CustomText>
                     </View>
                 )}
@@ -310,6 +320,24 @@ const styles = StyleSheet.create({
         color: Colors.TEXT_SECONDARY,
         textAlign: 'center',
         fontStyle: 'italic',
+    },
+    sectionTitleSkeleton: {
+        width: 210,
+        height: 20,
+        borderRadius: 8,
+        marginBottom: 6,
+    },
+    sectionSubtitleSkeleton: {
+        width: 250,
+        height: 12,
+        borderRadius: 6,
+    },
+    horizontalSkeletonRow: {
+        flexDirection: 'row',
+        paddingTop: 12,
+        paddingBottom: 16,
+        paddingHorizontal: 16,
+        overflow: 'hidden',
     },
 });
 
