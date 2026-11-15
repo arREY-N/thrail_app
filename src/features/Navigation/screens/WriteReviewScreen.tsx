@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Platform,
     ScrollView,
@@ -12,6 +12,7 @@ import CustomFeedbackInput from '@/src/components/CustomFeedbackInput';
 import CustomHeader from '@/src/components/CustomHeader';
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import CustomToast from '@/src/components/CustomToast';
 import DocumentUploadCard from '@/src/components/DocumentUploadCard';
 import ErrorMessage from '@/src/components/ErrorMessage';
 import ScreenWrapper from '@/src/components/ScreenWrapper';
@@ -26,6 +27,16 @@ import SelectionChip from '@/src/features/Auth/components/SelectionChip';
 
 import { BusinessReviewData } from '@/src/core/flows/CreateReviewFlow';
 import { DIFFICULTY_FACTOR_MAPPINGS, DifficultyFactorOption } from '@/src/recommendation/utilities/FactorWeightsMapper';
+import { getInitials } from '@/src/utils/dateFormatter';
+
+const ORGANIZER_REVIEW_SUGGESTIONS = [
+    'Well-organized itinerary and pacing',
+    'Friendly and knowledgeable guides',
+    'Clear pre-hike communication',
+    'Strong focus on hiker safety',
+    'Punctual meetup and smooth logistics',
+    'Great value for the package price',
+];
 
 const DIFFICULTY_CARDS = [
     {
@@ -62,10 +73,12 @@ export interface DraftReview {
 export interface WriteReviewScreenProps {
     review: DraftReview;
     existingBusinessReview?: BusinessReviewData | null;
+    organizerName?: string;
+    canReviewOrganizer?: boolean;
     isLoading: boolean;
     error: string | null;
     onUpdatePress: (payload: { section: string; id: string; value: unknown }) => void;
-    onSaveReview: () => void;
+    onSaveReview: () => void | Promise<boolean | void>;
     onBackPress?: () => void;
     createBusinessReview?: (data: BusinessReviewData) => Promise<void>;
 }
@@ -73,6 +86,8 @@ export interface WriteReviewScreenProps {
 const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     review,
     existingBusinessReview,
+    organizerName,
+    canReviewOrganizer,
     isLoading,
     error,
     onUpdatePress,
@@ -86,15 +101,34 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
     const [showDiscardConfirmation, setShowDiscardConfirmation] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
-    const [businessRating, setBusinessRating] = useState(existingBusinessReview?.rating || 0);
-    const [businessReview, setBusinessReview] = useState(existingBusinessReview?.review || '');
+    const [isSubmittingBusiness, setIsSubmittingBusiness] = useState(false);
+    const [isSavingReview, setIsSavingReview] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [validationToast, setValidationToast] = useState<string | null>(null);
+    const [toastTriggerKey, setToastTriggerKey] = useState(0);
+    const [footerHeight, setFooterHeight] = useState(88);
+    const [prevExistingBusinessReview, setPrevExistingBusinessReview] = useState<BusinessReviewData | null | undefined>(
+        existingBusinessReview
+    );
+    const [businessRating, setBusinessRating] = useState<number>(existingBusinessReview?.rating ?? 0);
+    const [businessReview, setBusinessReview] = useState<string>(existingBusinessReview?.review ?? '');
 
-    useEffect(() => {
+    if (existingBusinessReview !== prevExistingBusinessReview) {
+        setPrevExistingBusinessReview(existingBusinessReview);
         if (existingBusinessReview && !isDirty) {
-            setBusinessRating(existingBusinessReview.rating || 0);
-            setBusinessReview(existingBusinessReview.review || '');
+            setBusinessRating(existingBusinessReview.rating ?? 0);
+            setBusinessReview(existingBusinessReview.review ?? '');
         }
-    }, [existingBusinessReview, isDirty]);
+    }
+
+    const hasBooking = review?.bookingId != null && review.bookingId !== '';
+    const showOrganizerStep = hasBooking && canReviewOrganizer !== false;
+    const hasExistingOrganizerReview = Boolean(existingBusinessReview);
+    const STEPS = showOrganizerStep ? ['ratings', 'details', 'organizer'] : ['ratings', 'details'];
+    const safeStepIndex = Math.min(stepIndex, STEPS.length - 1);
+    const currentStep = STEPS[safeStepIndex];
+    const progressPercentage = ((safeStepIndex + 1) / STEPS.length) * 100;
+    const isSubmitting = isLoading || isSubmittingBusiness || isSavingReview;
 
     const {
         tutorial,
@@ -103,16 +137,23 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
         feedbackInputRef,
         photoUploadRef,
         submitBtnRef,
+        organizerRatingRef,
+        organizerFeedbackRef,
         handlers,
     } = useWriteReviewTutorial({
         isEditMode,
-        stepIndex,
+        stepIndex: safeStepIndex,
         isLoading,
+        hasOrganizerStep: showOrganizerStep,
     });
 
-    const STEPS = ['ratings', 'details'];
-    const currentStep = STEPS[stepIndex];
-    const progressPercentage = ((stepIndex + 1) / STEPS.length) * 100;
+    const isBusinessEmpty = businessRating === 0 && businessReview.trim().length === 0;
+    const isBusinessComplete = businessRating > 0 && businessReview.trim().length > 0;
+    const isLastStep = safeStepIndex >= STEPS.length - 1;
+    const isSkipSubmitState =
+        currentStep === 'organizer' &&
+        isBusinessEmpty &&
+        !hasExistingOrganizerReview;
 
     const normalizedDifficulty =
         review.perceivedDifficulty === 'Easy' || review.perceivedDifficulty === 'Just Right'
@@ -125,14 +166,49 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     if (currentStep === 'ratings') {
         hasAnswer = review.overallRating > 0 && !!normalizedDifficulty;
     } else if (currentStep === 'details') {
-        hasAnswer = review?.bookingId != null
-            ? businessRating > 0 && businessReview.trim().length > 0
-            : true;
+        hasAnswer = true;
+    } else if (currentStep === 'organizer') {
+        hasAnswer = hasExistingOrganizerReview
+            ? isBusinessComplete
+            : (isBusinessEmpty || isBusinessComplete);
     }
 
+    const getIncompleteStepMessage = (): string => {
+        if (currentStep === 'ratings') {
+            if (review.overallRating <= 0) {
+                return 'Please select an overall star rating for your hike.';
+            }
+            if (!normalizedDifficulty) {
+                return 'Please select how difficult the trail felt for you.';
+            }
+        }
+        if (currentStep === 'organizer') {
+            if (businessRating > 0 && businessReview.trim().length === 0) {
+                return hasExistingOrganizerReview
+                    ? 'Please write a short review for the organizer.'
+                    : 'Please write a short review for the organizer, or tap the selected star again to skip.';
+            }
+            if (businessRating === 0 && businessReview.trim().length > 0) {
+                return hasExistingOrganizerReview
+                    ? 'Please select a star rating for the organizer.'
+                    : 'Please select a star rating for the organizer, or clear your text to skip.';
+            }
+            if (hasExistingOrganizerReview) {
+                return 'Please provide both a star rating and a review for the organizer.';
+            }
+        }
+        return 'Please complete the required fields to continue.';
+    };
+
     const handleNext = () => {
-        if (!hasAnswer) return;
-        if (stepIndex >= STEPS.length - 1) {
+        if (!hasAnswer) {
+            setValidationToast(getIncompleteStepMessage());
+            setToastTriggerKey(prev => prev + 1);
+            return;
+        }
+        setValidationToast(null);
+        setSubmitError(null);
+        if (safeStepIndex >= STEPS.length - 1) {
             setShowSaveConfirmation(true);
         } else {
             setStepIndex(prev => prev + 1);
@@ -140,8 +216,10 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     };
 
     const handleBack = () => {
-        if (stepIndex > 0) {
-            setStepIndex(prev => prev - 1);
+        setValidationToast(null);
+        setSubmitError(null);
+        if (safeStepIndex > 0) {
+            setStepIndex(safeStepIndex - 1);
         }
     };
 
@@ -158,19 +236,57 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
         onBackPress?.();
     };
 
+    const handleBusinessStarPress = (star: number) => {
+        setIsDirty(true);
+        setSubmitError(null);
+        setBusinessRating((prev) => (!hasExistingOrganizerReview && prev === star ? 0 : star));
+    };
+
     const handleConfirmSubmit = async () => {
-        setShowSaveConfirmation(false);
-        if (review?.bookingId != null && createBusinessReview) {
+        if (isSubmitting) return;
+        setSubmitError(null);
+        setValidationToast(null);
+
+        const shouldSubmitBusinessReview =
+            showOrganizerStep &&
+            isBusinessComplete &&
+            Boolean(createBusinessReview);
+
+        if (shouldSubmitBusinessReview && createBusinessReview) {
+            setIsSubmittingBusiness(true);
             try {
                 await createBusinessReview({
                     rating: businessRating,
-                    review: businessReview,
+                    review: businessReview.trim(),
                 });
-            } catch (err) {
-                console.error("Failed to submit business review:", err);
+            } catch (err: unknown) {
+                const message = err instanceof Error
+                    ? err.message
+                    : 'Failed to submit organizer review. Please try again.';
+                setSubmitError(message);
+                setShowSaveConfirmation(false);
+                return;
+            } finally {
+                setIsSubmittingBusiness(false);
             }
         }
-        onSaveReview();
+
+        setIsSavingReview(true);
+        try {
+            const saved = await onSaveReview();
+            if (saved === false) {
+                setValidationToast('Failed to save review. Please check your connection and try again.');
+                setToastTriggerKey(prev => prev + 1);
+            }
+        } catch (err: unknown) {
+            const message = err instanceof Error
+                ? err.message
+                : 'Failed to save review. Please try again.';
+            setSubmitError(message);
+        } finally {
+            setIsSavingReview(false);
+            setShowSaveConfirmation(false);
+        }
     };
 
     const updateReview = (field: string, value: unknown) => {
@@ -361,9 +477,9 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                                 ref={photoUploadRef}
                                 collapsable={false}
                                 onLayout={handlers.handlePhotoUploadLayout}
-                                style={{ marginTop: 24 }}
+                                style={styles.photoSectionContainer}
                             >
-                                <CustomText variant="subtitle" style={[styles.question, { fontSize: 16 }]}>
+                                <CustomText variant="h3" style={styles.subSectionTitle}>
                                     Add Photos (Optional)
                                 </CustomText>
                                 <DocumentUploadCard
@@ -392,53 +508,108 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                                 />
                             </View>
                         </View>
-
-                        {review?.bookingId != null && (
-                            <View>
-                                <View style={styles.sectionContainer}>
-                                    <CustomText variant="subtitle" style={styles.question}>
-                                        Rate the organizers
-                                    </CustomText>
-                                    <View style={styles.starContainer}>
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                            <TouchableOpacity
-                                                key={star}
-                                                onPress={() => {
-                                                    setIsDirty(true);
-                                                    setBusinessRating(star);
-                                                }}
-                                                activeOpacity={0.7}
-                                                style={styles.starWrapper}
-                                            >
-                                                <CustomIcon
-                                                    library="Ionicons"
-                                                    name={star <= businessRating ? "star" : "star-outline"}
-                                                    size={48}
-                                                    color={Colors.YELLOW}
-                                                />
-                                                <CustomText style={styles.starLabel}>{star}</CustomText>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                </View>
-
-                                <View style={styles.sectionContainer}>
-                                    <CustomText variant="subtitle" style={styles.question}>
-                                        Give us a glimpse of your experience with the organizers
-                                    </CustomText>
-                                    <CustomFeedbackInput
-                                        placeholder="Type your review here..."
-                                        value={businessReview}
-                                        onChangeText={(val) => {
-                                            setIsDirty(true);
-                                            setBusinessReview(val);
-                                        }}
-                                    />
-                                </View>
-                            </View>
-                        )}
                     </View>
                 );
+
+            case 'organizer': {
+                const organizerInitials = getInitials(organizerName);
+
+                return (
+                    <View>
+                        {/* Organizer Context Banner Card */}
+                        <View style={styles.organizerCard}>
+                            <View style={styles.organizerAvatarCircle}>
+                                <CustomText style={styles.organizerInitialsText}>
+                                    {organizerInitials}
+                                </CustomText>
+                            </View>
+
+                            <View style={styles.organizerTextGroup}>
+                                <CustomText variant="label" style={styles.organizerLabel}>
+                                    Rate your organizer
+                                </CustomText>
+                                <CustomText
+                                    variant="h3"
+                                    style={styles.organizerName}
+                                    numberOfLines={1}
+                                >
+                                    {organizerName?.trim() || '--'}
+                                </CustomText>
+                            </View>
+
+                            {!hasExistingOrganizerReview && (
+                                <View style={styles.optionalBadge}>
+                                    <CustomText variant="caption" style={styles.optionalBadgeText}>
+                                        Optional
+                                    </CustomText>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* Organizer Star Rating */}
+                        <View style={styles.sectionContainer}>
+                            <CustomText variant="subtitle" style={styles.question}>
+                                How was your experience with the organizer?
+                                {hasExistingOrganizerReview && (
+                                    <CustomText style={styles.requiredMark}>
+                                        {' *'}
+                                    </CustomText>
+                                )}
+                            </CustomText>
+
+                            <View
+                                ref={organizerRatingRef}
+                                collapsable={false}
+                                onLayout={handlers.handleOrganizerRatingLayout}
+                                style={styles.starContainer}
+                            >
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <TouchableOpacity
+                                        key={star}
+                                        onPress={() => handleBusinessStarPress(star)}
+                                        activeOpacity={0.7}
+                                        style={styles.starWrapper}
+                                    >
+                                        <CustomIcon
+                                            library="Ionicons"
+                                            name={star <= businessRating ? "star" : "star-outline"}
+                                            size={48}
+                                            color={Colors.YELLOW}
+                                        />
+                                        <CustomText style={styles.starLabel}>
+                                            {star}
+                                        </CustomText>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        {/* Organizer Feedback + Suggestion Chips */}
+                        <View style={styles.sectionContainer}>
+                            <CustomText variant="h3" style={styles.subSectionTitle}>
+                                Share your experience with the organizer
+                            </CustomText>
+                            <View
+                                ref={organizerFeedbackRef}
+                                collapsable={false}
+                                onLayout={handlers.handleOrganizerFeedbackLayout}
+                            >
+                                <CustomFeedbackInput
+                                    placeholder="Type your review here..."
+                                    value={businessReview}
+                                    suggestions={ORGANIZER_REVIEW_SUGGESTIONS}
+                                    fadeColor="background"
+                                    onChangeText={(val) => {
+                                        setIsDirty(true);
+                                        setSubmitError(null);
+                                        setBusinessReview(val);
+                                    }}
+                                />
+                            </View>
+                        </View>
+                    </View>
+                );
+            }
         }
     };
 
@@ -451,10 +622,14 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                 message="Thanks for sharing your thoughts! Your review helps other hikers and improves our trail recommendations."
                 iconName="check-circle"
                 onConfirm={handleConfirmSubmit}
-                onClose={() => setShowSaveConfirmation(false)}
-                confirmText={isLoading ? "Submitting..." : "Submit"}
+                onClose={() => {
+                    if (!isSubmitting) {
+                        setShowSaveConfirmation(false);
+                    }
+                }}
+                confirmText={isSubmitting ? "Submitting..." : "Submit"}
                 cancelText="Edit"
-                isLoading={isLoading}
+                isLoading={isSubmitting}
             />
 
             <ConfirmationModal
@@ -489,7 +664,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                 <View style={styles.formConstrainer}>
 
                     <View style={styles.fixedQuestionArea}>
-                        <ErrorMessage error={error} />
+                        <ErrorMessage error={submitError || error} />
                     </View>
 
                     <ScrollView
@@ -505,10 +680,13 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                 </View>
             </View>
 
-            <View style={styles.footerContainer}>
+            <View
+                style={styles.footerContainer}
+                onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
+            >
                 <View style={styles.footerConstrainer}>
-                    {stepIndex > 0 ? (
-                        <TouchableOpacity onPress={handleBack} style={styles.prevButton}>
+                    {safeStepIndex > 0 ? (
+                        <TouchableOpacity onPress={handleBack} disabled={isSubmitting} style={styles.prevButton}>
                             <CustomIcon
                                 library="Feather"
                                 name="chevron-left"
@@ -518,7 +696,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                             <CustomText style={styles.prevText}>Previous</CustomText>
                         </TouchableOpacity>
                     ) : isEditMode ? (
-                        <TouchableOpacity onPress={handleDiscardPress} style={styles.discardButton}>
+                        <TouchableOpacity onPress={handleDiscardPress} disabled={isSubmitting} style={styles.discardButton}>
                             <CustomText style={styles.discardText}>Discard</CustomText>
                         </TouchableOpacity>
                     ) : (
@@ -526,23 +704,31 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                     )}
 
                     <View
-                        ref={stepIndex === 0 ? nextBtnRef : submitBtnRef}
+                        ref={!isLastStep ? nextBtnRef : submitBtnRef}
                         collapsable={false}
-                        onLayout={stepIndex === 0 ? handlers.handleNextBtnLayout : handlers.handleSubmitBtnLayout}
+                        onLayout={!isLastStep ? handlers.handleNextBtnLayout : handlers.handleSubmitBtnLayout}
                     >
                         <TouchableOpacity
                             onPress={handleNext}
-                            disabled={!hasAnswer || isLoading}
+                            disabled={isSubmitting}
                             style={[
                                 styles.nextButton,
-                                (!hasAnswer || isLoading) && { opacity: 0.5, backgroundColor: Colors.GRAY_MEDIUM }
+                                isSkipSubmitState && styles.skipSubmitButton,
+                                (!hasAnswer || isSubmitting) && styles.nextButtonDisabled,
                             ]}
                         >
-                            <CustomText style={styles.nextText}>
-                                {stepIndex >= STEPS.length - 1 ? "Submit" : "Next"}
+                            <CustomText
+                                style={[
+                                    styles.nextText,
+                                    isSkipSubmitState && styles.skipSubmitText,
+                                ]}
+                            >
+                                {isLastStep
+                                    ? (isSubmitting ? 'Submitting...' : (isSkipSubmitState ? 'Skip & Submit' : 'Submit'))
+                                    : 'Next'}
                             </CustomText>
 
-                            {stepIndex < STEPS.length - 1 && (
+                            {!isLastStep && (
                                 <CustomIcon
                                     library="Feather"
                                     name="chevron-right"
@@ -567,6 +753,16 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                     onSkip={tutorial.onSkipTour}
                 />
             )}
+
+            <CustomToast
+                visible={Boolean(validationToast)}
+                message={validationToast || ''}
+                type="error"
+                mode="dismissible"
+                bottomOffset={footerHeight + 12}
+                triggerKey={toastTriggerKey}
+                onHide={() => setValidationToast(null)}
+            />
 
         </ScreenWrapper>
     );
@@ -603,6 +799,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     optionsScrollContent: {
+        paddingTop: 16,
         paddingBottom: 40,
     },
 
@@ -616,6 +813,16 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         color: Colors.TEXT_PRIMARY,
         textAlign: 'left'
+    },
+    subSectionTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 8,
+        color: Colors.TEXT_PRIMARY,
+        textAlign: 'left',
+    },
+    photoSectionContainer: {
+        marginTop: 24,
     },
     requiredMark: {
         color: Colors.ERROR,
@@ -706,11 +913,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: 12,
     },
     prevButton: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 8,
+        flexShrink: 0,
     },
     prevButtonPlaceholder: {
         width: 100,
@@ -732,17 +941,93 @@ const styles = StyleSheet.create({
     },
     nextButton: {
         backgroundColor: Colors.PRIMARY,
+        borderWidth: 1.5,
+        borderColor: Colors.PRIMARY,
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 14,
         paddingHorizontal: 24,
         borderRadius: 12,
         gap: 8,
+        flexShrink: 1,
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
+    },
+    nextButtonDisabled: {
+        opacity: 0.5,
+        backgroundColor: Colors.GRAY_MEDIUM,
+        borderColor: Colors.GRAY_MEDIUM,
+    },
+    skipSubmitButton: {
+        backgroundColor: Colors.BUTTON_OUTLINE_BG,
+        borderColor: Colors.PRIMARY,
     },
     nextText: {
         color: Colors.TEXT_INVERSE,
         fontWeight: 'bold',
         fontSize: 16
+    },
+    skipSubmitText: {
+        color: Colors.PRIMARY,
+    },
+    organizerCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.WHITE,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: Colors.GRAY_ULTRALIGHT,
+        padding: 16,
+        marginBottom: 24,
+        gap: 12,
+        ...GlobalStyles.dropShadow(2, 0.05, Colors.SHADOW, { radius: 8 }),
+        elevation: 2,
+    },
+    organizerAvatarCircle: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.PRIMARY,
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexShrink: 0,
+    },
+    organizerInitialsText: {
+        color: Colors.WHITE,
+        fontSize: 16,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
+    },
+    organizerTextGroup: {
+        flex: 1,
+        minWidth: 0,
+    },
+    organizerLabel: {
+        fontSize: 12,
+        color: Colors.TEXT_SECONDARY,
+        marginBottom: 2,
+    },
+    organizerName: {
+        fontSize: 17,
+        fontWeight: 'bold',
+        color: Colors.TEXT_PRIMARY,
+        marginBottom: 0,
+    },
+    optionalBadge: {
+        backgroundColor: Colors.STATUS_APPROVED_BG,
+        borderWidth: 1,
+        borderColor: Colors.STATUS_APPROVED_BORDER,
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    optionalBadgeText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: Colors.PRIMARY,
     },
 });
 
