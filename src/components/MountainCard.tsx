@@ -58,7 +58,7 @@ const getMountainData = (item?: ITrail | null, rating?: number | string) => {
 
   let location = "Unknown Location";
   if (item?.general?.province && item.general.province.length > 0) {
-    location = item.general.province[0];
+    location = item.general.province.slice(0, 2).join(", ");
   } else if (item?.general?.address) {
     location = item.general.address;
   }
