@@ -71,7 +71,7 @@ const BusinessHeroCard = ({
             const currentYear = new Date().getFullYear();
             const diff = Math.max(0, currentYear - year);
             return diff > 0
-                ? `Est. ${year} • ${diff}+ yrs`
+                ? `Est. ${year}`
                 : `Est. ${year}`;
         } catch {
             return 'Registered Tour Partner';

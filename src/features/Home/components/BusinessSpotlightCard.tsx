@@ -98,7 +98,7 @@ const BusinessSpotlightCard = ({
             const year = date instanceof Date ? date.getFullYear() : new Date(date).getFullYear();
             const currentYear = new Date().getFullYear();
             const diff = Math.max(0, currentYear - year);
-            return diff > 0 ? `Est. ${year} (${diff}+ yrs)` : `Est. ${year}`;
+            return diff > 0 ? `Est. ${year}` : `Est. ${year}`;
         } catch {
             return 'Registered Tour Partner';
         }
