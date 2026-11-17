@@ -9,14 +9,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { RecalculateTrailRating } from '@/src/core/flows/RecalculateTrailRating';
 import { useBusinessItem, useBusinessesStore } from '@/src/core/models/Business/Business';
-import { useBusinessReviewList } from '@/src/core/models/BusinessReview/hooks/useBusinessReviewList';
-import { useBusinessReviewsStore } from '@/src/core/models/BusinessReview/stores/businessReviewStore';
+import {
+    useBusinessReview,
+    useBusinessReviewList,
+    useBusinessReviewsStore,
+} from '@/src/core/models/BusinessReview/BusinessReview';
 import { useOfferList } from '@/src/core/models/Offer/Offer';
 import { useTrailList } from '@/src/core/models/Trail/Trail';
 import {
+    buildTrailEarliestOfferMap,
     BusinessTabType,
     getAliveBusinessOffers,
-    getFeaturedUpcomingTrails,
     getSortedBusinessTrails,
     sortBusinessReviewsByLatest,
 } from '@/src/features/Business/utils/businessHelpers';
@@ -48,15 +51,16 @@ export function useBusinessProfile(businessId?: string) {
         data: rawBusinessReviews,
         isFetching: isBusinessReviewsLoading,
     } = useBusinessReviewList(businessId);
+    const { likeBusinessReview, isLiked } = useBusinessReview();
 
     const aliveBusinessOffers = useMemo(
         () => getAliveBusinessOffers(business, offers),
         [business, offers]
     );
 
-    const featuredTrails = useMemo(
-        () => getFeaturedUpcomingTrails(aliveBusinessOffers, trails, 3),
-        [aliveBusinessOffers, trails]
+    const earliestOfferMap = useMemo(
+        () => buildTrailEarliestOfferMap(aliveBusinessOffers),
+        [aliveBusinessOffers]
     );
 
     const allTrails = useMemo(
@@ -64,10 +68,38 @@ export function useBusinessProfile(businessId?: string) {
         [trails, aliveBusinessOffers]
     );
 
-    const reviews = useMemo(
-        () => sortBusinessReviewsByLatest(rawBusinessReviews),
-        [rawBusinessReviews]
+    const getTrailEarliestOfferTime = useCallback(
+        (trailId: string): number =>
+            earliestOfferMap.get(trailId) ?? Number.MAX_SAFE_INTEGER,
+        [earliestOfferMap]
     );
+
+    const reviews = useMemo(() => {
+        const sorted = sortBusinessReviewsByLatest(rawBusinessReviews);
+        if (trails.length === 0) return sorted;
+
+        return sorted.map((item) => {
+            const matchedTrail = trails.find((t) => t.id === item.trail?.id);
+            const storeProvinces = matchedTrail?.general?.province?.filter(Boolean).join(', ') || '';
+            const resolvedLocation =
+                storeProvinces ||
+                item.trail?.location?.trim() ||
+                matchedTrail?.general?.address?.trim() ||
+                '';
+
+            if (!resolvedLocation || resolvedLocation === item.trail?.location) {
+                return item;
+            }
+
+            return {
+                ...item,
+                trail: {
+                    ...item.trail,
+                    location: resolvedLocation,
+                },
+            };
+        });
+    }, [rawBusinessReviews, trails]);
 
     const getBusinessTrailOffersCount = useCallback(
         (trailId: string): number => getTrailOffersCount(trailId, aliveBusinessOffers),
@@ -106,15 +138,44 @@ export function useBusinessProfile(businessId?: string) {
         }
     }, [businessId, onRefreshOffers]);
 
+    const { rating, reviewsCount } = useMemo(() => {
+        const bizRating = business?.rating ?? 0;
+        const bizReviewCount = business?.reviewCount ?? 0;
+
+        if (reviews.length > 0 && (reviews.length < 30 || bizReviewCount <= reviews.length)) {
+            const validRatings = reviews
+                .map((r) => Number(r.rating))
+                .filter((val) => !isNaN(val) && val > 0);
+            const avg = validRatings.length > 0
+                ? validRatings.reduce((sum, val) => sum + val, 0) / validRatings.length
+                : 0;
+            return {
+                rating: avg,
+                reviewsCount: reviews.length,
+            };
+        }
+
+        if (bizReviewCount > 0) {
+            return {
+                rating: bizRating,
+                reviewsCount: bizReviewCount,
+            };
+        }
+
+        return {
+            rating: 0,
+            reviewsCount: 0,
+        };
+    }, [business?.rating, business?.reviewCount, reviews]);
+
     return {
         business,
         admins: businessAdmins,
-        featuredTrails,
         allTrails,
         packageCount: aliveBusinessOffers.length,
         reviews,
-        rating: business?.rating ?? 0,
-        reviewsCount: business?.reviewCount ?? 0,
+        rating,
+        reviewsCount,
         isOffersLoading: isOffersLoading || trailLoading,
         isReviewsLoading: isBusinessReviewsLoading,
         isLoading: isFetching || isOffersLoading || trailLoading,
@@ -123,5 +184,8 @@ export function useBusinessProfile(businessId?: string) {
         onRefresh: handleRefresh,
         getItemRating,
         getTrailOffersCount: getBusinessTrailOffersCount,
+        getTrailEarliestOfferTime,
+        likeBusinessReview,
+        isBusinessReviewLiked: isLiked,
     };
 }
