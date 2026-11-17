@@ -21,7 +21,6 @@ import CustomText from '@/src/components/CustomText';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Business } from '@/src/core/models/Business/Business';
-import { getInitials } from '@/src/utils/dateFormatter';
 
 const BANNER_IMAGE_SOURCE: ImageSourcePropType = require('@/src/assets/images/Banner.jpg');
 
@@ -60,19 +59,13 @@ const BusinessHeroCard = ({
     reviewsCount = 0,
     contentMaxWidth = '100%',
 }: Props): React.JSX.Element => {
-    const initials = getInitials(business.name);
-
     const establishedText = (() => {
         if (!business.establishedOn) return 'Registered Tour Partner';
         try {
             const year = business.establishedOn instanceof Date
                 ? business.establishedOn.getFullYear()
                 : new Date(business.establishedOn).getFullYear();
-            const currentYear = new Date().getFullYear();
-            const diff = Math.max(0, currentYear - year);
-            return diff > 0
-                ? `Est. ${year}`
-                : `Est. ${year}`;
+            return !isNaN(year) ? `Est. ${year}` : 'Registered Tour Partner';
         } catch {
             return 'Registered Tour Partner';
         }
@@ -108,14 +101,7 @@ const BusinessHeroCard = ({
                         ]}
                     >
                         {/* Main Organizer Identity Row */}
-                        <View style={styles.identityRow}>
-                            <View style={styles.avatarCircle}>
-                                <CustomText style={styles.initialsText}>
-                                    {initials}
-                                </CustomText>
-                            </View>
-
-                            <View style={styles.identityTextGroup}>
+                        <View style={styles.identityTextGroup}>
                                 <View style={styles.nameBadgeRow}>
                                     <CustomText
                                         variant="body"
@@ -174,7 +160,6 @@ const BusinessHeroCard = ({
                                     </View>
                                 </View>
                             </View>
-                        </View>
                     </View>
                 </LinearGradient>
             </View>
@@ -269,9 +254,10 @@ const styles = StyleSheet.create({
         bottom: 0,
         height: '100%',
         justifyContent: 'flex-end',
-        padding: 16,
+        paddingVertical: 16,
     },
     contentContainer: {
+        paddingHorizontal: 16,
         gap: 8,
     },
     nameBadgeRow: {
@@ -294,32 +280,9 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: Colors.WHITE,
     },
-    identityRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 14,
-    },
-    avatarCircle: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: Colors.PRIMARY,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: Colors.WHITE,
-        flexShrink: 0,
-    },
-    initialsText: {
-        color: Colors.WHITE,
-        fontSize: 20,
-        fontWeight: 'bold',
-        letterSpacing: 1,
-    },
     identityTextGroup: {
-        flex: 1,
-        minWidth: 0,
-        gap: 4,
+        width: '100%',
+        gap: 6,
     },
     businessNameTitle: {
         fontSize: 24,
