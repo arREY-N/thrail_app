@@ -1,6 +1,6 @@
 /**
  * @file BusinessProfileSkeleton.tsx
- * @description Shimmering skeleton loader mirroring BusinessScreen (BusinessHeroCard + sticky 3-tab pill bar + MountainCardSkeleton grid/carousel).
+ * @description Shimmering skeleton loader mirroring BusinessScreen (BusinessHeroCard + sticky 3-tab pill bar + All Tour Offerings MountainCardSkeleton grid).
  */
 
 import React from 'react';
@@ -18,12 +18,10 @@ import { useBreakpoints } from '@/src/hooks/useBreakpoints';
  *
  * @param contentMaxWidth - Responsive maxWidth matching BusinessScreen layout.
  * @param effectiveContentWidth - Resolved numeric width for calculating 2-column grid card widths.
- * @param cardWidth - Dynamic card width for the horizontal featured carousel skeleton.
  */
 interface BusinessProfileSkeletonProps {
     contentMaxWidth: number | `${number}%`;
     effectiveContentWidth: number;
-    cardWidth: number;
 }
 
 /**
@@ -35,7 +33,6 @@ interface BusinessProfileSkeletonProps {
 const BusinessProfileSkeleton = ({
     contentMaxWidth,
     effectiveContentWidth,
-    cardWidth,
 }: BusinessProfileSkeletonProps): React.JSX.Element => {
     const { isDesktop, isTablet } = useBreakpoints();
     const isWide = isDesktop || isTablet;
@@ -80,14 +77,16 @@ const BusinessProfileSkeleton = ({
 
             {/* 2. Sticky 3-Tab Pill Bar Skeleton */}
             <View style={styles.tabsBar}>
-                <View style={[styles.floatingTabsContainer, responsiveAlignStyle]}>
-                    <SkeletonEffect style={styles.tabPillSkeleton} />
-                    <SkeletonEffect style={styles.tabPillSkeleton} />
-                    <SkeletonEffect style={styles.tabPillSkeleton} />
+                <View style={[styles.tabsBarInner, responsiveAlignStyle]}>
+                    <View style={styles.floatingTabsContainer}>
+                        <SkeletonEffect style={styles.tabPillSkeleton} />
+                        <SkeletonEffect style={styles.tabPillSkeleton} />
+                        <SkeletonEffect style={styles.tabPillSkeleton} />
+                    </View>
                 </View>
             </View>
 
-            {/* 3. Offers Content Skeleton (Featured + Catalog) */}
+            {/* 3. All Tour Offerings Skeleton */}
             <View style={[styles.tabContentContainer, responsiveAlignStyle]}>
                 <View style={styles.sectionBlock}>
                     <View style={styles.sectionHeader}>
@@ -95,29 +94,14 @@ const BusinessProfileSkeleton = ({
                         <SkeletonEffect style={styles.sectionSubtitleSkeleton} />
                     </View>
 
-                    <View style={styles.horizontalRow}>
-                        <MountainCardSkeleton
-                            style={{
-                                width: cardWidth,
-                                marginRight: 16,
-                            }}
-                        />
-                        <MountainCardSkeleton
-                            style={{
-                                width: cardWidth,
-                            }}
-                        />
-                    </View>
-                </View>
-
-                <View style={styles.sectionBlock}>
-                    <View style={styles.sectionHeader}>
-                        <SkeletonEffect style={styles.sectionTitleSkeleton} />
-                        <SkeletonEffect style={styles.sectionSubtitleSkeleton} />
+                    <View style={styles.filterPillsSkeletonRow}>
+                        <SkeletonEffect style={styles.filterPillSkeletonWide} />
+                        <SkeletonEffect style={styles.filterPillSkeleton} />
+                        <SkeletonEffect style={styles.filterPillSkeleton} />
                     </View>
 
                     <View style={useTwoColumnGrid ? styles.catalogGrid : styles.catalogList}>
-                        {[0, 1].map((index) => (
+                        {[0, 1, 2, 3].map((index) => (
                             <MountainCardSkeleton
                                 key={`catalog-skel-${index}`}
                                 style={
@@ -187,9 +171,11 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
     tabsBar: {
-        paddingHorizontal: 16,
         paddingTop: 14,
         paddingBottom: 12,
+    },
+    tabsBarInner: {
+        paddingHorizontal: 16,
     },
     floatingTabsContainer: {
         flexDirection: 'row',
@@ -224,10 +210,21 @@ const styles = StyleSheet.create({
         height: 12,
         borderRadius: 6,
     },
-    horizontalRow: {
+    filterPillsSkeletonRow: {
         flexDirection: 'row',
         paddingHorizontal: 16,
-        overflow: 'hidden',
+        gap: 8,
+        marginBottom: 14,
+    },
+    filterPillSkeletonWide: {
+        width: 72,
+        height: 32,
+        borderRadius: 16,
+    },
+    filterPillSkeleton: {
+        width: 96,
+        height: 32,
+        borderRadius: 16,
     },
     catalogList: {
         paddingHorizontal: 16,
