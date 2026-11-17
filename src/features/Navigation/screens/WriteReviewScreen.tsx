@@ -27,7 +27,6 @@ import SelectionChip from '@/src/features/Auth/components/SelectionChip';
 
 import { BusinessReviewData } from '@/src/core/flows/CreateReviewFlow';
 import { DIFFICULTY_FACTOR_MAPPINGS, DifficultyFactorOption } from '@/src/recommendation/utilities/FactorWeightsMapper';
-import { getInitials } from '@/src/utils/dateFormatter';
 
 const ORGANIZER_REVIEW_SUGGESTIONS = [
     'Well-organized itinerary and pacing',
@@ -112,12 +111,18 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
     );
     const [businessRating, setBusinessRating] = useState<number>(existingBusinessReview?.rating ?? 0);
     const [businessReview, setBusinessReview] = useState<string>(existingBusinessReview?.review ?? '');
+    const [businessImages, setBusinessImages] = useState<string[]>(
+        Array.isArray(existingBusinessReview?.image) ? existingBusinessReview.image : []
+    );
 
     if (existingBusinessReview !== prevExistingBusinessReview) {
         setPrevExistingBusinessReview(existingBusinessReview);
         if (existingBusinessReview && !isDirty) {
             setBusinessRating(existingBusinessReview.rating ?? 0);
             setBusinessReview(existingBusinessReview.review ?? '');
+            setBusinessImages(
+                Array.isArray(existingBusinessReview.image) ? existingBusinessReview.image : []
+            );
         }
     }
 
@@ -139,6 +144,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
         submitBtnRef,
         organizerRatingRef,
         organizerFeedbackRef,
+        organizerPhotoUploadRef,
         handlers,
     } = useWriteReviewTutorial({
         isEditMode,
@@ -147,7 +153,10 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
         hasOrganizerStep: showOrganizerStep,
     });
 
-    const isBusinessEmpty = businessRating === 0 && businessReview.trim().length === 0;
+    const isBusinessEmpty =
+        businessRating === 0 &&
+        businessReview.trim().length === 0 &&
+        businessImages.length === 0;
     const isBusinessComplete = businessRating > 0 && businessReview.trim().length > 0;
     const isLastStep = safeStepIndex >= STEPS.length - 1;
     const isSkipSubmitState =
@@ -183,6 +192,11 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
             }
         }
         if (currentStep === 'organizer') {
+            if (businessImages.length > 0 && (businessRating === 0 || businessReview.trim().length === 0)) {
+                return hasExistingOrganizerReview
+                    ? 'Please provide both a star rating and a short review for your organizer.'
+                    : 'Please provide both a star rating and a short review to include your organizer photos, or remove the photos to skip.';
+            }
             if (businessRating > 0 && businessReview.trim().length === 0) {
                 return hasExistingOrganizerReview
                     ? 'Please write a short review for the organizer.'
@@ -258,6 +272,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                 await createBusinessReview({
                     rating: businessRating,
                     review: businessReview.trim(),
+                    image: businessImages,
                 });
             } catch (err: unknown) {
                 const message = err instanceof Error
@@ -485,16 +500,10 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                                 <DocumentUploadCard
                                     docName="Trail Photo"
                                     docKey="reviewImage"
-                                    subtitle="Up to 5 photos • Max 5MB each"
+                                    subtitle="Up to 5 photos • 5MB max"
                                     isUploaded={review.image || []}
                                     allowMultiple={true}
                                     maxFiles={5}
-                                    onUploadSuccess={(url) => {
-                                        const currentImages = review.image || [];
-                                        if (currentImages.length < 5) {
-                                            updateReview('image', [...currentImages, url]);
-                                        }
-                                    }}
                                     onBatchUploadSuccess={(urls) => {
                                         const currentImages = review.image || [];
                                         const combined = [...currentImages, ...urls].slice(0, 5);
@@ -512,50 +521,30 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                 );
 
             case 'organizer': {
-                const organizerInitials = getInitials(organizerName);
+                const resolvedOrganizerName = organizerName?.trim() || 'the organizer';
 
                 return (
                     <View>
-                        {/* Organizer Context Banner Card */}
-                        <View style={styles.organizerCard}>
-                            <View style={styles.organizerAvatarCircle}>
-                                <CustomText style={styles.organizerInitialsText}>
-                                    {organizerInitials}
-                                </CustomText>
-                            </View>
-
-                            <View style={styles.organizerTextGroup}>
-                                <CustomText variant="label" style={styles.organizerLabel}>
-                                    Rate your organizer
-                                </CustomText>
-                                <CustomText
-                                    variant="h3"
-                                    style={styles.organizerName}
-                                    numberOfLines={1}
-                                >
-                                    {organizerName?.trim() || '--'}
-                                </CustomText>
-                            </View>
-
-                            {!hasExistingOrganizerReview && (
-                                <View style={styles.optionalBadge}>
-                                    <CustomText variant="caption" style={styles.optionalBadgeText}>
-                                        Optional
-                                    </CustomText>
-                                </View>
-                            )}
-                        </View>
-
-                        {/* Organizer Star Rating */}
+                        {/* Organizer Question + Inline Business Name + Star Rating */}
                         <View style={styles.sectionContainer}>
                             <CustomText variant="subtitle" style={styles.question}>
-                                How was your experience with the organizer?
+                                How was your experience with{' '}
+                                <CustomText variant="subtitle" style={styles.organizerNameInline}>
+                                    {resolvedOrganizerName}
+                                </CustomText>
+                                ?
                                 {hasExistingOrganizerReview && (
                                     <CustomText style={styles.requiredMark}>
                                         {' *'}
                                     </CustomText>
                                 )}
                             </CustomText>
+
+                            {!hasExistingOrganizerReview && (
+                                <CustomText variant="caption" style={styles.subLabel}>
+                                    (Optional step — rate and write a review below, or tap Skip & Submit)
+                                </CustomText>
+                            )}
 
                             <View
                                 ref={organizerRatingRef}
@@ -584,7 +573,7 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                             </View>
                         </View>
 
-                        {/* Organizer Feedback + Suggestion Chips */}
+                        {/* Organizer Feedback + Suggestion Chips + Separate Optional Photo Upload */}
                         <View style={styles.sectionContainer}>
                             <CustomText variant="h3" style={styles.subSectionTitle}>
                                 Share your experience with the organizer
@@ -603,6 +592,35 @@ const WriteReviewScreen: React.FC<WriteReviewScreenProps> = ({
                                         setIsDirty(true);
                                         setSubmitError(null);
                                         setBusinessReview(val);
+                                    }}
+                                />
+                            </View>
+
+                            <View
+                                ref={organizerPhotoUploadRef}
+                                collapsable={false}
+                                onLayout={handlers.handleOrganizerPhotoUploadLayout}
+                                style={styles.photoSectionContainer}
+                            >
+                                <CustomText variant="h3" style={styles.subSectionTitle}>
+                                    Add Photos (Optional)
+                                </CustomText>
+                                <DocumentUploadCard
+                                    docName="Organizer Review Photo"
+                                    docKey="businessReviewImage"
+                                    subtitle="Up to 5 photos • 5MB max"
+                                    isUploaded={businessImages}
+                                    allowMultiple={true}
+                                    maxFiles={5}
+                                    onBatchUploadSuccess={(urls) => {
+                                        setIsDirty(true);
+                                        setSubmitError(null);
+                                        setBusinessImages((prev) => [...prev, ...urls].slice(0, 5));
+                                    }}
+                                    onDelete={(indexToRemove) => {
+                                        setIsDirty(true);
+                                        setSubmitError(null);
+                                        setBusinessImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
                                     }}
                                 />
                             </View>
@@ -973,60 +991,9 @@ const styles = StyleSheet.create({
     skipSubmitText: {
         color: Colors.PRIMARY,
     },
-    organizerCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.WHITE,
-        borderRadius: 24,
-        borderWidth: 1,
-        borderColor: Colors.GRAY_ULTRALIGHT,
-        padding: 16,
-        marginBottom: 24,
-        gap: 12,
-        ...GlobalStyles.dropShadow(2, 0.05, Colors.SHADOW, { radius: 8 }),
-        elevation: 2,
-    },
-    organizerAvatarCircle: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: Colors.PRIMARY,
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexShrink: 0,
-    },
-    organizerInitialsText: {
-        color: Colors.WHITE,
-        fontSize: 16,
+    organizerNameInline: {
+        fontSize: 22,
         fontWeight: 'bold',
-        letterSpacing: 0.5,
-    },
-    organizerTextGroup: {
-        flex: 1,
-        minWidth: 0,
-    },
-    organizerLabel: {
-        fontSize: 12,
-        color: Colors.TEXT_SECONDARY,
-        marginBottom: 2,
-    },
-    organizerName: {
-        fontSize: 17,
-        fontWeight: 'bold',
-        color: Colors.TEXT_PRIMARY,
-        marginBottom: 0,
-    },
-    optionalBadge: {
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        borderWidth: 1,
-        borderColor: Colors.STATUS_APPROVED_BORDER,
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-    },
-    optionalBadgeText: {
-        fontSize: 12,
-        fontWeight: '600',
         color: Colors.PRIMARY,
     },
 });

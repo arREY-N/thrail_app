@@ -9,12 +9,13 @@ export interface IBusinessReview<T> {
     business: IBusinessSummary;
     user: IUserSummary;
     review: string;
+    image: string[];
     trail: ITrailSummary;
     offerId: string;
     hikeDate: T;
     hikeReview: ReviewSummary;
     rating: number;
-    likes: number;
+    likes: IUserSummary[];
     createdAt: T;
     updatedAt: T;
 }

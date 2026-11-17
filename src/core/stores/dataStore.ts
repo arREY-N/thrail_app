@@ -2,6 +2,7 @@ import { useAdminStore } from '@/src/core/models/Admin/Admin';
 import { useApplicationsStore } from '@/src/core/models/Application/Application';
 import { useBookingsStore } from '@/src/core/models/Booking/Booking';
 import { useBusinessesStore } from '@/src/core/models/Business/Business';
+import { useBusinessReviewsStore } from '@/src/core/models/BusinessReview/BusinessReview';
 import { useCancellationStore } from '@/src/core/models/Cancellation/Cancellation';
 import { useGroupStore } from '@/src/core/models/Group/Group';
 import { useHikeStore } from '@/src/core/models/Hike/Hike';
@@ -27,6 +28,7 @@ export const resetData = async () => {
         useApplicationsStore.getState().reset();
         useBookingsStore.getState().reset();
         useBusinessesStore.getState().reset();
+        useBusinessReviewsStore.getState().reset();
         useCancellationStore.getState().reset();
         useFilesStore.getState().reset();
         useHikeStore.getState().reset();

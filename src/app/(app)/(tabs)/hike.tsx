@@ -5,7 +5,7 @@
  */
 
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
 
 import EmergencyModal, { UserSearchResult } from "@/src/components/EmergencyModal";
@@ -133,6 +133,9 @@ export default function Hike() {
                     onBookingPress={onBookingPress}
                     onStartTracking={handleStartHikeWithCheck}
                     onDeveloperBypass={isAdmin ? handleDeveloperBypass : undefined}
+
+                    // MODIFY: Allow hikers to bypass date lock for testing (restore: isAdmin ? handleDeveloperBypass : undefined)
+                    // onDeveloperBypass={handleDeveloperBypass}
                     onStartButtonLayout={setStartButtonBottomOffset}
                 />
             )}

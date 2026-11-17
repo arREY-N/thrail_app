@@ -9,7 +9,7 @@ import { FilterTabItem } from '@/src/components/CustomFilterTabs';
 import { Admin } from '@/src/core/models/Admin/Admin';
 import { IOwner } from '@/src/core/models/Application/Application';
 import { Business } from '@/src/core/models/Business/Business';
-import { BusinessReview } from '@/src/core/models/BusinessReview/interfaces/BusinessReview';
+import { BusinessReview } from '@/src/core/models/BusinessReview/BusinessReview';
 import { IOffer } from '@/src/core/models/Offer/Offer';
 import { ITrail } from '@/src/core/models/Trail/Trail';
 import { safeParseDateString } from '@/src/utils/dateFormatter';
@@ -131,6 +131,68 @@ export const getFeaturedUpcomingTrails = (
         .filter((t): t is ITrail => Boolean(t));
 };
 
+export type BusinessOfferSortOrder = 'asc' | 'desc';
+
+/**
+ * Returns a lookup map of earliest alive offer departure timestamp (ms) keyed by trail ID.
+ *
+ * @param aliveBusinessOffers - Active upcoming offers for the business.
+ * @returns Map from trailId to earliest departure timestamp in milliseconds.
+ */
+export const buildTrailEarliestOfferMap = (
+    aliveBusinessOffers: IOffer[] = []
+): Map<string, number> => {
+    const earliestByTrail = new Map<string, number>();
+
+    for (const offer of aliveBusinessOffers) {
+        const trailId = offer.trail?.id;
+        if (!trailId) continue;
+
+        const offerTime = safeParseDateString(offer.date).getTime();
+        const existing = earliestByTrail.get(trailId);
+        if (existing === undefined || offerTime < existing) {
+            earliestByTrail.set(trailId, offerTime);
+        }
+    }
+
+    return earliestByTrail;
+};
+
+/**
+ * Sorts an array of active business trails by upcoming departure date ('asc' soonest first or 'desc' farthest first),
+ * breaking ties by active offer count descending, then trail name alphabetically.
+ *
+ * @param trails - Filtered or active trail list.
+ * @param getEarliestOfferTime - Lookup returning earliest offer timestamp (ms) for a trail ID.
+ * @param getOfferCount - Lookup returning active offers count for a trail ID.
+ * @param sortOrder - 'asc' for soonest upcoming first, 'desc' for farthest upcoming first.
+ * @returns Sorted ITrail array.
+ */
+export const sortBusinessTrailsByDate = (
+    trails: ITrail[] = [],
+    getEarliestOfferTime: (trailId: string) => number,
+    getOfferCount: (trailId: string) => number,
+    sortOrder: BusinessOfferSortOrder = 'asc'
+): ITrail[] => {
+    if (trails.length <= 1) return trails;
+
+    return [...trails].sort((a, b) => {
+        const timeA = getEarliestOfferTime(a.id);
+        const timeB = getEarliestOfferTime(b.id);
+        if (timeA !== timeB) {
+            return sortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+        }
+
+        const countA = getOfferCount(a.id);
+        const countB = getOfferCount(b.id);
+        if (countA !== countB) return countB - countA;
+
+        const nameA = a.general?.name || '';
+        const nameB = b.general?.name || '';
+        return nameA.localeCompare(nameB);
+    });
+};
+
 /**
  * Returns all unique trails with alive offers from this business, sorted deterministically
  * by soonest upcoming departure date ascending, then offer count descending, then trail name.
@@ -146,34 +208,21 @@ export const getSortedBusinessTrails = (
     const activeTrails = getTrailsWithAliveOffers(trails, aliveBusinessOffers);
     if (activeTrails.length <= 1) return activeTrails;
 
-    const earliestOfferTimeByTrail = new Map<string, number>();
+    const earliestOfferTimeByTrail = buildTrailEarliestOfferMap(aliveBusinessOffers);
     const offerCountByTrail = new Map<string, number>();
 
     for (const offer of aliveBusinessOffers) {
         const trailId = offer.trail?.id;
         if (!trailId) continue;
-
-        const offerTime = safeParseDateString(offer.date).getTime();
-        const existingEarliest = earliestOfferTimeByTrail.get(trailId);
-        if (existingEarliest === undefined || offerTime < existingEarliest) {
-            earliestOfferTimeByTrail.set(trailId, offerTime);
-        }
         offerCountByTrail.set(trailId, (offerCountByTrail.get(trailId) ?? 0) + 1);
     }
 
-    return [...activeTrails].sort((a, b) => {
-        const timeA = earliestOfferTimeByTrail.get(a.id) ?? Number.MAX_SAFE_INTEGER;
-        const timeB = earliestOfferTimeByTrail.get(b.id) ?? Number.MAX_SAFE_INTEGER;
-        if (timeA !== timeB) return timeA - timeB;
-
-        const countA = offerCountByTrail.get(a.id) ?? 0;
-        const countB = offerCountByTrail.get(b.id) ?? 0;
-        if (countA !== countB) return countB - countA;
-
-        const nameA = a.general?.name || '';
-        const nameB = b.general?.name || '';
-        return nameA.localeCompare(nameB);
-    });
+    return sortBusinessTrailsByDate(
+        activeTrails,
+        (trailId) => earliestOfferTimeByTrail.get(trailId) ?? Number.MAX_SAFE_INTEGER,
+        (trailId) => offerCountByTrail.get(trailId) ?? 0,
+        'asc'
+    );
 };
 
 const getTrailProvinces = (trail: ITrail): string[] => {

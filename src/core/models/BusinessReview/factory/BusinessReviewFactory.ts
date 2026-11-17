@@ -12,12 +12,13 @@ export const newBusinessReview = (
         business: init.business,
         user: init.user,
         review: init.review || '',
+        image: init.image || [],
         trail: init.trail,
         offerId: init.offerId,
         hikeDate: init.hikeDate,
         hikeReview: init.hikeReview,
         rating: init.rating || 0,
-        likes: init.likes || 0,
+        likes: Array.isArray(init.likes) ? init.likes : [],
         createdAt: init.createdAt || new Date(),
         updatedAt: new Date(),
     }
@@ -26,6 +27,8 @@ const businessReviesFromFirestore = (id: string, data: BusinessReviewDB): Busine
     return {
         ...data,
         id,
+        image: Array.isArray(data.image) ? data.image : [],
+        likes: Array.isArray(data.likes) ? data.likes : [],
         hikeDate: toDate(data.hikeDate),
         createdAt: toDate(data.createdAt),
         updatedAt: toDate(data.updatedAt)
@@ -42,10 +45,11 @@ export const businessReviewToFirestore = (businessReview: BusinessReview): Busin
         trail: businessReview.trail,
         hikeDate: Timestamp.fromDate(businessReview.hikeDate),
         review: businessReview.review,
+        image: businessReview.image ?? [],
         offerId: businessReview.offerId,
         hikeReview: businessReview.hikeReview,
         rating: businessReview.rating,
-        likes: businessReview.likes,
+        likes: businessReview.likes ?? [],
         createdAt: isNew ? serverTimestamp() : Timestamp.fromDate(businessReview.createdAt),
         updatedAt: serverTimestamp()
     }

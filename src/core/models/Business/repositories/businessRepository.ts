@@ -3,7 +3,7 @@ import { Admin, adminConverter, newAdmin } from '@/src/core/models/Admin/Admin';
 import { Business, IBusinessPaymentConfig } from '@/src/core/models/Business/interfaces/Business.types';
 import { businessConverter } from '@/src/core/models/Business/utils/BusinessFactory';
 import { User } from '@/src/core/models/User/User';
-import { collection, doc, Firestore, getDoc, getDocs, updateDoc } from "firebase/firestore";
+import { collection, doc, Firestore, getDoc, getDocs, limit, onSnapshot, query, Unsubscribe, updateDoc } from "firebase/firestore";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export type AdminParams = {
@@ -48,6 +48,28 @@ export const BusinessRepository = (db: Firestore) => ({
             if (err instanceof Error) throw err;
             throw new Error('Failed fetching business');
         }
+    },
+
+    /**
+     * Subscribes to real-time updates for registered tour businesses (bounded for performance).
+     */
+    listenToBusinesses(
+        onUpdate: (businesses: Business[]) => void,
+        onError?: (error: Error) => void,
+        limitCount: number = 30
+    ): Unsubscribe {
+        const col = createBusinessCollection(db);
+        const q = query(col, limit(limitCount));
+
+        return onSnapshot(
+            q,
+            (snapshot) => {
+                onUpdate(snapshot.docs.map((docSnap) => docSnap.data()));
+            },
+            (err) => {
+                onError?.(err);
+            }
+        );
     },
 
     /**

@@ -1,31 +1,39 @@
 import { useBusinessReviewState } from "@/src/core/models/BusinessReview/hooks/useBusinessReviewState";
-import { useBusinessReviewsStore } from "@/src/core/models/BusinessReview/stores/businessReviewStore.native";
-import { useEffect } from "react";
+import { BusinessReview } from "@/src/core/models/BusinessReview/interfaces/BusinessReview";
+import { useBusinessReviewsStore } from "@/src/core/models/BusinessReview/stores/businessReviewStore";
+import { useCallback, useEffect } from "react";
+
+const EMPTY_REVIEWS: BusinessReview[] = [];
 
 export function useBusinessReviewList(businessId?: string) {
     const { isFetching } = useBusinessReviewState();
-    const data = useBusinessReviewsStore(s => s.data);
-    const reviewsByBusiness = useBusinessReviewsStore(s => s.data).filter(s => s.business.id === businessId)
+    const scopedReviews = useBusinessReviewsStore((s) =>
+        businessId ? s.reviewsByBusiness[businessId] : s.data
+    );
+    const data = scopedReviews ?? EMPTY_REVIEWS;
 
     useEffect(() => {
-        const fetch = async () => {
-            if (businessId) {
-                await useBusinessReviewsStore.getState().fetchByBusiness(businessId)
-            } else {
-                await useBusinessReviewsStore.getState().fetchAll();
-            }
+        if (businessId) {
+            const unsubscribe = useBusinessReviewsStore
+                .getState()
+                .subscribeToBusinessReviews(businessId);
+            return () => unsubscribe();
         }
 
-        fetch();
+        useBusinessReviewsStore.getState().fetchAll();
     }, [businessId]);
 
-    const refresh = async () => {
-        await useBusinessReviewsStore.getState().refresh()
-    }
+    const refresh = useCallback(async () => {
+        if (businessId) {
+            await useBusinessReviewsStore.getState().refreshBusiness(businessId);
+        } else {
+            await useBusinessReviewsStore.getState().refresh();
+        }
+    }, [businessId]);
 
     return {
         refresh,
         isFetching,
-        data: businessId ? reviewsByBusiness : data,
-    }
+        data,
+    };
 }
