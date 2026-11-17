@@ -183,7 +183,8 @@ export type TargetSpotlightType =
     | 'review_photo_upload'
     | 'review_submit_btn'
     | 'review_organizer_rating'
-    | 'review_organizer_feedback';
+    | 'review_organizer_feedback'
+    | 'review_organizer_photo_upload';
 
 export type TooltipPlacement = 'auto' | 'top' | 'bottom' | 'center' | 'right';
 
