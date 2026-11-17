@@ -28,7 +28,6 @@ export default function BusinessView(): React.JSX.Element {
     const {
         business,
         admins,
-        featuredTrails,
         allTrails,
         packageCount,
         reviews,
@@ -41,6 +40,9 @@ export default function BusinessView(): React.JSX.Element {
         onRefresh,
         getItemRating,
         getTrailOffersCount,
+        getTrailEarliestOfferTime,
+        likeBusinessReview,
+        isBusinessReviewLiked,
     } = useBusinessProfile(businessId);
 
     const handleMountainPress = useCallback(
@@ -54,7 +56,6 @@ export default function BusinessView(): React.JSX.Element {
         <BusinessScreen
             business={business}
             admins={admins}
-            featuredTrails={featuredTrails}
             allTrails={allTrails}
             packageCount={packageCount}
             reviews={reviews}
@@ -70,6 +71,9 @@ export default function BusinessView(): React.JSX.Element {
             onDownloadPress={onDownloadPress}
             getItemRating={getItemRating}
             getTrailOffersCount={getTrailOffersCount}
+            getTrailEarliestOfferTime={getTrailEarliestOfferTime}
+            onLikeBusinessReview={likeBusinessReview}
+            isBusinessReviewLiked={isBusinessReviewLiked}
         />
     );
 }
