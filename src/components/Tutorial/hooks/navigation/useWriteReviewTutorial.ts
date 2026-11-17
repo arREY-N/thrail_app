@@ -87,6 +87,7 @@ export const useWriteReviewTutorial = ({
     const submitBtnRef = useRef<View>(null);
     const organizerRatingRef = useRef<View>(null);
     const organizerFeedbackRef = useRef<View>(null);
+    const organizerPhotoUploadRef = useRef<View>(null);
 
     const measureStarRatingNow = useCallback(() => {
         starRatingRef.current?.measureInWindow((x, y, width, height) => {
@@ -144,6 +145,14 @@ export const useWriteReviewTutorial = ({
         });
     }, []);
 
+    const measureOrganizerPhotoUploadNow = useCallback(() => {
+        organizerPhotoUploadRef.current?.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+                registerTutorialLayout('review_organizer_photo_upload', { x, y, width, height });
+            }
+        });
+    }, []);
+
     // Register on-demand measurement callbacks with the layout registry
     useEffect(() => {
         if (Platform.OS === 'web' || isEditMode) return;
@@ -156,6 +165,7 @@ export const useWriteReviewTutorial = ({
             registerMeasureCallback('review_submit_btn', measureSubmitBtnNow),
             registerMeasureCallback('review_organizer_rating', measureOrganizerRatingNow),
             registerMeasureCallback('review_organizer_feedback', measureOrganizerFeedbackNow),
+            registerMeasureCallback('review_organizer_photo_upload', measureOrganizerPhotoUploadNow),
         ];
 
         return () => {
@@ -170,6 +180,7 @@ export const useWriteReviewTutorial = ({
         measureSubmitBtnNow,
         measureOrganizerRatingNow,
         measureOrganizerFeedbackNow,
+        measureOrganizerPhotoUploadNow,
     ]);
 
     // Re-measure footer button targets whenever the active step or step-3 availability changes
@@ -224,6 +235,12 @@ export const useWriteReviewTutorial = ({
         }
     }, [measureOrganizerFeedbackNow]);
 
+    const handleOrganizerPhotoUploadLayout = useCallback(() => {
+        if (isTutorialMeasurementActive()) {
+            measureOrganizerPhotoUploadNow();
+        }
+    }, [measureOrganizerPhotoUploadNow]);
+
     const handleReplayTour = useCallback(() => {
         if (stepIndex === 0) {
             ratingsTutorial.onReplayTour();
@@ -254,6 +271,7 @@ export const useWriteReviewTutorial = ({
         submitBtnRef,
         organizerRatingRef,
         organizerFeedbackRef,
+        organizerPhotoUploadRef,
         handlers: {
             handleStarRatingLayout,
             handleNextBtnLayout,
@@ -262,6 +280,7 @@ export const useWriteReviewTutorial = ({
             handleSubmitBtnLayout,
             handleOrganizerRatingLayout,
             handleOrganizerFeedbackLayout,
+            handleOrganizerPhotoUploadLayout,
         },
     };
 };
