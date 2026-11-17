@@ -1,7 +1,8 @@
 import { db } from "@/src/core/config/Firebase";
 import { businessReviewConverter } from "@/src/core/models/BusinessReview/factory/BusinessReviewFactory";
 import { BusinessReview } from "@/src/core/models/BusinessReview/interfaces/BusinessReview";
-import { collection, collectionGroup, deleteDoc, doc, Firestore, getDoc, getDocs, setDoc } from "firebase/firestore";
+import { IUserSummary } from "@/src/core/models/User/User";
+import { collection, collectionGroup, deleteDoc, doc, Firestore, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, Unsubscribe, updateDoc } from "firebase/firestore";
 
 const createBusinessReviewCollection = (db: Firestore, businessId: string) => {
     return collection(db, 'businesses', businessId, 'reviews').withConverter(businessReviewConverter);
@@ -49,6 +50,46 @@ export const BusinessReviewRepository = (db: Firestore) => ({
         }
     },
 
+    listenToBusinessReviews(
+        businessId: string,
+        onUpdate: (reviews: BusinessReview[]) => void,
+        onError?: (error: Error) => void,
+        limitCount: number = 30
+    ): Unsubscribe {
+        try {
+            if (!businessId) {
+                onUpdate([]);
+                return () => {};
+            }
+
+            const businessReviewCollection = createBusinessReviewCollection(db, businessId);
+            const q = query(
+                businessReviewCollection,
+                orderBy('createdAt', 'desc'),
+                limit(limitCount)
+            );
+
+            return onSnapshot(
+                q,
+                (snapshot) => {
+                    const list = snapshot.docs.map((docSnap) => docSnap.data());
+                    onUpdate(list);
+                },
+                (error) => {
+                    console.error('Error in listenToBusinessReviews:', error);
+                    onError?.(error);
+                }
+            );
+        } catch (error: unknown) {
+            const normalized = error instanceof Error
+                ? error
+                : new Error('Error subscribing to business reviews');
+            console.error('Error subscribing to business reviews:', normalized);
+            onError?.(normalized);
+            throw normalized;
+        }
+    },
+
     async write(data: BusinessReview): Promise<BusinessReview> {
         try {
             const businessReviewCollection = createBusinessReviewCollection(db, data.business.id);
@@ -68,6 +109,19 @@ export const BusinessReviewRepository = (db: Firestore) => ({
             return updated;
         } catch (error) {
             throw new Error('Error writing business review')
+        }
+    },
+
+    async updateLikes(businessId: string, reviewId: string, likes: IUserSummary[]): Promise<void> {
+        try {
+            const docRef = doc(db, 'businesses', businessId, 'reviews', reviewId);
+            await updateDoc(docRef, {
+                likes,
+                updatedAt: serverTimestamp(),
+            });
+        } catch (error: unknown) {
+            const reason = error instanceof Error ? error.message : 'Unknown error';
+            throw new Error(`Error updating business review likes: ${reason}`);
         }
     },
 
