@@ -2,13 +2,15 @@ import { useToast } from "@/src/components/Toast/Toast";
 import { db } from "@/src/core/config/Firebase";
 import { RecalculateTrailRating } from "@/src/core/flows/RecalculateTrailRating";
 import { useBookingUserItem } from "@/src/core/models/Booking/Booking";
-import { newBusinessReview } from "@/src/core/models/BusinessReview/factory/BusinessReviewFactory";
-import { BusinessReview } from "@/src/core/models/BusinessReview/interfaces/BusinessReview";
-import { useBusinessReviewsStore } from "@/src/core/models/BusinessReview/stores/businessReviewStore.native";
+import {
+    BusinessReview,
+    newBusinessReview,
+    useBusinessReviewsStore,
+} from "@/src/core/models/BusinessReview/BusinessReview";
 import { HikeRepo, useHikesStore, useHikeStore } from "@/src/core/models/Hike/Hike";
 import { getReverseGeocode } from "@/src/core/models/Location/Location";
 import { newReview, Review, ReviewLogic, useReviewStore } from "@/src/core/models/Review/Review";
-import { ITrailSummary, newTrail, useTrailsStore } from "@/src/core/models/Trail/Trail";
+import { ITrailSummary, newTrail, TrailLogic, useTrailsStore } from "@/src/core/models/Trail/Trail";
 import { useAuthHook, UserLogic } from "@/src/core/models/User/User";
 import { router } from "expo-router";
 import { collection, doc } from "firebase/firestore";
@@ -18,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 export interface BusinessReviewData {
     review: string;
     rating: number;
+    image?: string[];
 }
 
 export type UseReviewWriteParams = {
@@ -258,11 +261,19 @@ export function CreateReviewFlow(params: UseReviewWriteParams) {
             pendingReviewIdRef.current ||
             (pendingReviewIdRef.current = doc(collection(db, 'reviews')).id);
 
+        const matchedTrail = trails.find(t => t.id === booking.trail?.id);
+        const trailSummary: ITrailSummary = matchedTrail
+            ? {
+                ...booking.trail,
+                location: TrailLogic.toSummary(matchedTrail).location || booking.trail.location,
+            }
+            : booking.trail;
+
         const businessReview: BusinessReview = newBusinessReview({
             id: targetReviewId,
             user: UserLogic.toSummary(profile),
             business: booking.business,
-            trail: booking.trail,
+            trail: trailSummary,
             offerId: booking.offer.id,
             hikeReview: {
                 id: targetReviewId,
@@ -271,6 +282,7 @@ export function CreateReviewFlow(params: UseReviewWriteParams) {
             hikeDate: review.hikeDate,
             review: data.review,
             rating: data.rating,
+            image: data.image || [],
         })
 
         await writeBusinessReview(businessReview);
