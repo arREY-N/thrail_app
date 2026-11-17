@@ -4,6 +4,7 @@ import { Business, IBusinessPaymentConfig } from "@/src/core/models/Business/int
 import { BusinessRepo } from "@/src/core/models/Business/repositories/businessRepository";
 import { User } from "@/src/core/models/User/User";
 import { upsertItem } from "@/src/core/models/utils/upsert";
+import { Unsubscribe } from "firebase/firestore";
 import { StateCreator } from "zustand";
 
 export type AdminUI = {
@@ -19,6 +20,7 @@ export interface BusinessState {
     error: string | null;
 
     fetchAll: () => Promise<void>;
+    subscribeToBusinesses: () => void;
     refresh: (userId?: string | null) => Promise<void>;
     load: (id: string | null) => Promise<void>;
     create: (business: Business, applicationId: string) => Promise<boolean>;
@@ -35,6 +37,8 @@ export interface BusinessState {
     updatePaymentConfig: (businessId: string, paymentConfig: IBusinessPaymentConfig<Date> | null) => Promise<boolean>;
     applyRatingDelta: (businessId: string, oldRating: number | null, newRating: number | null) => void;
 }
+
+let activeBusinessesUnsubscribe: Unsubscribe | null = null;
 
 const init = {
     data: [],
@@ -225,7 +229,59 @@ export const businessStoreCreator: StateCreator<
         }
     },
 
-    reset: () => set(init),
+    reset: () => {
+        if (activeBusinessesUnsubscribe) {
+            try {
+                activeBusinessesUnsubscribe();
+            } catch (err: unknown) {
+                console.warn(err instanceof Error ? err.message : 'Failed unsubscribing businesses');
+            }
+            activeBusinessesUnsubscribe = null;
+        }
+        set(init);
+    },
+
+    subscribeToBusinesses: () => {
+        if (activeBusinessesUnsubscribe) return;
+
+        if (get().data.length === 0) {
+            set({ isLoading: true, error: null });
+        }
+
+        try {
+            activeBusinessesUnsubscribe = BusinessRepo.listenToBusinesses(
+                (businesses) => {
+                    set((state) => {
+                        const matchedCurrent = state.current
+                            ? businesses.find((b) => b.id === state.current?.id) ?? state.current
+                            : state.current;
+                        return {
+                            data: businesses,
+                            current: matchedCurrent,
+                            lastFetchedAt: Date.now(),
+                            isLoading: false,
+                            error: null,
+                        };
+                    });
+                },
+                (err) => {
+                    console.warn(err.message);
+                    set({
+                        error: get().data.length === 0 ? err.message : null,
+                        isLoading: false,
+                    });
+                }
+            );
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Failed subscribing to businesses';
+            console.warn(message);
+            activeBusinessesUnsubscribe = null;
+            set({
+                error: get().data.length === 0 ? message : null,
+                isLoading: false,
+            });
+        }
+    },
 
     applyRatingDelta: (businessId: string, oldRating: number | null, newRating: number | null) => {
         if (!businessId) return;
