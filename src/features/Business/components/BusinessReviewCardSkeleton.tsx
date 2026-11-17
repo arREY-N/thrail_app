@@ -1,6 +1,6 @@
 /**
  * @file BusinessReviewCardSkeleton.tsx
- * @description Shimmering skeleton loader mirroring the exact layout of BusinessReviewCard.
+ * @description Shimmering skeleton loader mirroring the compact layout of BusinessReviewCard.
  * Follows the Doherty Threshold UX principle during async business review fetching.
  */
 
@@ -22,7 +22,7 @@ import { GlobalStyles } from '@/src/constants/globalStyles';
 const BusinessReviewCardSkeleton = (): React.JSX.Element => {
     return (
         <View style={styles.card}>
-            {/* Header Row */}
+            {/* Header Row: Avatar + Username/Date • Mountain + Rating & Like Pills */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
                     <SkeletonEffect style={styles.avatarSkeleton} />
@@ -31,23 +31,16 @@ const BusinessReviewCardSkeleton = (): React.JSX.Element => {
                         <SkeletonEffect style={styles.dateSkeleton} />
                     </View>
                 </View>
-                <SkeletonEffect style={styles.ratingBadgeSkeleton} />
+                <View style={styles.headerRight}>
+                    <SkeletonEffect style={styles.ratingBadgeSkeleton} />
+                    <SkeletonEffect style={styles.likeBadgeSkeleton} />
+                </View>
             </View>
-
-            {/* 5-Star Visual Row */}
-            <SkeletonEffect style={styles.starsSkeleton} />
 
             {/* Review Text Body */}
             <View style={styles.textBody}>
                 <SkeletonEffect style={styles.textLine1} />
                 <SkeletonEffect style={styles.textLine2} />
-            </View>
-
-            {/* Context Footer */}
-            <View style={styles.footerDivider} />
-            <View style={styles.footerRow}>
-                <SkeletonEffect style={styles.trailChipSkeleton} />
-                <SkeletonEffect style={styles.hikeDateSkeleton} />
             </View>
         </View>
     );
@@ -75,6 +68,11 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingRight: 12,
     },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
     avatarSkeleton: {
         width: 44,
         height: 44,
@@ -92,25 +90,23 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     dateSkeleton: {
-        width: 90,
+        width: 160,
         height: 12,
         borderRadius: 4,
     },
     ratingBadgeSkeleton: {
-        width: 54,
+        width: 52,
         height: 26,
-        borderRadius: 999,
+        borderRadius: 12,
     },
-    starsSkeleton: {
-        width: 88,
-        height: 14,
-        borderRadius: 4,
-        marginBottom: 8,
+    likeBadgeSkeleton: {
+        width: 46,
+        height: 26,
+        borderRadius: 12,
     },
     textBody: {
         width: '100%',
         gap: 6,
-        marginBottom: 12,
     },
     textLine1: {
         width: '100%',
@@ -119,27 +115,6 @@ const styles = StyleSheet.create({
     },
     textLine2: {
         width: '75%',
-        height: 14,
-        borderRadius: 4,
-    },
-    footerDivider: {
-        height: 1,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        width: '100%',
-        marginBottom: 12,
-    },
-    footerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    trailChipSkeleton: {
-        width: 112,
-        height: 24,
-        borderRadius: 8,
-    },
-    hikeDateSkeleton: {
-        width: 96,
         height: 14,
         borderRadius: 4,
     },
