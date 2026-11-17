@@ -112,7 +112,7 @@ export const reviewDetailsTourSteps: TutorialStep[] = getReviewDetailsTourSteps(
 export const reviewOrganizerTourSteps: TutorialStep[] = [
     {
         id: 'review-organizer-step-1-rating',
-        category: 'Organizer Review • Step 1 of 3',
+        category: 'Organizer Review • Step 1 of 4',
         targetSpotlight: 'review_organizer_rating',
         spotlightShape: 'rect',
         tooltipPlacement: 'bottom',
@@ -123,7 +123,7 @@ export const reviewOrganizerTourSteps: TutorialStep[] = [
     },
     {
         id: 'review-organizer-step-2-feedback',
-        category: 'Organizer Review • Step 2 of 3',
+        category: 'Organizer Review • Step 2 of 4',
         targetSpotlight: 'review_organizer_feedback',
         spotlightShape: 'rect',
         tooltipPlacement: 'top',
@@ -133,14 +133,25 @@ export const reviewOrganizerTourSteps: TutorialStep[] = [
         actionTip: 'Tap suggestion chips or type your experience.',
     },
     {
-        id: 'review-organizer-step-3-submit',
-        category: 'Organizer Review • Step 3 of 3',
+        id: 'review-organizer-step-3-photo',
+        category: 'Organizer Review • Step 3 of 4',
+        targetSpotlight: 'review_organizer_photo_upload',
+        spotlightShape: 'rect',
+        tooltipPlacement: 'top',
+        title: 'Add Organizer Photos (Optional)',
+        description:
+            'Upload up to 5 photos showing the group meetup, logistics, or guiding experience with this tour partner. These stay separate from your trail photos.',
+        actionTip: 'Tap to optionally add photos for your organizer review.',
+    },
+    {
+        id: 'review-organizer-step-4-submit',
+        category: 'Organizer Review • Step 4 of 4',
         targetSpotlight: 'review_submit_btn',
         spotlightShape: 'rect',
         tooltipPlacement: 'top',
         title: 'Submit or Skip & Submit',
         description:
-            'Tap Skip & Submit if you left the organizer rating blank and only want to publish your trail review, or fill in both rating and feedback and tap Submit to save both.',
+            'Tap Skip & Submit if you left the organizer review blank and only want to publish your trail review, or fill in rating and feedback and tap Submit to save both.',
         actionTip: 'Tap Skip & Submit or Submit when you are ready to finish.',
     },
 ];
