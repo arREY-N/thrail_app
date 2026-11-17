@@ -5,27 +5,33 @@
  * submitted by hikers from booked hikes using BusinessReviewCard.
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomText from '@/src/components/CustomText';
+import ListEndIndicator from '@/src/components/ListEndIndicator';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { BusinessReview } from '@/src/core/models/BusinessReview/interfaces/BusinessReview';
+import { BusinessReview } from '@/src/core/models/BusinessReview/BusinessReview';
 import BusinessReviewCard from '@/src/features/Business/components/BusinessReviewCard';
 import BusinessReviewCardSkeleton from '@/src/features/Business/components/BusinessReviewCardSkeleton';
-import { sortBusinessReviewsByLatest } from '@/src/features/Business/utils/businessHelpers';
 
 /**
  * Props for the BusinessReviewsTab component.
  *
  * @param reviews - Array of BusinessReview items associated with this tour organizer.
+ * @param totalReviewsCount - Total aggregated review count when more reviews exist beyond the stream limit.
  * @param isLoading - Whether business review data is actively loading.
+ * @param onLikeReview - Callback fired when the like button is pressed on a review card.
+ * @param isLiked - Helper returning whether the current user has liked a review.
  */
 interface Props {
     reviews?: BusinessReview[];
+    totalReviewsCount?: number;
     isLoading?: boolean;
+    onLikeReview?: (review: BusinessReview) => void;
+    isLiked?: (review: BusinessReview) => boolean;
 }
 
 /**
@@ -36,13 +42,16 @@ interface Props {
  */
 const BusinessReviewsTab = ({
     reviews = [],
+    totalReviewsCount,
     isLoading = false,
+    onLikeReview,
+    isLiked,
 }: Props): React.JSX.Element => {
-    const sortedReviews = useMemo(
-        () => sortBusinessReviewsByLatest(reviews),
-        [reviews]
-    );
-    const hasReviews = sortedReviews.length > 0;
+    const hasReviews = reviews.length > 0;
+    const resolvedTotalCount = totalReviewsCount ?? reviews.length;
+    const endIndicatorLabel = resolvedTotalCount > reviews.length
+        ? `Showing latest ${reviews.length} of ${resolvedTotalCount} reviews.`
+        : 'No more reviews to show.';
 
     return (
         <View style={styles.container}>
@@ -57,14 +66,23 @@ const BusinessReviewsTab = ({
 
             {/* Populated Organizer Reviews Feed */}
             {hasReviews && (
-                <View style={styles.feedList}>
-                    {sortedReviews.map((item) => (
-                        <BusinessReviewCard
-                            key={item.id}
-                            review={item}
-                        />
-                    ))}
-                </View>
+                <>
+                    <View style={styles.feedList}>
+                        {reviews.map((item) => (
+                            <BusinessReviewCard
+                                key={item.id}
+                                review={item}
+                                onLike={onLikeReview ? () => onLikeReview(item) : undefined}
+                                isLiked={isLiked}
+                            />
+                        ))}
+                    </View>
+                    <ListEndIndicator
+                        label={endIndicatorLabel}
+                        maxWidth="100%"
+                        style={styles.endIndicator}
+                    />
+                </>
             )}
 
             {/* Empty State */}
@@ -97,6 +115,9 @@ const styles = StyleSheet.create({
     },
     feedList: {
         gap: 20,
+    },
+    endIndicator: {
+        marginTop: 4,
     },
     emptyStateCard: {
         alignItems: 'center',
