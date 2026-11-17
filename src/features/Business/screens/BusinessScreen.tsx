@@ -26,7 +26,7 @@ import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
 import { Admin } from '@/src/core/models/Admin/Admin';
 import { Business } from '@/src/core/models/Business/Business';
-import { BusinessReview } from '@/src/core/models/BusinessReview/interfaces/BusinessReview';
+import { BusinessReview } from '@/src/core/models/BusinessReview/BusinessReview';
 import { ITrail } from '@/src/core/models/Trail/Trail';
 import BusinessHeroCard from '@/src/features/Business/components/BusinessHeroCard';
 import BusinessProfileSkeleton from '@/src/features/Business/components/BusinessProfileSkeleton';
@@ -48,7 +48,6 @@ export type { BusinessTabType };
  *
  * @param business - The tour business model data.
  * @param admins - Guide / coordinator personnel under this business.
- * @param featuredTrails - Top 3 soonest upcoming bookable trail offers.
  * @param allTrails - All unique trails with active offers from this business.
  * @param packageCount - Count of active upcoming offers for this business.
  * @param reviews - Collected hiker reviews from booked hikes and offers of this business.
@@ -64,11 +63,13 @@ export type { BusinessTabType };
  * @param onDownloadPress - Callback when a mountain card download button is clicked.
  * @param getItemRating - Function returning rating score for a trail ID.
  * @param getTrailOffersCount - Function returning active offers count for a trail ID.
+ * @param getTrailEarliestOfferTime - Function returning earliest active offer departure timestamp (ms) for a trail ID.
+ * @param onLikeBusinessReview - Callback to toggle like on a business review.
+ * @param isBusinessReviewLiked - Helper returning whether the current user liked a business review.
  */
 export interface BusinessScreenProps {
     business?: Business | null;
     admins?: Admin[];
-    featuredTrails?: ITrail[];
     allTrails?: ITrail[];
     packageCount?: number;
     reviews?: BusinessReview[];
@@ -84,6 +85,9 @@ export interface BusinessScreenProps {
     onDownloadPress: (trailId: string) => void;
     getItemRating: (trailId: string) => number;
     getTrailOffersCount: (trailId: string) => number;
+    getTrailEarliestOfferTime?: (trailId: string) => number;
+    onLikeBusinessReview?: (review: BusinessReview) => void;
+    isBusinessReviewLiked?: (review: BusinessReview) => boolean;
 }
 
 /**
@@ -96,7 +100,6 @@ export interface BusinessScreenProps {
 const BusinessScreen = ({
     business,
     admins = [],
-    featuredTrails = [],
     allTrails = [],
     packageCount = 0,
     reviews = [],
@@ -112,6 +115,9 @@ const BusinessScreen = ({
     onDownloadPress,
     getItemRating,
     getTrailOffersCount,
+    getTrailEarliestOfferTime,
+    onLikeBusinessReview,
+    isBusinessReviewLiked,
 }: BusinessScreenProps): React.JSX.Element => {
     const [activeTab, setActiveTab] = useState<BusinessTabType>('Offers');
 
@@ -119,7 +125,7 @@ const BusinessScreen = ({
     const lastOffsetY = useRef<number>(0);
 
     const { width, isDesktop, isTablet } = useBreakpoints();
-    const contentMaxWidth: number | `${number}%` = isDesktop ? 860 : (isTablet ? 680 : '100%');
+    const contentMaxWidth: number | `${number}%` = isDesktop ? 892 : (isTablet ? 712 : '100%');
     const responsiveAlignStyle = {
         maxWidth: contentMaxWidth,
         alignSelf: 'center' as const,
@@ -129,7 +135,6 @@ const BusinessScreen = ({
     const effectiveContentWidth = typeof contentMaxWidth === 'number'
         ? Math.min(width, contentMaxWidth)
         : width;
-    const cardWidth = Math.min(width * 0.85, 360);
 
     const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
         lastOffsetY.current = event.nativeEvent.contentOffset.y;
@@ -167,7 +172,6 @@ const BusinessScreen = ({
                 <BusinessProfileSkeleton
                     contentMaxWidth={contentMaxWidth}
                     effectiveContentWidth={effectiveContentWidth}
-                    cardWidth={cardWidth}
                 />
             </ScreenWrapper>
         );
@@ -237,7 +241,8 @@ const BusinessScreen = ({
 
                 {/* 2. STICKY SEGMENTED PILL TABS (Offers | About | Reviews) */}
                 <View style={styles.stickyTabsBar}>
-                    <View style={[styles.floatingTabsContainer, responsiveAlignStyle]}>
+                    <View style={[styles.stickyTabsInner, responsiveAlignStyle]}>
+                        <View style={styles.floatingTabsContainer}>
                         {(
                             [
                                 { key: 'Offers', icon: 'compass', label: 'Offers' },
@@ -282,6 +287,7 @@ const BusinessScreen = ({
                                 </Pressable>
                             );
                         })}
+                        </View>
                     </View>
                 </View>
 
@@ -289,13 +295,12 @@ const BusinessScreen = ({
                 <View style={[styles.tabContentContainer, responsiveAlignStyle]}>
                     {activeTab === 'Offers' && (
                         <BusinessOffersTab
-                            featuredTrails={featuredTrails}
                             allTrails={allTrails}
                             onMountainPress={onMountainPress}
                             onDownloadPress={onDownloadPress}
                             getItemRating={getItemRating}
                             getTrailOffersCount={getTrailOffersCount}
-                            cardWidth={cardWidth}
+                            getTrailEarliestOfferTime={getTrailEarliestOfferTime}
                             contentWidth={effectiveContentWidth}
                             isLoading={isOffersLoading}
                         />
@@ -311,7 +316,10 @@ const BusinessScreen = ({
                     {activeTab === 'Reviews' && (
                         <BusinessReviewsTab
                             reviews={reviews}
+                            totalReviewsCount={reviewsCount}
                             isLoading={isReviewsLoading}
+                            onLikeReview={onLikeBusinessReview}
+                            isLiked={isBusinessReviewLiked}
                         />
                     )}
                 </View>
@@ -326,10 +334,12 @@ const styles = StyleSheet.create({
     },
     stickyTabsBar: {
         backgroundColor: Colors.BACKGROUND,
-        paddingHorizontal: 16,
         paddingTop: 14,
         paddingBottom: 12,
         zIndex: 10,
+    },
+    stickyTabsInner: {
+        paddingHorizontal: 16,
     },
     floatingTabsContainer: {
         flexDirection: 'row',
