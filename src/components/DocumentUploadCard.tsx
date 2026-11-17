@@ -53,6 +53,37 @@ const checkNetworkConnectivity = async (): Promise<boolean> => {
 
 const MAX_DOCUMENT_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic'];
+const MIME_TO_IMAGE_EXTENSION: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/heic': 'heic',
+    'image/heif': 'heic',
+};
+
+const extractFilenameExtension = (value?: string | null): string | undefined => {
+    if (!value || value.startsWith('data:') || value.startsWith('blob:')) return undefined;
+    const withoutQuery = value.split('?')[0]?.split('#')[0] ?? '';
+    const lastSegment = withoutQuery.split('/').pop() ?? '';
+    if (!lastSegment.includes('.')) return undefined;
+    return lastSegment.split('.').pop()?.toLowerCase();
+};
+
+const resolveImageExtension = (asset: {
+    fileName?: string | null;
+    uri: string;
+    mimeType?: string | null;
+}): string | undefined => {
+    const fileExt = extractFilenameExtension(asset.fileName);
+    if (fileExt) return fileExt;
+
+    const uriExt = extractFilenameExtension(asset.uri);
+    if (uriExt) return uriExt;
+
+    const mime = asset.mimeType?.toLowerCase().trim();
+    return mime ? MIME_TO_IMAGE_EXTENSION[mime] : undefined;
+};
 
 /**
  * Valid strict document storage keys supported by backend file services.
@@ -224,92 +255,93 @@ const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
             const uploadedUrls: string[] = [];
 
-            if (Platform.OS === 'web' && !allowMultiple) {
-                // Web: browser file picker with client validation fallback for single document
-                const url = await pickDocument(safeDocKey);
-                if (url) {
-                    uploadedUrls.push(url);
+            try {
+                if (Platform.OS === 'web' && !allowMultiple) {
+                    // Web: browser file picker with client validation fallback for single document
+                    const url = await pickDocument(safeDocKey);
+                    if (url) {
+                        uploadedUrls.push(url);
+                    } else {
+                        setIsUploading(false);
+                        return;
+                    }
                 } else {
-                    setIsUploading(false);
-                    return;
-                }
-            } else {
-                // Mobile and Web gallery image picker
-                if (Platform.OS !== 'web') {
-                    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                    if (perm.status !== 'granted') {
-                        setIsPermissionBlocked(true);
-                        throw new Error('Photo gallery permission is required. Please enable photo access in Settings to upload.');
-                    }
-                    setIsPermissionBlocked(false);
-                }
-
-                const result = await ImagePicker.launchImageLibraryAsync({
-                    mediaTypes: ['images'],
-                    allowsEditing: false,
-                    quality: 0.85,
-                    allowsMultipleSelection: allowMultiple,
-                    selectionLimit: allowMultiple ? remainingSlots : 1,
-                });
-
-                if (result.canceled || !result.assets || result.assets.length === 0) {
-                    setIsUploading(false);
-                    return;
-                }
-
-                const targetAssets = allowMultiple 
-                    ? result.assets.slice(0, remainingSlots) 
-                    : [result.assets[0]];
-
-                // Client-side batch validation: MIME and 5MB size limits
-                for (const asset of targetAssets) {
-                    const extension = (asset.fileName || asset.uri).split('.').pop()?.toLowerCase();
-                    const isImageMime = !asset.mimeType || asset.mimeType.startsWith('image/');
-                    const isAllowedExt = extension ? ALLOWED_IMAGE_EXTENSIONS.includes(extension) : false;
-
-                    if (!isImageMime || !isAllowedExt) {
-                        throw new Error('Only image files (JPG, PNG, WEBP, HEIC) are accepted.');
-                    }
-
-                    if (asset.fileSize && asset.fileSize > MAX_DOCUMENT_SIZE_BYTES) {
-                        throw new Error(`File size of "${asset.fileName || 'selected image'}" exceeds the 5MB limit.`);
-                    }
-                }
-
-                // Batch upload to Firebase Storage
-                for (const asset of targetAssets) {
-                    const extension = (asset.fileName || asset.uri).split('.').pop()?.toLowerCase();
-                    const selectedFile: SelectedFile = {
-                        uri: asset.uri,
-                        name: asset.fileName || `${safeDocKey}_${Date.now()}.${extension || 'jpg'}`,
-                        mimeType: asset.mimeType || 'image/jpeg',
-                        size: asset.fileSize,
-                    };
-
-                    try {
-                        const fileUrl = await FileRepository.uploadDocuments(selectedFile);
-                        if (fileUrl) {
-                            uploadedUrls.push(fileUrl);
+                    // Mobile and Web gallery image picker
+                    if (Platform.OS !== 'web') {
+                        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                        if (perm.status !== 'granted') {
+                            setIsPermissionBlocked(true);
+                            throw new Error('Photo gallery permission is required. Please enable photo access in Settings to upload.');
                         }
-                    } catch (uploadErr) {
-                        const errMsg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
-                        if (errMsg.includes('quota-exceeded')) {
-                            uploadedUrls.push('https://drive.google.com/file/d/1CfQd7ed1e3N0eQGREP4F_Y7iTV6zL7V0/view?usp=sharing');
-                        } else {
-                            throw uploadErr;
+                        setIsPermissionBlocked(false);
+                    }
+
+                    const result = await ImagePicker.launchImageLibraryAsync({
+                        mediaTypes: ['images'],
+                        allowsEditing: false,
+                        quality: 0.85,
+                        allowsMultipleSelection: allowMultiple,
+                        selectionLimit: allowMultiple ? remainingSlots : 1,
+                    });
+
+                    if (result.canceled || !result.assets || result.assets.length === 0) {
+                        setIsUploading(false);
+                        return;
+                    }
+
+                    const targetAssets = allowMultiple 
+                        ? result.assets.slice(0, remainingSlots) 
+                        : [result.assets[0]];
+
+                    // Client-side batch validation: MIME and 5MB size limits
+                    for (const asset of targetAssets) {
+                        const extension = resolveImageExtension(asset);
+                        const isImageMime = !asset.mimeType || asset.mimeType.startsWith('image/');
+                        const isAllowedExt = extension ? ALLOWED_IMAGE_EXTENSIONS.includes(extension) : false;
+
+                        if (!isImageMime || !isAllowedExt) {
+                            throw new Error('Only image files (JPG, PNG, WEBP, HEIC) are accepted.');
+                        }
+
+                        if (asset.fileSize && asset.fileSize > MAX_DOCUMENT_SIZE_BYTES) {
+                            throw new Error(`File size of "${asset.fileName || 'selected image'}" exceeds the 5MB limit.`);
+                        }
+                    }
+
+                    // Batch upload to Firebase Storage
+                    for (const asset of targetAssets) {
+                        const extension = resolveImageExtension(asset);
+                        const selectedFile: SelectedFile = {
+                            uri: asset.uri,
+                            name: asset.fileName || `${safeDocKey}_${Date.now()}.${extension || 'jpg'}`,
+                            mimeType: asset.mimeType || 'image/jpeg',
+                            size: asset.fileSize,
+                        };
+
+                        try {
+                            const fileUrl = await FileRepository.uploadDocuments(selectedFile);
+                            if (fileUrl) {
+                                uploadedUrls.push(fileUrl);
+                            }
+                        } catch (uploadErr) {
+                            const errMsg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
+                            if (errMsg.includes('quota-exceeded')) {
+                                uploadedUrls.push('https://drive.google.com/file/d/1CfQd7ed1e3N0eQGREP4F_Y7iTV6zL7V0/view?usp=sharing');
+                            } else {
+                                throw uploadErr;
+                            }
                         }
                     }
                 }
-            }
-
-            if (uploadedUrls.length > 0) {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                if (onBatchUploadSuccess) {
-                    onBatchUploadSuccess(uploadedUrls);
-                }
-                if (onUploadSuccess) {
-                    for (const url of uploadedUrls) {
-                        onUploadSuccess(url);
+            } finally {
+                if (uploadedUrls.length > 0) {
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    if (onBatchUploadSuccess) {
+                        onBatchUploadSuccess(uploadedUrls);
+                    } else if (onUploadSuccess) {
+                        for (const url of uploadedUrls) {
+                            onUploadSuccess(url);
+                        }
                     }
                 }
             }
@@ -649,6 +681,11 @@ const styles = StyleSheet.create({
         minWidth: 68, 
         alignItems: 'center', 
         backgroundColor: Colors.PRIMARY, 
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     uploadBtnText: { 
         color: Colors.WHITE, 
@@ -663,6 +700,11 @@ const styles = StyleSheet.create({
         borderRadius: 20, 
         minWidth: 68, 
         alignItems: 'center', 
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     uploadedBtnText: { 
         color: Colors.SUCCESS, 
@@ -675,6 +717,11 @@ const styles = StyleSheet.create({
         borderRadius: 20, 
         minWidth: 68, 
         alignItems: 'center', 
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     errorBtnText: { 
         color: Colors.WHITE, 
@@ -687,6 +734,11 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         minWidth: 68,
         alignItems: 'center',
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     viewBtn: { 
         paddingVertical: 7, 
@@ -697,6 +749,11 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.STATUS_APPROVED_BG, 
         borderWidth: 1, 
         borderColor: Colors.SUCCESS, 
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     viewBtnText: { 
         color: Colors.SUCCESS, 
@@ -711,6 +768,11 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.WHITE, 
         borderWidth: 1, 
         borderColor: Colors.GRAY_MEDIUM, 
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     viewBtnTextNeutral: { 
         color: Colors.TEXT_PRIMARY, 
@@ -754,6 +816,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_LIGHT,
         backgroundColor: Colors.GRAY_ULTRALIGHT,
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     thumbnailImage: {
         width: '100%',
@@ -773,6 +840,11 @@ const styles = StyleSheet.create({
         borderColor: Colors.WHITE,
         zIndex: 5,
         ...GlobalStyles.dropShadow(2, 0.15, Colors.SHADOW),
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     addPhotoSlot: {
         width: 72,
@@ -785,6 +857,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         gap: 2,
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
     addPhotoSlotText: {
         color: Colors.PRIMARY,
