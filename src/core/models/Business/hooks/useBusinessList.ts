@@ -7,11 +7,7 @@ export function useBusinessList() {
     const error = useBusinessesStore(s => s.error);
 
     useEffect(() => {
-        const fetchAll = async () => {
-            await useBusinessesStore.getState().fetchAll();
-        };
-
-        fetchAll();
+        useBusinessesStore.getState().subscribeToBusinesses();
     }, []);
 
     return {
