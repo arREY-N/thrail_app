@@ -1,21 +1,28 @@
 /**
  * @file BusinessReviewCard.tsx
  * @description Presentation card component for displaying a hiker's verified review
- * of a tour organizer/business on the Business Profile Reviews tab.
+ * of a tour organizer/business on the Business Profile Reviews tab, featuring PostCard-style
+ * likes, multi-photo gallery preview, thumbnail strip, and inline date/mountain attribution.
  */
 
-import React, { useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useMemo, useState } from 'react';
 import {
+    Platform,
+    Pressable,
+    ScrollView,
     StyleSheet,
+    TouchableOpacity,
     View,
 } from 'react-native';
 
 import CustomIcon from '@/src/components/CustomIcon';
 import CustomImage from '@/src/components/CustomImage';
 import CustomText from '@/src/components/CustomText';
+import ImagePreviewModal from '@/src/components/ImagePreviewModal';
 import { Colors } from '@/src/constants/colors';
 import { GlobalStyles } from '@/src/constants/globalStyles';
-import { BusinessReview } from '@/src/core/models/BusinessReview/interfaces/BusinessReview';
+import { BusinessReview } from '@/src/core/models/BusinessReview/BusinessReview';
 import { formatDateToStandard, getInitials } from '@/src/utils/dateFormatter';
 
 interface UserAvatarCandidate {
@@ -45,22 +52,36 @@ const MAX_REVIEW_PREVIEW_LENGTH = 160;
  * Props for the BusinessReviewCard component.
  *
  * @param review - The BusinessReview entity submitted by a hiker for a booked hike.
+ * @param onLike - Callback fired when the like button is pressed.
+ * @param isLiked - Helper function to check if the current user has liked the review.
  */
 interface Props {
     review: BusinessReview;
+    onLike?: () => void;
+    isLiked?: (review: BusinessReview) => boolean;
 }
 
 /**
- * BusinessReviewCard — Renders a single verified organizer review card with reviewer
- * avatar, rating pill, 5-star visual row, expandable review text, and booked trail context.
+ * BusinessReviewCard — Renders a verified organizer review card with reviewer avatar,
+ * Date • Mountain attribution, rating + like pills, expandable review text, and optional
+ * PostCard-style photo viewer and thumbnail strip.
  *
  * @param props - Component props
  * @returns React.JSX.Element rendering the organizer review card, or null if review is missing
  */
 const BusinessReviewCard = ({
     review,
+    onLike,
+    isLiked,
 }: Props): React.JSX.Element | null => {
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
+    const [isPreviewVisible, setIsPreviewVisible] = useState<boolean>(false);
+    const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
+
+    const liked = useMemo(
+        () => (isLiked && review ? isLiked(review) : false),
+        [review, isLiked]
+    );
 
     if (!review) return null;
 
@@ -83,17 +104,24 @@ const BusinessReviewCard = ({
         : '';
     const reviewedLabel = createdDateStr || '--';
 
-    const hikeDateStr = review.hikeDate
-        ? formatDateToStandard(review.hikeDate)
-        : '';
-    const hikedLabel = hikeDateStr ? `Hiked ${hikeDateStr}` : '--';
-
     const trailName = review.trail?.name?.trim() || '--';
+    const trailLocation = review.trail?.location?.trim() || 'Philippines';
+
+    const imagesList: string[] = Array.isArray(review.image)
+        ? review.image.filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
+        : [];
+    const safeActiveIndex =
+        activeImageIndex >= 0 && activeImageIndex < imagesList.length ? activeImageIndex : 0;
+    const displayImage = imagesList.length > 0 ? imagesList[safeActiveIndex] : null;
 
     const numericRating = typeof review.rating === 'number' && !isNaN(review.rating)
         ? review.rating
         : 0;
     const ratingDisplay = numericRating > 0 ? numericRating.toFixed(1) : '--';
+
+    const likeCount = Array.isArray(review.likes)
+        ? review.likes.length
+        : Number(review.likes) || 0;
 
     const reviewText = review.review?.trim() || '';
     const isLong = reviewText.length > MAX_REVIEW_PREVIEW_LENGTH;
@@ -104,7 +132,7 @@ const BusinessReviewCard = ({
 
     return (
         <View style={styles.card}>
-            {/* Header: Reviewer Avatar + Identity + Rating Pill */}
+            {/* Header: Reviewer Avatar + Identity + Rating & Like Pills */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
                     {userPhotoUri ? (
@@ -138,28 +166,60 @@ const BusinessReviewCard = ({
                         >
                             {userName}
                         </CustomText>
-                        <CustomText variant="caption" style={styles.dateText}>
+                        <CustomText
+                            variant="caption"
+                            style={styles.dateText}
+                            numberOfLines={1}
+                        >
                             {reviewedLabel}
+                            {!displayImage && Boolean(review.trail?.name?.trim()) && (
+                                <CustomText variant="caption" style={styles.inlineMountainText}>
+                                    {` • ${trailName}`}
+                                </CustomText>
+                            )}
                         </CustomText>
                     </View>
                 </View>
 
-                <View style={styles.ratingBadge}>
-                    <CustomIcon
-                        library="Ionicons"
-                        name="star"
-                        size={14}
-                        color={Colors.YELLOW}
-                    />
-                    <CustomText variant="label" style={styles.ratingBadgeText}>
-                        {ratingDisplay}
-                    </CustomText>
+                <View style={styles.headerRight}>
+                    <View style={styles.ratingBadge}>
+                        <CustomIcon
+                            library="Ionicons"
+                            name="star"
+                            size={14}
+                            color={Colors.YELLOW}
+                        />
+                        <CustomText variant="label" style={styles.ratingBadgeText}>
+                            {ratingDisplay}
+                        </CustomText>
+                    </View>
+
+                    <Pressable
+                        onPress={onLike}
+                        style={[
+                            styles.headerLikeBadge,
+                            liked ? styles.headerLikeBadgeActive : styles.headerLikeBadgeInactive,
+                        ]}
+                    >
+                        <CustomIcon
+                            library="Ionicons"
+                            name={liked ? 'heart' : 'heart-outline'}
+                            size={14}
+                            color={liked ? Colors.ERROR : Colors.TEXT_SECONDARY}
+                        />
+                        <CustomText
+                            variant="label"
+                            style={liked ? styles.headerLikeTextActive : styles.headerLikeTextInactive}
+                        >
+                            {likeCount}
+                        </CustomText>
+                    </Pressable>
                 </View>
             </View>
 
             {/* Review Body Text */}
             {Boolean(reviewText) && (
-                <View style={styles.bodyContainer}>
+                <View style={[styles.bodyContainer, Boolean(displayImage) && styles.bodyContainerWithImage]}>
                     <CustomText variant="body" style={styles.reviewBody}>
                         {displayText}
                         {isLong && !isExpanded && (
@@ -182,37 +242,108 @@ const BusinessReviewCard = ({
                 </View>
             )}
 
-            {/* Context Footer: Booked Trail Chip + Hike Date */}
-            <View style={styles.footerDivider} />
-            <View style={styles.footerRow}>
-                <View style={styles.trailChip}>
-                    <CustomIcon
-                        library="FontAwesome6"
-                        name="mountain"
-                        size={11}
-                        color={Colors.PRIMARY}
+            {/* Uploaded Business Review Photo Gallery (PostCard Parity) */}
+            {Boolean(displayImage) && (
+                <TouchableOpacity
+                    style={styles.imageWrapper}
+                    activeOpacity={0.9}
+                    onPress={() => setIsPreviewVisible(true)}
+                >
+                    <CustomImage
+                        source={{ uri: displayImage as string }}
+                        style={styles.postImage}
+                        resizeMode="cover"
                     />
-                    <CustomText
-                        variant="caption"
-                        style={styles.trailChipText}
-                        numberOfLines={1}
-                    >
-                        {trailName}
-                    </CustomText>
-                </View>
 
-                <View style={styles.hikeDateRow}>
-                    <CustomIcon
-                        library="Feather"
-                        name="calendar"
-                        size={12}
-                        color={Colors.TEXT_SECONDARY}
-                    />
-                    <CustomText variant="caption" style={styles.hikeDateText}>
-                        {hikedLabel}
-                    </CustomText>
+                    <LinearGradient
+                        colors={['transparent', Colors.IMAGE_PREVIEW_COUNTER_BG, Colors.MAP_MODAL_BACKDROP]}
+                        style={styles.gradientOverlay}
+                    >
+                        <View style={styles.headerTextColumn}>
+                            <CustomText
+                                variant="h2"
+                                style={styles.mountainTitleOverlay}
+                                numberOfLines={1}
+                            >
+                                {trailName}
+                            </CustomText>
+
+                            <View style={styles.locationRow}>
+                                <CustomIcon
+                                    library="FontAwesome6"
+                                    name="location-dot"
+                                    size={10}
+                                    color={Colors.TEXT_INVERSE}
+                                />
+                                <CustomText
+                                    variant="caption"
+                                    style={styles.locationTextOverlay}
+                                    numberOfLines={1}
+                                >
+                                    {trailLocation}
+                                </CustomText>
+                            </View>
+                        </View>
+
+                        {imagesList.length > 1 && (
+                            <View style={styles.imageCountBadge}>
+                                <CustomIcon
+                                    library="Feather"
+                                    name="image"
+                                    size={11}
+                                    color={Colors.TEXT_INVERSE}
+                                    style={styles.imageCountIcon}
+                                />
+                                <CustomText variant="label" style={styles.imageCountText}>
+                                    {`${safeActiveIndex + 1}/${imagesList.length}`}
+                                </CustomText>
+                            </View>
+                        )}
+                    </LinearGradient>
+                </TouchableOpacity>
+            )}
+
+            {/* Thumbnail Strip (Shown only when 2+ photos are uploaded) */}
+            {imagesList.length > 1 && (
+                <View style={styles.thumbnailStripWrapper}>
+                    <ScrollView
+                        horizontal={true}
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.thumbnailStripContent}
+                    >
+                        {imagesList.map((imgUrl, idx) => {
+                            const isSelected = idx === safeActiveIndex;
+                            return (
+                                <TouchableOpacity
+                                    key={`biz-review-thumb-${idx}`}
+                                    style={[
+                                        styles.thumbnailItem,
+                                        isSelected && styles.thumbnailItemActive,
+                                    ]}
+                                    activeOpacity={0.7}
+                                    onPress={() => setActiveImageIndex(idx)}
+                                    accessibilityLabel={`Select photo ${idx + 1}`}
+                                >
+                                    <CustomImage
+                                        source={{ uri: imgUrl }}
+                                        style={styles.thumbnailItemImage}
+                                        resizeMode="cover"
+                                    />
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
                 </View>
-            </View>
+            )}
+
+            {isPreviewVisible && imagesList.length > 0 && (
+                <ImagePreviewModal
+                    visible={isPreviewVisible}
+                    images={imagesList}
+                    initialIndex={safeActiveIndex}
+                    onClose={() => setIsPreviewVisible(false)}
+                />
+            )}
         </View>
     );
 };
@@ -224,14 +355,14 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.GRAY_ULTRALIGHT,
         padding: 16,
-        ...GlobalStyles.dropShadow(2, 0.05, Colors.SHADOW, { radius: 8 }),
-        elevation: 2,
+        ...GlobalStyles.dropShadow(3, 0.05, Colors.SHADOW, { radius: 8 }),
+        elevation: 3,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 12,
+        paddingBottom: 12,
     },
     headerLeft: {
         flexDirection: 'row',
@@ -239,16 +370,21 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingRight: 12,
     },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
     avatarImage: {
         width: 44,
         height: 44,
-        borderRadius: 999,
+        borderRadius: 22,
         backgroundColor: Colors.GRAY_ULTRALIGHT,
     },
     avatarPlaceholder: {
         width: 44,
         height: 44,
-        borderRadius: 999,
+        borderRadius: 22,
         backgroundColor: Colors.PRIMARY,
         justifyContent: 'center',
         alignItems: 'center',
@@ -256,7 +392,7 @@ const styles = StyleSheet.create({
     avatarFallback: {
         width: 44,
         height: 44,
-        borderRadius: 999,
+        borderRadius: 22,
         backgroundColor: Colors.GRAY_ULTRALIGHT,
         justifyContent: 'center',
         alignItems: 'center',
@@ -272,24 +408,25 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     userName: {
-        marginBottom: 2,
+        marginBottom: -2,
         fontSize: 16,
         fontWeight: 'bold',
         color: Colors.TEXT_PRIMARY,
     },
     dateText: {
-        fontSize: 12,
         color: Colors.TEXT_SECONDARY,
+    },
+    inlineMountainText: {
+        color: Colors.PRIMARY,
+        fontWeight: '600',
     },
     ratingBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: Colors.STATUS_WARNING_BG,
-        borderWidth: 1,
-        borderColor: Colors.STATUS_WARNING_BORDER,
-        paddingHorizontal: 10,
+        paddingHorizontal: 8,
         paddingVertical: 4,
-        borderRadius: 999,
+        borderRadius: 12,
         gap: 4,
     },
     ratingBadgeText: {
@@ -297,57 +434,187 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 13,
     },
+    headerLikeBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        gap: 4,
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
+    },
+    headerLikeBadgeActive: {
+        backgroundColor: Colors.ERROR_BG,
+    },
+    headerLikeBadgeInactive: {
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+    },
+    headerLikeTextActive: {
+        color: Colors.ERROR,
+        fontWeight: 'bold',
+        fontSize: 13,
+    },
+    headerLikeTextInactive: {
+        color: Colors.TEXT_SECONDARY,
+        fontWeight: 'bold',
+        fontSize: 13,
+    },
     bodyContainer: {
-        marginBottom: 12,
+        paddingBottom: 2,
+    },
+    bodyContainerWithImage: {
+        paddingBottom: 12,
     },
     reviewBody: {
-        color: Colors.TEXT_PRIMARY,
+        fontSize: 14,
         lineHeight: 22,
+        color: Colors.TEXT_PRIMARY,
+        flexShrink: 1,
     },
     showMoreAction: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        textDecorationLine: 'underline',
         color: Colors.PRIMARY,
+    },
+    imageWrapper: {
+        position: 'relative',
+        height: 200,
+        width: '100%',
+        borderRadius: 16,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        overflow: 'hidden',
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
+    },
+    postImage: {
+        width: '100%',
+        height: '100%',
+    },
+    gradientOverlay: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: '50%',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 16,
+    },
+    headerTextColumn: {
+        flex: 1,
+        paddingRight: 16,
+    },
+    mountainTitleOverlay: {
+        color: Colors.TEXT_INVERSE,
+        fontWeight: 'bold',
+        marginBottom: 2,
+        ...Platform.select({
+            ios: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            android: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            web: {
+                textShadow: `0px 1px 4px ${Colors.BLACK}80`,
+            },
+        }),
+    },
+    locationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 2,
+        gap: 6,
+    },
+    locationTextOverlay: {
+        color: Colors.TEXT_INVERSE,
+        fontWeight: '500',
+        ...Platform.select({
+            ios: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            android: {
+                textShadowColor: Colors.SHADOW,
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+            },
+            web: {
+                textShadow: `0px 1px 4px ${Colors.BLACK}80`,
+            },
+        }),
+    },
+    imageCountBadge: {
+        flexDirection: 'row',
+        backgroundColor: Colors.IMAGE_PREVIEW_COUNTER_BG,
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    imageCountIcon: {
+        marginRight: 4,
+    },
+    imageCountText: {
+        color: Colors.TEXT_INVERSE,
+        fontSize: 12,
         fontWeight: 'bold',
     },
-    footerDivider: {
-        height: 1,
-        backgroundColor: Colors.GRAY_ULTRALIGHT,
-        width: '100%',
-        marginBottom: 12,
+    thumbnailStripWrapper: {
+        marginTop: 12,
     },
-    footerRow: {
+    thumbnailStripContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
         gap: 8,
     },
-    trailChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.STATUS_APPROVED_BG,
-        borderWidth: 1,
-        borderColor: Colors.STATUS_APPROVED_BORDER,
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        gap: 6,
-        flexShrink: 1,
+    thumbnailItem: {
+        width: 48,
+        height: 48,
+        borderRadius: 10,
+        overflow: 'hidden',
+        borderWidth: 1.5,
+        borderColor: Colors.GRAY_LIGHT,
+        backgroundColor: Colors.GRAY_ULTRALIGHT,
+        opacity: 0.75,
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+            },
+        }),
     },
-    trailChipText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: Colors.PRIMARY,
-        flexShrink: 1,
+    thumbnailItemActive: {
+        borderColor: Colors.PRIMARY,
+        borderWidth: 2,
+        opacity: 1,
     },
-    hikeDateRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-    },
-    hikeDateText: {
-        fontSize: 12,
-        color: Colors.TEXT_SECONDARY,
+    thumbnailItemImage: {
+        width: '100%',
+        height: '100%',
     },
 });
 
-export default React.memo(BusinessReviewCard);
+export default React.memo(BusinessReviewCard, (prevProps, nextProps) => {
+    const prevLiked = prevProps.isLiked && prevProps.review ? prevProps.isLiked(prevProps.review) : false;
+    const nextLiked = nextProps.isLiked && nextProps.review ? nextProps.isLiked(nextProps.review) : false;
+
+    return (
+        prevProps.review === nextProps.review &&
+        prevLiked === nextLiked
+    );
+});
